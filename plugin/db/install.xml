@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="question/type/buchungssatz/db" VERSION="20240101" COMMENT="XMLDB file for Buchungssatz question type">
+  <TABLES>
+    <TABLE NAME="qtype_buchungssatz_options" COMMENT="Options for Buchungssatz questions">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Foreign key references question.id"/>
+        <FIELD NAME="chartofaccountsid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Reference to chart of accounts"/>
+        <FIELD NAME="allowmultipleentries" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" COMMENT="Allow multiple booking entries"/>
+        <FIELD NAME="maxentries" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="5" COMMENT="Maximum number of entries allowed"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="questionid" TYPE="foreign-unique" FIELDS="questionid" REFTABLE="question" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+
+    <TABLE NAME="qtype_buchungssatz_entries" COMMENT="Correct answer entries for Buchungssatz questions">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Foreign key references question.id"/>
+        <FIELD NAME="sortorder" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="0" COMMENT="Order of the entry"/>
+        <FIELD NAME="sollkonto" TYPE="char" LENGTH="100" NOTNULL="true" DEFAULT="" COMMENT="Debit account name/number"/>
+        <FIELD NAME="sollbetrag" TYPE="number" LENGTH="15" DECIMALS="2" NOTNULL="true" DEFAULT="0" COMMENT="Debit amount"/>
+        <FIELD NAME="habenkonto" TYPE="char" LENGTH="100" NOTNULL="true" DEFAULT="" COMMENT="Credit account name/number"/>
+        <FIELD NAME="habenbetrag" TYPE="number" LENGTH="15" DECIMALS="2" NOTNULL="true" DEFAULT="0" COMMENT="Credit amount"/>
+        <FIELD NAME="fraction" TYPE="number" LENGTH="12" DECIMALS="7" NOTNULL="true" DEFAULT="1" COMMENT="Fraction of total grade for this entry"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="questionid" TYPE="foreign" FIELDS="questionid" REFTABLE="question" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="questionid-sortorder" UNIQUE="false" FIELDS="questionid, sortorder"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="qtype_buchungssatz_accounts" COMMENT="Chart of accounts for Buchungssatz questions">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="chartid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Chart of accounts group ID"/>
+        <FIELD NAME="accountnumber" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="" COMMENT="Account number (e.g., 1000)"/>
+        <FIELD NAME="accountname" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" COMMENT="Account name"/>
+        <FIELD NAME="accounttype" TYPE="char" LENGTH="50" NOTNULL="true" DEFAULT="asset" COMMENT="Type: asset, liability, equity, revenue, expense"/>
+        <FIELD NAME="sortorder" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Display order"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="chartid-accountnumber" UNIQUE="true" FIELDS="chartid, accountnumber"/>
+        <INDEX NAME="chartid-sortorder" UNIQUE="false" FIELDS="chartid, sortorder"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="qtype_buchungssatz_charts" COMMENT="Chart of accounts definitions">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" COMMENT="Name of the chart of accounts"/>
+        <FIELD NAME="description" TYPE="text" NOTNULL="false" COMMENT="Description"/>
+        <FIELD NAME="contextid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Context where this chart is available"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+        <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="contextid" TYPE="foreign" FIELDS="contextid" REFTABLE="context" REFFIELDS="id"/>
+        <KEY NAME="usermodified" TYPE="foreign" FIELDS="usermodified" REFTABLE="user" REFFIELDS="id"/>
+      </KEYS>
+    </TABLE>
+  </TABLES>
+</XMLDB>

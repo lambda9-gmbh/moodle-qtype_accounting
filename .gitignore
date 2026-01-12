@@ -1,0 +1,62 @@
+# Docker volumes (data is in Docker volumes, not local)
+docker/data/
+
+# Environment files with secrets
+docker/.env
+.env
+.env.local
+.env.*.local
+
+# IDE files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.project
+.settings/
+.buildpath
+nbproject/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# PHP
+vendor/
+composer.lock
+*.phar
+
+# Moodle generated files
+plugin/version.hash
+/moodledata/
+/config.php
+
+# Testing
+phpunit.xml
+.phpunit.result.cache
+coverage/
+.coverage
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.cache
+
+# Node (if using build tools)
+node_modules/
+npm-debug.log
+yarn-error.log

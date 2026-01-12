@@ -1,0 +1,154 @@
+/* Buchungssatz Question Type Styles */
+
+.buchungssatz-entries {
+    margin: 1rem 0;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+}
+
+.buchungssatz-header {
+    font-weight: bold;
+    border-bottom: 2px solid #dee2e6;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.buchungssatz-soll-header {
+    background-color: #d4edda;
+    padding: 0.5rem;
+    border-radius: 0.25rem 0 0 0;
+}
+
+.buchungssatz-haben-header {
+    background-color: #cce5ff;
+    padding: 0.5rem;
+    border-radius: 0 0.25rem 0 0;
+}
+
+.buchungssatz-subheader {
+    font-size: 0.875rem;
+    color: #6c757d;
+    padding: 0.25rem 0;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.buchungssatz-entry {
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed #dee2e6;
+}
+
+.buchungssatz-entry:last-child {
+    border-bottom: none;
+}
+
+.buchungssatz-account-select {
+    min-width: 200px;
+}
+
+.buchungssatz-amount {
+    text-align: right;
+    max-width: 120px;
+}
+
+.buchungssatz-readonly {
+    display: inline-block;
+    padding: 0.375rem 0.75rem;
+    background-color: #e9ecef;
+    border-radius: 0.25rem;
+    min-width: 80px;
+}
+
+.buchungssatz-balance {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+}
+
+/* Correct response display */
+.buchungssatz-correct-response {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 0.25rem;
+}
+
+.buchungssatz-solution {
+    margin-top: 0.5rem;
+}
+
+.buchungssatz-solution th {
+    background-color: #f8f9fa;
+    text-align: center;
+}
+
+.buchungssatz-solution td {
+    text-align: center;
+}
+
+/* Edit form styles */
+.buchungssatz-entry-form {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* T-Account visual style (optional enhanced view) */
+.buchungssatz-t-account {
+    display: flex;
+    border: 2px solid #333;
+    margin: 1rem 0;
+}
+
+.buchungssatz-t-account-side {
+    flex: 1;
+    padding: 1rem;
+}
+
+.buchungssatz-t-account-soll {
+    border-right: 2px solid #333;
+}
+
+.buchungssatz-t-account-title {
+    text-align: center;
+    font-weight: bold;
+    border-bottom: 1px solid #333;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .buchungssatz-header .col-md-6,
+    .buchungssatz-subheader .col-md-3,
+    .buchungssatz-entry .col-md-3 {
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .buchungssatz-amount {
+        max-width: 100%;
+    }
+
+    .buchungssatz-account-select {
+        min-width: 100%;
+    }
+}
+
+/* Print styles */
+@media print {
+    .buchungssatz-entries {
+        border: 1px solid #000;
+        background-color: #fff;
+    }
+
+    .buchungssatz-account-select,
+    .buchungssatz-amount {
+        border: 1px solid #000;
+    }
+}
