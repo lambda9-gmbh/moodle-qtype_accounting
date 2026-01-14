@@ -29,11 +29,12 @@ require_once($CFG->dirroot . '/question/engine/lib.php');
 
 /**
  * The Buchungssatz question type.
+ *
+ * @package    qtype_buchungssatz
+ * @copyright  2024 Hochschule Flensburg / lambda9
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_buchungssatz extends question_type {
-
-    /** @var int Maximum number of entry fields supported */
-    const MAX_ENTRY_FIELDS = 50;
 
     /**
      * Whether this question type can be used for random questions.
@@ -47,9 +48,9 @@ class qtype_buchungssatz extends question_type {
     /**
      * Move files from the old area to the new.
      *
-     * @param int $questionid
-     * @param int $oldcontextid
-     * @param int $newcontextid
+     * @param int $questionid The question ID.
+     * @param int $oldcontextid The old context ID.
+     * @param int $newcontextid The new context ID.
      */
     public function move_files($questionid, $oldcontextid, $newcontextid): void {
         parent::move_files($questionid, $oldcontextid, $newcontextid);
@@ -59,8 +60,8 @@ class qtype_buchungssatz extends question_type {
     /**
      * Delete the files used by this question.
      *
-     * @param int $questionid
-     * @param int $contextid
+     * @param int $questionid The question ID.
+     * @param int $contextid The context ID.
      */
     protected function delete_files($questionid, $contextid): void {
         parent::delete_files($questionid, $contextid);
@@ -71,13 +72,10 @@ class qtype_buchungssatz extends question_type {
      * Save the question-type specific options.
      *
      * @param object $question The question being saved.
-     * @return object
+     * @return bool True on success.
      */
     public function save_question_options($question) {
         global $DB;
-
-        $context = $question->context;
-        $result = new stdClass();
 
         // Delete old options.
         $DB->delete_records('qtype_buchungssatz_options', ['questionid' => $question->id]);
@@ -91,24 +89,28 @@ class qtype_buchungssatz extends question_type {
         $options->maxentries = $question->maxentries ?? 5;
         $DB->insert_record('qtype_buchungssatz_options', $options);
 
-        // Save correct answer entries (Soll and Haben).
-        // Form fields are named sollkonto_0, sollbetrag_0, etc.
-        for ($i = 0; $i < self::MAX_ENTRY_FIELDS; $i++) {
-            $sollkonto = trim($question->{'sollkonto_' . $i} ?? '');
-            $habenkonto = trim($question->{'habenkonto_' . $i} ?? '');
+        // Save correct answer entries. Credit (Haben) account is required, Debit (Soll) is optional.
+        // Form fields are arrays: sollkonto[], sollbetrag[], etc.
+        $entrycount = $question->entry_repeats ?? 0;
+        $sortorder = 0;
 
-            if (empty($sollkonto) && empty($habenkonto)) {
+        for ($i = 0; $i < $entrycount; $i++) {
+            $sollkonto = trim($question->sollkonto[$i] ?? '');
+            $habenkonto = trim($question->habenkonto[$i] ?? '');
+
+            // Only save entries that have a Credit (Haben) account.
+            if (empty($habenkonto)) {
                 continue;
             }
 
             $record = new stdClass();
             $record->questionid = $question->id;
-            $record->sortorder = $i;
+            $record->sortorder = $sortorder++;
             $record->sollkonto = $sollkonto;
-            $record->sollbetrag = floatval($question->{'sollbetrag_' . $i} ?? 0);
+            $record->sollbetrag = floatval($question->sollbetrag[$i] ?? 0);
             $record->habenkonto = $habenkonto;
-            $record->habenbetrag = floatval($question->{'habenbetrag_' . $i} ?? 0);
-            $record->fraction = floatval($question->{'fraction_' . $i} ?? 1.0);
+            $record->habenbetrag = floatval($question->habenbetrag[$i] ?? 0);
+            $record->fraction = floatval($question->fraction[$i] ?? 1.0);
             $DB->insert_record('qtype_buchungssatz_entries', $record);
         }
 
@@ -120,8 +122,8 @@ class qtype_buchungssatz extends question_type {
     /**
      * Get the question options.
      *
-     * @param object $question
-     * @return bool
+     * @param object $question The question object to populate.
+     * @return bool True on success.
      */
     public function get_question_options($question): bool {
         global $DB;
@@ -147,8 +149,8 @@ class qtype_buchungssatz extends question_type {
     /**
      * Initialise the common question_definition fields.
      *
-     * @param question_definition $question
-     * @param object $questiondata
+     * @param question_definition $question The question definition to initialise.
+     * @param object $questiondata The question data from the database.
      */
     protected function initialise_question_instance(question_definition $question, $questiondata): void {
         parent::initialise_question_instance($question, $questiondata);
@@ -174,8 +176,8 @@ class qtype_buchungssatz extends question_type {
     /**
      * Delete a question from the database.
      *
-     * @param int $questionid
-     * @param int $contextid
+     * @param int $questionid The question ID.
+     * @param int $contextid The context ID.
      */
     public function delete_question($questionid, $contextid): void {
         global $DB;
@@ -189,8 +191,8 @@ class qtype_buchungssatz extends question_type {
     /**
      * Get the random guess score.
      *
-     * @param object $questiondata
-     * @return float|null
+     * @param object $questiondata The question data.
+     * @return float|null The random guess score.
      */
     public function get_random_guess_score($questiondata): ?float {
         return 0;
@@ -199,8 +201,8 @@ class qtype_buchungssatz extends question_type {
     /**
      * Get possible responses for reporting.
      *
-     * @param object $questiondata
-     * @return array
+     * @param object $questiondata The question data.
+     * @return array The possible responses.
      */
     public function get_possible_responses($questiondata): array {
         return [];
@@ -209,7 +211,7 @@ class qtype_buchungssatz extends question_type {
     /**
      * Define extra columns needed in the question bank.
      *
-     * @return array
+     * @return array The extra question fields.
      */
     public function extra_question_fields(): array {
         return ['qtype_buchungssatz_options', 'chartofaccountsid', 'allowmultipleentries', 'maxentries'];

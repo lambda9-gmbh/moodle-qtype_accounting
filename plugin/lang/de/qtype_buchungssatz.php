@@ -37,7 +37,7 @@ $string['allowmultipleentries'] = 'Mehrere Buchungszeilen erlauben';
 $string['allowmultipleentries_help'] = 'Wenn aktiviert, können Studierende mehrere Buchungszeilen eingeben (z.B. für zusammengesetzte Buchungssätze).';
 $string['maxentries'] = 'Maximale Anzahl Buchungszeilen';
 $string['correctanswer'] = 'Musterlösung';
-$string['entry'] = 'Buchungszeile {$a}';
+$string['entry'] = 'Buchungszeile {no}';
 $string['addentry'] = 'Buchungszeile hinzufügen';
 $string['deleteentry'] = 'Löschen';
 
@@ -113,13 +113,16 @@ $string['accountname'] = 'Kontobezeichnung';
 
 // CSV-Import.
 $string['importfromcsv'] = 'Aus Excel/CSV importieren';
-$string['importhelp'] = 'Fügen Sie Buchhaltungsdaten aus Excel oder CSV ein. Unterstützte Formate:<br>
+$string['importhelp'] = 'Laden Sie eine CSV-Datei mit Buchhaltungsdaten hoch. Unterstützte Formate:<br>
 <strong>Vollständiges Format:</strong> Sollkonto, Sollkontoname, Sollbetrag, Habenkonto, Habenkontoname, Habenbetrag<br>
 <strong>Kompaktes Format:</strong> Sollkonto, Sollbetrag, Habenkonto, Habenbetrag<br>
 Verwenden Sie Tab, Semikolon oder Komma als Trennzeichen. Deutsches Zahlenformat (1.234,56) wird unterstützt.';
 $string['csvdata'] = 'CSV/Excel-Daten';
+$string['csvfile'] = 'CSV-Datei';
 $string['importentries'] = 'Buchungen importieren';
-$string['nocsverror'] = 'Bitte geben Sie CSV-Daten zum Importieren ein.';
+$string['nocsverror'] = 'Die CSV-Datei ist leer.';
+$string['nofileselected'] = 'Keine Datei ausgewählt';
+$string['filereaderror'] = 'Fehler beim Lesen der Datei. Bitte versuchen Sie es erneut.';
 $string['importsuccess'] = 'Import erfolgreich! ';
 $string['entriesimported'] = 'Buchungen importiert.';
 $string['importerror'] = 'Importfehler: ';
@@ -129,3 +132,5 @@ $string['csvinvalidformat'] = 'Soll- und Habenkonto-Spalten konnten nicht erkann
 $string['csvnoentries'] = 'Keine gültigen Buchungen in den CSV-Daten gefunden.';
 $string['importedchart'] = 'Importierter Kontenplan';
 $string['importedchartdesc'] = 'Kontenplan aus CSV-Daten importiert.';
+$string['autoCalculatedFromFractions'] = 'Automatisch berechnet aus der Summe der Punktzahlen';
+$string['selectDebitAccountFirst'] = 'Bitte zuerst ein Sollkonto auswählen';

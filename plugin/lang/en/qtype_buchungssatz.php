@@ -37,13 +37,13 @@ $string['allowmultipleentries'] = 'Allow multiple entries';
 $string['allowmultipleentries_help'] = 'If enabled, students can enter multiple booking lines (e.g., for compound journal entries).';
 $string['maxentries'] = 'Maximum entries';
 $string['correctanswer'] = 'Correct Answer';
-$string['entry'] = 'Entry {$a}';
+$string['entry'] = 'Entry {no}';
 $string['addentry'] = 'Add Entry';
 $string['deleteentry'] = 'Delete';
 
 // Account fields.
-$string['soll'] = 'Debit (Soll)';
-$string['haben'] = 'Credit (Haben)';
+$string['soll'] = 'Debit';
+$string['haben'] = 'Credit';
 $string['account'] = 'Account';
 $string['accountnumber'] = 'Account number';
 $string['amount'] = 'Amount';
@@ -113,13 +113,16 @@ $string['accountname'] = 'Account name';
 
 // CSV Import.
 $string['importfromcsv'] = 'Import from Excel/CSV';
-$string['importhelp'] = 'Paste accounting data from Excel or CSV. Supported formats:<br>
+$string['importhelp'] = 'Upload a CSV file with accounting data. Supported formats:<br>
 <strong>Full format:</strong> Debit Account, Debit Name, Debit Amount, Credit Account, Credit Name, Credit Amount<br>
 <strong>Compact format:</strong> Debit Account, Debit Amount, Credit Account, Credit Amount<br>
 Use tab, semicolon, or comma as delimiter. German number format (1.234,56) is supported.';
 $string['csvdata'] = 'CSV/Excel data';
+$string['csvfile'] = 'CSV file';
 $string['importentries'] = 'Import Entries';
-$string['nocsverror'] = 'Please enter CSV data to import.';
+$string['nocsverror'] = 'The CSV file is empty.';
+$string['nofileselected'] = 'No file selected';
+$string['filereaderror'] = 'Error reading the file. Please try again.';
 $string['importsuccess'] = 'Import successful! ';
 $string['entriesimported'] = 'entries imported.';
 $string['importerror'] = 'Import error: ';
@@ -129,3 +132,5 @@ $string['csvinvalidformat'] = 'Could not detect debit and credit account columns
 $string['csvnoentries'] = 'No valid entries found in CSV data.';
 $string['importedchart'] = 'Imported Chart';
 $string['importedchartdesc'] = 'Chart of accounts imported from CSV data.';
+$string['autoCalculatedFromFractions'] = 'Auto-calculated from the sum of entry points';
+$string['selectDebitAccountFirst'] = 'Please select a debit account first';

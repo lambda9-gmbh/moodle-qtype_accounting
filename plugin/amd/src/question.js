@@ -28,13 +28,21 @@ define(['jquery'], function($) {
      *
      * @param {string} questionDivId The ID of the question container.
      * @param {Array} accounts The available accounts for selection.
+     * @param {number} maxEntries Maximum number of entries allowed.
+     * @param {boolean} allowEdit Whether the user can add/delete entries.
      */
-    function init(questionDivId, accounts) {
-        var container = $('#' + questionDivId);
+    function init(containerId, accounts, maxEntries, allowEdit) {
+        var container = $('#' + containerId);
 
         if (container.length === 0) {
+            console.log('Buchungssatz: Container not found: ' + containerId);
             return;
         }
+
+        console.log('Buchungssatz: Initialized container: ' + containerId);
+
+        maxEntries = maxEntries || 1;
+        allowEdit = allowEdit !== false;
 
         // Enable searchable dropdowns if Select2 is available.
         if (typeof $.fn.select2 !== 'undefined') {
@@ -56,56 +64,133 @@ define(['jquery'], function($) {
             }
         });
 
-        // Validate that Soll and Haben amounts balance.
-        container.find('.buchungssatz-amount').on('change', function() {
-            validateBalance(container);
-        });
 
-        // Initial validation.
-        validateBalance(container);
+        // Add entry button handler.
+        if (allowEdit && maxEntries > 1) {
+            container.find('.buchungssatz-add-entry').on('click', function() {
+                console.log('Buchungssatz: Add entry clicked');
+                addEntry(container, maxEntries);
+            });
+
+            // Delete entry button handler (using delegation for dynamically shown rows).
+            container.on('click', '.buchungssatz-delete-entry', function() {
+                var entryIndex = $(this).data('entry');
+                console.log('Buchungssatz: Delete entry clicked: ' + entryIndex);
+                deleteEntry(container, entryIndex);
+            });
+
+            // Update delete button visibility.
+            updateDeleteButtons(container);
+        }
     }
 
     /**
-     * Validate that total Soll equals total Haben.
+     * Add a new entry row.
+     *
+     * @param {jQuery} container The question container.
+     * @param {number} maxEntries Maximum number of entries.
+     */
+    function addEntry(container, maxEntries) {
+        var entries = container.find('.buchungssatz-entry');
+        var hiddenEntries = entries.filter(function() {
+            return $(this).css('display') === 'none';
+        });
+
+        if (hiddenEntries.length > 0) {
+            var firstHidden = hiddenEntries.first();
+            firstHidden.css('display', 'flex');
+
+            // Re-initialize Select2 if available.
+            if (typeof $.fn.select2 !== 'undefined') {
+                firstHidden.find('.buchungssatz-account-select').select2({
+                    placeholder: M.util.get_string('selectaccount', 'qtype_buchungssatz'),
+                    allowClear: true,
+                    width: '100%'
+                });
+            }
+
+            updateDeleteButtons(container);
+            updateAddButton(container, maxEntries);
+        }
+    }
+
+    /**
+     * Delete an entry row.
+     *
+     * @param {jQuery} container The question container.
+     * @param {number} entryIndex The index of the entry to delete.
+     */
+    function deleteEntry(container, entryIndex) {
+        var visibleEntries = container.find('.buchungssatz-entry').filter(function() {
+            return $(this).css('display') !== 'none';
+        });
+
+        // Don't delete if only one entry remains.
+        if (visibleEntries.length <= 1) {
+            return;
+        }
+
+        var entryRow = container.find('.buchungssatz-entry[data-entry="' + entryIndex + '"]');
+        if (entryRow.length > 0) {
+            // Clear the fields.
+            entryRow.find('select').val('');
+            entryRow.find('input[type="number"]').val('');
+
+            // Destroy Select2 if active.
+            if (typeof $.fn.select2 !== 'undefined') {
+                entryRow.find('.buchungssatz-account-select').each(function() {
+                    if ($(this).data('select2')) {
+                        $(this).select2('destroy');
+                    }
+                });
+            }
+
+            // Hide the row.
+            entryRow.css('display', 'none');
+
+            updateDeleteButtons(container);
+            updateAddButton(container, 50); // Use high number, actual max from init.
+        }
+    }
+
+    /**
+     * Update delete button visibility.
+     * Hide delete buttons if only one entry is visible.
      *
      * @param {jQuery} container The question container.
      */
-    function validateBalance(container) {
-        var totalSoll = 0;
-        var totalHaben = 0;
-
-        container.find('input[name*="sollbetrag"]').each(function() {
-            var val = parseFloat($(this).val()) || 0;
-            totalSoll += val;
+    function updateDeleteButtons(container) {
+        var visibleEntries = container.find('.buchungssatz-entry').filter(function() {
+            return $(this).css('display') !== 'none';
         });
 
-        container.find('input[name*="habenbetrag"]').each(function() {
-            var val = parseFloat($(this).val()) || 0;
-            totalHaben += val;
-        });
-
-        // Show balance indicator.
-        var balanceIndicator = container.find('.buchungssatz-balance');
-        if (balanceIndicator.length === 0) {
-            balanceIndicator = $('<div class="buchungssatz-balance alert"></div>');
-            container.find('.buchungssatz-entries').append(balanceIndicator);
-        }
-
-        var diff = Math.abs(totalSoll - totalHaben);
-        if (diff < 0.01 && totalSoll > 0) {
-            balanceIndicator
-                .removeClass('alert-warning alert-danger')
-                .addClass('alert-success')
-                .text(M.util.get_string('balanced', 'qtype_buchungssatz') ||
-                    'Soll = Haben (' + totalSoll.toFixed(2) + ')');
-        } else if (totalSoll > 0 || totalHaben > 0) {
-            balanceIndicator
-                .removeClass('alert-success alert-danger')
-                .addClass('alert-warning')
-                .text('Soll: ' + totalSoll.toFixed(2) + ' / Haben: ' + totalHaben.toFixed(2) +
-                    ' (Differenz: ' + diff.toFixed(2) + ')');
+        if (visibleEntries.length <= 1) {
+            container.find('.buchungssatz-delete-entry').css('display', 'none');
         } else {
-            balanceIndicator.hide();
+            container.find('.buchungssatz-entry').each(function() {
+                if ($(this).css('display') !== 'none') {
+                    $(this).find('.buchungssatz-delete-entry').css('display', 'inline-block');
+                }
+            });
+        }
+    }
+
+    /**
+     * Update add button visibility.
+     *
+     * @param {jQuery} container The question container.
+     * @param {number} maxEntries Maximum entries allowed.
+     */
+    function updateAddButton(container, maxEntries) {
+        var visibleEntries = container.find('.buchungssatz-entry').filter(function() {
+            return $(this).css('display') !== 'none';
+        });
+
+        var addButton = container.find('.buchungssatz-add-entry');
+        if (visibleEntries.length >= maxEntries) {
+            addButton.css('display', 'none');
+        } else {
+            addButton.css('display', 'inline-block');
         }
     }
 

@@ -28,6 +28,10 @@ defined('MOODLE_INTERNAL') || die();
 
 /**
  * Manager class for charts of accounts.
+ *
+ * @package    qtype_buchungssatz
+ * @copyright  2024 Hochschule Flensburg / lambda9
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class chart_manager {
 
@@ -59,7 +63,7 @@ class chart_manager {
      * @param int $chartid Chart ID.
      * @param string $name Chart name.
      * @param string $description Chart description.
-     * @return bool
+     * @return bool True on success.
      */
     public static function update_chart(int $chartid, string $name, string $description): bool {
         global $DB, $USER;
@@ -77,7 +81,7 @@ class chart_manager {
      * Delete a chart of accounts.
      *
      * @param int $chartid Chart ID.
-     * @return bool
+     * @return bool True on success.
      */
     public static function delete_chart(int $chartid): bool {
         global $DB;
@@ -93,7 +97,7 @@ class chart_manager {
      * Get a chart by ID.
      *
      * @param int $chartid Chart ID.
-     * @return object|false
+     * @return object|false The chart record or false if not found.
      */
     public static function get_chart(int $chartid) {
         global $DB;
@@ -104,7 +108,7 @@ class chart_manager {
      * Get all charts for a context.
      *
      * @param int $contextid Context ID.
-     * @return array
+     * @return array The chart records.
      */
     public static function get_charts_for_context(int $contextid): array {
         global $DB;
@@ -144,7 +148,7 @@ class chart_manager {
      * Get accounts for a chart.
      *
      * @param int $chartid Chart ID.
-     * @return array
+     * @return array The account records.
      */
     public static function get_accounts(int $chartid): array {
         global $DB;
@@ -159,7 +163,7 @@ class chart_manager {
      * @param string $accountnumber Account number.
      * @param string $accountname Account name.
      * @param string $accounttype Account type.
-     * @return bool
+     * @return bool True on success.
      */
     public static function update_account(
         int $accountid,
@@ -181,7 +185,7 @@ class chart_manager {
      * Delete an account.
      *
      * @param int $accountid Account ID.
-     * @return bool
+     * @return bool True on success.
      */
     public static function delete_account(int $accountid): bool {
         global $DB;

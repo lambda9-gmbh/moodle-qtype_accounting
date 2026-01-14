@@ -26,6 +26,10 @@ defined('MOODLE_INTERNAL') || die();
 
 /**
  * Represents a Buchungssatz question.
+ *
+ * @package    qtype_buchungssatz
+ * @copyright  2024 Hochschule Flensburg / lambda9
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_buchungssatz_question extends question_graded_automatically {
 
@@ -41,16 +45,19 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /** @var array The correct answer entries. */
     public $entries = [];
 
+    /** @var int Maximum entries allowed for student responses. */
+    const MAX_STUDENT_ENTRIES = 20;
+
     /**
      * Get the expected data keys for the question.
      *
-     * @return array
+     * @return array The expected data keys and their types.
      */
     public function get_expected_data(): array {
         $expected = [];
-        $maxentries = $this->allowmultipleentries ? $this->maxentries : 1;
 
-        for ($i = 0; $i < $maxentries; $i++) {
+        // Always allow up to MAX_STUDENT_ENTRIES for student responses.
+        for ($i = 0; $i < self::MAX_STUDENT_ENTRIES; $i++) {
             $expected["sollkonto_{$i}"] = PARAM_TEXT;
             $expected["sollbetrag_{$i}"] = PARAM_FLOAT;
             $expected["habenkonto_{$i}"] = PARAM_TEXT;
@@ -63,7 +70,7 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /**
      * Get the correct response.
      *
-     * @return array
+     * @return array The correct response data.
      */
     public function get_correct_response(): array {
         $response = [];
@@ -81,14 +88,13 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /**
      * Summarise the response for display.
      *
-     * @param array $response
-     * @return string
+     * @param array $response The response data.
+     * @return string|null The summary string.
      */
     public function summarise_response(array $response): ?string {
         $parts = [];
-        $maxentries = $this->allowmultipleentries ? $this->maxentries : 1;
 
-        for ($i = 0; $i < $maxentries; $i++) {
+        for ($i = 0; $i < self::MAX_STUDENT_ENTRIES; $i++) {
             $sollkonto = $response["sollkonto_{$i}"] ?? '';
             $sollbetrag = $response["sollbetrag_{$i}"] ?? '';
             $habenkonto = $response["habenkonto_{$i}"] ?? '';
@@ -111,8 +117,8 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /**
      * Check if a response is complete.
      *
-     * @param array $response
-     * @return bool
+     * @param array $response The response data.
+     * @return bool True if the response is complete.
      */
     public function is_complete_response(array $response): bool {
         // At least one entry must be filled.
@@ -125,8 +131,8 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /**
      * Check if a response is gradable.
      *
-     * @param array $response
-     * @return bool
+     * @param array $response The response data.
+     * @return bool True if the response is gradable.
      */
     public function is_gradable_response(array $response): bool {
         return $this->is_complete_response($response);
@@ -135,8 +141,8 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /**
      * Get validation error for a response.
      *
-     * @param array $response
-     * @return string
+     * @param array $response The response data.
+     * @return string The validation error message.
      */
     public function get_validation_error(array $response): string {
         if (!$this->is_complete_response($response)) {
@@ -148,14 +154,12 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /**
      * Check if two responses are the same.
      *
-     * @param array $prevresponse
-     * @param array $newresponse
-     * @return bool
+     * @param array $prevresponse The previous response.
+     * @param array $newresponse The new response.
+     * @return bool True if the responses are the same.
      */
     public function is_same_response(array $prevresponse, array $newresponse): bool {
-        $maxentries = $this->allowmultipleentries ? $this->maxentries : 1;
-
-        for ($i = 0; $i < $maxentries; $i++) {
+        for ($i = 0; $i < self::MAX_STUDENT_ENTRIES; $i++) {
             $fields = ["sollkonto_{$i}", "sollbetrag_{$i}", "habenkonto_{$i}", "habenbetrag_{$i}"];
             foreach ($fields as $field) {
                 $prev = $prevresponse[$field] ?? '';
@@ -172,8 +176,8 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /**
      * Grade the response.
      *
-     * @param array $response
-     * @return array [fraction, state]
+     * @param array $response The response data.
+     * @return array The grade as [fraction, state].
      */
     public function grade_response(array $response): array {
         $fraction = $this->calculate_fraction($response);
@@ -190,8 +194,8 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /**
      * Calculate the fraction of correctness.
      *
-     * @param array $response
-     * @return float
+     * @param array $response The response data.
+     * @return float The fraction of correctness (0 to 1).
      */
     protected function calculate_fraction(array $response): float {
         if (empty($this->entries)) {
@@ -236,14 +240,13 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /**
      * Parse the response into structured entries.
      *
-     * @param array $response
-     * @return array
+     * @param array $response The response data.
+     * @return array The parsed entries.
      */
     protected function parse_response(array $response): array {
         $entries = [];
-        $maxentries = $this->allowmultipleentries ? $this->maxentries : 1;
 
-        for ($i = 0; $i < $maxentries; $i++) {
+        for ($i = 0; $i < self::MAX_STUDENT_ENTRIES; $i++) {
             $sollkonto = trim($response["sollkonto_{$i}"] ?? '');
             $habenkonto = trim($response["habenkonto_{$i}"] ?? '');
 
@@ -263,9 +266,9 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /**
      * Check if a student entry matches a correct entry.
      *
-     * @param array $student
-     * @param array $correct
-     * @return bool
+     * @param array $student The student entry.
+     * @param array $correct The correct entry.
+     * @return bool True if the entries match.
      */
     protected function entries_match(array $student, array $correct): bool {
         // Compare accounts (case-insensitive).
@@ -282,9 +285,9 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /**
      * Compute the final grade.
      *
-     * @param array $responses
-     * @param int $totaltries
-     * @return float
+     * @param array $responses All responses from the attempts.
+     * @param int $totaltries The total number of tries.
+     * @return float The final grade fraction.
      */
     public function compute_final_grade($responses, $totaltries): float {
         $fraction = 0;

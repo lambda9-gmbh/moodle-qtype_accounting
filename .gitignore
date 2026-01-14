@@ -60,3 +60,6 @@ logs/
 node_modules/
 npm-debug.log
 yarn-error.log
+
+# AMD build files (generated from src)
+plugin/amd/build/

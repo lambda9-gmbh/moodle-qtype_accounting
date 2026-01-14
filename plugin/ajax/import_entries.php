@@ -127,16 +127,26 @@ function parse_and_import_csv(string $csvdata): array {
         throw new Exception(get_string('csvnoentries', 'qtype_buchungssatz'));
     }
 
-    // Create a new chart of accounts with imported accounts.
-    $contextid = context_system::instance()->id;
-    $chartname = get_string('importedchart', 'qtype_buchungssatz') . ' ' . date('Y-m-d H:i');
-    $chartid = chart_manager::create_chart($chartname, get_string('importedchartdesc', 'qtype_buchungssatz'), $contextid);
+    // Check if a chart with the same accounts already exists.
+    $chartid = find_matching_chart($accounts);
+    $chartname = '';
 
-    // Add accounts to the chart.
-    $sortorder = 0;
-    foreach ($accounts as $number => $name) {
-        $accounttype = guess_account_type($number);
-        chart_manager::add_account($chartid, $number, $name, $accounttype, $sortorder++);
+    if ($chartid) {
+        // Use existing chart.
+        $chart = $DB->get_record('qtype_buchungssatz_charts', ['id' => $chartid]);
+        $chartname = $chart->name;
+    } else {
+        // Create a new chart of accounts with imported accounts.
+        $contextid = context_system::instance()->id;
+        $chartname = get_string('importedchart', 'qtype_buchungssatz') . ' ' . date('Y-m-d H:i');
+        $chartid = chart_manager::create_chart($chartname, get_string('importedchartdesc', 'qtype_buchungssatz'), $contextid);
+
+        // Add accounts to the chart.
+        $sortorder = 0;
+        foreach ($accounts as $number => $name) {
+            $accounttype = guess_account_type($number);
+            chart_manager::add_account($chartid, $number, $name, $accounttype, $sortorder++);
+        }
     }
 
     // Get all charts and accounts for dropdown refresh.
@@ -189,25 +199,29 @@ function detect_column_mapping(array $firstrow): array {
     $hasheader = false;
     $columns = [];
 
-    // Check for known header patterns.
+    // Check for known header patterns (order matters - more specific patterns first).
     $headerpatterns = [
-        'sollkonto' => ['soll', 'debit', 'sollkonto', 'debit account', 'konto soll', 'soll-konto'],
-        'sollname' => ['soll name', 'debit name', 'sollkontoname', 'soll konto name', 'soll-kontoname'],
-        'sollbetrag' => ['soll betrag', 'debit amount', 'sollbetrag', 'soll-betrag', 'betrag soll'],
-        'habenkonto' => ['haben', 'credit', 'habenkonto', 'credit account', 'konto haben', 'haben-konto'],
-        'habenname' => ['haben name', 'credit name', 'habenkontoname', 'haben konto name', 'haben-kontoname'],
-        'habenbetrag' => ['haben betrag', 'credit amount', 'habenbetrag', 'haben-betrag', 'betrag haben'],
+        'sollbetrag' => ['sollbetrag', 'soll betrag', 'soll-betrag', 'betrag soll', 'debit amount'],
+        'habenbetrag' => ['habenbetrag', 'haben betrag', 'haben-betrag', 'betrag haben', 'credit amount'],
+        'sollname' => ['sollname', 'soll name', 'sollkontoname', 'soll konto name', 'soll-kontoname', 'debit name'],
+        'habenname' => ['habenname', 'haben name', 'habenkontoname', 'haben konto name', 'haben-kontoname', 'credit name'],
+        'sollkonto' => ['sollkonto', 'soll-konto', 'konto soll', 'debit account', 'debit', 'soll'],
+        'habenkonto' => ['habenkonto', 'haben-konto', 'konto haben', 'credit account', 'credit', 'haben'],
     ];
 
     // Try to match headers.
     foreach ($firstrow as $colindex => $colvalue) {
         $colvalue = strtolower(trim($colvalue));
         foreach ($headerpatterns as $field => $patterns) {
+            // Skip if this field is already mapped.
+            if (isset($columns[$field])) {
+                continue;
+            }
             foreach ($patterns as $pattern) {
-                if (strpos($colvalue, $pattern) !== false) {
+                if ($colvalue === $pattern || strpos($colvalue, $pattern) !== false) {
                     $columns[$field] = $colindex;
                     $hasheader = true;
-                    break 2;
+                    break 2; // Break out of patterns and headerpatterns loops, continue with next column.
                 }
             }
         }
@@ -323,4 +337,45 @@ function guess_account_type(string $accountnumber): string {
         default:
             return 'asset';
     }
+}
+
+/**
+ * Find an existing chart that contains all the required accounts.
+ *
+ * @param array $accounts Array of account numbers => names to match.
+ * @return int|null Chart ID if found, null otherwise.
+ */
+function find_matching_chart(array $accounts): ?int {
+    global $DB;
+
+    $requiredaccounts = array_keys($accounts);
+    sort($requiredaccounts);
+
+    // Get all existing charts.
+    $charts = $DB->get_records('qtype_buchungssatz_charts');
+
+    foreach ($charts as $chart) {
+        // Get accounts for this chart.
+        $chartaccounts = $DB->get_records('qtype_buchungssatz_accounts', ['chartid' => $chart->id]);
+        $chartaccountnumbers = [];
+        foreach ($chartaccounts as $acc) {
+            $chartaccountnumbers[] = $acc->accountnumber;
+        }
+        sort($chartaccountnumbers);
+
+        // Check if this chart contains all required accounts.
+        $hasallaccounts = true;
+        foreach ($requiredaccounts as $required) {
+            if (!in_array($required, $chartaccountnumbers)) {
+                $hasallaccounts = false;
+                break;
+            }
+        }
+
+        if ($hasallaccounts) {
+            return (int)$chart->id;
+        }
+    }
+
+    return null;
 }
