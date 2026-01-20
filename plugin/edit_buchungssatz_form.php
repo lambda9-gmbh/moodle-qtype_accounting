@@ -68,7 +68,7 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
             <div class="col-md-9 form-inline align-items-start felement">
                 <div class="custom-file-input-wrapper" style="display: flex; align-items: center; gap: 10px;">
                     <label for="buchungssatz-csv-file" class="btn btn-outline-secondary mb-0" style="cursor: pointer;">
-                        ' . get_string('choosefile', 'moodle') . '
+                        ' . get_string('choosefile', 'qtype_buchungssatz') . '
                     </label>
                     <span id="buchungssatz-csv-filename" style="color: #6c757d; font-size: 0.9em;">' . get_string('nofileselected', 'qtype_buchungssatz') . '</span>
                     <input type="file" id="buchungssatz-csv-file" accept=".csv,.txt" style="display: none;">
@@ -90,7 +90,8 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
 
         // Get all accounts for dropdowns.
         $allaccounts = $this->get_all_accounts_by_chart();
-        $accountoptions = ['' => get_string('selectaccount', 'qtype_buchungssatz')];
+        $sollaccountoptions = ['' => get_string('noaccountselected', 'qtype_buchungssatz')];
+        $habenaccountoptions = ['' => get_string('selectaccount', 'qtype_buchungssatz')];
 
         // Get current chart and populate account options.
         $currentchartid = 0;
@@ -98,7 +99,8 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
             $currentchartid = $this->question->options->chartofaccountsid ?? 0;
         }
         if ($currentchartid && isset($allaccounts[$currentchartid])) {
-            $accountoptions = $accountoptions + $allaccounts[$currentchartid];
+            $sollaccountoptions = $sollaccountoptions + $allaccounts[$currentchartid];
+            $habenaccountoptions = $habenaccountoptions + $allaccounts[$currentchartid];
         }
 
         // Define the repeatable elements for entries.
@@ -109,13 +111,13 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $repeatarray[] = $mform->createElement('group', 'entry_header', '<strong style="font-size: 1.25rem;">' . get_string('entry', 'qtype_buchungssatz') . '</strong>', $repeatheader, null, false);
         $repeatarray[] = $mform->createElement('select', 'sollkonto',
             get_string('soll', 'qtype_buchungssatz') . ' ' . get_string('account', 'qtype_buchungssatz'),
-            $accountoptions, ['class' => 'buchungssatz-sollkonto']);
+            $sollaccountoptions, ['class' => 'buchungssatz-sollkonto']);
         $repeatarray[] = $mform->createElement('text', 'sollbetrag',
             get_string('soll', 'qtype_buchungssatz') . ' ' . get_string('amount', 'qtype_buchungssatz'),
             ['size' => 15, 'placeholder' => '0.00', 'class' => 'buchungssatz-sollbetrag']);
         $repeatarray[] = $mform->createElement('select', 'habenkonto',
             get_string('haben', 'qtype_buchungssatz') . ' ' . get_string('account', 'qtype_buchungssatz'),
-            $accountoptions, ['class' => 'buchungssatz-habenkonto']);
+            $habenaccountoptions, ['class' => 'buchungssatz-habenkonto']);
         $repeatarray[] = $mform->createElement('text', 'habenbetrag',
             get_string('haben', 'qtype_buchungssatz') . ' ' . get_string('amount', 'qtype_buchungssatz'),
             ['size' => 15, 'placeholder' => '0.00', 'class' => 'buchungssatz-habenbetrag']);
