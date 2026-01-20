@@ -120,6 +120,40 @@
     margin-bottom: 1rem;
 }
 
+/* Edit form table layout */
+.buchungssatz-entries-table {
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+.buchungssatz-entry-row {
+    transition: background-color 0.15s ease-in-out;
+}
+
+.buchungssatz-entry-row:hover {
+    background-color: #f8f9fa;
+}
+
+.buchungssatz-entry-row .form-control {
+    border-radius: 0.25rem;
+}
+
+.buchungssatz-entry-row select.form-control {
+    padding-right: 1.5rem;
+}
+
+.buchungssatz-entry-row .buchungssatz-sollbetrag,
+.buchungssatz-entry-row .buchungssatz-habenbetrag {
+    text-align: right;
+}
+
+.buchungssatz-entry-row .buchungssatz-delete-row {
+    line-height: 1;
+    padding: 0.2rem 0.5rem;
+    font-size: 1.1rem;
+}
+
 /* Entry header group - align delete button to the right */
 #fgroup_id_entry_header_0 .felement,
 [id^="fgroup_id_entry_header_"] .felement {

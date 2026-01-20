@@ -90,73 +90,167 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
 
         // Get all accounts for dropdowns.
         $allaccounts = $this->get_all_accounts_by_chart();
-        $sollaccountoptions = ['' => get_string('noaccountselected', 'qtype_buchungssatz')];
-        $habenaccountoptions = ['' => get_string('selectaccount', 'qtype_buchungssatz')];
 
-        // Get current chart and populate account options.
-        $currentchartid = 0;
-        if (!empty($this->question->options)) {
-            $currentchartid = $this->question->options->chartofaccountsid ?? 0;
-        }
-        if ($currentchartid && isset($allaccounts[$currentchartid])) {
-            $sollaccountoptions = $sollaccountoptions + $allaccounts[$currentchartid];
-            $habenaccountoptions = $habenaccountoptions + $allaccounts[$currentchartid];
-        }
-
-        // Define the repeatable elements for entries.
-        $repeatarray = [];
-        $repeatarray[] = $mform->createElement('html', '<div class="buchungssatz-entry-group card mb-3 p-3">');
-        $repeatheader = [];
-        $repeatheader[] = $mform->createElement('submit', 'entry_delete', get_string('deleteentry', 'qtype_buchungssatz'), ['class' => 'delete_entry']);
-        $repeatarray[] = $mform->createElement('group', 'entry_header', '<strong style="font-size: 1.25rem;">' . get_string('entry', 'qtype_buchungssatz') . '</strong>', $repeatheader, null, false);
-        $repeatarray[] = $mform->createElement('select', 'sollkonto',
-            get_string('soll', 'qtype_buchungssatz') . ' ' . get_string('account', 'qtype_buchungssatz'),
-            $sollaccountoptions, ['class' => 'buchungssatz-sollkonto']);
-        $repeatarray[] = $mform->createElement('text', 'sollbetrag',
-            get_string('soll', 'qtype_buchungssatz') . ' ' . get_string('amount', 'qtype_buchungssatz'),
-            ['size' => 15, 'placeholder' => '0.00', 'class' => 'buchungssatz-sollbetrag']);
-        $repeatarray[] = $mform->createElement('select', 'habenkonto',
-            get_string('haben', 'qtype_buchungssatz') . ' ' . get_string('account', 'qtype_buchungssatz'),
-            $habenaccountoptions, ['class' => 'buchungssatz-habenkonto']);
-        $repeatarray[] = $mform->createElement('text', 'habenbetrag',
-            get_string('haben', 'qtype_buchungssatz') . ' ' . get_string('amount', 'qtype_buchungssatz'),
-            ['size' => 15, 'placeholder' => '0.00', 'class' => 'buchungssatz-habenbetrag']);
-        $repeatarray[] = $mform->createElement('text', 'fraction',
-            get_string('fraction', 'qtype_buchungssatz'),
-            ['size' => 5, 'class' => 'buchungssatz-fraction']);
-        $repeatarray[] = $mform->createElement('html', '</div>');
-
-        // Set up repeat options.
-        $repeatoptions = [];
-        $repeatoptions['sollkonto']['type'] = PARAM_TEXT;
-        $repeatoptions['sollbetrag']['type'] = PARAM_RAW;
-        $repeatoptions['habenkonto']['type'] = PARAM_TEXT;
-        $repeatoptions['habenbetrag']['type'] = PARAM_RAW;
-        $repeatoptions['fraction']['type'] = PARAM_RAW;
-        $repeatoptions['fraction']['default'] = '1.0';
-
-        // Determine how many entries to show initially.
-        $repeatcount = 1;
+        // Load existing entries for pre-populating the table.
+        // Note: get_records returns associative array keyed by ID, convert to sequential.
+        $existingentries = [];
         if (!empty($this->question->options->entries)) {
-            $repeatcount = count($this->question->options->entries);
+            $existingentries = array_values($this->question->options->entries);
+        }
+        $initialrows = max(1, count($existingentries));
+
+        $sollplaceholder = get_string('noaccountselected', 'qtype_buchungssatz');
+        $habenplaceholder = get_string('selectaccount', 'qtype_buchungssatz');
+
+        // Build the table-based entry layout.
+        $tablehtml = '
+        <div class="form-group row fitem buchungssatz-entries-container">
+            <div class="col-md-12">
+                <div class="buchungssatz-entries-table">
+                    <!-- Header Row 1: Soll / Haben -->
+                    <div class="buchungssatz-header-main" style="display: flex; border-bottom: 1px solid #dee2e6; background: #f8f9fa;">
+                        <div style="flex: 2; text-align: center; font-weight: bold; padding: 0.5rem; border-right: 1px solid #dee2e6;">
+                            ' . get_string('soll', 'qtype_buchungssatz') . '
+                        </div>
+                        <div style="flex: 2; text-align: center; font-weight: bold; padding: 0.5rem; border-right: 1px solid #dee2e6;">
+                            ' . get_string('haben', 'qtype_buchungssatz') . '
+                        </div>
+                        <div style="flex: 0 0 80px; text-align: center; font-weight: bold; padding: 0.5rem;">
+                            ' . get_string('fraction', 'qtype_buchungssatz') . '
+                        </div>
+                        <div style="flex: 0 0 40px;"></div>
+                    </div>
+                    <!-- Header Row 2: Account / Amount / Account / Amount -->
+                    <div class="buchungssatz-header-sub" style="display: flex; border-bottom: 2px solid #dee2e6; background: #f8f9fa;">
+                        <div style="flex: 1; text-align: center; font-weight: 600; padding: 0.25rem; font-size: 0.9em;">
+                            ' . get_string('account', 'qtype_buchungssatz') . '
+                        </div>
+                        <div style="flex: 1; text-align: center; font-weight: 600; padding: 0.25rem; font-size: 0.9em; border-right: 1px solid #dee2e6;">
+                            ' . get_string('amount', 'qtype_buchungssatz') . '
+                        </div>
+                        <div style="flex: 1; text-align: center; font-weight: 600; padding: 0.25rem; font-size: 0.9em;">
+                            ' . get_string('account', 'qtype_buchungssatz') . '
+                        </div>
+                        <div style="flex: 1; text-align: center; font-weight: 600; padding: 0.25rem; font-size: 0.9em; border-right: 1px solid #dee2e6;">
+                            ' . get_string('amount', 'qtype_buchungssatz') . '
+                        </div>
+                        <div style="flex: 0 0 80px;"></div>
+                        <div style="flex: 0 0 40px;"></div>
+                    </div>
+                    <!-- Entry rows container -->
+                    <div id="buchungssatz-entry-rows">';
+
+        // Generate initial rows.
+        for ($i = 0; $i < $initialrows; $i++) {
+            $entry = isset($existingentries[$i]) ? $existingentries[$i] : null;
+            $sollkonto = $entry ? $entry->sollkonto : '';
+            $sollbetrag = $entry ? $entry->sollbetrag : '';
+            $habenkonto = $entry ? $entry->habenkonto : '';
+            $habenbetrag = $entry ? $entry->habenbetrag : '';
+            $fraction = $entry ? $entry->fraction : '1.0';
+
+            $tablehtml .= $this->render_entry_row_html($i, $sollkonto, $sollbetrag, $habenkonto, $habenbetrag, $fraction, $sollplaceholder, $habenplaceholder);
         }
 
-        // Add the repeating elements.
-        $this->repeat_elements(
-            $repeatarray,
-            $repeatcount,
-            $repeatoptions,
-            'entry_repeats',
-            'entry_add',
-            1,
-            get_string('addentry', 'qtype_buchungssatz'),
-            false,
-            'entry_delete',
-            true
-        );
+        $tablehtml .= '
+                    </div>
+                </div>
+                <!-- Add Entry Button -->
+                <div class="mt-2">
+                    <button type="button" class="btn btn-secondary btn-sm" id="buchungssatz-add-entry-btn">
+                        ' . get_string('addentry', 'qtype_buchungssatz') . '
+                    </button>
+                </div>
+            </div>
+        </div>';
+
+        $mform->addElement('html', $tablehtml);
+
+        // Add hidden field to track number of entries.
+        $mform->addElement('hidden', 'entry_repeats', $initialrows);
+        $mform->setType('entry_repeats', PARAM_INT);
+
+        // Add hidden form elements that Moodle will process.
+        // JavaScript will sync the visible table inputs to these hidden fields.
+        $maxentries = 20;
+        for ($i = 0; $i < $maxentries; $i++) {
+            $sollval = isset($existingentries[$i]) ? $existingentries[$i]->sollkonto : '';
+            $sollbval = isset($existingentries[$i]) ? $existingentries[$i]->sollbetrag : '';
+            $habenval = isset($existingentries[$i]) ? $existingentries[$i]->habenkonto : '';
+            $habenbval = isset($existingentries[$i]) ? $existingentries[$i]->habenbetrag : '';
+            $fracval = isset($existingentries[$i]) ? $existingentries[$i]->fraction : '1.0';
+
+            $mform->addElement('hidden', "sollkonto[$i]", $sollval);
+            $mform->setType("sollkonto[$i]", PARAM_TEXT);
+            $mform->addElement('hidden', "sollbetrag[$i]", $sollbval);
+            $mform->setType("sollbetrag[$i]", PARAM_RAW);
+            $mform->addElement('hidden', "habenkonto[$i]", $habenval);
+            $mform->setType("habenkonto[$i]", PARAM_TEXT);
+            $mform->addElement('hidden', "habenbetrag[$i]", $habenbval);
+            $mform->setType("habenbetrag[$i]", PARAM_RAW);
+            $mform->addElement('hidden', "fraction[$i]", $fracval);
+            $mform->setType("fraction[$i]", PARAM_RAW);
+        }
 
         // Add JavaScript for dynamic account dropdowns and other functionality.
-        $this->add_entry_javascript($mform, $allaccounts);
+        $this->add_entry_javascript($mform, $allaccounts, $sollplaceholder, $habenplaceholder);
+    }
+
+    /**
+     * Render HTML for a single entry row in the table.
+     *
+     * @param int $index The row index.
+     * @param string $sollkonto The debit account value.
+     * @param string $sollbetrag The debit amount value.
+     * @param string $habenkonto The credit account value.
+     * @param string $habenbetrag The credit amount value.
+     * @param string $fraction The points value.
+     * @param string $sollplaceholder The placeholder for debit account.
+     * @param string $habenplaceholder The placeholder for credit account.
+     * @return string The HTML for the row.
+     */
+    protected function render_entry_row_html(
+        int $index,
+        string $sollkonto,
+        string $sollbetrag,
+        string $habenkonto,
+        string $habenbetrag,
+        string $fraction,
+        string $sollplaceholder,
+        string $habenplaceholder
+    ): string {
+        $sollbetragdisabled = empty($sollkonto) ? 'disabled style="background-color: #e9ecef;"' : '';
+
+        return '
+        <div class="buchungssatz-entry-row" data-index="' . $index . '" style="display: flex; border-bottom: 1px solid #dee2e6; align-items: center;">
+            <div style="flex: 1; padding: 0.5rem;">
+                <select class="form-control buchungssatz-sollkonto">
+                    <option value="">' . s($sollplaceholder) . '</option>
+                </select>
+                <input type="hidden" class="sollkonto-value" value="' . s($sollkonto) . '">
+            </div>
+            <div style="flex: 1; padding: 0.5rem; border-right: 1px solid #dee2e6;">
+                <input type="number" value="' . s($sollbetrag) . '"
+                    class="form-control buchungssatz-sollbetrag" step="0.01" min="0" placeholder="0.00" ' . $sollbetragdisabled . '>
+            </div>
+            <div style="flex: 1; padding: 0.5rem;">
+                <select class="form-control buchungssatz-habenkonto">
+                    <option value="">' . s($habenplaceholder) . '</option>
+                </select>
+                <input type="hidden" class="habenkonto-value" value="' . s($habenkonto) . '">
+            </div>
+            <div style="flex: 1; padding: 0.5rem; border-right: 1px solid #dee2e6;">
+                <input type="number" value="' . s($habenbetrag) . '"
+                    class="form-control buchungssatz-habenbetrag" step="0.01" min="0" placeholder="0.00">
+            </div>
+            <div style="flex: 0 0 80px; padding: 0.5rem; text-align: center;">
+                <input type="text" value="' . s($fraction) . '"
+                    class="form-control buchungssatz-fraction" style="width: 60px; text-align: center;">
+            </div>
+            <div style="flex: 0 0 40px; padding: 0.5rem; text-align: center;">
+                <button type="button" class="btn btn-outline-danger btn-sm buchungssatz-delete-row" title="' . get_string('deleteentry', 'qtype_buchungssatz') . '">&times;</button>
+            </div>
+        </div>';
     }
 
     /**
@@ -164,55 +258,72 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
      *
      * @param MoodleQuickForm $mform The form being built.
      * @param array $allaccounts All accounts grouped by chart ID.
+     * @param string $sollplaceholder The placeholder for debit account.
+     * @param string $habenplaceholder The placeholder for credit account.
      */
-    protected function add_entry_javascript($mform, array $allaccounts): void {
+    protected function add_entry_javascript($mform, array $allaccounts, string $sollplaceholder, string $habenplaceholder): void {
         $accountsjson = json_encode($allaccounts);
+        $deletetext = get_string('deleteentry', 'qtype_buchungssatz');
 
         $mform->addElement('html', '
             <script>
             document.addEventListener("DOMContentLoaded", function() {
                 var accountsByChart = ' . $accountsjson . ';
                 var chartSelect = document.getElementById("id_chartofaccountsid");
+                var sollPlaceholder = ' . json_encode($sollplaceholder) . ';
+                var habenPlaceholder = ' . json_encode($habenplaceholder) . ';
+                var deleteText = ' . json_encode($deletetext) . ';
 
                 // Function to update account dropdowns based on selected chart
                 function updateAccountDropdowns() {
                     var chartId = chartSelect ? chartSelect.value : "0";
                     var accounts = accountsByChart[chartId] || {};
 
-                    // Find all sollkonto and habenkonto selects
-                    var sollSelects = document.querySelectorAll("select[name^=\'sollkonto[\']");
-                    var habenSelects = document.querySelectorAll("select[name^=\'habenkonto[\']");
+                    // Find all entry rows and update their dropdowns
+                    var rows = document.querySelectorAll(".buchungssatz-entry-row");
 
-                    sollSelects.forEach(function(select) {
-                        var currentValue = select.value;
-                        // Keep first option (placeholder)
-                        while (select.options.length > 1) {
-                            select.remove(1);
-                        }
-                        for (var accountNumber in accounts) {
-                            var option = document.createElement("option");
-                            option.value = accountNumber;
-                            option.text = accounts[accountNumber];
-                            select.add(option);
-                        }
-                        if (currentValue) {
-                            select.value = currentValue;
-                        }
-                    });
+                    rows.forEach(function(row) {
+                        var sollSelect = row.querySelector(".buchungssatz-sollkonto");
+                        var habenSelect = row.querySelector(".buchungssatz-habenkonto");
+                        var sollHidden = row.querySelector(".sollkonto-value");
+                        var habenHidden = row.querySelector(".habenkonto-value");
 
-                    habenSelects.forEach(function(select) {
-                        var currentValue = select.value;
-                        while (select.options.length > 1) {
-                            select.remove(1);
+                        // Update soll dropdown
+                        if (sollSelect) {
+                            var currentSoll = sollSelect.value || (sollHidden ? sollHidden.value : "");
+                            while (sollSelect.options.length > 1) {
+                                sollSelect.remove(1);
+                            }
+                            for (var accountNumber in accounts) {
+                                var option = document.createElement("option");
+                                option.value = accountNumber;
+                                option.text = accounts[accountNumber];
+                                sollSelect.add(option);
+                            }
+                            if (currentSoll) {
+                                sollSelect.value = currentSoll;
+                            }
+                            // Clear hidden value after restoring
+                            if (sollHidden) sollHidden.value = "";
                         }
-                        for (var accountNumber in accounts) {
-                            var option = document.createElement("option");
-                            option.value = accountNumber;
-                            option.text = accounts[accountNumber];
-                            select.add(option);
-                        }
-                        if (currentValue) {
-                            select.value = currentValue;
+
+                        // Update haben dropdown
+                        if (habenSelect) {
+                            var currentHaben = habenSelect.value || (habenHidden ? habenHidden.value : "");
+                            while (habenSelect.options.length > 1) {
+                                habenSelect.remove(1);
+                            }
+                            for (var accountNumber in accounts) {
+                                var option = document.createElement("option");
+                                option.value = accountNumber;
+                                option.text = accounts[accountNumber];
+                                habenSelect.add(option);
+                            }
+                            if (currentHaben) {
+                                habenSelect.value = currentHaben;
+                            }
+                            // Clear hidden value after restoring
+                            if (habenHidden) habenHidden.value = "";
                         }
                     });
 
@@ -222,7 +333,7 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
                 // Function to update default mark based on sum of fractions
                 function updateDefaultMark() {
                     var totalFraction = 0;
-                    var fractionInputs = document.querySelectorAll("input[name^=\'fraction[\']");
+                    var fractionInputs = document.querySelectorAll(".buchungssatz-entry-row .buchungssatz-fraction");
 
                     fractionInputs.forEach(function(input) {
                         var val = parseFloat(input.value);
@@ -249,9 +360,10 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
 
                 // Function to update Debit Amount disabled state
                 function updateSollbetragState(sollSelect) {
-                    var name = sollSelect.name;
-                    var index = name.match(/\[(\d+)\]/)[1];
-                    var sollBetrag = document.querySelector("input[name=\'sollbetrag[" + index + "]\']");
+                    var row = sollSelect.closest(".buchungssatz-entry-row");
+                    if (!row) return;
+
+                    var sollBetrag = row.querySelector(".buchungssatz-sollbetrag");
 
                     if (sollBetrag) {
                         var hasAccount = sollSelect.value !== "" && sollSelect.value !== null;
@@ -265,7 +377,7 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
                 }
 
                 function updateAllSollbetragStates() {
-                    var sollSelects = document.querySelectorAll("select[name^=\'sollkonto[\']");
+                    var sollSelects = document.querySelectorAll(".buchungssatz-entry-row .buchungssatz-sollkonto");
                     sollSelects.forEach(function(select) {
                         updateSollbetragState(select);
                     });
@@ -273,16 +385,16 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
 
                 // Event delegation for dynamically added elements
                 document.addEventListener("change", function(e) {
-                    if (e.target.name && e.target.name.startsWith("sollkonto[")) {
+                    if (e.target.classList.contains("buchungssatz-sollkonto")) {
                         updateSollbetragState(e.target);
                     }
-                    if (e.target.name && e.target.name.startsWith("fraction[")) {
+                    if (e.target.classList.contains("buchungssatz-fraction")) {
                         updateDefaultMark();
                     }
                 });
 
                 document.addEventListener("input", function(e) {
-                    if (e.target.name && e.target.name.startsWith("fraction[")) {
+                    if (e.target.classList.contains("buchungssatz-fraction")) {
                         updateDefaultMark();
                     }
                 });
@@ -351,6 +463,154 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
                     xhr.send();
                 }
 
+                // Add Entry functionality
+                var addEntryBtn = document.getElementById("buchungssatz-add-entry-btn");
+                var entryRowsContainer = document.getElementById("buchungssatz-entry-rows");
+
+                function getNextIndex() {
+                    var rows = document.querySelectorAll(".buchungssatz-entry-row");
+                    var maxIndex = -1;
+                    rows.forEach(function(row) {
+                        var idx = parseInt(row.getAttribute("data-index"), 10);
+                        if (idx > maxIndex) maxIndex = idx;
+                    });
+                    return maxIndex + 1;
+                }
+
+                function updateEntryRepeats() {
+                    var rows = document.querySelectorAll(".buchungssatz-entry-row");
+                    var entryRepeatsInput = document.querySelector("input[name=\'entry_repeats\']");
+                    if (entryRepeatsInput) {
+                        entryRepeatsInput.value = rows.length;
+                    }
+                }
+
+                function createNewRow(index) {
+                    var chartId = chartSelect ? chartSelect.value : "0";
+                    var accounts = accountsByChart[chartId] || {};
+
+                    var row = document.createElement("div");
+                    row.className = "buchungssatz-entry-row";
+                    row.setAttribute("data-index", index);
+                    row.style.cssText = "display: flex; border-bottom: 1px solid #dee2e6; align-items: center;";
+
+                    // Build account options HTML
+                    var sollOptionsHtml = "<option value=\"\">" + sollPlaceholder + "</option>";
+                    var habenOptionsHtml = "<option value=\"\">" + habenPlaceholder + "</option>";
+                    for (var accountNumber in accounts) {
+                        var optHtml = "<option value=\"" + accountNumber + "\">" + accounts[accountNumber] + "</option>";
+                        sollOptionsHtml += optHtml;
+                        habenOptionsHtml += optHtml;
+                    }
+
+                    row.innerHTML = \'<div style="flex: 1; padding: 0.5rem;">\' +
+                        \'<select class="form-control buchungssatz-sollkonto">\' + sollOptionsHtml + \'</select>\' +
+                        \'</div>\' +
+                        \'<div style="flex: 1; padding: 0.5rem; border-right: 1px solid #dee2e6;">\' +
+                        \'<input type="number" value="" class="form-control buchungssatz-sollbetrag" step="0.01" min="0" placeholder="0.00" disabled style="background-color: #e9ecef;">\' +
+                        \'</div>\' +
+                        \'<div style="flex: 1; padding: 0.5rem;">\' +
+                        \'<select class="form-control buchungssatz-habenkonto">\' + habenOptionsHtml + \'</select>\' +
+                        \'</div>\' +
+                        \'<div style="flex: 1; padding: 0.5rem; border-right: 1px solid #dee2e6;">\' +
+                        \'<input type="number" value="" class="form-control buchungssatz-habenbetrag" step="0.01" min="0" placeholder="0.00">\' +
+                        \'</div>\' +
+                        \'<div style="flex: 0 0 80px; padding: 0.5rem; text-align: center;">\' +
+                        \'<input type="text" value="1.0" class="form-control buchungssatz-fraction" style="width: 60px; text-align: center;">\' +
+                        \'</div>\' +
+                        \'<div style="flex: 0 0 40px; padding: 0.5rem; text-align: center;">\' +
+                        \'<button type="button" class="btn btn-outline-danger btn-sm buchungssatz-delete-row" title="\' + deleteText + \'">&times;</button>\' +
+                        \'</div>\';
+
+                    return row;
+                }
+
+                if (addEntryBtn && entryRowsContainer) {
+                    addEntryBtn.addEventListener("click", function() {
+                        var newIndex = getNextIndex();
+                        var newRow = createNewRow(newIndex);
+                        entryRowsContainer.appendChild(newRow);
+                        updateEntryRepeats();
+                        updateDefaultMark();
+                    });
+                }
+
+                // Delete row functionality (event delegation)
+                document.addEventListener("click", function(e) {
+                    if (e.target.classList.contains("buchungssatz-delete-row")) {
+                        var row = e.target.closest(".buchungssatz-entry-row");
+                        if (row) {
+                            // Ensure at least one row remains
+                            var rows = document.querySelectorAll(".buchungssatz-entry-row");
+                            if (rows.length > 1) {
+                                row.remove();
+                                updateEntryRepeats();
+                                updateDefaultMark();
+                            }
+                        }
+                    }
+                });
+
+                // Sync visible table inputs to hidden Moodle form fields before submission
+                function syncToHiddenFields() {
+                    var rows = document.querySelectorAll(".buchungssatz-entry-row");
+                    var rowCount = 0;
+
+                    // First, clear all hidden field values
+                    for (var i = 0; i < 20; i++) {
+                        var sollHidden = document.querySelector("input[name=\'sollkonto[" + i + "]\']");
+                        var sollbHidden = document.querySelector("input[name=\'sollbetrag[" + i + "]\']");
+                        var habenHidden = document.querySelector("input[name=\'habenkonto[" + i + "]\']");
+                        var habenbHidden = document.querySelector("input[name=\'habenbetrag[" + i + "]\']");
+                        var fractionHidden = document.querySelector("input[name=\'fraction[" + i + "]\']");
+
+                        if (sollHidden) sollHidden.value = "";
+                        if (sollbHidden) sollbHidden.value = "";
+                        if (habenHidden) habenHidden.value = "";
+                        if (habenbHidden) habenbHidden.value = "";
+                        if (fractionHidden) fractionHidden.value = "1.0";
+                    }
+
+                    // Now copy values from visible rows to hidden fields
+                    rows.forEach(function(row, index) {
+                        var sollSelect = row.querySelector(".buchungssatz-sollkonto");
+                        var sollBetrag = row.querySelector(".buchungssatz-sollbetrag");
+                        var habenSelect = row.querySelector(".buchungssatz-habenkonto");
+                        var habenBetrag = row.querySelector(".buchungssatz-habenbetrag");
+                        var fractionInput = row.querySelector(".buchungssatz-fraction");
+
+                        var sollHidden = document.querySelector("input[name=\'sollkonto[" + index + "]\']");
+                        var sollbHidden = document.querySelector("input[name=\'sollbetrag[" + index + "]\']");
+                        var habenHidden = document.querySelector("input[name=\'habenkonto[" + index + "]\']");
+                        var habenbHidden = document.querySelector("input[name=\'habenbetrag[" + index + "]\']");
+                        var fractionHidden = document.querySelector("input[name=\'fraction[" + index + "]\']");
+
+                        if (sollHidden && sollSelect) sollHidden.value = sollSelect.value;
+                        if (sollbHidden && sollBetrag) sollbHidden.value = sollBetrag.value;
+                        if (habenHidden && habenSelect) habenHidden.value = habenSelect.value;
+                        if (habenbHidden && habenBetrag) habenbHidden.value = habenBetrag.value;
+                        if (fractionHidden && fractionInput) fractionHidden.value = fractionInput.value;
+
+                        rowCount++;
+                    });
+
+                    // Update entry_repeats
+                    var entryRepeatsInput = document.querySelector("input[name=\'entry_repeats\']");
+                    if (entryRepeatsInput) {
+                        entryRepeatsInput.value = rowCount;
+                    }
+
+                    console.log("Synced " + rowCount + " entries to hidden fields");
+                }
+
+                // Hook into form submission
+                var moodleForm = document.querySelector("form.mform");
+                if (moodleForm) {
+                    moodleForm.addEventListener("submit", function(e) {
+                        syncToHiddenFields();
+                    });
+                }
+
                 // CSV Import functionality
                 var importBtn = document.getElementById("buchungssatz-import-btn");
                 var csvFileInput = document.getElementById("buchungssatz-csv-file");
@@ -413,23 +673,39 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
                                                 accountsByChart = response.accounts;
                                                 updateAccountDropdowns();
 
-                                                // Fill in entries
+                                                // Fill in entries - add rows if needed
                                                 var entries = response.entries;
-                                                var sollSelects = document.querySelectorAll("select[name^=\'sollkonto[\']");
-                                                var habenSelects = document.querySelectorAll("select[name^=\'habenkonto[\']");
-                                                var sollBetrags = document.querySelectorAll("input[name^=\'sollbetrag[\']");
-                                                var habenBetrags = document.querySelectorAll("input[name^=\'habenbetrag[\']");
-                                                var fractions = document.querySelectorAll("input[name^=\'fraction[\']");
+                                                var existingRows = document.querySelectorAll(".buchungssatz-entry-row");
 
-                                                for (var i = 0; i < entries.length; i++) {
-                                                    var entry = entries[i];
-                                                    if (sollSelects[i]) sollSelects[i].value = entry.sollkonto;
-                                                    if (habenSelects[i]) habenSelects[i].value = entry.habenkonto;
-                                                    if (sollBetrags[i]) sollBetrags[i].value = entry.sollbetrag;
-                                                    if (habenBetrags[i]) habenBetrags[i].value = entry.habenbetrag;
-                                                    if (fractions[i]) fractions[i].value = "1.0";
+                                                // Add more rows if needed
+                                                while (existingRows.length < entries.length) {
+                                                    var newIndex = getNextIndex();
+                                                    var newRow = createNewRow(newIndex);
+                                                    entryRowsContainer.appendChild(newRow);
+                                                    existingRows = document.querySelectorAll(".buchungssatz-entry-row");
                                                 }
 
+                                                // Now fill in the data
+                                                existingRows = document.querySelectorAll(".buchungssatz-entry-row");
+                                                for (var i = 0; i < entries.length; i++) {
+                                                    var entry = entries[i];
+                                                    var row = existingRows[i];
+                                                    if (row) {
+                                                        var sollSelect = row.querySelector(".buchungssatz-sollkonto");
+                                                        var habenSelect = row.querySelector(".buchungssatz-habenkonto");
+                                                        var sollBetrag = row.querySelector(".buchungssatz-sollbetrag");
+                                                        var habenBetrag = row.querySelector(".buchungssatz-habenbetrag");
+                                                        var fraction = row.querySelector(".buchungssatz-fraction");
+
+                                                        if (sollSelect) sollSelect.value = entry.sollkonto;
+                                                        if (habenSelect) habenSelect.value = entry.habenkonto;
+                                                        if (sollBetrag) sollBetrag.value = entry.sollbetrag;
+                                                        if (habenBetrag) habenBetrag.value = entry.habenbetrag;
+                                                        if (fraction) fraction.value = "1.0";
+                                                    }
+                                                }
+
+                                                updateEntryRepeats();
                                                 updateDefaultMark();
                                                 updateAllSollbetragStates();
 
