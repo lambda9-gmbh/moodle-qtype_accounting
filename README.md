@@ -1,59 +1,31 @@
-# MoFT-BuSa - Moodle Fragetyp Buchungssatz
+# MoFT-BuSa - Moodle Question Type: Buchungssatz
 
 A Moodle question type plugin for practicing accounting entries (Buchungssätze). Students select accounts from a chart of accounts (Kontenplan) and enter debit/credit amounts.
 
+Developed for **Hochschule Flensburg** by **lambda9**.
+
 ## Features
 
-- **For Students:**
-  - Select debit (Soll) and credit (Haben) accounts from dropdown menus
-  - Enter amounts for each booking entry
-  - Support for compound journal entries (multiple lines)
-  - Automatic balance checking (Soll = Haben)
-  - Immediate feedback and grading
+### For Students
+- Select debit (Soll) and credit (Haben) accounts from searchable dropdown menus
+- Enter amounts for each booking entry
+- Support for compound journal entries (multiple lines)
+- Add/remove entry rows dynamically
+- Immediate feedback and grading after submission
+- View correct answers with account names
 
-- **For Teachers/Instructors:**
-  - Create questions with multiple correct answer lines
-  - Define partial credit per entry
-  - Use custom charts of accounts
-  - Import/Export charts of accounts via CSV
+### For Teachers/Instructors
+- Create questions with multiple correct answer entries
+- Define partial credit percentage per entry (must sum to 100%)
+- "Distribute equally" button to split points evenly across entries
+- Import entries from CSV/Excel files
+- Explanation field for each entry (shown in feedback)
 
-- **For Administrators:**
-  - Manage charts of accounts at system level
-  - Import standard German chart (SKR03)
-  - CSV import for custom account structures
-
-## Project Structure
-
-```
-MoFT/
-├── plugin/                           # Moodle qtype plugin
-│   ├── amd/src/                     # JavaScript modules
-│   │   ├── question.js              # Student interface
-│   │   └── editform.js              # Edit form enhancements
-│   ├── backup/moodle2/              # Backup/restore handlers
-│   ├── classes/                     # PHP classes
-│   │   ├── chart_manager.php        # Chart of accounts management
-│   │   └── privacy/provider.php     # Privacy API
-│   ├── db/                          # Database definitions
-│   │   ├── access.php               # Capabilities
-│   │   └── install.xml              # Database schema
-│   ├── lang/                        # Language strings
-│   │   ├── de/qtype_buchungssatz.php
-│   │   └── en/qtype_buchungssatz.php
-│   ├── edit_buchungssatz_form.php   # Question edit form
-│   ├── question.php                 # Question definition
-│   ├── questiontype.php             # Question type class
-│   ├── renderer.php                 # Question renderer
-│   ├── manage_charts.php            # Chart management page
-│   ├── styles.css                   # CSS styles
-│   └── version.php                  # Plugin version
-├── docker/                          # Docker configuration
-│   ├── Dockerfile
-│   ├── docker-compose.yml
-│   └── config.php                   # Moodle config
-├── scripts/                         # Development scripts
-└── README.md
-```
+### For Administrators
+- Manage charts of accounts at system level
+- Create custom charts with account numbers, names, and types
+- Import test chart (SKR03) with one click
+- CSV import/export for account structures
 
 ## Requirements
 
@@ -63,136 +35,261 @@ MoFT/
 
 ## Quick Start (Development)
 
-1. **Start the development environment:**
-   ```bash
-   ./scripts/start.sh
-   ```
-   First startup builds the Docker image (may take several minutes).
+### 1. Start the Development Environment
 
-2. **Run the Moodle installer (first time only):**
-   - Go to http://localhost:8080
-   - Follow the installation wizard
-   - Database settings:
-     - Type: **MariaDB**
-     - Host: **mariadb**
-     - Name: **moodle**
-     - User: **moodle**
-     - Password: **moodle_password**
-   - Data directory: `/var/www/moodledata`
+```bash
+cd docker
+docker compose up -d
+```
 
-3. **Install the plugin:**
-   After Moodle installation, go to Site administration > Notifications to trigger the plugin installation.
+First startup builds the Docker image and may take several minutes.
 
-4. **Create a chart of accounts:**
-   - Go to Site administration > Plugins > Question types > Buchungssatz
-   - Or navigate to: `/question/type/buchungssatz/manage_charts.php`
-   - Create a new chart or use "SKR03 Standardkontenplan erstellen" for a default German chart
+**Services:**
+- Moodle: http://localhost:8080
+- phpMyAdmin: http://localhost:8081
+- Selenium (for Behat tests): http://localhost:4444
 
-5. **Create a test question:**
-   - Create a quiz in any course
-   - Add a new question of type "Buchungssatz"
-   - Select your chart of accounts
-   - Enter the correct answer (Soll/Haben accounts and amounts)
+### 2. Run Moodle Installation (First Time Only)
+
+1. Go to http://localhost:8080
+2. Follow the installation wizard, if asked for database settings enter the following:
+   - Type: **MariaDB**
+   - Host: **mariadb**
+   - Name: **moodle**
+   - User: **moodle**
+   - Password: **moodle_password**
+
+### 3. Install the Plugin
+
+After Moodle installation, go to **Site administration > Notifications** to trigger the plugin installation.
+
+### 4. Create a Chart of Accounts (Optional)
+
+- Go to **Site administration > Plugins > Question types > Accounting Entry (Buchungssatz)**
+- Click the link to manage charts, or navigate directly to `/question/type/buchungssatz/manage_charts.php`
+- Create a new chart or click "SKR03 Standardkontenplan erstellen" for a default testing chart
+
+### 5. Create a Test Question
+
+1. Create a quiz in any course
+2. Add a new question of type "Accounting Entry (Buchungssatz)"
+3. Optionally select a chart of accounts
+4. Enter the correct answer entries (Soll/Haben accounts and amounts)
+5. Set grade percentages (must sum to 100%)
+
+## Project Structure
+
+```
+MoFT/
+├── plugin/                              # Moodle qtype plugin
+│   ├── amd/
+│   │   ├── src/                         # JavaScript ES modules
+│   │   │   ├── question.js              # Student quiz interaction
+│   │   │   └── editform.js              # Edit form functionality
+│   │   └── build/                       # Minified JS (auto-generated)
+│   ├── ajax/                            # AJAX endpoints
+│   │   ├── get_accounts.php             # Fetch accounts for chart
+│   │   └── import_entries.php           # CSV import endpoint
+│   ├── backup/moodle2/                  # Backup/restore handlers
+│   ├── classes/
+│   │   ├── chart_manager.php            # Chart of accounts CRUD
+│   │   └── privacy/provider.php         # GDPR privacy API
+│   ├── db/
+│   │   ├── access.php                   # Capability definitions
+│   │   ├── install.xml                  # Database schema
+│   │   └── upgrade.php                  # Database upgrades
+│   ├── lang/
+│   │   ├── de/qtype_buchungssatz.php    # German strings
+│   │   └── en/qtype_buchungssatz.php    # English strings
+│   ├── pix/
+│   │   └── icon.svg                     # Question type icon
+│   ├── tests/
+│   │   ├── behat/                       # Behat acceptance tests
+│   │   │   ├── attempt_question.feature
+│   │   │   ├── create_question.feature
+│   │   │   └── manage_charts.feature
+│   │   ├── generator/lib.php            # Test data generator
+│   │   ├── helper.php                   # Test helper class
+│   │   ├── question_test.php            # PHPUnit: question grading
+│   │   └── questiontype_test.php        # PHPUnit: save/load
+│   ├── edit_buchungssatz_form.php       # Question edit form
+│   ├── edit_chart.php                   # Chart editing page
+│   ├── manage_charts.php                # Chart management page
+│   ├── question.php                     # Question definition class
+│   ├── questiontype.php                 # Question type class
+│   ├── renderer.php                     # Question renderer
+│   ├── settings.php                     # Admin settings
+│   ├── styles.css                       # CSS styles
+│   └── version.php                      # Plugin version
+├── docker/                              # Docker development environment
+│   ├── docker-compose.yml               # Moodle + MariaDB + phpMyAdmin + Selenium
+│   ├── Dockerfile                       # Moodle container
+│   └── config.php                       # Moodle configuration
+├── scripts/                             # Development scripts
+│   ├── start.sh                         # Start Docker environment
+│   ├── stop.sh                          # Stop Docker environment
+│   ├── reset.sh                         # Reset environment
+│   ├── logs.sh                          # View container logs
+│   ├── purge-cache.sh                   # Purge Moodle caches
+│   └── test.sh                          # Run tests
+├── CLAUDE.md                            # AI assistant instructions
+└── README.md                            # This file
+```
 
 ## Creating Questions
 
 ### Basic Question Structure
 
 A Buchungssatz question presents a business transaction scenario. Students must:
-1. Select the correct debit account(s) from the Kontenplan
+1. Select the correct debit account(s) from the dropdown (or enter manually)
 2. Enter the debit amount(s)
 3. Select the correct credit account(s)
 4. Enter the credit amount(s)
 
-### Example Question
+### Example: Simple Entry
 
 **Question text:**
-> "Ein Kunde begleicht eine offene Rechnung über 1.190,00 EUR (inkl. 19% USt) per Banküberweisung."
+> "A customer pays an invoice of 1,000 EUR via bank transfer."
 
 **Correct Answer:**
-| Soll | Betrag | Haben | Betrag |
-|------|--------|-------|--------|
-| 1200 Bank | 1.190,00 | 1400 Forderungen | 1.190,00 |
+| Debit (Soll) | Amount | Credit (Haben) | Amount |
+|--------------|--------|----------------|--------|
+| 1200 Bank    | 1,000  | 1400 Receivables | 1,000 |
 
-### Compound Entries
+### Example: Compound Entry
 
-Enable "Allow multiple entries" for questions requiring multiple booking lines:
+**Question text:**
+> "Purchase goods on credit for 1,000 EUR plus 19% VAT."
 
-**Example: Wareneinkauf auf Ziel**
-| Soll | Betrag | Haben | Betrag |
-|------|--------|-------|--------|
-| 3400 Wareneinkauf | 1.000,00 | 1600 Verbindlichkeiten | 1.190,00 |
-| 1576 Vorsteuer 19% | 190,00 | | |
+**Correct Answer:**
+| Debit (Soll) | Amount | Credit (Haben) | Amount |
+|--------------|--------|----------------|--------|
+| 3400 Purchases | 1,000 | 1600 Payables | 1,190 |
+| 1576 Input VAT | 190   |                |       |
+
+### Grade Distribution
+
+- Each entry has a grade percentage (0-100%)
+- All grades must sum to exactly 100%
+- Use the "Distribute equally" button to split points evenly
 
 ## Chart of Accounts Management
 
 ### Creating a Chart
 
-1. Navigate to the management page
+1. Navigate to **Site admin > Plugins > Question types > Accounting Entry**
 2. Enter a name and description
 3. Click "Add new chart"
+4. Click "Edit Accounts" to add individual accounts
 
-### Importing Accounts (CSV)
+### CSV Import Format
 
-CSV format:
 ```csv
 accountnumber,accountname,accounttype
-1000,Kasse,asset
+1000,Cash,asset
 1200,Bank,asset
-1400,Forderungen aus L+L,asset
-1600,Verbindlichkeiten aus L+L,liability
-8000,Umsatzerlöse 19%,revenue
-3400,Wareneinkauf,expense
+1400,Receivables,asset
+1600,Payables,liability
+8000,Revenue,revenue
+3400,Purchases,expense
 ```
 
-Account types: `asset`, `liability`, `equity`, `revenue`, `expense`
+**Account types:** `asset`, `liability`, `equity`, `revenue`, `expense`
 
 ### Default SKR03
 
-Click "SKR03 Standardkontenplan erstellen" to create a simplified German standard chart (Standardkontenrahmen 03).
+Click "SKR03 Standardkontenplan erstellen" to create a simplified German standard chart (Standardkontenrahmen 03) with common accounts.
 
 ## Development
 
-### File Changes
-
-The plugin directory is mounted into the container. Changes to PHP files are reflected immediately. After changes, purge the Moodle cache:
+### Development Scripts
 
 ```bash
+# Start environment
+./scripts/start.sh
+
+# Stop environment
+./scripts/stop.sh
+
+# View logs
+./scripts/logs.sh
+
+# Purge Moodle caches
 ./scripts/purge-cache.sh
+
+# Reset environment (destroys data)
+./scripts/reset.sh
 ```
 
 ### Running Tests
 
+Tests are automatically initialized on first run:
+
 ```bash
+# Run all tests (PHPUnit + Behat)
 ./scripts/test.sh
+
+# Run PHPUnit tests only
+./scripts/test.sh phpunit
+
+# Run Behat acceptance tests only
+./scripts/test.sh behat
 ```
 
-### Viewing Logs
+### Building JavaScript
+
+After modifying JavaScript files in `plugin/amd/src/`:
 
 ```bash
-./scripts/logs.sh
+./scripts/build.sh
 ```
 
-### Reset Environment
+The script minifies files using [terser](https://terser.org/) if available. Install it with `npm install -g terser` for proper minification.
+
+Or disable JS caching in Moodle for development:
+```php
+$CFG->cachejs = false;
+```
+
+### Purging Caches
+
+After PHP changes, purge Moodle caches:
 
 ```bash
-./scripts/reset.sh
+./scripts/purge-cache.sh
+# or
+docker exec moft-moodle php admin/cli/purge_caches.php
 ```
 
-## Grading
+## Grading Logic
 
-- Each entry line can have a configurable point value (fraction)
+- Each entry line has a configurable point value (grade percentage)
+- Student entries are matched against correct entries
 - Matching is case-insensitive for account numbers
-- Amount matching allows for floating-point tolerance (0.01)
+- Amount matching allows 0.01 tolerance for floating-point precision
 - Partial credit is awarded based on matched entries
+- Total score = sum of matched entry fractions
 
-## Accessibility
+## Database Tables
 
-The plugin follows Moodle accessibility guidelines:
-- Semantic HTML structure
-- ARIA labels on form controls
-- Keyboard navigation support
-- Screen reader compatible
+| Table                         | Purpose                           |
+|-------------------------------|-----------------------------------|
+| `qtype_buchungssatz_charts`   | Chart of accounts definitions     |
+| `qtype_buchungssatz_accounts` | Individual accounts within charts |
+| `qtype_buchungssatz_options`  | Question-specific settings        |
+| `qtype_buchungssatz_entries`  | Correct answer entries            |
+
+## Terminology
+
+| German       | English                           |
+|--------------|-----------------------------------|
+| Buchungssatz | Journal entry / Accounting entry  |
+| Soll         | Debit                             |
+| Haben        | Credit                            |
+| Konto        | Account                           |
+| Betrag       | Amount                            |
+| Kontenrahmen | Chart of accounts                 |
+| SKR03        | Standard German chart of accounts |
 
 ## License
 
@@ -200,6 +297,6 @@ GNU GPL v3 or later - see [LICENSE](LICENSE)
 
 ## Credits
 
-Developed for Hochschule Flensburg by lambda9.
+Developed for **Hochschule Flensburg** by **lambda9**.
 
 Contact: tausch-nebel@hs-flensburg.de

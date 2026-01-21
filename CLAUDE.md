@@ -27,8 +27,7 @@ plugin/                          # The Moodle plugin (qtype_buchungssatz)
 │   ├── src/                     # JavaScript source files
 │   │   ├── question.js          # Student quiz interaction
 │   │   └── editform.js          # Edit form functionality
-│   ├── build/                   # Generated .min.js files (gitignored)
-│   └── build.sh                 # Simple build script (copies src to build)
+│   └── build/                   # Generated .min.js files (gitignored)
 ├── backup/moodle2/              # Backup/restore functionality
 ├── classes/
 │   ├── chart_manager.php        # Chart of accounts CRUD operations
@@ -164,10 +163,10 @@ Handles the question editing form (defined inline in `edit_buchungssatz_form.php
 The `amd/build/` directory is gitignored. To build:
 
 ```bash
-./plugin/amd/build.sh
+./scripts/build.sh
 ```
 
-This copies `src/*.js` to `build/*.min.js`. The files don't need actual minification - Moodle just expects the `.min.js` naming convention.
+This minifies `src/*.js` to `build/*.min.js` using terser (if available). Install terser with `npm install -g terser` for proper minification.
 
 For development, you can also set `$CFG->cachejs = false;` in Moodle's config.php to load directly from `amd/src/`.
 
