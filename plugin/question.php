@@ -122,11 +122,16 @@ class qtype_buchungssatz_question extends question_graded_automatically {
      * @return bool True if the response is complete.
      */
     public function is_complete_response(array $response): bool {
-        // At least one entry must be filled.
-        $sollkonto = $response['sollkonto_0'] ?? '';
-        $habenkonto = $response['habenkonto_0'] ?? '';
+        // Response is complete if any entry has an account filled in.
+        for ($i = 0; $i < self::MAX_STUDENT_ENTRIES; $i++) {
+            $sollkonto = trim($response["sollkonto_{$i}"] ?? '');
+            $habenkonto = trim($response["habenkonto_{$i}"] ?? '');
 
-        return !empty($sollkonto) && !empty($habenkonto);
+            if (!empty($sollkonto) || !empty($habenkonto)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
