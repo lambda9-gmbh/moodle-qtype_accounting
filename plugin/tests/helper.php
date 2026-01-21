@@ -171,6 +171,38 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
     }
 
     /**
+     * Get default form data for a Buchungssatz question.
+     *
+     * This method is called by Moodle's question generator when creating
+     * test questions via create_question() without specifying a variant.
+     *
+     * @return \stdClass The form data.
+     */
+    public function get_buchungssatz_question_form_data(): \stdClass {
+        $fromform = new \stdClass();
+
+        $fromform->name = 'Default Buchungssatz question';
+        $fromform->questiontext = ['text' => 'Record the accounting entry.', 'format' => FORMAT_HTML];
+        $fromform->generalfeedback = ['text' => '', 'format' => FORMAT_HTML];
+        $fromform->defaultmark = 1;
+        $fromform->penalty = 0.3333333;
+
+        $fromform->chartofaccountsid = 0;
+        $fromform->allowmultipleentries = 0;
+        $fromform->maxentries = 5;
+
+        // Default entry with minimal data that will be overwritten.
+        $fromform->sollkonto = ['1200'];
+        $fromform->sollbetrag = [1000.00];
+        $fromform->habenkonto = ['8400'];
+        $fromform->habenbetrag = [1000.00];
+        $fromform->grade = [100];
+        $fromform->explanation = [''];
+
+        return $fromform;
+    }
+
+    /**
      * Get form data for a simple debit/credit question.
      *
      * This method is called by Moodle's question generator when creating

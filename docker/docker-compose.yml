@@ -16,6 +16,7 @@ services:
       - MOODLE_DOCKER_DBPASS=moodle_password
     volumes:
       - moodledata:/var/www/moodledata
+      - behatdata:/var/www/behatdata
       - ../plugin:/var/www/html/question/type/buchungssatz
       - ./config.php:/var/www/html/config.php
     depends_on:
@@ -57,9 +58,20 @@ services:
     networks:
       - moft-network
 
+  selenium:
+    image: selenium/standalone-firefox:latest
+    container_name: moft-selenium
+    ports:
+      - "4444:4444"
+      - "7900:7900"
+    shm_size: '2gb'
+    networks:
+      - moft-network
+
 volumes:
   moodledata:
   mariadb_data:
+  behatdata:
 
 networks:
   moft-network:

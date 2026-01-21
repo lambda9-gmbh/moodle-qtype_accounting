@@ -93,11 +93,39 @@ class qtype_buchungssatz extends question_type {
         // Form fields are arrays: sollkonto[], sollbetrag[], etc.
         // Note: Array indices may not be sequential if entries were deleted, so we iterate over
         // the actual keys in the habenkonto array rather than using a numeric counter.
+        // Also handle Behat data where values may be strings instead of arrays.
         $sortorder = 0;
 
+        // Ensure habenkonto is an array (Behat may pass strings).
         $habenkontoarray = $question->habenkonto ?? [];
+        if (!is_array($habenkontoarray)) {
+            $habenkontoarray = [$habenkontoarray];
+        }
+
+        // Similarly ensure other fields are arrays.
+        $sollkontoarray = $question->sollkonto ?? [];
+        if (!is_array($sollkontoarray)) {
+            $sollkontoarray = [$sollkontoarray];
+        }
+        $sollbetragarray = $question->sollbetrag ?? [];
+        if (!is_array($sollbetragarray)) {
+            $sollbetragarray = [$sollbetragarray];
+        }
+        $habenbetragarray = $question->habenbetrag ?? [];
+        if (!is_array($habenbetragarray)) {
+            $habenbetragarray = [$habenbetragarray];
+        }
+        $gradearray = $question->grade ?? [];
+        if (!is_array($gradearray)) {
+            $gradearray = [$gradearray];
+        }
+        $explanationarray = $question->explanation ?? [];
+        if (!is_array($explanationarray)) {
+            $explanationarray = [$explanationarray];
+        }
+
         foreach ($habenkontoarray as $i => $habenkonto) {
-            $sollkonto = trim($question->sollkonto[$i] ?? '');
+            $sollkonto = trim($sollkontoarray[$i] ?? '');
             $habenkonto = trim($habenkonto ?? '');
 
             // Only save entries that have a Credit (Haben) account.
@@ -106,18 +134,18 @@ class qtype_buchungssatz extends question_type {
             }
 
             // Convert grade percentage (0-100) to fraction (0-1).
-            $grade = floatval($question->grade[$i] ?? 0);
+            $grade = floatval($gradearray[$i] ?? 0);
             $fraction = $grade / 100;
 
             $record = new stdClass();
             $record->questionid = $question->id;
             $record->sortorder = $sortorder++;
             $record->sollkonto = $sollkonto;
-            $record->sollbetrag = floatval($question->sollbetrag[$i] ?? 0);
+            $record->sollbetrag = floatval($sollbetragarray[$i] ?? 0);
             $record->habenkonto = $habenkonto;
-            $record->habenbetrag = floatval($question->habenbetrag[$i] ?? 0);
+            $record->habenbetrag = floatval($habenbetragarray[$i] ?? 0);
             $record->fraction = $fraction;
-            $record->explanation = $question->explanation[$i] ?? '';
+            $record->explanation = $explanationarray[$i] ?? '';
             $DB->insert_record('qtype_buchungssatz_entries', $record);
         }
 

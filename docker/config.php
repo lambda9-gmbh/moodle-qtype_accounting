@@ -33,4 +33,17 @@ $CFG->phpunit_dbname    = 'moodle_test';
 $CFG->phpunit_dbuser    = 'moodle';
 $CFG->phpunit_dbpass    = 'moodle_password';
 
+// Behat test configuration.
+// Note: behat_wwwroot must be different from wwwroot and accessible from Selenium container.
+$CFG->behat_wwwroot = 'http://moodle';
+$CFG->behat_dataroot = '/var/www/behatdata';
+$CFG->behat_prefix = 'bht_';
+$CFG->behat_profiles = [
+    'default' => [
+        'browser' => 'firefox',
+        'wd_host' => 'http://selenium:4444/wd/hub',
+    ],
+];
+$CFG->behat_faildump_path = '/var/www/behatdata/faildump';
+
 require_once(__DIR__ . '/lib/setup.php');
