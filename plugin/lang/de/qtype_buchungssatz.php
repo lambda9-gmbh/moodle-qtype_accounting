@@ -153,4 +153,4 @@ $string['chartimportsuccess'] = '{$a} Konten erfolgreich importiert';
 $string['witherrors'] = 'mit Fehlern';
 $string['chartimportfailed'] = 'Kontenplan-Import fehlgeschlagen';
 $string['importlineerror'] = 'Fehler in Zeile {$a}';
-$string['createdefaultskr03'] = 'Standard-SKR03-Kontenplan erstellen';
+$string['createdefaultskr03'] = 'SKR03 Standardkontenplan erstellen';

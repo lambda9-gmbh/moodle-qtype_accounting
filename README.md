@@ -38,8 +38,7 @@ Developed for **Hochschule Flensburg** by **lambda9**.
 ### 1. Start the Development Environment
 
 ```bash
-cd docker
-docker compose up -d
+./scripts/start.sh
 ```
 
 First startup builds the Docker image and may take several minutes.

@@ -22,7 +22,7 @@ Feature: Manage charts of accounts
   Scenario: Create default SKR03 chart
     Given I log in as "admin"
     And I am on the "qtype_buchungssatz > Manage charts" page
-    When I press "SKR03 Standardkontenplan erstellen"
+    When I press "Create Default SKR03 Chart"
     Then I should see "Default SKR03 chart created successfully"
     And I should see "SKR03"
 

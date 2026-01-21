@@ -16,6 +16,8 @@
 
 namespace qtype_buchungssatz;
 
+defined('MOODLE_INTERNAL') || die();
+
 /**
  * Helper class for importing accounting entries from CSV.
  *

@@ -222,11 +222,11 @@ if (empty($charts)) {
 }
 
 // JavaScript to update filename display when file is selected.
-echo '<script>
-document.getElementById("csvfile").addEventListener("change", function() {
-    var filename = this.files.length > 0 ? this.files[0].name : "' . get_string('nofileselected', 'qtype_buchungssatz') . '";
+$jscode = 'document.getElementById("csvfile").addEventListener("change", function() {
+    var filename = this.files.length > 0 ? this.files[0].name : "' .
+    addslashes_js(get_string('nofileselected', 'qtype_buchungssatz')) . '";
     document.getElementById("csv-filename").textContent = filename;
-});
-</script>';
+});';
+$PAGE->requires->js_init_code($jscode, true);
 
 echo $OUTPUT->footer();

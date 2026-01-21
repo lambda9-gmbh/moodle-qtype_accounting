@@ -388,6 +388,8 @@ class import_helper_test extends \advanced_testcase {
 
     /**
      * Test chart import from entries format CSV.
+     *
+     * @covers \qtype_buchungssatz\chart_manager::import_chart_from_csv
      */
     public function test_chart_import_from_entries_csv(): void {
         $this->resetAfterTest();
@@ -427,6 +429,8 @@ class import_helper_test extends \advanced_testcase {
 
     /**
      * Test chart import from simple format CSV.
+     *
+     * @covers \qtype_buchungssatz\chart_manager::import_chart_from_csv
      */
     public function test_chart_import_from_simple_csv(): void {
         $this->resetAfterTest();
