@@ -145,3 +145,12 @@ $string['autoCalculatedFromFractions'] = 'Auto-calculated from the sum of entry 
 $string['selectDebitAccountFirst'] = 'Please select a debit account first';
 $string['choosefile'] = 'Choose File';
 $string['distributegradesequally'] = 'Distribute equally';
+
+// Chart import from CSV.
+$string['importaccountsfromcsv'] = 'Import accounts from CSV (optional)';
+$string['csvfilehelp'] = 'Upload a CSV file to import accounts. Format: accountnumber,accountname,accounttype. Leave empty to create an empty chart.';
+$string['chartimportsuccess'] = '{$a} accounts imported successfully';
+$string['witherrors'] = 'with errors';
+$string['chartimportfailed'] = 'Chart import failed';
+$string['importlineerror'] = 'Error on line {$a}';
+$string['createdefaultskr03'] = 'Create Default SKR03 Chart';

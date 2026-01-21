@@ -145,3 +145,12 @@ $string['autoCalculatedFromFractions'] = 'Automatisch berechnet aus der Summe de
 $string['selectDebitAccountFirst'] = 'Bitte zuerst ein Sollkonto auswählen';
 $string['choosefile'] = 'Datei auswählen';
 $string['distributegradesequally'] = 'Gleichmäßig verteilen';
+
+// Kontenplan-Import aus CSV.
+$string['importaccountsfromcsv'] = 'Konten aus CSV importieren (optional)';
+$string['csvfilehelp'] = 'Laden Sie eine CSV-Datei hoch, um Konten zu importieren. Format: Kontonummer,Kontoname,Kontenart. Leer lassen, um einen leeren Kontenplan zu erstellen.';
+$string['chartimportsuccess'] = '{$a} Konten erfolgreich importiert';
+$string['witherrors'] = 'mit Fehlern';
+$string['chartimportfailed'] = 'Kontenplan-Import fehlgeschlagen';
+$string['importlineerror'] = 'Fehler in Zeile {$a}';
+$string['createdefaultskr03'] = 'Standard-SKR03-Kontenplan erstellen';

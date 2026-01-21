@@ -46,6 +46,30 @@ switch ($action) {
         if (data_submitted() && confirm_sesskey()) {
             $name = required_param('name', PARAM_TEXT);
             $description = optional_param('description', '', PARAM_TEXT);
+
+            // Check if a CSV file was uploaded.
+            if (!empty($_FILES['csvfile']['tmp_name']) && $_FILES['csvfile']['error'] === UPLOAD_ERR_OK) {
+                $csvdata = file_get_contents($_FILES['csvfile']['tmp_name']);
+                if (!empty($csvdata)) {
+                    $result = chart_manager::import_chart_from_csv($name, $csvdata, $context->id, $description);
+                    if ($result['chartid'] > 0) {
+                        $message = get_string('chartimportsuccess', 'qtype_buchungssatz', $result['imported']);
+                        if (!empty($result['errors'])) {
+                            $message .= ' ' . get_string('witherrors', 'qtype_buchungssatz') . ': ' .
+                                implode(', ', $result['errors']);
+                        }
+                        redirect($PAGE->url, $message, null, \core\output\notification::NOTIFY_SUCCESS);
+                    } else {
+                        $errormsg = get_string('chartimportfailed', 'qtype_buchungssatz');
+                        if (!empty($result['errors'])) {
+                            $errormsg .= ': ' . implode(', ', $result['errors']);
+                        }
+                        redirect($PAGE->url, $errormsg, null, \core\output\notification::NOTIFY_ERROR);
+                    }
+                }
+            }
+
+            // No file or empty file - create an empty chart.
             chart_manager::create_chart($name, $description, $context->id);
             redirect($PAGE->url, get_string('chartcreated', 'qtype_buchungssatz'), null,
                 \core\output\notification::NOTIFY_SUCCESS);
@@ -101,25 +125,55 @@ $charts = chart_manager::get_charts_for_context($context->id);
 
 // Display create form.
 echo $OUTPUT->heading(get_string('addchart', 'qtype_buchungssatz'), 3);
-echo '<form method="post" class="mb-4">';
+echo '<form method="post" class="mb-4" enctype="multipart/form-data">';
 echo '<input type="hidden" name="action" value="create">';
 echo '<input type="hidden" name="sesskey" value="' . sesskey() . '">';
-echo '<div class="form-group">';
-echo '<label for="name">' . get_string('chartname', 'qtype_buchungssatz') . '</label>';
-echo '<input type="text" class="form-control" name="name" id="name" required>';
+echo '<div class="form-group row fitem">';
+echo '<div class="col-md-3 col-form-label d-flex pb-0 pr-md-0">';
+echo '<label for="name">' . get_string('chartname', 'qtype_buchungssatz') . ' *</label>';
 echo '</div>';
-echo '<div class="form-group">';
+echo '<div class="col-md-9 form-inline align-items-start felement">';
+echo '<input type="text" class="form-control w-100" name="name" id="name" required>';
+echo '</div>';
+echo '</div>';
+echo '<div class="form-group row fitem">';
+echo '<div class="col-md-3 col-form-label d-flex pb-0 pr-md-0">';
 echo '<label for="description">' . get_string('chartdescription', 'qtype_buchungssatz') . '</label>';
-echo '<textarea class="form-control" name="description" id="description" rows="2"></textarea>';
 echo '</div>';
+echo '<div class="col-md-9 form-inline align-items-start felement">';
+echo '<textarea class="form-control w-100" name="description" id="description" rows="2"></textarea>';
+echo '</div>';
+echo '</div>';
+echo '<div class="form-group row fitem">';
+echo '<div class="col-md-3 col-form-label d-flex pb-0 pr-md-0">';
+echo '<label>' . get_string('importaccountsfromcsv', 'qtype_buchungssatz') . '</label>';
+echo '</div>';
+echo '<div class="col-md-9 form-inline align-items-start felement">';
+echo '<div class="custom-file-input-wrapper" style="display: flex; align-items: center; gap: 10px;">';
+echo '<label for="csvfile" class="btn btn-outline-secondary mb-0" style="cursor: pointer;">';
+echo get_string('choosefile', 'qtype_buchungssatz');
+echo '</label>';
+echo '<span id="csv-filename" style="color: #6c757d; font-size: 0.9em;">' . get_string('nofileselected', 'qtype_buchungssatz') . '</span>';
+echo '<input type="file" name="csvfile" id="csvfile" accept=".csv,.txt" style="display: none;">';
+echo '</div>';
+echo '<small class="form-text text-muted d-block mt-2">' . get_string('csvfilehelp', 'qtype_buchungssatz') . '</small>';
+echo '</div>';
+echo '</div>';
+echo '<div class="form-group row fitem">';
+echo '<div class="col-md-3"></div>';
+echo '<div class="col-md-9">';
 echo '<button type="submit" class="btn btn-primary">' . get_string('addchart', 'qtype_buchungssatz') . '</button>';
+echo '</div>';
+echo '</div>';
 echo '</form>';
 
 // Create default SKR03 button.
 echo '<div class="mb-4">';
 $defaulturl = new moodle_url($PAGE->url, ['action' => 'createdefault', 'sesskey' => sesskey()]);
-echo $OUTPUT->single_button($defaulturl, 'SKR03 Standardkontenplan erstellen', 'get');
+echo $OUTPUT->single_button($defaulturl, get_string('createdefaultskr03', 'qtype_buchungssatz'), 'get');
 echo '</div>';
+
+echo '<hr class="my-4">';
 
 // Display existing charts.
 echo $OUTPUT->heading(get_string('managecharts', 'qtype_buchungssatz'), 3);
@@ -166,5 +220,13 @@ if (empty($charts)) {
 
     echo html_writer::table($table);
 }
+
+// JavaScript to update filename display when file is selected.
+echo '<script>
+document.getElementById("csvfile").addEventListener("change", function() {
+    var filename = this.files.length > 0 ? this.files[0].name : "' . get_string('nofileselected', 'qtype_buchungssatz') . '";
+    document.getElementById("csv-filename").textContent = filename;
+});
+</script>';
 
 echo $OUTPUT->footer();

@@ -278,6 +278,164 @@ class chart_manager {
     }
 
     /**
+     * Import a complete chart of accounts from CSV.
+     *
+     * Supports multiple formats:
+     * - Entries format (6 cols): Sollkonto,Sollname,Sollbetrag,Habenkonto,Habenname,Habenbetrag
+     * - Simple format (2-3 cols): accountnumber,accountname,accounttype
+     *
+     * @param string $chartname Name for the new chart.
+     * @param string $csvcontent CSV content.
+     * @param int $contextid Context ID.
+     * @param string|null $description Optional chart description.
+     * @return array ['chartid' => int, 'imported' => int, 'errors' => array]
+     */
+    public static function import_chart_from_csv(
+        string $chartname,
+        string $csvcontent,
+        int $contextid,
+        ?string $description = null
+    ): array {
+        $result = ['chartid' => 0, 'imported' => 0, 'errors' => []];
+
+        // Try to parse using import_helper (handles entries format with proper header detection).
+        try {
+            $parsed = import_helper::parse_csv($csvcontent);
+            $extracted = import_helper::extract_entries($parsed['rows'], $parsed['mapping']);
+            $accounts = $extracted['accounts'];
+
+            // Validate that extracted accounts look like real account numbers (numeric).
+            // If they don't, fall back to simple format parsing.
+            $validaccounts = true;
+            if (!empty($accounts)) {
+                foreach ($accounts as $accountnumber => $accountname) {
+                    // Account numbers should be numeric (or at least start with a digit).
+                    if (!preg_match('/^\d/', $accountnumber)) {
+                        $validaccounts = false;
+                        break;
+                    }
+                }
+            }
+
+            if (!empty($accounts) && $validaccounts) {
+                // Create the chart.
+                $chartid = self::create_chart($chartname, $description ?? '', $contextid);
+                $result['chartid'] = $chartid;
+
+                $sortorder = 0;
+                foreach ($accounts as $accountnumber => $accountname) {
+                    $accounttype = import_helper::guess_account_type($accountnumber);
+                    try {
+                        self::add_account($chartid, $accountnumber, $accountname, $accounttype, $sortorder++);
+                        $result['imported']++;
+                    } catch (\Exception $e) {
+                        $result['errors'][] = $accountnumber . ': ' . $e->getMessage();
+                    }
+                }
+
+                return $result;
+            }
+        } catch (\Exception $e) {
+            // Fall through to simple format parsing.
+        }
+
+        // Fall back to simple format: accountnumber,accountname,accounttype.
+        $delimiter = import_helper::detect_delimiter($csvcontent);
+        $lines = preg_split('/\r\n|\r|\n/', trim($csvcontent));
+
+        if (empty($lines)) {
+            $result['errors'][] = get_string('csvempty', 'qtype_buchungssatz');
+            return $result;
+        }
+
+        // Create the chart.
+        $chartid = self::create_chart($chartname, $description ?? '', $contextid);
+        $result['chartid'] = $chartid;
+
+        $sortorder = 0;
+        $seenaccounts = [];
+
+        foreach ($lines as $linenum => $line) {
+            $line = trim($line);
+            if (empty($line)) {
+                continue;
+            }
+
+            $parts = str_getcsv($line, $delimiter);
+
+            // Skip header line - check for common header patterns.
+            if ($linenum === 0) {
+                $firstcol = strtolower(trim($parts[0] ?? ''));
+                $headerpatterns = ['accountnumber', 'kontonummer', 'konto', 'number', 'nr', 'account'];
+                $isheader = false;
+                foreach ($headerpatterns as $pattern) {
+                    if (strpos($firstcol, $pattern) !== false) {
+                        $isheader = true;
+                        break;
+                    }
+                }
+                // Also check if first column doesn't look like a number.
+                if (!$isheader && !preg_match('/^\d/', $firstcol)) {
+                    $isheader = true;
+                }
+                if ($isheader) {
+                    continue;
+                }
+            }
+
+            if (count($parts) < 2) {
+                $result['errors'][] = get_string('importlineerror', 'qtype_buchungssatz', $linenum + 1);
+                continue;
+            }
+
+            $accountnumber = trim($parts[0]);
+            $accountname = trim($parts[1]);
+
+            // Skip empty account numbers.
+            if (empty($accountnumber)) {
+                continue;
+            }
+
+            // Skip duplicates within the same import.
+            if (isset($seenaccounts[$accountnumber])) {
+                continue;
+            }
+            $seenaccounts[$accountnumber] = true;
+
+            // Determine account type.
+            $accounttype = 'asset';
+            if (isset($parts[2]) && !empty(trim($parts[2]))) {
+                $type = strtolower(trim($parts[2]));
+                $validtypes = ['asset', 'liability', 'equity', 'revenue', 'expense'];
+                if (in_array($type, $validtypes)) {
+                    $accounttype = $type;
+                } else {
+                    $accounttype = import_helper::guess_account_type($accountnumber);
+                }
+            } else {
+                $accounttype = import_helper::guess_account_type($accountnumber);
+            }
+
+            try {
+                self::add_account($chartid, $accountnumber, $accountname, $accounttype, $sortorder++);
+                $result['imported']++;
+            } catch (\Exception $e) {
+                $result['errors'][] = get_string('importlineerror', 'qtype_buchungssatz', $linenum + 1) .
+                    ': ' . $e->getMessage();
+            }
+        }
+
+        // If no accounts were imported, delete the empty chart.
+        if ($result['imported'] === 0) {
+            self::delete_chart($chartid);
+            $result['chartid'] = 0;
+            $result['errors'][] = get_string('csvnoentries', 'qtype_buchungssatz');
+        }
+
+        return $result;
+    }
+
+    /**
      * Create a default German SKR03 chart of accounts (simplified).
      *
      * @param int $contextid Context ID.

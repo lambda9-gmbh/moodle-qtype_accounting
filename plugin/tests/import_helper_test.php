@@ -385,4 +385,72 @@ class import_helper_test extends \advanced_testcase {
         $this->assertEquals('8400', $result['entries'][2]['habenkonto']);
         $this->assertEquals('2500.00', $result['entries'][2]['habenbetrag']);
     }
+
+    /**
+     * Test chart import from entries format CSV.
+     */
+    public function test_chart_import_from_entries_csv(): void {
+        $this->resetAfterTest();
+
+        $csv = "Sollkonto;Sollname;Sollbetrag;Habenkonto;Habenname;Habenbetrag\n";
+        $csv .= "1200;Bank;1000,00;1400;Forderungen;1000,00\n";
+        $csv .= "4400;Mietaufwand;500,00;1200;Bank;500,00\n";
+        $csv .= "1200;Bank;2500,00;8400;Umsatzerloese;2500,00";
+
+        $contextid = \context_system::instance()->id;
+        $result = chart_manager::import_chart_from_csv('Test Import', $csv, $contextid, 'Test description');
+
+        $this->assertGreaterThan(0, $result['chartid']);
+        $this->assertEquals(4, $result['imported']); // 1200, 1400, 4400, 8400
+        $this->assertEmpty($result['errors']);
+
+        // Verify the accounts were created correctly.
+        $accounts = chart_manager::get_accounts($result['chartid']);
+        $this->assertCount(4, $accounts);
+
+        $accountnumbers = array_column($accounts, 'accountnumber');
+        $this->assertContains('1200', $accountnumbers);
+        $this->assertContains('1400', $accountnumbers);
+        $this->assertContains('4400', $accountnumbers);
+        $this->assertContains('8400', $accountnumbers);
+
+        // Verify account names.
+        $accountmap = [];
+        foreach ($accounts as $acc) {
+            $accountmap[$acc->accountnumber] = $acc->accountname;
+        }
+        $this->assertEquals('Bank', $accountmap['1200']);
+        $this->assertEquals('Forderungen', $accountmap['1400']);
+        $this->assertEquals('Mietaufwand', $accountmap['4400']);
+        $this->assertEquals('Umsatzerloese', $accountmap['8400']);
+    }
+
+    /**
+     * Test chart import from simple format CSV.
+     */
+    public function test_chart_import_from_simple_csv(): void {
+        $this->resetAfterTest();
+
+        $csv = "accountnumber;accountname;accounttype\n";
+        $csv .= "1000;Kasse;asset\n";
+        $csv .= "1200;Bank;asset\n";
+        $csv .= "8000;Umsatzerloese;revenue";
+
+        $contextid = \context_system::instance()->id;
+        $result = chart_manager::import_chart_from_csv('Simple Import', $csv, $contextid);
+
+        $this->assertGreaterThan(0, $result['chartid']);
+        $this->assertEquals(3, $result['imported']);
+        $this->assertEmpty($result['errors']);
+
+        // Verify account types were set correctly.
+        $accounts = chart_manager::get_accounts($result['chartid']);
+        $accounttypes = [];
+        foreach ($accounts as $acc) {
+            $accounttypes[$acc->accountnumber] = $acc->accounttype;
+        }
+        $this->assertEquals('asset', $accounttypes['1000']);
+        $this->assertEquals('asset', $accounttypes['1200']);
+        $this->assertEquals('revenue', $accounttypes['8000']);
+    }
 }
