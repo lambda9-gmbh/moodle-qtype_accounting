@@ -89,14 +89,27 @@ class question_test extends \advanced_testcase {
     }
 
     /**
-     * Test is_complete_response with only debit account.
+     * Test is_complete_response with only debit account filled.
+     * A response is considered complete if any account field is filled.
      */
     public function test_is_complete_response_only_debit(): void {
         $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
 
         $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '', 0);
 
-        $this->assertFalse($question->is_complete_response($response));
+        $this->assertTrue($question->is_complete_response($response));
+    }
+
+    /**
+     * Test is_complete_response with only credit account filled.
+     * A response is considered complete if any account field is filled.
+     */
+    public function test_is_complete_response_only_credit(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
+
+        $response = qtype_buchungssatz_test_helper::make_response('', 0, '8400', 1000);
+
+        $this->assertTrue($question->is_complete_response($response));
     }
 
     /**

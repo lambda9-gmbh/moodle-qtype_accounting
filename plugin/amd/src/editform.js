@@ -215,6 +215,7 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
             try {
                 const response = JSON.parse(xhr.responseText);
                 if (response.success) {
+                    // Update chart selection
                     if (response.chartid && chartSelect) {
                         let optionExists = false;
                         for (let i = 0; i < chartSelect.options.length; i++) {
@@ -233,53 +234,13 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
                     }
 
                     accountsByChart = response.accounts;
+
+                    // Update dropdowns with new chart's accounts BEFORE populating
+                    // This ensures existing select elements have the correct options
                     updateAccountDropdowns(true, false);
 
-                    // Fill in entries
-                    const entries = response.entries;
-                    const sollSelects = document.querySelectorAll("select[name^='sollkonto[']");
-                    const habenSelects = document.querySelectorAll("select[name^='habenkonto[']");
-                    const sollBetrags = document.querySelectorAll("input[name^='sollbetrag[']");
-                    const habenBetrags = document.querySelectorAll("input[name^='habenbetrag[']");
-                    const grades = document.querySelectorAll("input[name^='grade[']");
-
-                    const gradePerEntry = entries.length > 0 ? (100 / entries.length) : 0;
-
-                    for (let i = 0; i < entries.length; i++) {
-                        const entry = entries[i];
-                        if (sollSelects[i]) {
-                            sollSelects[i].value = entry.sollkonto;
-                        }
-                        if (habenSelects[i]) {
-                            habenSelects[i].value = entry.habenkonto;
-                        }
-                        if (sollBetrags[i]) {
-                            sollBetrags[i].value = entry.sollbetrag;
-                        }
-                        if (habenBetrags[i]) {
-                            habenBetrags[i].value = entry.habenbetrag;
-                        }
-                        if (grades[i]) {
-                            grades[i].value = gradePerEntry;
-                        }
-                    }
-
-                    updateAllSollbetragStates();
-
-                    csvFileInput.value = '';
-                    if (csvFilenameDisplay) {
-                        Str.get_string('nofileselected', 'qtype_buchungssatz').then(function(str) {
-                            csvFilenameDisplay.textContent = str;
-                            csvFilenameDisplay.style.color = '#6c757d';
-                        });
-                    }
-
-                    Str.get_strings([
-                        {key: 'importsuccess', component: 'qtype_buchungssatz'},
-                        {key: 'entriesimported', component: 'qtype_buchungssatz'}
-                    ]).then(function(strings) {
-                        alert(strings[0] + entries.length + ' ' + strings[1]);
-                    });
+                    // Populate form fields and trigger reload for proper rendering
+                    populateAndReloadForm(response.entries);
                 } else {
                     Str.get_string('importerror', 'qtype_buchungssatz').then(function(str) {
                         alert(str + response.error);
@@ -294,6 +255,73 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
             Str.get_string('importerror', 'qtype_buchungssatz').then(function(str) {
                 alert(str + 'HTTP ' + xhr.status);
             });
+        }
+    }
+
+    /**
+     * Populate form with imported entries and trigger a form reload.
+     * This lets Moodle's repeat_elements render the form properly.
+     *
+     * @param {Array} entries The imported entries.
+     */
+    function populateAndReloadForm(entries) {
+        const form = document.querySelector('form.mform') || document.querySelector('form');
+        if (!form) {
+            console.error('Could not find form');
+            return;
+        }
+
+        // Set entry_repeats to entries.length - 1 (entry_add button will increment by 1)
+        const repeatsInput = document.querySelector("input[name='entry_repeats']");
+        if (repeatsInput) {
+            repeatsInput.value = Math.max(0, entries.length - 1);
+        }
+
+        // Calculate grade per entry
+        const gradePerEntry = entries.length > 0 ? (100 / entries.length) : 0;
+
+        // Set or create hidden form fields for each entry
+        for (let i = 0; i < entries.length; i++) {
+            setFormField(form, 'sollkonto[' + i + ']', entries[i].sollkonto);
+            setFormField(form, 'sollbetrag[' + i + ']', entries[i].sollbetrag);
+            setFormField(form, 'habenkonto[' + i + ']', entries[i].habenkonto);
+            setFormField(form, 'habenbetrag[' + i + ']', entries[i].habenbetrag);
+            setFormField(form, 'grade[' + i + ']', gradePerEntry.toFixed(6));
+            setFormField(form, 'explanation[' + i + ']', '');
+        }
+
+        // Update sollbetrag states AFTER setting values
+        // This enables sollbetrag fields (disabled fields are not submitted)
+        updateAllSollbetragStates();
+
+        // Click the "Add entry" button to trigger form reload
+        // Moodle will re-render the form with entry_repeats + 1 entries
+        const addButton = document.querySelector('input[name="entry_add"]');
+        if (addButton) {
+            addButton.click();
+        } else {
+            console.error('Could not find entry_add button');
+        }
+    }
+
+    /**
+     * Set a form field value, creating a hidden field if it doesn't exist.
+     *
+     * @param {HTMLElement} form The form element.
+     * @param {string} name The field name.
+     * @param {string} value The field value.
+     */
+    function setFormField(form, name, value) {
+        let field = form.querySelector('[name="' + name + '"]');
+        if (field) {
+            field.value = value;
+        } else {
+            // Create hidden field for values that don't have DOM elements yet
+            field = document.createElement('input');
+            field.type = 'hidden';
+            field.name = name;
+            field.value = value;
+            form.appendChild(field);
         }
     }
 

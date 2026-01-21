@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   moodle:
     build:
@@ -35,6 +33,7 @@ services:
       - MYSQL_PASSWORD=moodle_password
     volumes:
       - mariadb_data:/var/lib/mysql
+      - ./init:/docker-entrypoint-initdb.d
     networks:
       - moft-network
     healthcheck:
