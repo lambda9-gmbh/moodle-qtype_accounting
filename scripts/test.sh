@@ -78,10 +78,10 @@ run_phpunit() {
         init_phpunit
     fi
 
+    # Use Moodle's testsuite which auto-discovers all tests in the plugin's tests/ directory
     docker compose exec -T moodle bash -c "
         cd /var/www/html && \
-        vendor/bin/phpunit question/type/buchungssatz/tests/question_test.php && \
-        vendor/bin/phpunit question/type/buchungssatz/tests/questiontype_test.php
+        php admin/tool/phpunit/cli/util.php --run --testsuite=qtype_buchungssatz_testsuite
     "
 }
 
