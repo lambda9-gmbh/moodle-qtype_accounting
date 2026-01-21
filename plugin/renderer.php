@@ -75,6 +75,13 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             }
         }
 
+        // In readonly mode (reviewing), ensure we show enough rows for all correct entries too.
+        // This handles the case where student entered fewer entries than required.
+        if ($options->readonly) {
+            $correctentrycount = count($question->entries);
+            $visiblerows = max($visiblerows, $correctentrycount);
+        }
+
         for ($i = 0; $i < $maxentries; $i++) {
             $hidden = ($i >= $visiblerows);
             $showdelete = !$options->readonly;
@@ -190,18 +197,43 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         $readonly = $options->readonly;
 
+        // Get feedback for this entry if in readonly mode (reviewing).
+        $feedback = null;
+        $correctentry = $question->entries[$index] ?? null;
+        $hasstudentdata = !empty($sollkontoval) || !empty($habenkontoval);
+
+        // Show feedback if either: student entered data OR there's a correct entry at this index.
+        if ($readonly && ($hasstudentdata || $correctentry !== null)) {
+            $studententry = [
+                'sollkonto' => $sollkontoval,
+                'sollbetrag' => $sollbetragval,
+                'habenkonto' => $habenkontoval,
+                'habenbetrag' => $habenbetragval,
+            ];
+            // Strict index matching - compare against the correct entry at the same index.
+            $feedback = $this->get_entry_feedback($studententry, $correctentry);
+        }
+
         $rowattrs = ['data-entry' => $index];
         if ($hidden) {
             $rowattrs['style'] = 'display: none;';
         } else {
-            $rowattrs['style'] = 'display: flex;';
+            $rowattrs['style'] = 'display: flex; flex-wrap: wrap;';
         }
         $html = html_writer::start_div('buchungssatz-entry mb-2 align-items-center', $rowattrs);
 
+        // Main row container.
+        $html .= html_writer::start_div('', ['style' => 'display: flex; width: 100%; align-items: center;']);
+
         // Soll (Debit) side.
-        $html .= $this->render_account_amount($readonly, $sollkontoval, $sollkontoname, $accounts, $sollbetragval, $sollbetragname);
+        $sollkontoclass = $feedback ? ($feedback['sollkonto_correct'] ? 'buchungssatz-correct' : 'buchungssatz-incorrect') : '';
+        $sollbetragclass = $feedback ? ($feedback['sollbetrag_correct'] ? 'buchungssatz-correct' : 'buchungssatz-incorrect') : '';
+        $html .= $this->render_account_amount($readonly, $sollkontoval, $sollkontoname, $accounts, $sollbetragval, $sollbetragname, false, $sollkontoclass, $sollbetragclass);
+
         // Haben (Credit) side.
-        $html .= $this->render_account_amount($readonly, $habenkontoval, $habenkontoname, $accounts, $habenbetragval, $habenbetragname);
+        $habenkontoclass = $feedback ? ($feedback['habenkonto_correct'] ? 'buchungssatz-correct' : 'buchungssatz-incorrect') : '';
+        $habenbetragclass = $feedback ? ($feedback['habenbetrag_correct'] ? 'buchungssatz-correct' : 'buchungssatz-incorrect') : '';
+        $html .= $this->render_account_amount($readonly, $habenkontoval, $habenkontoname, $accounts, $habenbetragval, $habenbetragname, false, $habenkontoclass, $habenbetragclass);
 
         // Delete button column.
         if ($showdelete) {
@@ -214,6 +246,17 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
                 'style' => 'line-height: 1; padding: 0.2rem 0.4rem; font-size: 1rem;',
             ]);
             $html .= html_writer::end_div();
+        }
+
+        $html .= html_writer::end_div(); // End main row container.
+
+        // Show explanation if entry has errors.
+        if ($feedback && !$feedback['all_correct'] && !empty($feedback['explanation'])) {
+            $html .= html_writer::div(
+                html_writer::tag('strong', get_string('explanation', 'qtype_buchungssatz') . ': ') . s($feedback['explanation']),
+                'buchungssatz-entry-explanation',
+                ['style' => 'width: 100%; padding: 0.5rem; margin-top: 0.25rem; background-color: #fff3cd; border-radius: 0.25rem; font-size: 0.9em;']
+            );
         }
 
         $html .= html_writer::end_div();
@@ -254,9 +297,21 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      * @param string $betragval The amount value.
      * @param string $betragname The amount field name.
      * @param bool $addborder Whether to add a right border.
+     * @param string $kontoclass Additional CSS class for account field (for correctness styling).
+     * @param string $betragclass Additional CSS class for amount field (for correctness styling).
      * @return string The HTML output.
      */
-    protected function render_account_amount(bool $readonly, string $kontoval, string $kontoname, array $accounts, string $betragval, string $betragname, bool $addborder = false): string {
+    protected function render_account_amount(
+        bool $readonly,
+        string $kontoval,
+        string $kontoname,
+        array $accounts,
+        string $betragval,
+        string $betragname,
+        bool $addborder = false,
+        string $kontoclass = '',
+        string $betragclass = ''
+    ): string {
         $html = html_writer::start_div('', ['class' => 'buchungssatz-account pr-2']);
         if ($readonly) {
             // Look up account name for display.
@@ -269,7 +324,11 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
                     }
                 }
             }
-            $html .= html_writer::tag('span', s($displayval), ['class' => 'buchungssatz-readonly']);
+            $spanclass = 'buchungssatz-readonly';
+            if (!empty($kontoclass)) {
+                $spanclass .= ' ' . $kontoclass;
+            }
+            $html .= html_writer::tag('span', s($displayval), ['class' => $spanclass]);
             $html .= html_writer::empty_tag('input', [
                 'type' => 'hidden',
                 'name' => $kontoname,
@@ -285,7 +344,11 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $amountstyle = $addborder ? 'border-right: 1px solid #dee2e6; padding-right: 0.5rem; margin-right: 0.5rem;' : '';
         $html .= html_writer::start_div('', ['class' => 'buchungssatz-amount pr-2', 'style' => $amountstyle]);
         if ($readonly) {
-            $html .= html_writer::tag('span', s($betragval), ['class' => 'buchungssatz-readonly']);
+            $spanclass = 'buchungssatz-readonly';
+            if (!empty($betragclass)) {
+                $spanclass .= ' ' . $betragclass;
+            }
+            $html .= html_writer::tag('span', s($betragval), ['class' => $spanclass]);
             $html .= html_writer::empty_tag('input', [
                 'type' => 'hidden',
                 'name' => $betragname,
@@ -372,10 +435,19 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         foreach ($question->entries as $entry) {
             $html .= html_writer::start_tag('tr');
             $html .= html_writer::tag('td', s($this->get_account_display($entry['sollkonto'], $accounts)));
-            $html .= html_writer::tag('td', number_format($entry['sollbetrag'], 2, ',', '.'));
+            $html .= html_writer::tag('td', $this->format_amount_display($entry['sollbetrag']));
             $html .= html_writer::tag('td', s($this->get_account_display($entry['habenkonto'], $accounts)));
-            $html .= html_writer::tag('td', number_format($entry['habenbetrag'], 2, ',', '.'));
+            $html .= html_writer::tag('td', $this->format_amount_display($entry['habenbetrag']));
             $html .= html_writer::end_tag('tr');
+            // Show explanation as separate row if present.
+            if (!empty($entry['explanation'])) {
+                $html .= html_writer::start_tag('tr', ['class' => 'buchungssatz-explanation-row']);
+                $html .= html_writer::tag('td',
+                    html_writer::tag('strong', get_string('explanation', 'qtype_buchungssatz') . ': ') . s($entry['explanation']),
+                    ['colspan' => 4, 'style' => 'background-color: #fff3cd; color: #856404;']
+                );
+                $html .= html_writer::end_tag('tr');
+            }
         }
         $html .= html_writer::end_tag('tbody');
         $html .= html_writer::end_tag('table');
@@ -402,5 +474,96 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             }
         }
         return $accountnumber;
+    }
+
+    /**
+     * Format an amount for display, showing empty for zero/non-existent amounts.
+     *
+     * @param float $amount The amount value.
+     * @return string The formatted amount or empty string if zero.
+     */
+    protected function format_amount_display(float $amount): string {
+        if (abs($amount) < 0.01) {
+            return '';
+        }
+        return number_format($amount, 2, ',', '.');
+    }
+
+    /**
+     * Get feedback for a student entry by comparing against the correct entry at the same index.
+     *
+     * @param array $studententry The student's entry.
+     * @param array|null $correctentry The correct entry at the same index, or null if none.
+     * @return array The feedback data with correctness flags and explanation.
+     */
+    protected function get_entry_feedback(array $studententry, ?array $correctentry): array {
+        $feedback = [
+            'sollkonto_correct' => false,
+            'sollbetrag_correct' => false,
+            'habenkonto_correct' => false,
+            'habenbetrag_correct' => false,
+            'all_correct' => false,
+            'explanation' => '',
+        ];
+
+        // If there's no correct entry at this index, all student fields are incorrect (extra entry).
+        if ($correctentry === null) {
+            // Student entry is extra - no explanation available.
+            return $feedback;
+        }
+
+        // If the student entry is empty but correct entry exists, show all as incorrect with explanation.
+        if (empty($studententry['sollkonto']) && empty($studententry['habenkonto'])) {
+            // Show explanation for missing entry.
+            if (!empty($correctentry['explanation'])) {
+                $feedback['explanation'] = $correctentry['explanation'];
+            }
+            return $feedback;
+        }
+
+        // Simple direct comparison - each field compared against the same index's correct entry.
+        $feedback['sollkonto_correct'] = strcasecmp($studententry['sollkonto'], $correctentry['sollkonto']) === 0;
+        $feedback['sollbetrag_correct'] = $this->amounts_match($studententry['sollbetrag'], $correctentry['sollbetrag']);
+        $feedback['habenkonto_correct'] = strcasecmp($studententry['habenkonto'], $correctentry['habenkonto']) === 0;
+        $feedback['habenbetrag_correct'] = $this->amounts_match($studententry['habenbetrag'], $correctentry['habenbetrag']);
+
+        $feedback['all_correct'] = $feedback['sollkonto_correct'] && $feedback['sollbetrag_correct'] &&
+                                   $feedback['habenkonto_correct'] && $feedback['habenbetrag_correct'];
+
+        // Show explanation if any field is incorrect.
+        if (!$feedback['all_correct'] && !empty($correctentry['explanation'])) {
+            $feedback['explanation'] = $correctentry['explanation'];
+        }
+
+        return $feedback;
+    }
+
+    /**
+     * Check if a student amount matches the correct amount.
+     *
+     * An amount is "non-existent" if it's empty or equals 0.
+     * If correct amount is non-existent, student's empty or 0 is correct.
+     * Otherwise, values must match within 0.01 tolerance.
+     *
+     * @param string $studentamount The student's amount value.
+     * @param float $correctamount The correct amount value.
+     * @return bool True if amounts match.
+     */
+    protected function amounts_match(string $studentamount, float $correctamount): bool {
+        $studentfloat = (float)$studentamount;
+        $studentempty = $studentamount === '' || abs($studentfloat) < 0.01;
+        $correctempty = abs($correctamount) < 0.01;
+
+        // If correct amount is non-existent (0), student's empty or 0 is correct.
+        if ($correctempty) {
+            return $studentempty;
+        }
+
+        // Correct amount has a value - student must enter something and match it.
+        if ($studentamount === '') {
+            return false;
+        }
+
+        return abs($studentfloat - $correctamount) < 0.01;
     }
 }

@@ -51,7 +51,10 @@ $string['selectaccount'] = '-- Konto auswählen --';
 $string['noaccountselected'] = 'Kein Konto ausgewählt';
 $string['sollamount'] = 'Soll-Betrag';
 $string['habenamount'] = 'Haben-Betrag';
-$string['fraction'] = 'Punkte';
+$string['grade'] = 'Bewertung (%)';
+$string['grade_help'] = 'Der Prozentsatz der Gesamtpunktzahl, den dieser Eintrag wert ist. Alle Bewertungen müssen zusammen genau 100% ergeben.';
+$string['explanation'] = 'Erklärung';
+$string['explanation_help'] = 'Eine optionale Erklärung für diesen Buchungssatz, die den Studierenden bei der Überprüfung der richtigen Antwort angezeigt wird.';
 
 // Feedback.
 $string['correctansweris'] = 'Die richtige Antwort lautet:';
@@ -64,6 +67,11 @@ $string['err_habenrequired'] = 'Ein Haben-Konto ist erforderlich, wenn ein Soll-
 $string['err_negativeamount'] = 'Beträge müssen positiv sein.';
 $string['err_minentries'] = 'Die maximale Anzahl der Buchungszeilen muss mindestens 1 sein.';
 $string['err_maxentries'] = 'Die maximale Anzahl der Buchungszeilen darf {$a} nicht überschreiten.';
+$string['err_habenamountrequired'] = 'Der Haben-Betrag ist erforderlich.';
+$string['err_sollbetragrequired'] = 'Der Soll-Betrag ist erforderlich, wenn ein Soll-Konto ausgewählt ist.';
+$string['err_graderequired'] = 'Die Bewertung ist erforderlich.';
+$string['err_gradeinvalid'] = 'Die Bewertung muss zwischen 0 und 100 liegen.';
+$string['err_gradesumnotcomplete'] = 'Die Summe aller Bewertungen muss genau 100% betragen. Aktuelle Summe: {$a}%';
 
 // Kontenplanverwaltung.
 $string['managecharts'] = 'Kontenpläne verwalten';
@@ -136,3 +144,4 @@ $string['importedchartdesc'] = 'Kontenplan aus CSV-Daten importiert.';
 $string['autoCalculatedFromFractions'] = 'Automatisch berechnet aus der Summe der Punktzahlen';
 $string['selectDebitAccountFirst'] = 'Bitte zuerst ein Sollkonto auswählen';
 $string['choosefile'] = 'Datei auswählen';
+$string['distributegradesequally'] = 'Gleichmäßig verteilen';

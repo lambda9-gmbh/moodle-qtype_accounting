@@ -12,7 +12,11 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     curl \
+    locales \
     && rm -rf /var/lib/apt/lists/*
+
+# Install required locales for PHPUnit tests
+RUN sed -i '/en_AU.UTF-8/s/^# //g' /etc/locale.gen && locale-gen en_AU.UTF-8
 
 # Configure and install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \

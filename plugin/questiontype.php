@@ -91,17 +91,23 @@ class qtype_buchungssatz extends question_type {
 
         // Save correct answer entries. Credit (Haben) account is required, Debit (Soll) is optional.
         // Form fields are arrays: sollkonto[], sollbetrag[], etc.
-        $entrycount = $question->entry_repeats ?? 0;
+        // Note: Array indices may not be sequential if entries were deleted, so we iterate over
+        // the actual keys in the habenkonto array rather than using a numeric counter.
         $sortorder = 0;
 
-        for ($i = 0; $i < $entrycount; $i++) {
+        $habenkontoarray = $question->habenkonto ?? [];
+        foreach ($habenkontoarray as $i => $habenkonto) {
             $sollkonto = trim($question->sollkonto[$i] ?? '');
-            $habenkonto = trim($question->habenkonto[$i] ?? '');
+            $habenkonto = trim($habenkonto ?? '');
 
             // Only save entries that have a Credit (Haben) account.
             if (empty($habenkonto)) {
                 continue;
             }
+
+            // Convert grade percentage (0-100) to fraction (0-1).
+            $grade = floatval($question->grade[$i] ?? 0);
+            $fraction = $grade / 100;
 
             $record = new stdClass();
             $record->questionid = $question->id;
@@ -110,7 +116,8 @@ class qtype_buchungssatz extends question_type {
             $record->sollbetrag = floatval($question->sollbetrag[$i] ?? 0);
             $record->habenkonto = $habenkonto;
             $record->habenbetrag = floatval($question->habenbetrag[$i] ?? 0);
-            $record->fraction = floatval($question->fraction[$i] ?? 1.0);
+            $record->fraction = $fraction;
+            $record->explanation = $question->explanation[$i] ?? '';
             $DB->insert_record('qtype_buchungssatz_entries', $record);
         }
 
@@ -168,6 +175,7 @@ class qtype_buchungssatz extends question_type {
                     'habenkonto' => $entry->habenkonto,
                     'habenbetrag' => $entry->habenbetrag,
                     'fraction' => $entry->fraction,
+                    'explanation' => $entry->explanation ?? '',
                 ];
             }
         }

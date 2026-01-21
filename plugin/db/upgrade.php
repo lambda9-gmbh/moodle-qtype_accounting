@@ -15,17 +15,35 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version information for the Buchungssatz question type.
+ * Buchungssatz question type upgrade code.
  *
  * @package    qtype_buchungssatz
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+/**
+ * Upgrade the qtype_buchungssatz plugin.
+ *
+ * @param int $oldversion The old version of the plugin.
+ * @return bool True on success.
+ */
+function xmldb_qtype_buchungssatz_upgrade($oldversion) {
+    global $DB;
 
-$plugin->component = 'qtype_buchungssatz';
-$plugin->version = 2024010107;
-$plugin->requires = 2022112800; // Moodle 4.1+
-$plugin->maturity = MATURITY_ALPHA;
-$plugin->release = '0.1.0';
+    $dbman = $DB->get_manager();
+
+    if ($oldversion < 2024010107) {
+        // Add explanation field to qtype_buchungssatz_entries table.
+        $table = new xmldb_table('qtype_buchungssatz_entries');
+        $field = new xmldb_field('explanation', XMLDB_TYPE_TEXT, null, null, null, null, null, 'fraction');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2024010107, 'qtype', 'buchungssatz');
+    }
+
+    return true;
+}

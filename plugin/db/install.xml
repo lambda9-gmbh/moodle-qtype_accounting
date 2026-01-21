@@ -25,6 +25,7 @@
         <FIELD NAME="habenkonto" TYPE="char" LENGTH="100" NOTNULL="true" DEFAULT="" COMMENT="Credit account name/number"/>
         <FIELD NAME="habenbetrag" TYPE="number" LENGTH="15" DECIMALS="2" NOTNULL="true" DEFAULT="0" COMMENT="Credit amount"/>
         <FIELD NAME="fraction" TYPE="number" LENGTH="12" DECIMALS="7" NOTNULL="true" DEFAULT="1" COMMENT="Fraction of total grade for this entry"/>
+        <FIELD NAME="explanation" TYPE="text" NOTNULL="false" COMMENT="Teacher explanation for this entry"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

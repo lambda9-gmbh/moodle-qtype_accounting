@@ -32,7 +32,7 @@ define(['jquery'], function($) {
      * @param {boolean} allowEdit Whether the user can add/delete entries.
      */
     function init(containerId, accounts, maxEntries, allowEdit) {
-        var container = $('#' + containerId);
+        const container = $('#' + containerId);
 
         if (container.length === 0) {
             console.log('Buchungssatz: Container not found: ' + containerId);
@@ -55,8 +55,8 @@ define(['jquery'], function($) {
 
         // Auto-copy amount from Soll to Haben for convenience.
         container.find('input[name*="sollbetrag"]').on('change', function() {
-            var index = $(this).attr('name').match(/\d+/)[0];
-            var habenInput = container.find('input[name*="habenbetrag_' + index + '"]');
+            const index = $(this).attr('name').match(/\d+/)[0];
+            const habenInput = container.find('input[name*="habenbetrag_' + index + '"]');
 
             // Only auto-fill if Haben is empty.
             if (habenInput.val() === '' || habenInput.val() === '0') {
@@ -74,7 +74,7 @@ define(['jquery'], function($) {
 
             // Delete entry button handler (using delegation for dynamically shown rows).
             container.on('click', '.buchungssatz-delete-entry', function() {
-                var entryIndex = $(this).data('entry');
+                const entryIndex = $(this).data('entry');
                 console.log('Buchungssatz: Delete entry clicked: ' + entryIndex);
                 deleteEntry(container, entryIndex);
             });
@@ -91,13 +91,13 @@ define(['jquery'], function($) {
      * @param {number} maxEntries Maximum number of entries.
      */
     function addEntry(container, maxEntries) {
-        var entries = container.find('.buchungssatz-entry');
-        var hiddenEntries = entries.filter(function() {
+        const entries = container.find('.buchungssatz-entry');
+        const hiddenEntries = entries.filter(function() {
             return $(this).css('display') === 'none';
         });
 
         if (hiddenEntries.length > 0) {
-            var firstHidden = hiddenEntries.first();
+            const firstHidden = hiddenEntries.first();
             firstHidden.css('display', 'flex');
 
             // Re-initialize Select2 if available.
@@ -121,7 +121,7 @@ define(['jquery'], function($) {
      * @param {number} entryIndex The index of the entry to delete.
      */
     function deleteEntry(container, entryIndex) {
-        var visibleEntries = container.find('.buchungssatz-entry').filter(function() {
+        const visibleEntries = container.find('.buchungssatz-entry').filter(function() {
             return $(this).css('display') !== 'none';
         });
 
@@ -130,7 +130,7 @@ define(['jquery'], function($) {
             return;
         }
 
-        var entryRow = container.find('.buchungssatz-entry[data-entry="' + entryIndex + '"]');
+        const entryRow = container.find('.buchungssatz-entry[data-entry="' + entryIndex + '"]');
         if (entryRow.length > 0) {
             // Clear the fields.
             entryRow.find('select').val('');
@@ -160,7 +160,7 @@ define(['jquery'], function($) {
      * @param {jQuery} container The question container.
      */
     function updateDeleteButtons(container) {
-        var visibleEntries = container.find('.buchungssatz-entry').filter(function() {
+        const visibleEntries = container.find('.buchungssatz-entry').filter(function() {
             return $(this).css('display') !== 'none';
         });
 
@@ -182,11 +182,11 @@ define(['jquery'], function($) {
      * @param {number} maxEntries Maximum entries allowed.
      */
     function updateAddButton(container, maxEntries) {
-        var visibleEntries = container.find('.buchungssatz-entry').filter(function() {
+        const visibleEntries = container.find('.buchungssatz-entry').filter(function() {
             return $(this).css('display') !== 'none';
         });
 
-        var addButton = container.find('.buchungssatz-add-entry');
+        const addButton = container.find('.buchungssatz-add-entry');
         if (visibleEntries.length >= maxEntries) {
             addButton.css('display', 'none');
         } else {

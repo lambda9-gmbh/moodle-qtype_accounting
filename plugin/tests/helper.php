@@ -1,0 +1,301 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Test helper for qtype_buchungssatz.
+ *
+ * @package    qtype_buchungssatz
+ * @copyright  2024 Hochschule Flensburg / lambda9
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
+global $CFG;
+require_once($CFG->dirroot . '/question/engine/tests/helpers.php');
+require_once($CFG->dirroot . '/question/type/buchungssatz/question.php');
+
+/**
+ * Test helper class for creating Buchungssatz questions.
+ *
+ * @package    qtype_buchungssatz
+ * @copyright  2024 Hochschule Flensburg / lambda9
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class qtype_buchungssatz_test_helper extends question_test_helper {
+
+    /**
+     * Get the question types that this helper supports.
+     *
+     * @return array The supported question types.
+     */
+    public function get_test_questions(): array {
+        return [
+            'simple_debit_credit',
+            'multiple_entries',
+            'debit_only_optional',
+        ];
+    }
+
+    /**
+     * Create a simple question with one debit/credit entry.
+     *
+     * Example: Bank 1000 / Revenue 1000
+     *
+     * @return qtype_buchungssatz_question The test question.
+     */
+    public function make_buchungssatz_question_simple_debit_credit(): qtype_buchungssatz_question {
+        $question = new qtype_buchungssatz_question();
+
+        $question->id = 1;
+        $question->name = 'Simple debit/credit question';
+        $question->questiontext = 'A customer pays 1000 EUR in cash. Record this transaction.';
+        $question->questiontextformat = FORMAT_HTML;
+        $question->generalfeedback = 'The correct entry is: Bank 1000 / Revenue 1000';
+        $question->generalfeedbackformat = FORMAT_HTML;
+        $question->defaultmark = 1;
+        $question->penalty = 0.3333333;
+        $question->qtype = question_bank::get_qtype('buchungssatz');
+
+        $question->chartofaccountsid = 0;
+        $question->allowmultipleentries = 0;
+        $question->maxentries = 1;
+
+        $question->entries = [
+            [
+                'sollkonto' => '1200',
+                'sollbetrag' => 1000.00,
+                'habenkonto' => '8400',
+                'habenbetrag' => 1000.00,
+                'fraction' => 1.0,
+                'explanation' => '',
+            ],
+        ];
+
+        return $question;
+    }
+
+    /**
+     * Create a question with multiple entries.
+     *
+     * Example: Split payment - part cash, part bank transfer.
+     *
+     * @return qtype_buchungssatz_question The test question.
+     */
+    public function make_buchungssatz_question_multiple_entries(): qtype_buchungssatz_question {
+        $question = new qtype_buchungssatz_question();
+
+        $question->id = 2;
+        $question->name = 'Multiple entries question';
+        $question->questiontext = 'Record the following: Cash sale 500 EUR and bank sale 500 EUR.';
+        $question->questiontextformat = FORMAT_HTML;
+        $question->generalfeedback = 'Two entries are needed.';
+        $question->generalfeedbackformat = FORMAT_HTML;
+        $question->defaultmark = 1;
+        $question->penalty = 0.3333333;
+        $question->qtype = question_bank::get_qtype('buchungssatz');
+
+        $question->chartofaccountsid = 0;
+        $question->allowmultipleentries = 1;
+        $question->maxentries = 5;
+
+        $question->entries = [
+            [
+                'sollkonto' => '1000',
+                'sollbetrag' => 500.00,
+                'habenkonto' => '8400',
+                'habenbetrag' => 500.00,
+                'fraction' => 0.5,
+                'explanation' => 'Cash payment',
+            ],
+            [
+                'sollkonto' => '1200',
+                'sollbetrag' => 500.00,
+                'habenkonto' => '8400',
+                'habenbetrag' => 500.00,
+                'fraction' => 0.5,
+                'explanation' => 'Bank transfer',
+            ],
+        ];
+
+        return $question;
+    }
+
+    /**
+     * Create a question where debit account is optional (credit-only entry).
+     *
+     * @return qtype_buchungssatz_question The test question.
+     */
+    public function make_buchungssatz_question_debit_only_optional(): qtype_buchungssatz_question {
+        $question = new qtype_buchungssatz_question();
+
+        $question->id = 3;
+        $question->name = 'Debit optional question';
+        $question->questiontext = 'Record a credit entry to liability account.';
+        $question->questiontextformat = FORMAT_HTML;
+        $question->generalfeedback = 'Only credit account is required.';
+        $question->generalfeedbackformat = FORMAT_HTML;
+        $question->defaultmark = 1;
+        $question->penalty = 0.3333333;
+        $question->qtype = question_bank::get_qtype('buchungssatz');
+
+        $question->chartofaccountsid = 0;
+        $question->allowmultipleentries = 0;
+        $question->maxentries = 1;
+
+        $question->entries = [
+            [
+                'sollkonto' => '',
+                'sollbetrag' => 0,
+                'habenkonto' => '4400',
+                'habenbetrag' => 250.00,
+                'fraction' => 1.0,
+                'explanation' => '',
+            ],
+        ];
+
+        return $question;
+    }
+
+    /**
+     * Get form data for a simple debit/credit question.
+     *
+     * This method is called by Moodle's question generator when creating
+     * test questions via create_question().
+     *
+     * @return \stdClass The form data.
+     */
+    public function get_buchungssatz_question_form_data_simple_debit_credit(): \stdClass {
+        $fromform = new \stdClass();
+
+        $fromform->name = 'Simple debit/credit question';
+        $fromform->questiontext = ['text' => 'A customer pays 1000 EUR in cash. Record this transaction.', 'format' => FORMAT_HTML];
+        $fromform->generalfeedback = ['text' => 'The correct entry is: Bank 1000 / Revenue 1000', 'format' => FORMAT_HTML];
+        $fromform->defaultmark = 1;
+        $fromform->penalty = 0.3333333;
+
+        $fromform->chartofaccountsid = 0;
+        $fromform->allowmultipleentries = 0;
+        $fromform->maxentries = 1;
+
+        $fromform->sollkonto = ['1200'];
+        $fromform->sollbetrag = [1000.00];
+        $fromform->habenkonto = ['8400'];
+        $fromform->habenbetrag = [1000.00];
+        $fromform->grade = [100];
+        $fromform->explanation = [''];
+
+        return $fromform;
+    }
+
+    /**
+     * Get form data for a multiple entries question.
+     *
+     * @return \stdClass The form data.
+     */
+    public function get_buchungssatz_question_form_data_multiple_entries(): \stdClass {
+        $fromform = new \stdClass();
+
+        $fromform->name = 'Multiple entries question';
+        $fromform->questiontext = ['text' => 'Record the following: Cash sale 500 EUR and bank sale 500 EUR.', 'format' => FORMAT_HTML];
+        $fromform->generalfeedback = ['text' => 'Two entries are needed.', 'format' => FORMAT_HTML];
+        $fromform->defaultmark = 1;
+        $fromform->penalty = 0.3333333;
+
+        $fromform->chartofaccountsid = 0;
+        $fromform->allowmultipleentries = 1;
+        $fromform->maxentries = 5;
+
+        $fromform->sollkonto = ['1000', '1200'];
+        $fromform->sollbetrag = [500.00, 500.00];
+        $fromform->habenkonto = ['8400', '8400'];
+        $fromform->habenbetrag = [500.00, 500.00];
+        $fromform->grade = [50, 50];
+        $fromform->explanation = ['Cash payment', 'Bank transfer'];
+
+        return $fromform;
+    }
+
+    /**
+     * Get form data for a debit-only optional question.
+     *
+     * @return \stdClass The form data.
+     */
+    public function get_buchungssatz_question_form_data_debit_only_optional(): \stdClass {
+        $fromform = new \stdClass();
+
+        $fromform->name = 'Debit optional question';
+        $fromform->questiontext = ['text' => 'Record a credit entry to liability account.', 'format' => FORMAT_HTML];
+        $fromform->generalfeedback = ['text' => 'Only credit account is required.', 'format' => FORMAT_HTML];
+        $fromform->defaultmark = 1;
+        $fromform->penalty = 0.3333333;
+
+        $fromform->chartofaccountsid = 0;
+        $fromform->allowmultipleentries = 0;
+        $fromform->maxentries = 1;
+
+        $fromform->sollkonto = [''];
+        $fromform->sollbetrag = [0];
+        $fromform->habenkonto = ['4400'];
+        $fromform->habenbetrag = [250.00];
+        $fromform->grade = [100];
+        $fromform->explanation = [''];
+
+        return $fromform;
+    }
+
+    /**
+     * Create a response array for a simple entry.
+     *
+     * @param string $sollkonto Debit account.
+     * @param float $sollbetrag Debit amount.
+     * @param string $habenkonto Credit account.
+     * @param float $habenbetrag Credit amount.
+     * @param int $index Entry index (default 0).
+     * @return array The response array.
+     */
+    public static function make_response(
+        string $sollkonto,
+        float $sollbetrag,
+        string $habenkonto,
+        float $habenbetrag,
+        int $index = 0
+    ): array {
+        return [
+            "sollkonto_{$index}" => $sollkonto,
+            "sollbetrag_{$index}" => $sollbetrag,
+            "habenkonto_{$index}" => $habenkonto,
+            "habenbetrag_{$index}" => $habenbetrag,
+        ];
+    }
+
+    /**
+     * Create a response array with multiple entries.
+     *
+     * @param array $entries Array of entries, each with sollkonto, sollbetrag, habenkonto, habenbetrag.
+     * @return array The response array.
+     */
+    public static function make_multi_response(array $entries): array {
+        $response = [];
+        foreach ($entries as $index => $entry) {
+            $response["sollkonto_{$index}"] = $entry['sollkonto'] ?? '';
+            $response["sollbetrag_{$index}"] = $entry['sollbetrag'] ?? 0;
+            $response["habenkonto_{$index}"] = $entry['habenkonto'] ?? '';
+            $response["habenbetrag_{$index}"] = $entry['habenbetrag'] ?? 0;
+        }
+        return $response;
+    }
+}

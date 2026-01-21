@@ -57,11 +57,12 @@ class qtype_buchungssatz_question extends question_graded_automatically {
         $expected = [];
 
         // Always allow up to MAX_STUDENT_ENTRIES for student responses.
+        // Use PARAM_RAW for amounts to preserve empty strings (PARAM_FLOAT converts them to 0).
         for ($i = 0; $i < self::MAX_STUDENT_ENTRIES; $i++) {
             $expected["sollkonto_{$i}"] = PARAM_TEXT;
-            $expected["sollbetrag_{$i}"] = PARAM_FLOAT;
+            $expected["sollbetrag_{$i}"] = PARAM_RAW;
             $expected["habenkonto_{$i}"] = PARAM_TEXT;
-            $expected["habenbetrag_{$i}"] = PARAM_FLOAT;
+            $expected["habenbetrag_{$i}"] = PARAM_RAW;
         }
 
         return $expected;

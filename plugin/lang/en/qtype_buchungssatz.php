@@ -51,7 +51,10 @@ $string['selectaccount'] = '-- Select account --';
 $string['noaccountselected'] = 'No account selected';
 $string['sollamount'] = 'Debit amount';
 $string['habenamount'] = 'Credit amount';
-$string['fraction'] = 'Points';
+$string['grade'] = 'Grade (%)';
+$string['grade_help'] = 'The percentage of total marks this entry is worth. All entry grades must sum to exactly 100%.';
+$string['explanation'] = 'Explanation';
+$string['explanation_help'] = 'An optional explanation for this entry that will be shown to students when reviewing the correct answer.';
 
 // Feedback.
 $string['correctansweris'] = 'The correct answer is:';
@@ -64,6 +67,11 @@ $string['err_habenrequired'] = 'Credit account is required when debit account is
 $string['err_negativeamount'] = 'Amounts must be positive.';
 $string['err_minentries'] = 'Maximum entries must be at least 1.';
 $string['err_maxentries'] = 'Maximum entries cannot exceed {$a}.';
+$string['err_habenamountrequired'] = 'Credit amount is required.';
+$string['err_sollbetragrequired'] = 'Debit amount is required when a debit account is selected.';
+$string['err_graderequired'] = 'Grade is required.';
+$string['err_gradeinvalid'] = 'Grade must be between 0 and 100.';
+$string['err_gradesumnotcomplete'] = 'The sum of all grades must equal exactly 100%. Current sum: {$a}%';
 
 // Chart of accounts management.
 $string['managecharts'] = 'Manage Charts of Accounts';
@@ -136,3 +144,4 @@ $string['importedchartdesc'] = 'Chart of accounts imported from CSV data.';
 $string['autoCalculatedFromFractions'] = 'Auto-calculated from the sum of entry points';
 $string['selectDebitAccountFirst'] = 'Please select a debit account first';
 $string['choosefile'] = 'Choose File';
+$string['distributegradesequally'] = 'Distribute equally';

@@ -23,4 +23,14 @@ $CFG->admin     = 'admin';
 
 $CFG->directorypermissions = 0777;
 
+// PHPUnit test configuration.
+$CFG->phpunit_prefix = 'phpu_';
+$CFG->phpunit_dataroot = '/var/www/moodledata_phpu';
+$CFG->phpunit_dbtype    = 'mariadb';
+$CFG->phpunit_dblibrary = 'native';
+$CFG->phpunit_dbhost    = 'mariadb';
+$CFG->phpunit_dbname    = 'moodle_test';
+$CFG->phpunit_dbuser    = 'moodle';
+$CFG->phpunit_dbpass    = 'moodle_password';
+
 require_once(__DIR__ . '/lib/setup.php');

@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version information for the Buchungssatz question type.
+ * Buchungssatz question type data generator.
  *
  * @package    qtype_buchungssatz
  * @copyright  2024 Hochschule Flensburg / lambda9
@@ -24,8 +24,31 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'qtype_buchungssatz';
-$plugin->version = 2024010107;
-$plugin->requires = 2022112800; // Moodle 4.1+
-$plugin->maturity = MATURITY_ALPHA;
-$plugin->release = '0.1.0';
+/**
+ * Buchungssatz question type data generator.
+ *
+ * @package    qtype_buchungssatz
+ * @copyright  2024 Hochschule Flensburg / lambda9
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class qtype_buchungssatz_generator extends component_generator_base {
+
+    /**
+     * Generate a default data set for a Buchungssatz question.
+     *
+     * @return array The default data.
+     */
+    public function get_default_question_data(): array {
+        return [
+            'chartofaccountsid' => 0,
+            'allowmultipleentries' => 0,
+            'maxentries' => 5,
+            'sollkonto' => ['1200'],
+            'sollbetrag' => [1000.00],
+            'habenkonto' => ['8400'],
+            'habenbetrag' => [1000.00],
+            'grade' => [100],
+            'explanation' => [''],
+        ];
+    }
+}
