@@ -82,10 +82,29 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             $visiblerows = max($visiblerows, $correctentrycount);
         }
 
+        // Get the accountsindropdown limit.
+        $accountslimit = $question->accountsindropdown ?? 0;
+
         for ($i = 0; $i < $maxentries; $i++) {
             $hidden = ($i >= $visiblerows);
             $showdelete = !$options->readonly;
-            $result .= $this->render_entry_row($qa, $options, $i, $response, $accounts, $question, $hidden, $showdelete);
+
+            // Filter accounts for this entry based on accountsindropdown setting.
+            $correctentry = $question->entries[$i] ?? null;
+            $correctsollkonto = $correctentry['sollkonto'] ?? '';
+            $correcthabenkonto = $correctentry['habenkonto'] ?? '';
+
+            // If we have a limit and not in readonly mode, filter the accounts.
+            if ($accountslimit > 0 && !$options->readonly) {
+                $sollaccounts = $this->filter_accounts_for_dropdown($accounts, $correctsollkonto, $accountslimit);
+                $habenaccounts = $this->filter_accounts_for_dropdown($accounts, $correcthabenkonto, $accountslimit);
+            } else {
+                // No limit or readonly mode - show all accounts.
+                $sollaccounts = $accounts;
+                $habenaccounts = $accounts;
+            }
+
+            $result .= $this->render_entry_row($qa, $options, $i, $response, $sollaccounts, $habenaccounts, $question, $hidden, $showdelete);
         }
 
         $result .= html_writer::end_div();
@@ -169,7 +188,8 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      * @param question_display_options $options The display options.
      * @param int $index The entry index.
      * @param array $response The current response data.
-     * @param array $accounts The available accounts.
+     * @param array $sollaccounts The available accounts for Soll (debit) dropdown.
+     * @param array $habenaccounts The available accounts for Haben (credit) dropdown.
      * @param object $question The question object.
      * @param bool $hidden Whether the row should be hidden initially.
      * @param bool $showdelete Whether to show the delete button.
@@ -180,7 +200,8 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         question_display_options $options,
         int $index,
         array $response,
-        array $accounts,
+        array $sollaccounts,
+        array $habenaccounts,
         object $question,
         bool $hidden = false,
         bool $showdelete = false
@@ -228,12 +249,12 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         // Soll (Debit) side.
         $sollkontoclass = $feedback ? ($feedback['sollkonto_correct'] ? 'buchungssatz-correct' : 'buchungssatz-incorrect') : '';
         $sollbetragclass = $feedback ? ($feedback['sollbetrag_correct'] ? 'buchungssatz-correct' : 'buchungssatz-incorrect') : '';
-        $html .= $this->render_account_amount($readonly, $sollkontoval, $sollkontoname, $accounts, $sollbetragval, $sollbetragname, false, $sollkontoclass, $sollbetragclass);
+        $html .= $this->render_account_amount($readonly, $sollkontoval, $sollkontoname, $sollaccounts, $sollbetragval, $sollbetragname, false, $sollkontoclass, $sollbetragclass);
 
         // Haben (Credit) side.
         $habenkontoclass = $feedback ? ($feedback['habenkonto_correct'] ? 'buchungssatz-correct' : 'buchungssatz-incorrect') : '';
         $habenbetragclass = $feedback ? ($feedback['habenbetrag_correct'] ? 'buchungssatz-correct' : 'buchungssatz-incorrect') : '';
-        $html .= $this->render_account_amount($readonly, $habenkontoval, $habenkontoname, $accounts, $habenbetragval, $habenbetragname, false, $habenkontoclass, $habenbetragclass);
+        $html .= $this->render_account_amount($readonly, $habenkontoval, $habenkontoname, $habenaccounts, $habenbetragval, $habenbetragname, false, $habenkontoclass, $habenbetragclass);
 
         // Delete button column.
         if ($showdelete) {
@@ -389,6 +410,60 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
     }
 
     /**
+     * Filter accounts for a dropdown based on the accountsindropdown setting.
+     *
+     * If limit is 0, returns all accounts.
+     * Otherwise, returns the correct account plus the specified number of random other accounts.
+     * E.g., if limit = 3, shows 1 correct + 3 random = 4 accounts total.
+     *
+     * @param array $allaccounts All available accounts from the chart.
+     * @param string $correctaccountnumber The correct account number for this field.
+     * @param int $limit The number of random accounts to add (0 = show all).
+     * @return array The filtered list of account records, sorted by account number.
+     */
+    protected function filter_accounts_for_dropdown(array $allaccounts, string $correctaccountnumber, int $limit): array {
+        // If limit is 0 or no accounts, return all.
+        if ($limit <= 0 || empty($allaccounts)) {
+            return $allaccounts;
+        }
+
+        $result = [];
+        $otheraccounts = [];
+
+        // Separate the correct account from others.
+        foreach ($allaccounts as $account) {
+            if ($account->accountnumber === $correctaccountnumber) {
+                $result[$account->id] = $account;
+            } else {
+                $otheraccounts[$account->id] = $account;
+            }
+        }
+
+        // If limit is greater than or equal to other accounts available, return all.
+        if ($limit >= count($otheraccounts)) {
+            return $allaccounts;
+        }
+
+        // Select 'limit' random accounts from the other accounts.
+        if (!empty($otheraccounts)) {
+            $otherkeys = array_keys($otheraccounts);
+            shuffle($otherkeys);
+            $selectedkeys = array_slice($otherkeys, 0, $limit);
+
+            foreach ($selectedkeys as $key) {
+                $result[$key] = $otheraccounts[$key];
+            }
+        }
+
+        // Sort by account number for consistent display.
+        uasort($result, function($a, $b) {
+            return strcmp($a->accountnumber, $b->accountnumber);
+        });
+
+        return $result;
+    }
+
+    /**
      * Generate the specific feedback for the question.
      *
      * @param question_attempt $qa The question attempt object.
@@ -431,13 +506,16 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $html .= html_writer::end_tag('tr');
         $html .= html_writer::end_tag('thead');
 
+        $numberformat = $question->numberformat ?? 'de';
+        $decimalplaces = $question->decimalplaces ?? 2;
+
         $html .= html_writer::start_tag('tbody');
         foreach ($question->entries as $entry) {
             $html .= html_writer::start_tag('tr');
             $html .= html_writer::tag('td', s($this->get_account_display($entry['sollkonto'], $accounts)));
-            $html .= html_writer::tag('td', $this->format_amount_display($entry['sollbetrag']));
+            $html .= html_writer::tag('td', $this->format_amount_display($entry['sollbetrag'], $numberformat, $decimalplaces));
             $html .= html_writer::tag('td', s($this->get_account_display($entry['habenkonto'], $accounts)));
-            $html .= html_writer::tag('td', $this->format_amount_display($entry['habenbetrag']));
+            $html .= html_writer::tag('td', $this->format_amount_display($entry['habenbetrag'], $numberformat, $decimalplaces));
             $html .= html_writer::end_tag('tr');
             // Show explanation as separate row if present.
             if (!empty($entry['explanation'])) {
@@ -480,13 +558,19 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      * Format an amount for display, showing empty for zero/non-existent amounts.
      *
      * @param float $amount The amount value.
+     * @param string $format The number format: 'de' for German (1.234,56) or 'us' for US (1,234.56).
+     * @param int $decimalplaces The number of decimal places to display.
      * @return string The formatted amount or empty string if zero.
      */
-    protected function format_amount_display(float $amount): string {
+    protected function format_amount_display(float $amount, string $format = 'de', int $decimalplaces = 2): string {
         if (abs($amount) < 0.01) {
             return '';
         }
-        return number_format($amount, 2, ',', '.');
+        if ($format === 'us') {
+            return number_format($amount, $decimalplaces, '.', ',');
+        }
+        // Default: German/EU format.
+        return number_format($amount, $decimalplaces, ',', '.');
     }
 
     /**

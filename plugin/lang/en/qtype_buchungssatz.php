@@ -32,6 +32,19 @@ $string['pluginnamesummary'] = 'A question type for practicing accounting entrie
 // Form labels.
 $string['chartofaccounts'] = 'Chart of Accounts';
 $string['chartofaccounts_help'] = 'Select the chart of accounts that students will use to select accounts for their entries.';
+$string['accountsindropdown'] = 'Number of additional accounts in selection list';
+$string['accountsindropdown_help'] = 'The number of random additional accounts to show in the dropdown selection list alongside the correct account. Set to 0 to show all accounts from the selected chart. For example, entering 3 will show the correct account plus 3 random accounts (4 total).';
+$string['numberformat'] = 'Number format';
+$string['currency_symbol'] = 'Currency Symbol';
+$string['decimalplaces'] = 'Decimal places';
+$string['decimalplaces_help'] = 'The number of decimal places to display for amounts in both the teacher and student view.';
+$string['extraentrydeduction'] = 'Deduction for extra entries';
+$string['extraentrydeduction_help'] = 'Points deducted for each extra entry the student provides beyond the correct answer. An extra line with both debit and credit filled counts as 2 extra entries. Leave empty for no deduction. The score cannot go below 0. (Feature not yet implemented)';
+$string['allornothinggrading'] = 'Only award marks if all entries are correct';
+$string['allornothinggrading_help'] = 'If enabled, the student only receives marks if all booking entries are completely correct. If there is any error (even just one amount), the entire question is graded as 0 points.';
+$string['numberformat_help'] = 'Select the number format for displaying amounts. German/EU format uses dot as thousands separator and comma as decimal separator (1.234,56). US format uses comma as thousands separator and dot as decimal separator (1,234.56).';
+$string['numberformat_de'] = 'German/EU (1.234,56)';
+$string['numberformat_us'] = 'US (1,234.56)';
 $string['nochartselected'] = '-- No chart selected --';
 $string['allowmultipleentries'] = 'Allow multiple entries';
 $string['allowmultipleentries_help'] = 'If enabled, students can enter multiple booking lines (e.g., for compound journal entries).';
@@ -72,6 +85,7 @@ $string['err_sollbetragrequired'] = 'Debit amount is required when a debit accou
 $string['err_graderequired'] = 'Grade is required.';
 $string['err_gradeinvalid'] = 'Grade must be between 0 and 100.';
 $string['err_gradesumnotcomplete'] = 'The sum of all grades must equal exactly 100%. Current sum: {$a}%';
+$string['err_accountsindropdown_negative'] = 'The number of accounts in selection list cannot be negative.';
 
 // Chart of accounts management.
 $string['managecharts'] = 'Manage Charts of Accounts';
@@ -82,12 +96,13 @@ $string['chartname'] = 'Chart name';
 $string['chartdescription'] = 'Description';
 $string['importaccounts'] = 'Import accounts from CSV';
 $string['exportaccounts'] = 'Export accounts to CSV';
-$string['accounttype'] = 'Account type';
-$string['accounttype_asset'] = 'Asset';
-$string['accounttype_liability'] = 'Liability';
-$string['accounttype_equity'] = 'Equity';
-$string['accounttype_revenue'] = 'Revenue';
-$string['accounttype_expense'] = 'Expense';
+$string['accountclass'] = 'Account class';
+$string['accountclass_0'] = 'Fixed assets';
+$string['accountclass_1'] = 'Financial accounts';
+$string['accountclass_2'] = 'Equity';
+$string['accountclass_3'] = 'Liabilities';
+$string['accountclass_4'] = 'Expenses';
+$string['accountclass_5'] = 'Revenue';
 
 // Privacy.
 $string['privacy:metadata'] = 'The Buchungssatz question type plugin does not store any personal data.';
@@ -147,10 +162,15 @@ $string['choosefile'] = 'Choose File';
 $string['distributegradesequally'] = 'Distribute equally';
 
 // Chart import from CSV.
-$string['importaccountsfromcsv'] = 'Import accounts from CSV (optional)';
-$string['csvfilehelp'] = 'Upload a CSV file to import accounts. Format: accountnumber,accountname,accounttype. Leave empty to create an empty chart.';
+$string['importchartfromcsv'] = 'Import Chart of Accounts from CSV';
+$string['importchart'] = 'Import Chart';
+$string['csvfilerequired'] = 'A CSV file is required to create a chart of accounts.';
+$string['csvfilehelp'] = 'Upload a CSV file to import accounts. Format: Liste;Kontokl;Kontonr;Name (semicolon, tab, or comma delimiter). The chart name is extracted from the Liste column.';
 $string['chartimportsuccess'] = '{$a} accounts imported successfully';
 $string['witherrors'] = 'with errors';
 $string['chartimportfailed'] = 'Chart import failed';
+$string['confirmoverride'] = 'Confirm Override';
+$string['chartexistswarning'] = 'A chart of accounts with the name "{$a}" already exists. If you continue, the existing chart will be replaced with the new one.';
+$string['overridechart'] = 'Override Existing Chart';
 $string['importlineerror'] = 'Error on line {$a}';
 $string['createdefaultskr03'] = 'Create Default SKR03 Chart';

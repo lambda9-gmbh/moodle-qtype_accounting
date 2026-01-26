@@ -21,6 +21,8 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Unit tests for import_helper class.
  *
+ * Tests the new CSV format: Liste;Kontokl;Kontonr;Name
+ *
  * @package    qtype_buchungssatz
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -32,7 +34,7 @@ class import_helper_test extends \advanced_testcase {
      * Test delimiter detection with semicolon.
      */
     public function test_detect_delimiter_semicolon(): void {
-        $line = 'Sollkonto;Sollname;Sollbetrag;Habenkonto;Habenname;Habenbetrag';
+        $line = 'Liste;Kontokl;Kontonr;Name';
         $delimiter = import_helper::detect_delimiter($line);
         $this->assertEquals(';', $delimiter);
     }
@@ -41,7 +43,7 @@ class import_helper_test extends \advanced_testcase {
      * Test delimiter detection with comma.
      */
     public function test_detect_delimiter_comma(): void {
-        $line = 'Sollkonto,Sollname,Sollbetrag,Habenkonto,Habenname,Habenbetrag';
+        $line = 'Liste,Kontokl,Kontonr,Name';
         $delimiter = import_helper::detect_delimiter($line);
         $this->assertEquals(',', $delimiter);
     }
@@ -50,7 +52,7 @@ class import_helper_test extends \advanced_testcase {
      * Test delimiter detection with tab.
      */
     public function test_detect_delimiter_tab(): void {
-        $line = "Sollkonto\tSollname\tSollbetrag\tHabenkonto\tHabenname\tHabenbetrag";
+        $line = "Liste\tKontokl\tKontonr\tName";
         $delimiter = import_helper::detect_delimiter($line);
         $this->assertEquals("\t", $delimiter);
     }
@@ -59,7 +61,7 @@ class import_helper_test extends \advanced_testcase {
      * Test delimiter detection with mixed delimiters (semicolon wins).
      */
     public function test_detect_delimiter_mixed(): void {
-        $line = 'Sollkonto;Sollname,with comma;Sollbetrag';
+        $line = 'Liste;Kontokl,with comma;Kontonr;Name';
         $delimiter = import_helper::detect_delimiter($line);
         $this->assertEquals(';', $delimiter);
     }
@@ -67,271 +69,151 @@ class import_helper_test extends \advanced_testcase {
     /**
      * Test column mapping detection with German headers.
      */
-    public function test_detect_column_mapping_german_headers(): void {
-        $firstrow = ['Sollkonto', 'Sollname', 'Sollbetrag', 'Habenkonto', 'Habenname', 'Habenbetrag'];
+    public function test_detect_column_mapping_with_headers(): void {
+        $firstrow = ['Liste', 'Kontokl', 'Kontonr', 'Name'];
         $mapping = import_helper::detect_column_mapping($firstrow);
 
         $this->assertTrue($mapping['has_header']);
-        $this->assertEquals(0, $mapping['columns']['sollkonto']);
-        $this->assertEquals(1, $mapping['columns']['sollname']);
-        $this->assertEquals(2, $mapping['columns']['sollbetrag']);
-        $this->assertEquals(3, $mapping['columns']['habenkonto']);
-        $this->assertEquals(4, $mapping['columns']['habenname']);
-        $this->assertEquals(5, $mapping['columns']['habenbetrag']);
+        $this->assertEquals(0, $mapping['columns']['liste']);
+        $this->assertEquals(1, $mapping['columns']['kontokl']);
+        $this->assertEquals(2, $mapping['columns']['kontonr']);
+        $this->assertEquals(3, $mapping['columns']['name']);
     }
 
     /**
-     * Test column mapping detection with English headers.
+     * Test column mapping detection with alternative header names.
      */
-    public function test_detect_column_mapping_english_headers(): void {
-        $firstrow = ['Debit Account', 'Debit Name', 'Debit Amount', 'Credit Account', 'Credit Name', 'Credit Amount'];
+    public function test_detect_column_mapping_alternative_headers(): void {
+        $firstrow = ['Kontenplan', 'Kontoklasse', 'Kontonummer', 'Bezeichnung'];
         $mapping = import_helper::detect_column_mapping($firstrow);
 
         $this->assertTrue($mapping['has_header']);
-        $this->assertEquals(0, $mapping['columns']['sollkonto']);
-        $this->assertEquals(2, $mapping['columns']['sollbetrag']);
-        $this->assertEquals(3, $mapping['columns']['habenkonto']);
-        $this->assertEquals(5, $mapping['columns']['habenbetrag']);
+        $this->assertArrayHasKey('liste', $mapping['columns']);
+        $this->assertArrayHasKey('kontokl', $mapping['columns']);
+        $this->assertArrayHasKey('kontonr', $mapping['columns']);
+        $this->assertArrayHasKey('name', $mapping['columns']);
     }
 
     /**
-     * Test column mapping detection without headers (6 columns - full format).
+     * Test column mapping detection without headers (data starts with text).
      */
-    public function test_detect_column_mapping_no_header_full(): void {
-        $firstrow = ['1200', 'Bank', '1000.00', '8400', 'Revenue', '1000.00'];
+    public function test_detect_column_mapping_no_header(): void {
+        $firstrow = ['Kontenplan LTN', '0', '01000', 'Immaterielle Vermögensgegenstände'];
         $mapping = import_helper::detect_column_mapping($firstrow);
 
-        $this->assertFalse($mapping['has_header']);
-        $this->assertEquals(0, $mapping['columns']['sollkonto']);
-        $this->assertEquals(1, $mapping['columns']['sollname']);
-        $this->assertEquals(2, $mapping['columns']['sollbetrag']);
-        $this->assertEquals(3, $mapping['columns']['habenkonto']);
-        $this->assertEquals(4, $mapping['columns']['habenname']);
-        $this->assertEquals(5, $mapping['columns']['habenbetrag']);
+        // First column doesn't start with digit, so it's treated as header.
+        $this->assertTrue($mapping['has_header']);
     }
 
     /**
-     * Test column mapping detection without headers (4 columns - compact format).
+     * Test account class validation.
      */
-    public function test_detect_column_mapping_no_header_compact(): void {
-        $firstrow = ['1200', '1000.00', '8400', '1000.00'];
-        $mapping = import_helper::detect_column_mapping($firstrow);
+    public function test_validate_account_class(): void {
+        $this->assertEquals(0, import_helper::validate_account_class(0));
+        $this->assertEquals(1, import_helper::validate_account_class(1));
+        $this->assertEquals(2, import_helper::validate_account_class(2));
+        $this->assertEquals(3, import_helper::validate_account_class(3));
+        $this->assertEquals(4, import_helper::validate_account_class(4));
+        $this->assertEquals(5, import_helper::validate_account_class(5));
 
-        $this->assertFalse($mapping['has_header']);
-        $this->assertEquals(0, $mapping['columns']['sollkonto']);
-        $this->assertEquals(1, $mapping['columns']['sollbetrag']);
-        $this->assertEquals(2, $mapping['columns']['habenkonto']);
-        $this->assertEquals(3, $mapping['columns']['habenbetrag']);
-    }
-
-    /**
-     * Test parsing standard decimal amount.
-     */
-    public function test_parse_amount_standard(): void {
-        $this->assertEquals('1000.00', import_helper::parse_amount('1000.00'));
-        $this->assertEquals('500.50', import_helper::parse_amount('500.50'));
-        $this->assertEquals('0.00', import_helper::parse_amount('0'));
-    }
-
-    /**
-     * Test parsing German format amount (comma as decimal separator).
-     */
-    public function test_parse_amount_german_decimal(): void {
-        $this->assertEquals('1000.00', import_helper::parse_amount('1000,00'));
-        $this->assertEquals('500.50', import_helper::parse_amount('500,50'));
-    }
-
-    /**
-     * Test parsing German format amount with thousand separators.
-     */
-    public function test_parse_amount_german_thousands(): void {
-        $this->assertEquals('1234.56', import_helper::parse_amount('1.234,56'));
-        $this->assertEquals('1000000.00', import_helper::parse_amount('1.000.000,00'));
-    }
-
-    /**
-     * Test parsing amount with currency symbols.
-     */
-    public function test_parse_amount_with_currency(): void {
-        $this->assertEquals('1000.00', import_helper::parse_amount('€1000.00'));
-        $this->assertEquals('500.00', import_helper::parse_amount('$ 500.00'));
-        $this->assertEquals('250.00', import_helper::parse_amount('£250'));
-    }
-
-    /**
-     * Test parsing amount with whitespace.
-     */
-    public function test_parse_amount_with_whitespace(): void {
-        $this->assertEquals('1000.00', import_helper::parse_amount('  1000.00  '));
-        $this->assertEquals('500.00', import_helper::parse_amount('500 . 00'));
-    }
-
-    /**
-     * Test guessing account type for asset accounts.
-     */
-    public function test_guess_account_type_asset(): void {
-        $this->assertEquals('asset', import_helper::guess_account_type('0100'));
-        $this->assertEquals('asset', import_helper::guess_account_type('1200'));
-        $this->assertEquals('asset', import_helper::guess_account_type('1400'));
-    }
-
-    /**
-     * Test guessing account type for liability accounts.
-     */
-    public function test_guess_account_type_liability(): void {
-        $this->assertEquals('liability', import_helper::guess_account_type('2000'));
-        $this->assertEquals('liability', import_helper::guess_account_type('2400'));
-    }
-
-    /**
-     * Test guessing account type for expense accounts.
-     */
-    public function test_guess_account_type_expense(): void {
-        $this->assertEquals('expense', import_helper::guess_account_type('3000'));
-        $this->assertEquals('expense', import_helper::guess_account_type('4400'));
-        $this->assertEquals('expense', import_helper::guess_account_type('5000'));
-        $this->assertEquals('expense', import_helper::guess_account_type('6000'));
-        $this->assertEquals('expense', import_helper::guess_account_type('7000'));
-    }
-
-    /**
-     * Test guessing account type for revenue accounts.
-     */
-    public function test_guess_account_type_revenue(): void {
-        $this->assertEquals('revenue', import_helper::guess_account_type('8000'));
-        $this->assertEquals('revenue', import_helper::guess_account_type('8400'));
-    }
-
-    /**
-     * Test guessing account type for equity accounts.
-     */
-    public function test_guess_account_type_equity(): void {
-        $this->assertEquals('equity', import_helper::guess_account_type('9000'));
-        $this->assertEquals('equity', import_helper::guess_account_type('9999'));
+        // Invalid values should return 0.
+        $this->assertEquals(0, import_helper::validate_account_class(-1));
+        $this->assertEquals(0, import_helper::validate_account_class(6));
+        $this->assertEquals(0, import_helper::validate_account_class(100));
+        $this->assertEquals(0, import_helper::validate_account_class('invalid'));
     }
 
     /**
      * Test parsing CSV with semicolon delimiter.
      */
     public function test_parse_csv_semicolon(): void {
-        $csv = "Sollkonto;Sollname;Sollbetrag;Habenkonto;Habenname;Habenbetrag\n";
-        $csv .= "1200;Bank;1000,00;8400;Umsatzerloese;1000,00\n";
-        $csv .= "4400;Mietaufwand;500,00;1200;Bank;500,00";
+        $csv = "Liste;Kontokl;Kontonr;Name\n";
+        $csv .= "Kontenplan LTN;0;01000;Immaterielle Vermögensgegenstände\n";
+        $csv .= "Kontenplan LTN;1;11001;Wareneinkauf";
 
         $result = import_helper::parse_csv($csv);
 
-        $this->assertEquals(';', $result['delimiter']);
-        $this->assertTrue($result['mapping']['has_header']);
-        $this->assertCount(3, $result['rows']);
+        $this->assertEquals('Kontenplan LTN', $result['chartname']);
+        $this->assertCount(2, $result['accounts']);
+        $this->assertArrayHasKey('01000', $result['accounts']);
+        $this->assertArrayHasKey('11001', $result['accounts']);
     }
 
     /**
      * Test parsing CSV with comma delimiter.
      */
     public function test_parse_csv_comma(): void {
-        $csv = "1200,Bank,1000.00,8400,Revenue,1000.00\n";
-        $csv .= "4400,Rent,500.00,1200,Bank,500.00";
+        $csv = "Liste,Kontokl,Kontonr,Name\n";
+        $csv .= "Test Chart,0,02001,Grundstücke\n";
+        $csv .= "Test Chart,1,14002,Bank";
 
         $result = import_helper::parse_csv($csv);
 
-        $this->assertEquals(',', $result['delimiter']);
-        $this->assertFalse($result['mapping']['has_header']);
-        $this->assertCount(2, $result['rows']);
+        $this->assertEquals('Test Chart', $result['chartname']);
+        $this->assertCount(2, $result['accounts']);
     }
 
     /**
-     * Test extracting entries from parsed CSV.
+     * Test that chart name is extracted from Liste column.
      */
-    public function test_extract_entries(): void {
-        $rows = [
-            ['Sollkonto', 'Sollname', 'Sollbetrag', 'Habenkonto', 'Habenname', 'Habenbetrag'],
-            ['1200', 'Bank', '1000,00', '8400', 'Umsatzerloese', '1000,00'],
-            ['4400', 'Mietaufwand', '500,00', '1200', 'Bank', '500,00'],
-        ];
-        $mapping = [
-            'has_header' => true,
-            'columns' => [
-                'sollkonto' => 0,
-                'sollname' => 1,
-                'sollbetrag' => 2,
-                'habenkonto' => 3,
-                'habenname' => 4,
-                'habenbetrag' => 5,
-            ],
-        ];
+    public function test_parse_csv_extracts_chart_name(): void {
+        $csv = "Liste;Kontokl;Kontonr;Name\n";
+        $csv .= "Mein Kontenplan 2024;0;01000;Test Account";
 
-        $result = import_helper::extract_entries($rows, $mapping);
+        $result = import_helper::parse_csv($csv);
 
-        $this->assertCount(2, $result['entries']);
-        $this->assertCount(3, $result['accounts']); // 1200, 8400, 4400
-
-        // Check first entry.
-        $this->assertEquals('1200', $result['entries'][0]['sollkonto']);
-        $this->assertEquals('1000.00', $result['entries'][0]['sollbetrag']);
-        $this->assertEquals('8400', $result['entries'][0]['habenkonto']);
-        $this->assertEquals('1000.00', $result['entries'][0]['habenbetrag']);
-
-        // Check second entry.
-        $this->assertEquals('4400', $result['entries'][1]['sollkonto']);
-        $this->assertEquals('500.00', $result['entries'][1]['sollbetrag']);
-        $this->assertEquals('1200', $result['entries'][1]['habenkonto']);
-        $this->assertEquals('500.00', $result['entries'][1]['habenbetrag']);
-
-        // Check accounts.
-        $this->assertArrayHasKey('1200', $result['accounts']);
-        $this->assertArrayHasKey('8400', $result['accounts']);
-        $this->assertArrayHasKey('4400', $result['accounts']);
-        $this->assertEquals('Bank', $result['accounts']['1200']);
-        $this->assertEquals('Umsatzerloese', $result['accounts']['8400']);
+        $this->assertEquals('Mein Kontenplan 2024', $result['chartname']);
     }
 
     /**
-     * Test extracting entries from compact format (4 columns).
+     * Test that accountclass is correctly parsed.
      */
-    public function test_extract_entries_compact_format(): void {
-        $rows = [
-            ['1200', '1000.00', '8400', '1000.00'],
-            ['4400', '500.00', '1200', '500.00'],
-        ];
-        $mapping = [
-            'has_header' => false,
-            'columns' => [
-                'sollkonto' => 0,
-                'sollbetrag' => 1,
-                'habenkonto' => 2,
-                'habenbetrag' => 3,
-            ],
-        ];
+    public function test_parse_csv_account_class(): void {
+        $csv = "Liste;Kontokl;Kontonr;Name\n";
+        $csv .= "Test;0;01000;Account Class 0\n";
+        $csv .= "Test;1;11000;Account Class 1\n";
+        $csv .= "Test;2;21000;Account Class 2\n";
+        $csv .= "Test;3;31000;Account Class 3\n";
+        $csv .= "Test;4;41000;Account Class 4\n";
+        $csv .= "Test;5;51000;Account Class 5";
 
-        $result = import_helper::extract_entries($rows, $mapping);
+        $result = import_helper::parse_csv($csv);
 
-        $this->assertCount(2, $result['entries']);
-        $this->assertEquals('1200', $result['entries'][0]['sollkonto']);
-        $this->assertEquals('1000.00', $result['entries'][0]['sollbetrag']);
+        $this->assertEquals(0, $result['accounts']['01000']['accountclass']);
+        $this->assertEquals(1, $result['accounts']['11000']['accountclass']);
+        $this->assertEquals(2, $result['accounts']['21000']['accountclass']);
+        $this->assertEquals(3, $result['accounts']['31000']['accountclass']);
+        $this->assertEquals(4, $result['accounts']['41000']['accountclass']);
+        $this->assertEquals(5, $result['accounts']['51000']['accountclass']);
+    }
+
+    /**
+     * Test that duplicate account numbers are skipped.
+     */
+    public function test_parse_csv_skips_duplicates(): void {
+        $csv = "Liste;Kontokl;Kontonr;Name\n";
+        $csv .= "Test;0;01000;First Account\n";
+        $csv .= "Test;0;01000;Duplicate Account\n";
+        $csv .= "Test;1;11000;Second Account";
+
+        $result = import_helper::parse_csv($csv);
+
+        $this->assertCount(2, $result['accounts']);
+        $this->assertEquals('First Account', $result['accounts']['01000']['accountname']);
     }
 
     /**
      * Test that empty rows are skipped.
      */
-    public function test_extract_entries_skips_empty_rows(): void {
-        $rows = [
-            ['1200', '1000.00', '8400', '1000.00'],
-            ['', '', '', ''],
-            ['4400', '500.00', '1200', '500.00'],
-        ];
-        $mapping = [
-            'has_header' => false,
-            'columns' => [
-                'sollkonto' => 0,
-                'sollbetrag' => 1,
-                'habenkonto' => 2,
-                'habenbetrag' => 3,
-            ],
-        ];
+    public function test_parse_csv_skips_empty_rows(): void {
+        $csv = "Liste;Kontokl;Kontonr;Name\n";
+        $csv .= "Test;0;01000;Account 1\n";
+        $csv .= ";;;\n";
+        $csv .= "Test;1;11000;Account 2";
 
-        $result = import_helper::extract_entries($rows, $mapping);
+        $result = import_helper::parse_csv($csv);
 
-        $this->assertCount(2, $result['entries']);
+        $this->assertCount(2, $result['accounts']);
     }
 
     /**
@@ -342,119 +224,103 @@ class import_helper_test extends \advanced_testcase {
 
         // Create a chart with accounts.
         $contextid = \context_system::instance()->id;
-        $chartid = chart_manager::create_chart('Test Chart', 'Description', $contextid);
-        chart_manager::add_account($chartid, '1200', 'Bank', 'asset', 0);
-        chart_manager::add_account($chartid, '8400', 'Revenue', 'revenue', 1);
-        chart_manager::add_account($chartid, '4400', 'Rent', 'expense', 2);
+        $chartid = chart_manager::create_chart('Test Chart', $contextid);
+        chart_manager::add_account($chartid, '01000', 'Account 1', 0, 0);
+        chart_manager::add_account($chartid, '11000', 'Account 2', 1, 1);
+        chart_manager::add_account($chartid, '21000', 'Account 3', 2, 2);
 
         // Test finding chart with matching accounts.
-        $accounts = ['1200' => 'Bank', '8400' => 'Revenue'];
+        $accounts = [
+            '01000' => ['accountnumber' => '01000', 'accountname' => 'Account 1', 'accountclass' => 0, 'sortorder' => 0],
+            '11000' => ['accountnumber' => '11000', 'accountname' => 'Account 2', 'accountclass' => 1, 'sortorder' => 1],
+        ];
         $foundid = import_helper::find_matching_chart($accounts);
         $this->assertEquals($chartid, $foundid);
 
         // Test not finding chart when account is missing.
-        $accounts = ['1200' => 'Bank', '9999' => 'NonExistent'];
+        $accounts = [
+            '01000' => ['accountnumber' => '01000', 'accountname' => 'Account 1', 'accountclass' => 0, 'sortorder' => 0],
+            '99999' => ['accountnumber' => '99999', 'accountname' => 'NonExistent', 'accountclass' => 0, 'sortorder' => 1],
+        ];
         $foundid = import_helper::find_matching_chart($accounts);
         $this->assertNull($foundid);
     }
 
     /**
-     * Test full import workflow.
-     */
-    public function test_full_import_workflow(): void {
-        $csv = "Sollkonto;Sollname;Sollbetrag;Habenkonto;Habenname;Habenbetrag\n";
-        $csv .= "1200;Bank;1000,00;1400;Forderungen;1000,00\n";
-        $csv .= "4400;Mietaufwand;500,00;1200;Bank;500,00\n";
-        $csv .= "1200;Bank;2500,00;8400;Umsatzerloese;2500,00";
-
-        $parsed = import_helper::parse_csv($csv);
-        $result = import_helper::extract_entries($parsed['rows'], $parsed['mapping']);
-
-        $this->assertCount(3, $result['entries']);
-        $this->assertCount(4, $result['accounts']); // 1200, 1400, 4400, 8400
-
-        // Verify first entry.
-        $this->assertEquals('1200', $result['entries'][0]['sollkonto']);
-        $this->assertEquals('1000.00', $result['entries'][0]['sollbetrag']);
-        $this->assertEquals('1400', $result['entries'][0]['habenkonto']);
-        $this->assertEquals('1000.00', $result['entries'][0]['habenbetrag']);
-
-        // Verify third entry.
-        $this->assertEquals('1200', $result['entries'][2]['sollkonto']);
-        $this->assertEquals('2500.00', $result['entries'][2]['sollbetrag']);
-        $this->assertEquals('8400', $result['entries'][2]['habenkonto']);
-        $this->assertEquals('2500.00', $result['entries'][2]['habenbetrag']);
-    }
-
-    /**
-     * Test chart import from entries format CSV.
+     * Test full import workflow with chart_manager.
      *
      * @covers \qtype_buchungssatz\chart_manager::import_chart_from_csv
      */
-    public function test_chart_import_from_entries_csv(): void {
+    public function test_chart_import_from_csv(): void {
         $this->resetAfterTest();
 
-        $csv = "Sollkonto;Sollname;Sollbetrag;Habenkonto;Habenname;Habenbetrag\n";
-        $csv .= "1200;Bank;1000,00;1400;Forderungen;1000,00\n";
-        $csv .= "4400;Mietaufwand;500,00;1200;Bank;500,00\n";
-        $csv .= "1200;Bank;2500,00;8400;Umsatzerloese;2500,00";
+        $csv = "Liste;Kontokl;Kontonr;Name\n";
+        $csv .= "Kontenplan LTN 2.08.2024;0;01000;Immaterielle Vermögensgegenstände\n";
+        $csv .= "Kontenplan LTN 2.08.2024;0;02001;Grundstücke\n";
+        $csv .= "Kontenplan LTN 2.08.2024;1;11001;Wareneinkauf\n";
+        $csv .= "Kontenplan LTN 2.08.2024;1;14002;Bank\n";
+        $csv .= "Kontenplan LTN 2.08.2024;2;21000;Eigenkapital\n";
+        $csv .= "Kontenplan LTN 2.08.2024;3;32001;Verbindlichkeiten\n";
+        $csv .= "Kontenplan LTN 2.08.2024;4;41001;Wareneinsatz\n";
+        $csv .= "Kontenplan LTN 2.08.2024;5;50001;Warenverkauf";
 
         $contextid = \context_system::instance()->id;
-        $result = chart_manager::import_chart_from_csv('Test Import', $csv, $contextid, 'Test description');
+        $result = chart_manager::import_chart_from_csv($csv, $contextid);
 
         $this->assertGreaterThan(0, $result['chartid']);
-        $this->assertEquals(4, $result['imported']); // 1200, 1400, 4400, 8400
+        $this->assertEquals('Kontenplan LTN 2.08.2024', $result['chartname']);
+        $this->assertEquals(8, $result['imported']);
         $this->assertEmpty($result['errors']);
 
         // Verify the accounts were created correctly.
         $accounts = chart_manager::get_accounts($result['chartid']);
-        $this->assertCount(4, $accounts);
+        $this->assertCount(8, $accounts);
 
-        $accountnumbers = array_column($accounts, 'accountnumber');
-        $this->assertContains('1200', $accountnumbers);
-        $this->assertContains('1400', $accountnumbers);
-        $this->assertContains('4400', $accountnumbers);
-        $this->assertContains('8400', $accountnumbers);
-
-        // Verify account names.
+        // Check account classes are correct.
         $accountmap = [];
         foreach ($accounts as $acc) {
-            $accountmap[$acc->accountnumber] = $acc->accountname;
+            $accountmap[$acc->accountnumber] = $acc;
         }
-        $this->assertEquals('Bank', $accountmap['1200']);
-        $this->assertEquals('Forderungen', $accountmap['1400']);
-        $this->assertEquals('Mietaufwand', $accountmap['4400']);
-        $this->assertEquals('Umsatzerloese', $accountmap['8400']);
+
+        $this->assertEquals(0, $accountmap['01000']->accountclass);
+        $this->assertEquals(0, $accountmap['02001']->accountclass);
+        $this->assertEquals(1, $accountmap['11001']->accountclass);
+        $this->assertEquals(1, $accountmap['14002']->accountclass);
+        $this->assertEquals(2, $accountmap['21000']->accountclass);
+        $this->assertEquals(3, $accountmap['32001']->accountclass);
+        $this->assertEquals(4, $accountmap['41001']->accountclass);
+        $this->assertEquals(5, $accountmap['50001']->accountclass);
+
+        // Verify account names.
+        $this->assertEquals('Immaterielle Vermögensgegenstände', $accountmap['01000']->accountname);
+        $this->assertEquals('Bank', $accountmap['14002']->accountname);
+        $this->assertEquals('Warenverkauf', $accountmap['50001']->accountname);
     }
 
     /**
-     * Test chart import from simple format CSV.
+     * Test export to CSV.
      *
-     * @covers \qtype_buchungssatz\chart_manager::import_chart_from_csv
+     * @covers \qtype_buchungssatz\chart_manager::export_to_csv
      */
-    public function test_chart_import_from_simple_csv(): void {
+    public function test_export_to_csv(): void {
         $this->resetAfterTest();
 
-        $csv = "accountnumber;accountname;accounttype\n";
-        $csv .= "1000;Kasse;asset\n";
-        $csv .= "1200;Bank;asset\n";
-        $csv .= "8000;Umsatzerloese;revenue";
-
+        // Create a chart with accounts.
         $contextid = \context_system::instance()->id;
-        $result = chart_manager::import_chart_from_csv('Simple Import', $csv, $contextid);
+        $chartid = chart_manager::create_chart('Export Test', $contextid);
+        chart_manager::add_account($chartid, '01000', 'Account 1', 0, 0);
+        chart_manager::add_account($chartid, '11000', 'Account 2', 1, 1);
 
-        $this->assertGreaterThan(0, $result['chartid']);
-        $this->assertEquals(3, $result['imported']);
-        $this->assertEmpty($result['errors']);
+        $csv = chart_manager::export_to_csv($chartid);
 
-        // Verify account types were set correctly.
-        $accounts = chart_manager::get_accounts($result['chartid']);
-        $accounttypes = [];
-        foreach ($accounts as $acc) {
-            $accounttypes[$acc->accountnumber] = $acc->accounttype;
-        }
-        $this->assertEquals('asset', $accounttypes['1000']);
-        $this->assertEquals('asset', $accounttypes['1200']);
-        $this->assertEquals('revenue', $accounttypes['8000']);
+        // Check header.
+        $this->assertStringContainsString('Liste;Kontokl;Kontonr;Name', $csv);
+
+        // Check data rows.
+        $this->assertStringContainsString('Export Test', $csv);
+        $this->assertStringContainsString('01000', $csv);
+        $this->assertStringContainsString('Account 1', $csv);
+        $this->assertStringContainsString('11000', $csv);
+        $this->assertStringContainsString('Account 2', $csv);
     }
 }

@@ -6,6 +6,12 @@
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Foreign key references question.id"/>
         <FIELD NAME="chartofaccountsid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Reference to chart of accounts"/>
+        <FIELD NAME="accountsindropdown" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="0" COMMENT="Number of accounts to show in dropdown (0 = all)"/>
+        <FIELD NAME="numberformat" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="de" COMMENT="Number format: de (1.234,56) or us (1,234.56)"/>
+        <FIELD NAME="currency_symbol" TYPE="char" LENGTH="5" NOTNULL="false" DEFAULT="€" COMMENT="Currency Symbol to use"/>
+        <FIELD NAME="decimalplaces" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="2" COMMENT="Number of decimal places to display"/>
+        <FIELD NAME="extraentrydeduction" TYPE="number" LENGTH="10" DECIMALS="2" NOTNULL="false" COMMENT="Points deducted per extra entry"/>
+        <FIELD NAME="allornothinggrading" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" COMMENT="If 1, only full or zero marks (no partial credit)"/>
         <FIELD NAME="allowmultipleentries" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" COMMENT="Allow multiple booking entries"/>
         <FIELD NAME="maxentries" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="5" COMMENT="Maximum number of entries allowed"/>
       </FIELDS>
@@ -40,9 +46,9 @@
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="chartid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Chart of accounts group ID"/>
-        <FIELD NAME="accountnumber" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="" COMMENT="Account number (e.g., 1000)"/>
-        <FIELD NAME="accountname" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" COMMENT="Account name"/>
-        <FIELD NAME="accounttype" TYPE="char" LENGTH="50" NOTNULL="true" DEFAULT="asset" COMMENT="Type: asset, liability, equity, revenue, expense"/>
+        <FIELD NAME="accountnumber" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="" COMMENT="Account number (Kontonr)"/>
+        <FIELD NAME="accountname" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" COMMENT="Account name (Name)"/>
+        <FIELD NAME="accountclass" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" COMMENT="Account class 0-5 (Kontokl)"/>
         <FIELD NAME="sortorder" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Display order"/>
       </FIELDS>
       <KEYS>
@@ -57,8 +63,7 @@
     <TABLE NAME="qtype_buchungssatz_charts" COMMENT="Chart of accounts definitions">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" COMMENT="Name of the chart of accounts"/>
-        <FIELD NAME="description" TYPE="text" NOTNULL="false" COMMENT="Description"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" COMMENT="Name of the chart of accounts (Liste)"/>
         <FIELD NAME="contextid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Context where this chart is available"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0"/>

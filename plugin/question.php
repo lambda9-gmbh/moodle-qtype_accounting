@@ -45,6 +45,9 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /** @var array The correct answer entries. */
     public $entries = [];
 
+    /** @var bool If true, only full or zero marks (no partial credit). */
+    public $allornothinggrading;
+
     /** @var int Maximum entries allowed for student responses. */
     const MAX_STUDENT_ENTRIES = 20;
 
@@ -240,7 +243,52 @@ class qtype_buchungssatz_question extends question_graded_automatically {
             }
         }
 
-        return $totalfraction / $maxfraction;
+        $fraction = $totalfraction / $maxfraction;
+
+        // Extra entry deduction is saved but not applied yet.
+        // TODO: Implement when we have access to the quiz slot's max mark.
+
+        // Apply all-or-nothing grading if enabled.
+        // If any entry is incorrect, the student gets 0 points.
+        if (!empty($this->allornothinggrading) && $fraction < 1) {
+            return 0;
+        }
+
+        return $fraction;
+    }
+
+    /**
+     * Count the number of extra entries beyond the correct entries.
+     *
+     * Extra entries are those beyond the number of correct entries.
+     * Each extra line can count as 0, 1, or 2 entries depending on which sides are filled:
+     * - Debit side filled (account + amount) = 1 entry
+     * - Credit side filled (account + amount) = 1 entry
+     * - Both sides filled = 2 entries
+     *
+     * @param array $studententries The parsed student entries.
+     * @return int The count of extra entries.
+     */
+    protected function count_extra_entries(array $studententries): int {
+        $correctcount = count($this->entries);
+        $extracount = 0;
+
+        // Only count entries beyond the number of correct entries.
+        for ($i = $correctcount; $i < count($studententries); $i++) {
+            $entry = $studententries[$i];
+
+            // Count debit side as extra if filled.
+            if (!empty($entry['sollkonto'])) {
+                $extracount++;
+            }
+
+            // Count credit side as extra if filled.
+            if (!empty($entry['habenkonto'])) {
+                $extracount++;
+            }
+        }
+
+        return $extracount;
     }
 
     /**

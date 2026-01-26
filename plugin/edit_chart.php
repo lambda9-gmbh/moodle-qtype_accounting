@@ -51,14 +51,8 @@ $manageurl = new moodle_url('/question/type/buchungssatz/manage_charts.php');
 $PAGE->navbar->add(get_string('managecharts', 'qtype_buchungssatz'), $manageurl);
 $PAGE->navbar->add($chart->name);
 
-// Account types for dropdown.
-$accounttypes = [
-    'asset' => get_string('accounttype_asset', 'qtype_buchungssatz'),
-    'liability' => get_string('accounttype_liability', 'qtype_buchungssatz'),
-    'equity' => get_string('accounttype_equity', 'qtype_buchungssatz'),
-    'revenue' => get_string('accounttype_revenue', 'qtype_buchungssatz'),
-    'expense' => get_string('accounttype_expense', 'qtype_buchungssatz'),
-];
+// Valid account class values (0-5).
+$accountclassvalues = [0, 1, 2, 3, 4, 5];
 
 // Handle actions.
 switch ($action) {
@@ -66,9 +60,9 @@ switch ($action) {
         if (data_submitted() && confirm_sesskey()) {
             $accountnumber = required_param('accountnumber', PARAM_TEXT);
             $accountname = required_param('accountname', PARAM_TEXT);
-            $accounttype = required_param('accounttype', PARAM_ALPHA);
+            $accountclass = required_param('accountclass', PARAM_INT);
 
-            chart_manager::add_account($chartid, $accountnumber, $accountname, $accounttype);
+            chart_manager::add_account($chartid, $accountnumber, $accountname, $accountclass);
             redirect($PAGE->url, get_string('accountadded', 'qtype_buchungssatz'), null,
                 \core\output\notification::NOTIFY_SUCCESS);
         }
@@ -78,9 +72,9 @@ switch ($action) {
         if ($accountid && data_submitted() && confirm_sesskey()) {
             $accountnumber = required_param('accountnumber', PARAM_TEXT);
             $accountname = required_param('accountname', PARAM_TEXT);
-            $accounttype = required_param('accounttype', PARAM_ALPHA);
+            $accountclass = required_param('accountclass', PARAM_INT);
 
-            chart_manager::update_account($accountid, $accountnumber, $accountname, $accounttype);
+            chart_manager::update_account($accountid, $accountnumber, $accountname, $accountclass);
             redirect($PAGE->url, get_string('accountupdated', 'qtype_buchungssatz'), null,
                 \core\output\notification::NOTIFY_SUCCESS);
         }
@@ -115,9 +109,9 @@ echo '<input type="text" class="form-control" name="accountname" placeholder="' 
      get_string('accountname', 'qtype_buchungssatz') . '" required>';
 echo '</div>';
 echo '<div class="col-md-3">';
-echo '<select class="form-control" name="accounttype" required>';
-foreach ($accounttypes as $value => $label) {
-    echo '<option value="' . $value . '">' . $label . '</option>';
+echo '<select class="form-control" name="accountclass" required>';
+foreach ($accountclassvalues as $value) {
+    echo '<option value="' . $value . '">' . $value . '</option>';
 }
 echo '</select>';
 echo '</div>';
@@ -139,7 +133,7 @@ if (empty($accounts)) {
     $table->head = [
         get_string('accountnumber', 'qtype_buchungssatz'),
         get_string('accountname', 'qtype_buchungssatz'),
-        get_string('accounttype', 'qtype_buchungssatz'),
+        get_string('accountclass', 'qtype_buchungssatz'),
         get_string('actions'),
     ];
     $table->attributes['class'] = 'table table-striped';
@@ -158,20 +152,20 @@ if (empty($accounts)) {
                            value="' . s($account->accountnumber) . '" required style="width:100px">',
                 '<input type="text" class="form-control form-control-sm" name="accountname"
                         value="' . s($account->accountname) . '" required style="width:200px">',
-                '<select class="form-control form-control-sm" name="accounttype" required>',
+                '<select class="form-control form-control-sm" name="accountclass" required>',
                 '<button type="submit" class="btn btn-sm btn-success">' . get_string('save') . '</button>
                  <a href="' . $PAGE->url->out() . '" class="btn btn-sm btn-secondary">' . get_string('cancel') . '</a>
                  </form>',
             ];
 
-            // Build accounttype select.
-            $typeselect = '<select class="form-control form-control-sm" name="accounttype" required>';
-            foreach ($accounttypes as $value => $label) {
-                $selected = ($account->accounttype == $value) ? ' selected' : '';
-                $typeselect .= '<option value="' . $value . '"' . $selected . '>' . $label . '</option>';
+            // Build accountclass select.
+            $classselect = '<select class="form-control form-control-sm" name="accountclass" required>';
+            foreach ($accountclassvalues as $value) {
+                $selected = ($account->accountclass == $value) ? ' selected' : '';
+                $classselect .= '<option value="' . $value . '"' . $selected . '>' . $value . '</option>';
             }
-            $typeselect .= '</select>';
-            $row[2] = $typeselect;
+            $classselect .= '</select>';
+            $row[2] = $classselect;
 
         } else {
             // Show view mode.
@@ -188,7 +182,7 @@ if (empty($accounts)) {
             $row = [
                 s($account->accountnumber),
                 s($account->accountname),
-                $accounttypes[$account->accounttype] ?? $account->accounttype,
+                $account->accountclass,
                 implode(' ', $actions),
             ];
         }

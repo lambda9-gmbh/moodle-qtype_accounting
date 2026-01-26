@@ -45,5 +45,117 @@ function xmldb_qtype_buchungssatz_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2024010107, 'qtype', 'buchungssatz');
     }
 
+    if ($oldversion < 2024010108) {
+        // Schema change: Replace accounttype with accountclass, remove description.
+
+        // Step 1: Add accountclass field to accounts table.
+        $table = new xmldb_table('qtype_buchungssatz_accounts');
+        $field = new xmldb_field('accountclass', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'accountname');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Step 2: Migrate accounttype to accountclass (derive from first digit of account number).
+        // Since data can be discarded, we just infer from accountnumber.
+        $accounts = $DB->get_records('qtype_buchungssatz_accounts');
+        foreach ($accounts as $account) {
+            $firstdigit = substr($account->accountnumber, 0, 1);
+            $accountclass = is_numeric($firstdigit) ? (int)$firstdigit : 0;
+            // Clamp to 0-5 range.
+            if ($accountclass > 5) {
+                $accountclass = 0;
+            }
+            $DB->set_field('qtype_buchungssatz_accounts', 'accountclass', $accountclass, ['id' => $account->id]);
+        }
+
+        // Step 3: Drop accounttype field from accounts table.
+        $field = new xmldb_field('accounttype');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Step 4: Drop description field from charts table.
+        $table = new xmldb_table('qtype_buchungssatz_charts');
+        $field = new xmldb_field('description');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2024010108, 'qtype', 'buchungssatz');
+    }
+
+    if ($oldversion < 2024010109) {
+        // Add accountsindropdown field to options table.
+        $table = new xmldb_table('qtype_buchungssatz_options');
+        $field = new xmldb_field('accountsindropdown', XMLDB_TYPE_INTEGER, '5', null, XMLDB_NOTNULL, null, '0', 'chartofaccountsid');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2024010109, 'qtype', 'buchungssatz');
+    }
+
+    if ($oldversion < 2024010110) {
+        // Add numberformat field to options table.
+        $table = new xmldb_table('qtype_buchungssatz_options');
+        $field = new xmldb_field('numberformat', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, 'de', 'accountsindropdown');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2024010110, 'qtype', 'buchungssatz');
+    }
+
+    if ($oldversion < 2024010111) {
+        // Add currency_symbol field to options table.
+        $table = new xmldb_table('qtype_buchungssatz_options');
+        $field = new xmldb_field('currency_symbol', XMLDB_TYPE_CHAR, '5', null, null, null, '€', 'numberformat');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2024010111, 'qtype', 'buchungssatz');
+    }
+
+    if ($oldversion < 2024010112) {
+        // Add decimalplaces field to options table.
+        $table = new xmldb_table('qtype_buchungssatz_options');
+        $field = new xmldb_field('decimalplaces', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '2', 'currency_symbol');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2024010112, 'qtype', 'buchungssatz');
+    }
+
+    if ($oldversion < 2024010114) {
+        // Add extraentrydeduction field to options table.
+        $table = new xmldb_table('qtype_buchungssatz_options');
+        $field = new xmldb_field('extraentrydeduction', XMLDB_TYPE_NUMBER, '10, 2', null, null, null, null, 'decimalplaces');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2024010114, 'qtype', 'buchungssatz');
+    }
+
+    if ($oldversion < 2024010115) {
+        // Add allornothinggrading field to options table.
+        $table = new xmldb_table('qtype_buchungssatz_options');
+        $field = new xmldb_field('allornothinggrading', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'extraentrydeduction');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2024010115, 'qtype', 'buchungssatz');
+    }
+
     return true;
 }

@@ -41,6 +41,48 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
     protected function definition_inner($mform) {
         global $DB, $PAGE;
 
+        // Number of accounts in dropdown.
+        $mform->addElement('text', 'accountsindropdown',
+            get_string('accountsindropdown', 'qtype_buchungssatz'), ['size' => 5]);
+        $mform->setType('accountsindropdown', PARAM_INT);
+        $mform->setDefault('accountsindropdown', 0);
+        $mform->addHelpButton('accountsindropdown', 'accountsindropdown', 'qtype_buchungssatz');
+        $mform->addRule('accountsindropdown', get_string('err_numeric', 'form'), 'numeric', null, 'client');
+
+        // Number format selection.
+        $numberformatoptions = [
+            'de' => get_string('numberformat_de', 'qtype_buchungssatz'),
+            'us' => get_string('numberformat_us', 'qtype_buchungssatz'),
+        ];
+        $mform->addElement('select', 'numberformat',
+            get_string('numberformat', 'qtype_buchungssatz'), $numberformatoptions);
+        $mform->setDefault('numberformat', 'de');
+        $mform->addHelpButton('numberformat', 'numberformat', 'qtype_buchungssatz');
+
+        $mform->addElement('text', 'currency_symbol',
+            get_string('currency_symbol', 'qtype_buchungssatz'), ['size' => 5]);
+        $mform->setDefault('currency_symbol', '€');
+
+        // Decimal places.
+        $mform->addElement('text', 'decimalplaces',
+            get_string('decimalplaces', 'qtype_buchungssatz'), ['size' => 3]);
+        $mform->setType('decimalplaces', PARAM_INT);
+        $mform->setDefault('decimalplaces', 2);
+        $mform->addHelpButton('decimalplaces', 'decimalplaces', 'qtype_buchungssatz');
+        $mform->addRule('decimalplaces', get_string('err_numeric', 'form'), 'numeric', null, 'client');
+
+        // Extra entry deduction.
+        $mform->addElement('text', 'extraentrydeduction',
+            get_string('extraentrydeduction', 'qtype_buchungssatz'), ['size' => 5]);
+        $mform->setType('extraentrydeduction', PARAM_FLOAT);
+        $mform->addHelpButton('extraentrydeduction', 'extraentrydeduction', 'qtype_buchungssatz');
+
+        // All-or-nothing grading checkbox.
+        $mform->addElement('advcheckbox', 'allornothinggrading',
+            get_string('allornothinggrading', 'qtype_buchungssatz'), null, null, [0, 1]);
+        $mform->setDefault('allornothinggrading', 0);
+        $mform->addHelpButton('allornothinggrading', 'allornothinggrading', 'qtype_buchungssatz');
+
         // Chart of accounts selection.
         $charts = $this->get_available_charts();
         $mform->addElement('select', 'chartofaccountsid',
@@ -53,36 +95,6 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $mform->addElement('static', 'managecharts_link', '',
             '<a href="' . $manageurl->out() . '" target="_blank" id="buchungssatz-manage-charts-link">' .
             get_string('managecharts', 'qtype_buchungssatz') . '</a>');
-
-        // Import from Excel/CSV section.
-        $mform->addElement('header', 'importhdr', get_string('importfromcsv', 'qtype_buchungssatz'));
-        $mform->setExpanded('importhdr', false);
-
-        $mform->addElement('static', 'importhelp', '',
-            '<div class="alert alert-info">' . get_string('importhelp', 'qtype_buchungssatz') . '</div>');
-
-        $mform->addElement('html', '<div class="form-group row fitem">
-            <div class="col-md-3 col-form-label d-flex pb-0 pr-md-0">
-                <label>' . get_string('csvfile', 'qtype_buchungssatz') . '</label>
-            </div>
-            <div class="col-md-9 form-inline align-items-start felement">
-                <div class="custom-file-input-wrapper" style="display: flex; align-items: center; gap: 10px;">
-                    <label for="buchungssatz-csv-file" class="btn btn-outline-secondary mb-0" style="cursor: pointer;">
-                        ' . get_string('choosefile', 'qtype_buchungssatz') . '
-                    </label>
-                    <span id="buchungssatz-csv-filename" style="color: #6c757d; font-size: 0.9em;">' . get_string('nofileselected', 'qtype_buchungssatz') . '</span>
-                    <input type="file" id="buchungssatz-csv-file" accept=".csv,.txt" style="display: none;">
-                </div>
-            </div>
-        </div>');
-
-        $mform->addElement('html', '<div class="form-group row fitem">
-            <div class="col-md-3"></div>
-            <div class="col-md-9">
-                <button type="button" class="btn btn-secondary" id="buchungssatz-import-btn">' .
-                get_string('importentries', 'qtype_buchungssatz') . '</button>
-            </div>
-        </div>');
 
         // Correct answer entries section.
         $mform->addElement('header', 'answerhdr', get_string('correctanswer', 'qtype_buchungssatz'));
@@ -294,6 +306,12 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         // Load options if they exist.
         if (!empty($question->options)) {
             $question->chartofaccountsid = $question->options->chartofaccountsid ?? 0;
+            $question->accountsindropdown = $question->options->accountsindropdown ?? 0;
+            $question->numberformat = $question->options->numberformat ?? 'de';
+            $question->currency_symbol = $question->options->currency_symbol ?? '€';
+            $question->decimalplaces = $question->options->decimalplaces ?? 2;
+            $question->extraentrydeduction = $question->options->extraentrydeduction ?? null;
+            $question->allornothinggrading = $question->options->allornothinggrading ?? 0;
 
             // Load entries into array form fields.
             if (!empty($question->options->entries)) {
@@ -328,6 +346,12 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
      */
     public function validation($data, $files): array {
         $errors = parent::validation($data, $files);
+
+        // Validate accountsindropdown is not negative.
+        $accountsindropdown = (int) ($data['accountsindropdown'] ?? 0);
+        if ($accountsindropdown < 0) {
+            $errors['accountsindropdown'] = get_string('err_accountsindropdown_negative', 'qtype_buchungssatz');
+        }
 
         $hasentries = false;
         $totalgrade = 0;

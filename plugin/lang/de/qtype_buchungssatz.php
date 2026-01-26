@@ -32,6 +32,19 @@ $string['pluginnamesummary'] = 'Ein Fragetyp zum Üben von Buchungssätzen. Stud
 // Formularfelder.
 $string['chartofaccounts'] = 'Kontenplan';
 $string['chartofaccounts_help'] = 'Wählen Sie den Kontenplan aus, den Studierende für ihre Buchungen verwenden sollen.';
+$string['accountsindropdown'] = 'Anzahl zusätzlicher Konten in der Auswahlliste';
+$string['accountsindropdown_help'] = 'Die Anzahl der zufälligen zusätzlichen Konten, die neben dem richtigen Konto in der Auswahlliste angezeigt werden sollen. Setzen Sie den Wert auf 0, um alle Konten des ausgewählten Kontenplans anzuzeigen. Beispiel: Bei Eingabe von 3 wird das richtige Konto plus 3 zufällige Konten angezeigt (4 insgesamt).';
+$string['numberformat'] = 'Zahlenformat';
+$string['currency_symbol'] = 'Währungssymbol';
+$string['decimalplaces'] = 'Anzahl Nachkommastellen';
+$string['decimalplaces_help'] = 'Die Anzahl der Nachkommastellen, die bei Beträgen in der Dozenten- und Studierendenansicht angezeigt werden sollen.';
+$string['extraentrydeduction'] = 'Abzug für überflüssige Konten und Werte';
+$string['extraentrydeduction_help'] = 'Punktabzug für jeden zusätzlichen Eintrag, den der Studierende über die korrekte Antwort hinaus angibt. Eine zusätzliche Zeile mit ausgefülltem Soll- und Habenkonto zählt als 2 zusätzliche Einträge. Leer lassen für keinen Abzug. Die Punktzahl kann nicht unter 0 fallen. (Funktion noch nicht implementiert)';
+$string['allornothinggrading'] = 'Nur Positiv bewerten, wenn alle Eingaben korrekt sind';
+$string['allornothinggrading_help'] = 'Wenn aktiviert, erhält der Studierende nur dann Punkte, wenn alle Buchungseinträge vollständig korrekt sind. Bei einem Fehler (auch nur bei einem Betrag) wird die gesamte Frage mit 0 Punkten bewertet.';
+$string['numberformat_help'] = 'Wählen Sie das Zahlenformat für die Anzeige von Beträgen. Deutsches/EU-Format verwendet Punkt als Tausendertrennzeichen und Komma als Dezimaltrennzeichen (1.234,56). US-Format verwendet Komma als Tausendertrennzeichen und Punkt als Dezimaltrennzeichen (1,234.56).';
+$string['numberformat_de'] = 'Deutsch/EU (1.234,56)';
+$string['numberformat_us'] = 'US (1,234.56)';
 $string['nochartselected'] = '-- Kein Kontenplan ausgewählt --';
 $string['allowmultipleentries'] = 'Mehrere Buchungszeilen erlauben';
 $string['allowmultipleentries_help'] = 'Wenn aktiviert, können Studierende mehrere Buchungszeilen eingeben (z.B. für zusammengesetzte Buchungssätze).';
@@ -72,6 +85,7 @@ $string['err_sollbetragrequired'] = 'Der Soll-Betrag ist erforderlich, wenn ein 
 $string['err_graderequired'] = 'Die Bewertung ist erforderlich.';
 $string['err_gradeinvalid'] = 'Die Bewertung muss zwischen 0 und 100 liegen.';
 $string['err_gradesumnotcomplete'] = 'Die Summe aller Bewertungen muss genau 100% betragen. Aktuelle Summe: {$a}%';
+$string['err_accountsindropdown_negative'] = 'Die Anzahl der Konten in der Auswahlliste darf nicht negativ sein.';
 
 // Kontenplanverwaltung.
 $string['managecharts'] = 'Kontenpläne verwalten';
@@ -82,12 +96,13 @@ $string['chartname'] = 'Name des Kontenplans';
 $string['chartdescription'] = 'Beschreibung';
 $string['importaccounts'] = 'Konten aus CSV importieren';
 $string['exportaccounts'] = 'Konten als CSV exportieren';
-$string['accounttype'] = 'Kontenart';
-$string['accounttype_asset'] = 'Aktivkonto';
-$string['accounttype_liability'] = 'Passivkonto (Verbindlichkeiten)';
-$string['accounttype_equity'] = 'Eigenkapitalkonto';
-$string['accounttype_revenue'] = 'Ertragskonto';
-$string['accounttype_expense'] = 'Aufwandskonto';
+$string['accountclass'] = 'Kontoklasse';
+$string['accountclass_0'] = 'Anlage- und Kapitalkonten';
+$string['accountclass_1'] = 'Finanz- und Privatkonten';
+$string['accountclass_2'] = 'Eigenkapital';
+$string['accountclass_3'] = 'Fremdkapital';
+$string['accountclass_4'] = 'Aufwendungen';
+$string['accountclass_5'] = 'Erträge';
 
 // Datenschutz.
 $string['privacy:metadata'] = 'Das Buchungssatz-Fragetyp-Plugin speichert keine personenbezogenen Daten.';
@@ -147,10 +162,15 @@ $string['choosefile'] = 'Datei auswählen';
 $string['distributegradesequally'] = 'Gleichmäßig verteilen';
 
 // Kontenplan-Import aus CSV.
-$string['importaccountsfromcsv'] = 'Konten aus CSV importieren (optional)';
-$string['csvfilehelp'] = 'Laden Sie eine CSV-Datei hoch, um Konten zu importieren. Format: Kontonummer,Kontoname,Kontenart. Leer lassen, um einen leeren Kontenplan zu erstellen.';
+$string['importchartfromcsv'] = 'Kontenplan aus CSV importieren';
+$string['importchart'] = 'Kontenplan importieren';
+$string['csvfilerequired'] = 'Eine CSV-Datei ist erforderlich, um einen Kontenplan zu erstellen.';
+$string['csvfilehelp'] = 'Laden Sie eine CSV-Datei hoch, um Konten zu importieren. Format: Liste;Kontokl;Kontonr;Name (Semikolon, Tab oder Komma als Trennzeichen). Der Kontenplanname wird aus der Liste-Spalte übernommen.';
 $string['chartimportsuccess'] = '{$a} Konten erfolgreich importiert';
 $string['witherrors'] = 'mit Fehlern';
 $string['chartimportfailed'] = 'Kontenplan-Import fehlgeschlagen';
+$string['confirmoverride'] = 'Überschreiben bestätigen';
+$string['chartexistswarning'] = 'Ein Kontenplan mit dem Namen "{$a}" existiert bereits. Wenn Sie fortfahren, wird der bestehende Kontenplan durch den neuen ersetzt.';
+$string['overridechart'] = 'Bestehenden Kontenplan überschreiben';
 $string['importlineerror'] = 'Fehler in Zeile {$a}';
 $string['createdefaultskr03'] = 'SKR03 Standardkontenplan erstellen';

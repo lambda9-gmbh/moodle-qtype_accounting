@@ -39,16 +39,14 @@ class chart_manager {
      * Create a new chart of accounts.
      *
      * @param string $name Chart name.
-     * @param string $description Chart description.
      * @param int $contextid Context ID.
      * @return int The new chart ID.
      */
-    public static function create_chart(string $name, string $description, int $contextid): int {
+    public static function create_chart(string $name, int $contextid): int {
         global $DB, $USER;
 
         $chart = new \stdClass();
         $chart->name = $name;
-        $chart->description = $description;
         $chart->contextid = $contextid;
         $chart->timecreated = time();
         $chart->timemodified = time();
@@ -62,15 +60,13 @@ class chart_manager {
      *
      * @param int $chartid Chart ID.
      * @param string $name Chart name.
-     * @param string $description Chart description.
      * @return bool True on success.
      */
-    public static function update_chart(int $chartid, string $name, string $description): bool {
+    public static function update_chart(int $chartid, string $name): bool {
         global $DB, $USER;
 
         $chart = $DB->get_record('qtype_buchungssatz_charts', ['id' => $chartid], '*', MUST_EXIST);
         $chart->name = $name;
-        $chart->description = $description;
         $chart->timemodified = time();
         $chart->usermodified = $USER->id;
 
@@ -116,12 +112,24 @@ class chart_manager {
     }
 
     /**
+     * Find a chart by name within a context.
+     *
+     * @param string $name Chart name.
+     * @param int $contextid Context ID.
+     * @return object|false The chart record or false if not found.
+     */
+    public static function get_chart_by_name(string $name, int $contextid) {
+        global $DB;
+        return $DB->get_record('qtype_buchungssatz_charts', ['name' => $name, 'contextid' => $contextid]);
+    }
+
+    /**
      * Add an account to a chart.
      *
      * @param int $chartid Chart ID.
-     * @param string $accountnumber Account number.
-     * @param string $accountname Account name.
-     * @param string $accounttype Account type.
+     * @param string $accountnumber Account number (Kontonr).
+     * @param string $accountname Account name (Name).
+     * @param int $accountclass Account class 0-5 (Kontokl).
      * @param int $sortorder Sort order.
      * @return int The new account ID.
      */
@@ -129,16 +137,21 @@ class chart_manager {
         int $chartid,
         string $accountnumber,
         string $accountname,
-        string $accounttype = 'asset',
+        int $accountclass = 0,
         int $sortorder = 0
     ): int {
         global $DB;
+
+        // Validate accountclass is in range 0-5.
+        if ($accountclass < 0 || $accountclass > 5) {
+            $accountclass = 0;
+        }
 
         $account = new \stdClass();
         $account->chartid = $chartid;
         $account->accountnumber = $accountnumber;
         $account->accountname = $accountname;
-        $account->accounttype = $accounttype;
+        $account->accountclass = $accountclass;
         $account->sortorder = $sortorder;
 
         return $DB->insert_record('qtype_buchungssatz_accounts', $account);
@@ -160,23 +173,28 @@ class chart_manager {
      * Update an account.
      *
      * @param int $accountid Account ID.
-     * @param string $accountnumber Account number.
-     * @param string $accountname Account name.
-     * @param string $accounttype Account type.
+     * @param string $accountnumber Account number (Kontonr).
+     * @param string $accountname Account name (Name).
+     * @param int $accountclass Account class 0-5 (Kontokl).
      * @return bool True on success.
      */
     public static function update_account(
         int $accountid,
         string $accountnumber,
         string $accountname,
-        string $accounttype
+        int $accountclass
     ): bool {
         global $DB;
+
+        // Validate accountclass is in range 0-5.
+        if ($accountclass < 0 || $accountclass > 5) {
+            $accountclass = 0;
+        }
 
         $account = $DB->get_record('qtype_buchungssatz_accounts', ['id' => $accountid], '*', MUST_EXIST);
         $account->accountnumber = $accountnumber;
         $account->accountname = $accountname;
-        $account->accounttype = $accounttype;
+        $account->accountclass = $accountclass;
 
         return $DB->update_record('qtype_buchungssatz_accounts', $account);
     }
@@ -193,64 +211,47 @@ class chart_manager {
     }
 
     /**
-     * Import accounts from CSV content.
+     * Import accounts from CSV content to an existing chart.
      *
-     * Expected CSV format: accountnumber,accountname,accounttype
+     * Expected CSV format: Liste;Kontokl;Kontonr;Name
      *
      * @param int $chartid Chart ID.
      * @param string $csvcontent CSV content.
-     * @param string $delimiter CSV delimiter.
      * @return array ['imported' => int, 'errors' => array]
      */
-    public static function import_from_csv(int $chartid, string $csvcontent, string $delimiter = ','): array {
+    public static function import_from_csv(int $chartid, string $csvcontent): array {
         global $DB;
 
         $result = ['imported' => 0, 'errors' => []];
-        $lines = explode("\n", $csvcontent);
-        $sortorder = 0;
+
+        try {
+            $parsed = import_helper::parse_csv($csvcontent);
+        } catch (\Exception $e) {
+            $result['errors'][] = $e->getMessage();
+            return $result;
+        }
 
         // Get existing accounts to avoid duplicates.
         $existing = $DB->get_records_menu('qtype_buchungssatz_accounts',
             ['chartid' => $chartid], '', 'accountnumber, id');
 
-        foreach ($lines as $linenum => $line) {
-            $line = trim($line);
-            if (empty($line)) {
-                continue;
-            }
-
-            // Skip header line.
-            if ($linenum === 0 && stripos($line, 'accountnumber') !== false) {
-                continue;
-            }
-
-            $parts = str_getcsv($line, $delimiter);
-
-            if (count($parts) < 2) {
-                $result['errors'][] = "Line " . ($linenum + 1) . ": Invalid format";
-                continue;
-            }
-
-            $accountnumber = trim($parts[0]);
-            $accountname = trim($parts[1]);
-            $accounttype = isset($parts[2]) ? trim($parts[2]) : 'asset';
-
-            // Validate account type.
-            $validtypes = ['asset', 'liability', 'equity', 'revenue', 'expense'];
-            if (!in_array($accounttype, $validtypes)) {
-                $accounttype = 'asset';
-            }
-
+        foreach ($parsed['accounts'] as $accountnumber => $accountdata) {
             // Skip if account already exists.
             if (isset($existing[$accountnumber])) {
                 continue;
             }
 
             try {
-                self::add_account($chartid, $accountnumber, $accountname, $accounttype, $sortorder++);
+                self::add_account(
+                    $chartid,
+                    $accountdata['accountnumber'],
+                    $accountdata['accountname'],
+                    $accountdata['accountclass'],
+                    $accountdata['sortorder']
+                );
                 $result['imported']++;
             } catch (\Exception $e) {
-                $result['errors'][] = "Line " . ($linenum + 1) . ": " . $e->getMessage();
+                $result['errors'][] = $accountnumber . ': ' . $e->getMessage();
             }
         }
 
@@ -260,18 +261,23 @@ class chart_manager {
     /**
      * Export accounts to CSV.
      *
+     * Exports in format: Liste;Kontokl;Kontonr;Name
+     *
      * @param int $chartid Chart ID.
      * @return string CSV content.
      */
     public static function export_to_csv(int $chartid): string {
+        $chart = self::get_chart($chartid);
         $accounts = self::get_accounts($chartid);
+        $chartname = $chart ? $chart->name : 'Unknown Chart';
 
-        $csv = "accountnumber,accountname,accounttype\n";
+        $csv = "Liste;Kontokl;Kontonr;Name\n";
 
         foreach ($accounts as $account) {
-            $csv .= '"' . str_replace('"', '""', $account->accountnumber) . '",';
-            $csv .= '"' . str_replace('"', '""', $account->accountname) . '",';
-            $csv .= '"' . $account->accounttype . "\"\n";
+            $csv .= '"' . str_replace('"', '""', $chartname) . '";';
+            $csv .= $account->accountclass . ';';
+            $csv .= '"' . str_replace('"', '""', $account->accountnumber) . '";';
+            $csv .= '"' . str_replace('"', '""', $account->accountname) . "\"\n";
         }
 
         return $csv;
@@ -280,148 +286,42 @@ class chart_manager {
     /**
      * Import a complete chart of accounts from CSV.
      *
-     * Supports multiple formats:
-     * - Entries format (6 cols): Sollkonto,Sollname,Sollbetrag,Habenkonto,Habenname,Habenbetrag
-     * - Simple format (2-3 cols): accountnumber,accountname,accounttype
+     * Expected CSV format: Liste;Kontokl;Kontonr;Name
+     * The chart name is extracted from the "Liste" column.
      *
-     * @param string $chartname Name for the new chart.
      * @param string $csvcontent CSV content.
      * @param int $contextid Context ID.
-     * @param string|null $description Optional chart description.
-     * @return array ['chartid' => int, 'imported' => int, 'errors' => array]
+     * @return array ['chartid' => int, 'chartname' => string, 'imported' => int, 'errors' => array]
      */
-    public static function import_chart_from_csv(
-        string $chartname,
-        string $csvcontent,
-        int $contextid,
-        ?string $description = null
-    ): array {
-        $result = ['chartid' => 0, 'imported' => 0, 'errors' => []];
+    public static function import_chart_from_csv(string $csvcontent, int $contextid): array {
+        $result = ['chartid' => 0, 'chartname' => '', 'imported' => 0, 'errors' => []];
 
-        // Try to parse using import_helper (handles entries format with proper header detection).
         try {
             $parsed = import_helper::parse_csv($csvcontent);
-            $extracted = import_helper::extract_entries($parsed['rows'], $parsed['mapping']);
-            $accounts = $extracted['accounts'];
-
-            // Validate that extracted accounts look like real account numbers (numeric).
-            // If they don't, fall back to simple format parsing.
-            $validaccounts = true;
-            if (!empty($accounts)) {
-                foreach ($accounts as $accountnumber => $accountname) {
-                    // Account numbers should be numeric (or at least start with a digit).
-                    if (!preg_match('/^\d/', $accountnumber)) {
-                        $validaccounts = false;
-                        break;
-                    }
-                }
-            }
-
-            if (!empty($accounts) && $validaccounts) {
-                // Create the chart.
-                $chartid = self::create_chart($chartname, $description ?? '', $contextid);
-                $result['chartid'] = $chartid;
-
-                $sortorder = 0;
-                foreach ($accounts as $accountnumber => $accountname) {
-                    $accounttype = import_helper::guess_account_type($accountnumber);
-                    try {
-                        self::add_account($chartid, $accountnumber, $accountname, $accounttype, $sortorder++);
-                        $result['imported']++;
-                    } catch (\Exception $e) {
-                        $result['errors'][] = $accountnumber . ': ' . $e->getMessage();
-                    }
-                }
-
-                return $result;
-            }
         } catch (\Exception $e) {
-            // Fall through to simple format parsing.
-        }
-
-        // Fall back to simple format: accountnumber,accountname,accounttype.
-        $delimiter = import_helper::detect_delimiter($csvcontent);
-        $lines = preg_split('/\r\n|\r|\n/', trim($csvcontent));
-
-        if (empty($lines)) {
-            $result['errors'][] = get_string('csvempty', 'qtype_buchungssatz');
+            $result['errors'][] = $e->getMessage();
             return $result;
         }
 
-        // Create the chart.
-        $chartid = self::create_chart($chartname, $description ?? '', $contextid);
+        // Create the chart with name from CSV.
+        $chartname = $parsed['chartname'];
+        $chartid = self::create_chart($chartname, $contextid);
         $result['chartid'] = $chartid;
+        $result['chartname'] = $chartname;
 
-        $sortorder = 0;
-        $seenaccounts = [];
-
-        foreach ($lines as $linenum => $line) {
-            $line = trim($line);
-            if (empty($line)) {
-                continue;
-            }
-
-            $parts = str_getcsv($line, $delimiter);
-
-            // Skip header line - check for common header patterns.
-            if ($linenum === 0) {
-                $firstcol = strtolower(trim($parts[0] ?? ''));
-                $headerpatterns = ['accountnumber', 'kontonummer', 'konto', 'number', 'nr', 'account'];
-                $isheader = false;
-                foreach ($headerpatterns as $pattern) {
-                    if (strpos($firstcol, $pattern) !== false) {
-                        $isheader = true;
-                        break;
-                    }
-                }
-                // Also check if first column doesn't look like a number.
-                if (!$isheader && !preg_match('/^\d/', $firstcol)) {
-                    $isheader = true;
-                }
-                if ($isheader) {
-                    continue;
-                }
-            }
-
-            if (count($parts) < 2) {
-                $result['errors'][] = get_string('importlineerror', 'qtype_buchungssatz', $linenum + 1);
-                continue;
-            }
-
-            $accountnumber = trim($parts[0]);
-            $accountname = trim($parts[1]);
-
-            // Skip empty account numbers.
-            if (empty($accountnumber)) {
-                continue;
-            }
-
-            // Skip duplicates within the same import.
-            if (isset($seenaccounts[$accountnumber])) {
-                continue;
-            }
-            $seenaccounts[$accountnumber] = true;
-
-            // Determine account type.
-            $accounttype = 'asset';
-            if (isset($parts[2]) && !empty(trim($parts[2]))) {
-                $type = strtolower(trim($parts[2]));
-                $validtypes = ['asset', 'liability', 'equity', 'revenue', 'expense'];
-                if (in_array($type, $validtypes)) {
-                    $accounttype = $type;
-                } else {
-                    $accounttype = import_helper::guess_account_type($accountnumber);
-                }
-            } else {
-                $accounttype = import_helper::guess_account_type($accountnumber);
-            }
-
+        // Import all accounts.
+        foreach ($parsed['accounts'] as $accountnumber => $accountdata) {
             try {
-                self::add_account($chartid, $accountnumber, $accountname, $accounttype, $sortorder++);
+                self::add_account(
+                    $chartid,
+                    $accountdata['accountnumber'],
+                    $accountdata['accountname'],
+                    $accountdata['accountclass'],
+                    $accountdata['sortorder']
+                );
                 $result['imported']++;
             } catch (\Exception $e) {
-                $result['errors'][] = get_string('importlineerror', 'qtype_buchungssatz', $linenum + 1) .
-                    ': ' . $e->getMessage();
+                $result['errors'][] = $accountnumber . ': ' . $e->getMessage();
             }
         }
 
@@ -429,6 +329,7 @@ class chart_manager {
         if ($result['imported'] === 0) {
             self::delete_chart($chartid);
             $result['chartid'] = 0;
+            $result['chartname'] = '';
             $result['errors'][] = get_string('csvnoentries', 'qtype_buchungssatz');
         }
 
@@ -442,55 +343,62 @@ class chart_manager {
      * @return int Chart ID.
      */
     public static function create_default_skr03(int $contextid): int {
-        $chartid = self::create_chart('SKR03 (vereinfacht)', 'Standardkontenrahmen 03 - vereinfacht', $contextid);
+        $chartid = self::create_chart('SKR03 (vereinfacht)', $contextid);
 
+        // Account class mapping:
+        // 0 = Anlage- und Kapitalkonten (Fixed assets)
+        // 1 = Finanz- und Privatkonten (Financial accounts)
+        // 2 = Eigenkapital (Equity) - not used in SKR03
+        // 3 = Fremdkapital (Liabilities)
+        // 4 = Aufwendungen (Expenses)
+        // 5 = Erträge (Revenue) - SKR03 uses 8xxx for revenue.
         $accounts = [
-            // Aktivkonten (Assets).
-            ['0400', 'Technische Anlagen und Maschinen', 'asset'],
-            ['0420', 'Geschäftsausstattung', 'asset'],
-            ['0650', 'Büroeinrichtung', 'asset'],
-            ['1000', 'Kasse', 'asset'],
-            ['1200', 'Bank', 'asset'],
-            ['1400', 'Forderungen aus Lieferungen und Leistungen', 'asset'],
-            ['1576', 'Abziehbare Vorsteuer 19%', 'asset'],
-            ['1571', 'Abziehbare Vorsteuer 7%', 'asset'],
+            // Anlagekonten (class 0).
+            ['0400', 'Technische Anlagen und Maschinen', 0],
+            ['0420', 'Geschäftsausstattung', 0],
+            ['0650', 'Büroeinrichtung', 0],
 
-            // Passivkonten (Liabilities).
-            ['1600', 'Verbindlichkeiten aus Lieferungen und Leistungen', 'liability'],
-            ['1776', 'Umsatzsteuer 19%', 'liability'],
-            ['1771', 'Umsatzsteuer 7%', 'liability'],
+            // Finanzkonten (class 1).
+            ['1000', 'Kasse', 1],
+            ['1200', 'Bank', 1],
+            ['1400', 'Forderungen aus Lieferungen und Leistungen', 1],
+            ['1576', 'Abziehbare Vorsteuer 19%', 1],
+            ['1571', 'Abziehbare Vorsteuer 7%', 1],
+            ['1600', 'Verbindlichkeiten aus Lieferungen und Leistungen', 1],
+            ['1776', 'Umsatzsteuer 19%', 1],
+            ['1771', 'Umsatzsteuer 7%', 1],
 
-            // Eigenkapital (Equity).
-            ['0800', 'Gezeichnetes Kapital', 'equity'],
-            ['0860', 'Gewinnrücklagen', 'equity'],
-            ['9000', 'Eigenkapital', 'equity'],
+            // Aufwendungen (class 4).
+            ['3000', 'Rohstoffe', 4],
+            ['3100', 'Fertigungsmaterial', 4],
+            ['3400', 'Wareneinkauf 19%', 4],
+            ['4100', 'Löhne', 4],
+            ['4120', 'Gehälter', 4],
+            ['4200', 'Sozialversicherung', 4],
+            ['4210', 'Arbeitgeberanteil Sozialversicherung', 4],
+            ['4400', 'Abschreibungen auf Sachanlagen', 4],
+            ['4500', 'Fahrzeugkosten', 4],
+            ['4600', 'Werbekosten', 4],
+            ['4700', 'Kosten des Geldverkehrs', 4],
+            ['4800', 'Reparaturen und Instandhaltung', 4],
+            ['4900', 'Fremdleistungen', 4],
+            ['4910', 'Porto', 4],
+            ['4920', 'Telefon', 4],
+            ['4930', 'Bürobedarf', 4],
+            ['4940', 'Zeitschriften, Bücher', 4],
+            ['4950', 'Rechts- und Beratungskosten', 4],
+            ['4960', 'Miete', 4],
+            ['4970', 'Nebenkosten des Geldverkehrs', 4],
 
-            // Erträge (Revenue).
-            ['8000', 'Erlöse 19% USt', 'revenue'],
-            ['8100', 'Erlöse 7% USt', 'revenue'],
-            ['8200', 'Erlöse steuerfrei', 'revenue'],
+            // Erträge (class 5 - using 8xxx numbers for SKR03 compatibility).
+            ['8000', 'Erlöse 19% USt', 5],
+            ['8100', 'Erlöse 7% USt', 5],
+            ['8200', 'Erlöse steuerfrei', 5],
 
-            // Aufwendungen (Expenses).
-            ['3000', 'Rohstoffe', 'expense'],
-            ['3100', 'Fertigungsmaterial', 'expense'],
-            ['3400', 'Wareneinkauf 19%', 'expense'],
-            ['4100', 'Löhne', 'expense'],
-            ['4120', 'Gehälter', 'expense'],
-            ['4200', 'Sozialversicherung', 'expense'],
-            ['4210', 'Arbeitgeberanteil Sozialversicherung', 'expense'],
-            ['4400', 'Abschreibungen auf Sachanlagen', 'expense'],
-            ['4500', 'Fahrzeugkosten', 'expense'],
-            ['4600', 'Werbekosten', 'expense'],
-            ['4700', 'Kosten des Geldverkehrs', 'expense'],
-            ['4800', 'Reparaturen und Instandhaltung', 'expense'],
-            ['4900', 'Fremdleistungen', 'expense'],
-            ['4910', 'Porto', 'expense'],
-            ['4920', 'Telefon', 'expense'],
-            ['4930', 'Bürobedarf', 'expense'],
-            ['4940', 'Zeitschriften, Bücher', 'expense'],
-            ['4950', 'Rechts- und Beratungskosten', 'expense'],
-            ['4960', 'Miete', 'expense'],
-            ['4970', 'Nebenkosten des Geldverkehrs', 'expense'],
+            // Eigenkapital (class 2).
+            ['0800', 'Gezeichnetes Kapital', 2],
+            ['0860', 'Gewinnrücklagen', 2],
+            ['9000', 'Eigenkapital', 2],
         ];
 
         $sortorder = 0;

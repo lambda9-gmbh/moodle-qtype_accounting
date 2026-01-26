@@ -15,7 +15,9 @@
 // along with MoFT BuSa.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * AJAX endpoint to import accounting entries from CSV.
+ * AJAX endpoint to import chart of accounts from CSV.
+ *
+ * Expected CSV format: Liste;Kontokl;Kontonr;Name
  *
  * @package    qtype_buchungssatz
  * @copyright  2024 Hochschule Flensburg / lambda9
@@ -37,48 +39,44 @@ $csvdata = required_param('csvdata', PARAM_RAW);
 header('Content-Type: application/json');
 
 try {
-    $result = parse_and_import_csv($csvdata);
+    $result = import_chart_from_csv($csvdata);
     echo json_encode($result);
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
 
 /**
- * Parse CSV data and import accounting entries.
+ * Import chart of accounts from CSV data.
  *
  * @param string $csvdata The raw CSV data.
- * @return array Result with chart info, accounts, and entries.
+ * @return array Result with chart info and accounts.
  */
-function parse_and_import_csv(string $csvdata): array {
+function import_chart_from_csv(string $csvdata): array {
     global $DB;
 
-    // Parse CSV using the helper class.
+    // Parse CSV to extract chart name and accounts.
     $parsed = import_helper::parse_csv($csvdata);
-    $result = import_helper::extract_entries($parsed['rows'], $parsed['mapping']);
-
-    $accounts = $result['accounts'];
-    $entries = $result['entries'];
+    $chartname = $parsed['chartname'];
+    $accounts = $parsed['accounts'];
 
     // Check if a chart with the same accounts already exists.
     $chartid = import_helper::find_matching_chart($accounts);
-    $chartname = '';
 
     if ($chartid) {
         // Use existing chart.
         $chart = $DB->get_record('qtype_buchungssatz_charts', ['id' => $chartid]);
         $chartname = $chart->name;
     } else {
-        // Create a new chart of accounts with imported accounts.
+        // Create a new chart of accounts.
         $contextid = context_system::instance()->id;
-        $chartname = get_string('importedchart', 'qtype_buchungssatz') . ' ' . date('Y-m-d H:i');
-        $chartid = chart_manager::create_chart($chartname, get_string('importedchartdesc', 'qtype_buchungssatz'), $contextid);
+        $importresult = chart_manager::import_chart_from_csv($csvdata, $contextid);
 
-        // Add accounts to the chart.
-        $sortorder = 0;
-        foreach ($accounts as $number => $name) {
-            $accounttype = import_helper::guess_account_type($number);
-            chart_manager::add_account($chartid, $number, $name, $accounttype, $sortorder++);
+        if ($importresult['chartid'] === 0) {
+            throw new Exception(implode(', ', $importresult['errors']));
         }
+
+        $chartid = $importresult['chartid'];
+        $chartname = $importresult['chartname'];
     }
 
     // Get all charts and accounts for dropdown refresh.
@@ -97,6 +95,5 @@ function parse_and_import_csv(string $csvdata): array {
         'chartid' => $chartid,
         'chartname' => $chartname,
         'accounts' => $allaccounts,
-        'entries' => $entries,
     ];
 }
