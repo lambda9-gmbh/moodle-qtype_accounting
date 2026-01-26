@@ -101,7 +101,10 @@ class questiontype_test extends \advanced_testcase {
             'sollbetrag' => [1000.00, 500.00],
             'habenkonto' => ['8400', '8400'],
             'habenbetrag' => [1000.00, 500.00],
-            'grade' => [60, 40],
+            'weight_sollkonto' => [2, 1],
+            'weight_sollbetrag' => [1, 1],
+            'weight_habenkonto' => [2, 1],
+            'weight_habenbetrag' => [1, 1],
             'explanation' => ['First entry', 'Second entry'],
         ];
 
@@ -122,12 +125,18 @@ class questiontype_test extends \advanced_testcase {
         $this->assertEquals(1000.00, $loadedquestion->entries[0]['sollbetrag']);
         $this->assertEquals('8400', $loadedquestion->entries[0]['habenkonto']);
         $this->assertEquals(1000.00, $loadedquestion->entries[0]['habenbetrag']);
-        $this->assertEquals(0.6, $loadedquestion->entries[0]['fraction']);
+        $this->assertEquals(2, $loadedquestion->entries[0]['weight_sollkonto']);
+        $this->assertEquals(1, $loadedquestion->entries[0]['weight_sollbetrag']);
+        $this->assertEquals(2, $loadedquestion->entries[0]['weight_habenkonto']);
+        $this->assertEquals(1, $loadedquestion->entries[0]['weight_habenbetrag']);
 
         // Check second entry.
         $this->assertEquals('1000', $loadedquestion->entries[1]['sollkonto']);
         $this->assertEquals(500.00, $loadedquestion->entries[1]['sollbetrag']);
-        $this->assertEquals(0.4, $loadedquestion->entries[1]['fraction']);
+        $this->assertEquals(1, $loadedquestion->entries[1]['weight_sollkonto']);
+        $this->assertEquals(1, $loadedquestion->entries[1]['weight_sollbetrag']);
+        $this->assertEquals(1, $loadedquestion->entries[1]['weight_habenkonto']);
+        $this->assertEquals(1, $loadedquestion->entries[1]['weight_habenbetrag']);
     }
 
     /**
@@ -157,7 +166,10 @@ class questiontype_test extends \advanced_testcase {
             'sollbetrag' => [1000.00],
             'habenkonto' => ['8400'],
             'habenbetrag' => [1000.00],
-            'grade' => [100],
+            'weight_sollkonto' => [1],
+            'weight_sollbetrag' => [1],
+            'weight_habenkonto' => [1],
+            'weight_habenbetrag' => [1],
             'explanation' => [''],
         ];
 
@@ -201,7 +213,10 @@ class questiontype_test extends \advanced_testcase {
             'sollbetrag' => [1000.00, 0, 500.00],
             'habenkonto' => ['8400', '', '8400'],  // Second entry is empty.
             'habenbetrag' => [1000.00, 0, 500.00],
-            'grade' => [60, 0, 40],
+            'weight_sollkonto' => [1, 1, 1],
+            'weight_sollbetrag' => [1, 1, 1],
+            'weight_habenkonto' => [1, 1, 1],
+            'weight_habenbetrag' => [1, 1, 1],
             'explanation' => ['', '', ''],
         ];
 

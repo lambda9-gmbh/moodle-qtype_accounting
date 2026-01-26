@@ -47,6 +47,10 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
             'simple_debit_credit',
             'multiple_entries',
             'debit_only_optional',
+            'weighted_entries',
+            'all_or_nothing',
+            'split_amounts',
+            'multiple_same_account',
         ];
     }
 
@@ -80,7 +84,10 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
                 'sollbetrag' => 1000.00,
                 'habenkonto' => '8400',
                 'habenbetrag' => 1000.00,
-                'fraction' => 1.0,
+                'weight_sollkonto' => 1,
+                'weight_sollbetrag' => 1,
+                'weight_habenkonto' => 1,
+                'weight_habenbetrag' => 1,
                 'explanation' => '',
             ],
         ];
@@ -118,7 +125,10 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
                 'sollbetrag' => 500.00,
                 'habenkonto' => '8400',
                 'habenbetrag' => 500.00,
-                'fraction' => 0.5,
+                'weight_sollkonto' => 1,
+                'weight_sollbetrag' => 1,
+                'weight_habenkonto' => 1,
+                'weight_habenbetrag' => 1,
                 'explanation' => 'Cash payment',
             ],
             [
@@ -126,7 +136,10 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
                 'sollbetrag' => 500.00,
                 'habenkonto' => '8400',
                 'habenbetrag' => 500.00,
-                'fraction' => 0.5,
+                'weight_sollkonto' => 1,
+                'weight_sollbetrag' => 1,
+                'weight_habenkonto' => 1,
+                'weight_habenbetrag' => 1,
                 'explanation' => 'Bank transfer',
             ],
         ];
@@ -162,8 +175,189 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
                 'sollbetrag' => 0,
                 'habenkonto' => '4400',
                 'habenbetrag' => 250.00,
-                'fraction' => 1.0,
+                'weight_sollkonto' => 1,
+                'weight_sollbetrag' => 1,
+                'weight_habenkonto' => 1,
+                'weight_habenbetrag' => 1,
                 'explanation' => '',
+            ],
+        ];
+
+        return $question;
+    }
+
+    /**
+     * Create a question with custom weights for weighted scoring tests.
+     *
+     * @return qtype_buchungssatz_question The test question.
+     */
+    public function make_buchungssatz_question_weighted_entries(): qtype_buchungssatz_question {
+        $question = new qtype_buchungssatz_question();
+
+        $question->id = 4;
+        $question->name = 'Weighted entries question';
+        $question->questiontext = 'Record the transaction with weighted scoring.';
+        $question->questiontextformat = FORMAT_HTML;
+        $question->generalfeedback = 'Weighted scoring applies.';
+        $question->generalfeedbackformat = FORMAT_HTML;
+        $question->defaultmark = 1;
+        $question->penalty = 0.3333333;
+        $question->qtype = question_bank::get_qtype('buchungssatz');
+
+        $question->chartofaccountsid = 0;
+        $question->allowmultipleentries = 0;
+        $question->maxentries = 1;
+        $question->allornothinggrading = 0;
+
+        // Custom weights: account has weight 2, amount has weight 1.
+        $question->entries = [
+            [
+                'sollkonto' => '1200',
+                'sollbetrag' => 1000.00,
+                'habenkonto' => '8400',
+                'habenbetrag' => 1000.00,
+                'weight_sollkonto' => 2,
+                'weight_sollbetrag' => 1,
+                'weight_habenkonto' => 2,
+                'weight_habenbetrag' => 1,
+                'explanation' => '',
+            ],
+        ];
+
+        return $question;
+    }
+
+    /**
+     * Create a question with all-or-nothing grading enabled.
+     *
+     * @return qtype_buchungssatz_question The test question.
+     */
+    public function make_buchungssatz_question_all_or_nothing(): qtype_buchungssatz_question {
+        $question = new qtype_buchungssatz_question();
+
+        $question->id = 5;
+        $question->name = 'All or nothing question';
+        $question->questiontext = 'Record the transaction (all or nothing).';
+        $question->questiontextformat = FORMAT_HTML;
+        $question->generalfeedback = 'Must be completely correct.';
+        $question->generalfeedbackformat = FORMAT_HTML;
+        $question->defaultmark = 1;
+        $question->penalty = 0.3333333;
+        $question->qtype = question_bank::get_qtype('buchungssatz');
+
+        $question->chartofaccountsid = 0;
+        $question->allowmultipleentries = 0;
+        $question->maxentries = 1;
+        $question->allornothinggrading = 1;
+
+        $question->entries = [
+            [
+                'sollkonto' => '1200',
+                'sollbetrag' => 1000.00,
+                'habenkonto' => '8400',
+                'habenbetrag' => 1000.00,
+                'weight_sollkonto' => 1,
+                'weight_sollbetrag' => 1,
+                'weight_habenkonto' => 1,
+                'weight_habenbetrag' => 1,
+                'explanation' => '',
+            ],
+        ];
+
+        return $question;
+    }
+
+    /**
+     * Create a question that tests split amounts (same account, amount split across entries).
+     *
+     * Correct answer: Bank 600 total (can be split as 300+300 or 200+400, etc.)
+     *
+     * @return qtype_buchungssatz_question The test question.
+     */
+    public function make_buchungssatz_question_split_amounts(): qtype_buchungssatz_question {
+        $question = new qtype_buchungssatz_question();
+
+        $question->id = 6;
+        $question->name = 'Split amounts question';
+        $question->questiontext = 'Record the transaction (amounts can be split).';
+        $question->questiontextformat = FORMAT_HTML;
+        $question->generalfeedback = 'Bank 600 / Revenue 600';
+        $question->generalfeedbackformat = FORMAT_HTML;
+        $question->defaultmark = 1;
+        $question->penalty = 0.3333333;
+        $question->qtype = question_bank::get_qtype('buchungssatz');
+
+        $question->chartofaccountsid = 0;
+        $question->allowmultipleentries = 1;
+        $question->maxentries = 5;
+        $question->allornothinggrading = 0;
+
+        // Single entry with total amounts.
+        $question->entries = [
+            [
+                'sollkonto' => '1200',
+                'sollbetrag' => 600.00,
+                'habenkonto' => '8400',
+                'habenbetrag' => 600.00,
+                'weight_sollkonto' => 1,
+                'weight_sollbetrag' => 1,
+                'weight_habenkonto' => 1,
+                'weight_habenbetrag' => 1,
+                'explanation' => '',
+            ],
+        ];
+
+        return $question;
+    }
+
+    /**
+     * Create a question with multiple entries to the same account.
+     *
+     * Tests aggregation: two entries to Bank should be aggregated.
+     *
+     * @return qtype_buchungssatz_question The test question.
+     */
+    public function make_buchungssatz_question_multiple_same_account(): qtype_buchungssatz_question {
+        $question = new qtype_buchungssatz_question();
+
+        $question->id = 7;
+        $question->name = 'Multiple same account question';
+        $question->questiontext = 'Record two payments to bank.';
+        $question->questiontextformat = FORMAT_HTML;
+        $question->generalfeedback = 'Bank 300 + Bank 200 = Bank 500 total';
+        $question->generalfeedbackformat = FORMAT_HTML;
+        $question->defaultmark = 1;
+        $question->penalty = 0.3333333;
+        $question->qtype = question_bank::get_qtype('buchungssatz');
+
+        $question->chartofaccountsid = 0;
+        $question->allowmultipleentries = 1;
+        $question->maxentries = 5;
+        $question->allornothinggrading = 0;
+
+        // Two entries to the same account.
+        $question->entries = [
+            [
+                'sollkonto' => '1200',
+                'sollbetrag' => 300.00,
+                'habenkonto' => '8400',
+                'habenbetrag' => 300.00,
+                'weight_sollkonto' => 1,
+                'weight_sollbetrag' => 1,
+                'weight_habenkonto' => 1,
+                'weight_habenbetrag' => 1,
+                'explanation' => 'First payment',
+            ],
+            [
+                'sollkonto' => '1200',
+                'sollbetrag' => 200.00,
+                'habenkonto' => '8400',
+                'habenbetrag' => 200.00,
+                'weight_sollkonto' => 1,
+                'weight_sollbetrag' => 1,
+                'weight_habenkonto' => 1,
+                'weight_habenbetrag' => 1,
+                'explanation' => 'Second payment',
             ],
         ];
 
@@ -196,8 +390,10 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $fromform->sollbetrag = [1000.00];
         $fromform->habenkonto = ['8400'];
         $fromform->habenbetrag = [1000.00];
-        $fromform->grade = [100];
-        $fromform->explanation = [''];
+        $fromform->weight_sollkonto = [1];
+        $fromform->weight_sollbetrag = [1];
+        $fromform->weight_habenkonto = [1];
+        $fromform->weight_habenbetrag = [1];
 
         return $fromform;
     }
@@ -227,8 +423,10 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $fromform->sollbetrag = [1000.00];
         $fromform->habenkonto = ['8400'];
         $fromform->habenbetrag = [1000.00];
-        $fromform->grade = [100];
-        $fromform->explanation = [''];
+        $fromform->weight_sollkonto = [1];
+        $fromform->weight_sollbetrag = [1];
+        $fromform->weight_habenkonto = [1];
+        $fromform->weight_habenbetrag = [1];
 
         return $fromform;
     }
@@ -255,8 +453,10 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $fromform->sollbetrag = [500.00, 500.00];
         $fromform->habenkonto = ['8400', '8400'];
         $fromform->habenbetrag = [500.00, 500.00];
-        $fromform->grade = [50, 50];
-        $fromform->explanation = ['Cash payment', 'Bank transfer'];
+        $fromform->weight_sollkonto = [1, 1];
+        $fromform->weight_sollbetrag = [1, 1];
+        $fromform->weight_habenkonto = [1, 1];
+        $fromform->weight_habenbetrag = [1, 1];
 
         return $fromform;
     }
@@ -283,8 +483,10 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $fromform->sollbetrag = [0];
         $fromform->habenkonto = ['4400'];
         $fromform->habenbetrag = [250.00];
-        $fromform->grade = [100];
-        $fromform->explanation = [''];
+        $fromform->weight_sollkonto = [1];
+        $fromform->weight_sollbetrag = [1];
+        $fromform->weight_habenkonto = [1];
+        $fromform->weight_habenbetrag = [1];
 
         return $fromform;
     }

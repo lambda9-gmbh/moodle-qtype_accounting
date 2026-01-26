@@ -33,7 +33,7 @@ Feature: Create and edit Buchungssatz questions
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
     Then I should see "Chart of Accounts"
     And I should see "Correct Answer"
-    And I should see "Entry 1"
+    And I should see "Per"
     And I should see "Debit"
     And I should see "Credit"
 
@@ -46,3 +46,63 @@ Feature: Create and edit Buchungssatz questions
     And I set the field "Question text" to "Test question"
     And I press "id_submitbutton"
     Then I should see "You must supply a value here"
+
+  @javascript
+  Scenario: Weight fields are visible in entry table
+    Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
+    When I press "Create a new question ..."
+    And I set the field "Accounting Entry (Buchungssatz)" to "1"
+    And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
+    Then I should see "Weight"
+
+  @javascript
+  Scenario: Number format option is available
+    Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
+    When I press "Create a new question ..."
+    And I set the field "Accounting Entry (Buchungssatz)" to "1"
+    And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
+    Then I should see "Number format"
+    And I should see "German/EU"
+    And I should see "US"
+
+  @javascript
+  Scenario: All-or-nothing option is available
+    Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
+    When I press "Create a new question ..."
+    And I set the field "Accounting Entry (Buchungssatz)" to "1"
+    And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
+    Then I should see "Only award marks if all entries are correct"
+
+  @javascript
+  Scenario: Decimal places option is available
+    Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
+    When I press "Create a new question ..."
+    And I set the field "Accounting Entry (Buchungssatz)" to "1"
+    And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
+    Then I should see "Decimal places"
+
+  @javascript
+  Scenario: Multiple tries section is available
+    Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
+    When I press "Create a new question ..."
+    And I set the field "Accounting Entry (Buchungssatz)" to "1"
+    And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
+    Then I should see "Multiple tries"
+
+  @javascript
+  Scenario: Manage charts link is visible
+    Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
+    When I press "Create a new question ..."
+    And I set the field "Accounting Entry (Buchungssatz)" to "1"
+    And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
+    Then I should see "Manage Charts of Accounts"
+
+  @javascript
+  Scenario: Add entry button works
+    Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
+    When I press "Create a new question ..."
+    And I set the field "Accounting Entry (Buchungssatz)" to "1"
+    And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
+    Then I should see "Add Entry"
+    When I click on "Add Entry" "button"
+    Then ".buchungssatz-entry-row" "css_element" should exist

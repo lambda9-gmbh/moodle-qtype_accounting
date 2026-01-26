@@ -164,6 +164,9 @@ class question_test extends \advanced_testcase {
 
     /**
      * Test grading with wrong amounts.
+     *
+     * With aggregation-based grading, correct accounts earn partial credit
+     * even when amounts are wrong. 2 accounts correct + 0 amounts correct = 50%.
      */
     public function test_grade_response_wrong_amounts(): void {
         $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
@@ -172,8 +175,10 @@ class question_test extends \advanced_testcase {
         $response = qtype_buchungssatz_test_helper::make_response('1200', 500, '8400', 500);
         [$fraction, $state] = $question->grade_response($response);
 
-        $this->assertEquals(0.0, $fraction);
-        $this->assertEquals(question_state::$gradedwrong, $state);
+        // Accounts correct (weight 1+1=2), amounts wrong (0).
+        // Total weight = 4, earned = 2, fraction = 0.5.
+        $this->assertEquals(0.5, $fraction);
+        $this->assertEquals(question_state::$gradedpartial, $state);
     }
 
     /**
@@ -188,7 +193,10 @@ class question_test extends \advanced_testcase {
                 'sollbetrag' => 1000.00,
                 'habenkonto' => 'Revenue',
                 'habenbetrag' => 1000.00,
-                'fraction' => 1.0,
+                'weight_sollkonto' => 1,
+                'weight_sollbetrag' => 1,
+                'weight_habenkonto' => 1,
+                'weight_habenbetrag' => 1,
                 'explanation' => '',
             ],
         ];
@@ -314,5 +322,395 @@ class question_test extends \advanced_testcase {
         $error = $question->get_validation_error($response);
 
         $this->assertEmpty($error);
+    }
+
+    // ========================================
+    // Aggregation-based grading tests
+    // ========================================
+
+    /**
+     * Test that amounts are aggregated by account - split amounts.
+     *
+     * Correct: Bank 600 / Revenue 600
+     * Student enters: Bank 300 + Bank 300 / Revenue 300 + Revenue 300
+     * Should be 100% correct because aggregated totals match.
+     */
+    public function test_aggregation_split_amounts_correct(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'split_amounts');
+
+        // Student splits the amount into two entries.
+        $response = qtype_buchungssatz_test_helper::make_multi_response([
+            ['sollkonto' => '1200', 'sollbetrag' => 300, 'habenkonto' => '8400', 'habenbetrag' => 300],
+            ['sollkonto' => '1200', 'sollbetrag' => 300, 'habenkonto' => '8400', 'habenbetrag' => 300],
+        ]);
+        [$fraction, $state] = $question->grade_response($response);
+
+        $this->assertEquals(1.0, $fraction);
+        $this->assertEquals(question_state::$gradedright, $state);
+    }
+
+    /**
+     * Test aggregation with unequal splits.
+     *
+     * Correct: Bank 600 / Revenue 600
+     * Student enters: Bank 400 + Bank 200 / Revenue 100 + Revenue 500
+     * Should be 100% correct because aggregated totals match.
+     */
+    public function test_aggregation_unequal_splits_correct(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'split_amounts');
+
+        $response = qtype_buchungssatz_test_helper::make_multi_response([
+            ['sollkonto' => '1200', 'sollbetrag' => 400, 'habenkonto' => '8400', 'habenbetrag' => 100],
+            ['sollkonto' => '1200', 'sollbetrag' => 200, 'habenkonto' => '8400', 'habenbetrag' => 500],
+        ]);
+        [$fraction, $state] = $question->grade_response($response);
+
+        $this->assertEquals(1.0, $fraction);
+        $this->assertEquals(question_state::$gradedright, $state);
+    }
+
+    /**
+     * Test aggregation with wrong total amount.
+     *
+     * Correct: Bank 600 / Revenue 600
+     * Student enters: Bank 300 + Bank 200 = 500 (wrong total)
+     */
+    public function test_aggregation_wrong_total(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'split_amounts');
+
+        $response = qtype_buchungssatz_test_helper::make_multi_response([
+            ['sollkonto' => '1200', 'sollbetrag' => 300, 'habenkonto' => '8400', 'habenbetrag' => 300],
+            ['sollkonto' => '1200', 'sollbetrag' => 200, 'habenkonto' => '8400', 'habenbetrag' => 200],
+        ]);
+        [$fraction, $state] = $question->grade_response($response);
+
+        // Correct accounts but wrong amounts = 50% (2 accounts correct, 2 amounts wrong).
+        $this->assertEquals(0.5, $fraction);
+        $this->assertEquals(question_state::$gradedpartial, $state);
+    }
+
+    /**
+     * Test multiple entries to same account are aggregated.
+     *
+     * Correct: Bank 300 + Bank 200 = Bank 500 total / Revenue 500 total
+     * Student enters: Bank 500 / Revenue 500 (as single entry)
+     * Should be 100% correct.
+     */
+    public function test_aggregation_multiple_same_account(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'multiple_same_account');
+
+        // Student enters single entry with total.
+        $response = qtype_buchungssatz_test_helper::make_response('1200', 500, '8400', 500);
+        [$fraction, $state] = $question->grade_response($response);
+
+        $this->assertEquals(1.0, $fraction);
+        $this->assertEquals(question_state::$gradedright, $state);
+    }
+
+    // ========================================
+    // All-or-nothing grading tests
+    // ========================================
+
+    /**
+     * Test all-or-nothing grading with correct answer.
+     */
+    public function test_all_or_nothing_correct(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'all_or_nothing');
+
+        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '8400', 1000);
+        [$fraction, $state] = $question->grade_response($response);
+
+        $this->assertEquals(1.0, $fraction);
+        $this->assertEquals(question_state::$gradedright, $state);
+    }
+
+    /**
+     * Test all-or-nothing grading with partially correct answer.
+     * Should get 0 because all-or-nothing is enabled.
+     */
+    public function test_all_or_nothing_partial_gets_zero(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'all_or_nothing');
+
+        // Correct accounts but wrong amounts.
+        $response = qtype_buchungssatz_test_helper::make_response('1200', 500, '8400', 500);
+        [$fraction, $state] = $question->grade_response($response);
+
+        $this->assertEquals(0.0, $fraction);
+        $this->assertEquals(question_state::$gradedwrong, $state);
+    }
+
+    /**
+     * Test all-or-nothing grading with one correct account.
+     * Should get 0 because all-or-nothing is enabled.
+     */
+    public function test_all_or_nothing_one_account_correct(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'all_or_nothing');
+
+        // Only debit correct.
+        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '9999', 1000);
+        [$fraction, $state] = $question->grade_response($response);
+
+        $this->assertEquals(0.0, $fraction);
+        $this->assertEquals(question_state::$gradedwrong, $state);
+    }
+
+    /**
+     * Test that partial credit works when all-or-nothing is disabled.
+     */
+    public function test_partial_credit_when_not_all_or_nothing(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
+        $question->allornothinggrading = 0;
+
+        // Correct accounts but wrong amounts = 50% (accounts correct, amounts wrong).
+        $response = qtype_buchungssatz_test_helper::make_response('1200', 500, '8400', 500);
+        [$fraction, $state] = $question->grade_response($response);
+
+        $this->assertEquals(0.5, $fraction);
+        $this->assertEquals(question_state::$gradedpartial, $state);
+    }
+
+    // ========================================
+    // Weighted scoring tests
+    // ========================================
+
+    /**
+     * Test weighted scoring with correct answer.
+     */
+    public function test_weighted_scoring_correct(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'weighted_entries');
+
+        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '8400', 1000);
+        [$fraction, $state] = $question->grade_response($response);
+
+        $this->assertEquals(1.0, $fraction);
+        $this->assertEquals(question_state::$gradedright, $state);
+    }
+
+    /**
+     * Test weighted scoring - accounts correct, amounts wrong.
+     *
+     * Weights: sollkonto=2, sollbetrag=1, habenkonto=2, habenbetrag=1 (total=6)
+     * Correct accounts = 2+2 = 4 points
+     * Wrong amounts = 0 points
+     * Fraction = 4/6 = 0.6667
+     */
+    public function test_weighted_scoring_accounts_correct_amounts_wrong(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'weighted_entries');
+
+        // Correct accounts but wrong amounts.
+        $response = qtype_buchungssatz_test_helper::make_response('1200', 500, '8400', 500);
+        [$fraction, $state] = $question->grade_response($response);
+
+        // Accounts have weight 2 each, amounts weight 1 each.
+        // Total weight = 2+1+2+1 = 6
+        // Earned = 2+0+2+0 = 4
+        // Fraction = 4/6 = 0.6667
+        $this->assertEqualsWithDelta(0.6667, $fraction, 0.001);
+        $this->assertEquals(question_state::$gradedpartial, $state);
+    }
+
+    /**
+     * Test weighted scoring - only debit side correct.
+     *
+     * Weights: sollkonto=2, sollbetrag=1, habenkonto=2, habenbetrag=1 (total=6)
+     * Debit correct = 2+1 = 3 points
+     * Credit wrong = 0 points
+     * Fraction = 3/6 = 0.5
+     */
+    public function test_weighted_scoring_debit_only_correct(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'weighted_entries');
+
+        // Only debit side correct.
+        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '9999', 9999);
+        [$fraction, $state] = $question->grade_response($response);
+
+        // Debit = 2+1 = 3, Credit = 0
+        // Fraction = 3/6 = 0.5
+        $this->assertEquals(0.5, $fraction);
+        $this->assertEquals(question_state::$gradedpartial, $state);
+    }
+
+    /**
+     * Test weighted scoring - only credit side correct.
+     */
+    public function test_weighted_scoring_credit_only_correct(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'weighted_entries');
+
+        // Only credit side correct.
+        $response = qtype_buchungssatz_test_helper::make_response('9999', 9999, '8400', 1000);
+        [$fraction, $state] = $question->grade_response($response);
+
+        // Debit = 0, Credit = 2+1 = 3
+        // Fraction = 3/6 = 0.5
+        $this->assertEquals(0.5, $fraction);
+        $this->assertEquals(question_state::$gradedpartial, $state);
+    }
+
+    // ========================================
+    // Order independence tests
+    // ========================================
+
+    /**
+     * Test that entry order doesn't matter.
+     */
+    public function test_order_independence(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'multiple_entries');
+
+        // Reverse order of entries.
+        $response = qtype_buchungssatz_test_helper::make_multi_response([
+            ['sollkonto' => '1200', 'sollbetrag' => 500, 'habenkonto' => '8400', 'habenbetrag' => 500],
+            ['sollkonto' => '1000', 'sollbetrag' => 500, 'habenkonto' => '8400', 'habenbetrag' => 500],
+        ]);
+        [$fraction, $state] = $question->grade_response($response);
+
+        $this->assertEquals(1.0, $fraction);
+        $this->assertEquals(question_state::$gradedright, $state);
+    }
+
+    /**
+     * Test mixed order with aggregation.
+     *
+     * Student enters entries in random order with splits.
+     */
+    public function test_order_independence_with_splits(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'multiple_same_account');
+
+        // Random order and splits.
+        $response = qtype_buchungssatz_test_helper::make_multi_response([
+            ['sollkonto' => '1200', 'sollbetrag' => 150, 'habenkonto' => '8400', 'habenbetrag' => 250],
+            ['sollkonto' => '1200', 'sollbetrag' => 200, 'habenkonto' => '8400', 'habenbetrag' => 100],
+            ['sollkonto' => '1200', 'sollbetrag' => 150, 'habenkonto' => '8400', 'habenbetrag' => 150],
+        ]);
+        [$fraction, $state] = $question->grade_response($response);
+
+        // Total: Bank 500 / Revenue 500 - correct!
+        $this->assertEquals(1.0, $fraction);
+        $this->assertEquals(question_state::$gradedright, $state);
+    }
+
+    // ========================================
+    // Partial correctness tests
+    // ========================================
+
+    /**
+     * Test correct accounts but wrong amounts gives partial credit.
+     */
+    public function test_partial_credit_correct_accounts_wrong_amounts(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
+
+        $response = qtype_buchungssatz_test_helper::make_response('1200', 500, '8400', 500);
+        [$fraction, $state] = $question->grade_response($response);
+
+        // All 4 weights = 1, total = 4
+        // Accounts correct = 2, amounts wrong = 0
+        // Fraction = 2/4 = 0.5
+        $this->assertEquals(0.5, $fraction);
+        $this->assertEquals(question_state::$gradedpartial, $state);
+    }
+
+    /**
+     * Test only one side correct.
+     */
+    public function test_partial_credit_one_side_correct(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
+
+        // Debit side correct, credit side completely wrong.
+        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '9999', 9999);
+        [$fraction, $state] = $question->grade_response($response);
+
+        // Debit correct = 2, Credit = 0
+        // Fraction = 2/4 = 0.5
+        $this->assertEquals(0.5, $fraction);
+        $this->assertEquals(question_state::$gradedpartial, $state);
+    }
+
+    /**
+     * Test missing account on one side.
+     */
+    public function test_partial_credit_missing_account(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
+
+        // Missing debit account entirely - using different account.
+        $response = qtype_buchungssatz_test_helper::make_response('9999', 1000, '8400', 1000);
+        [$fraction, $state] = $question->grade_response($response);
+
+        // Credit side correct = 2, Debit wrong = 0
+        $this->assertEquals(0.5, $fraction);
+        $this->assertEquals(question_state::$gradedpartial, $state);
+    }
+
+    // ========================================
+    // Edge cases
+    // ========================================
+
+    /**
+     * Test empty student response.
+     */
+    public function test_grade_empty_response(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
+
+        $response = qtype_buchungssatz_test_helper::make_response('', 0, '', 0);
+        [$fraction, $state] = $question->grade_response($response);
+
+        $this->assertEquals(0.0, $fraction);
+        $this->assertEquals(question_state::$gradedwrong, $state);
+    }
+
+    /**
+     * Test student provides extra entries beyond correct answer.
+     */
+    public function test_extra_entries_ignored(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
+
+        // Correct answer plus extra wrong entry.
+        $response = qtype_buchungssatz_test_helper::make_multi_response([
+            ['sollkonto' => '1200', 'sollbetrag' => 1000, 'habenkonto' => '8400', 'habenbetrag' => 1000],
+            ['sollkonto' => '9999', 'sollbetrag' => 500, 'habenkonto' => '9998', 'habenbetrag' => 500],
+        ]);
+        [$fraction, $state] = $question->grade_response($response);
+
+        // Extra entries don't affect correct answer matching.
+        $this->assertEquals(1.0, $fraction);
+        $this->assertEquals(question_state::$gradedright, $state);
+    }
+
+    /**
+     * Test debit-only entry (no credit account in correct answer).
+     */
+    public function test_debit_only_entry(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
+        // Modify to have debit-only entry.
+        $question->entries = [
+            [
+                'sollkonto' => '1200',
+                'sollbetrag' => 1000.00,
+                'habenkonto' => '',
+                'habenbetrag' => 0,
+                'weight_sollkonto' => 1,
+                'weight_sollbetrag' => 1,
+                'weight_habenkonto' => 1,
+                'weight_habenbetrag' => 1,
+                'explanation' => '',
+            ],
+        ];
+
+        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '', 0);
+        [$fraction, $state] = $question->grade_response($response);
+
+        $this->assertEquals(1.0, $fraction);
+        $this->assertEquals(question_state::$gradedright, $state);
+    }
+
+    /**
+     * Test credit-only entry (no debit account in correct answer).
+     */
+    public function test_credit_only_entry(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'debit_only_optional');
+
+        $response = qtype_buchungssatz_test_helper::make_response('', 0, '4400', 250);
+        [$fraction, $state] = $question->grade_response($response);
+
+        $this->assertEquals(1.0, $fraction);
+        $this->assertEquals(question_state::$gradedright, $state);
     }
 }

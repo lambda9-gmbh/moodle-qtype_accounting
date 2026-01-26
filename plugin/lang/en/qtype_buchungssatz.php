@@ -65,6 +65,7 @@ $string['weight_help'] = 'Weight for this field in grading. Higher values mean m
 $string['accountnumber'] = 'Account number';
 $string['amount'] = 'Amount';
 $string['selectaccount'] = '-- Select account --';
+$string['enteraccount'] = 'Enter account number';
 $string['noaccountselected'] = 'No account selected';
 $string['sollamount'] = 'Debit amount';
 $string['habenamount'] = 'Credit amount';

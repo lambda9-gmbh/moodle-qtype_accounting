@@ -65,6 +65,7 @@ $string['weight_help'] = 'Gewichtung für dieses Feld bei der Bewertung. Höhere
 $string['accountnumber'] = 'Kontonummer';
 $string['amount'] = 'Betrag';
 $string['selectaccount'] = '-- Konto auswählen --';
+$string['enteraccount'] = 'Kontonummer eingeben';
 $string['noaccountselected'] = 'Kein Konto ausgewählt';
 $string['sollamount'] = 'Soll-Betrag';
 $string['habenamount'] = 'Haben-Betrag';

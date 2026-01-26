@@ -249,8 +249,8 @@ class qtype_buchungssatz_question extends question_graded_automatically {
                 // Student has this account on debit side - earn account weight.
                 $earnedweight += $correctdata['weight_account'];
 
-                // Check if amount matches exactly.
-                if ($studentaggregated['debit'][$account]['amount'] == $correctdata['amount']) {
+                // Check if amount matches (with floating-point tolerance).
+                if ($this->amounts_equal($studentaggregated['debit'][$account]['amount'], $correctdata['amount'])) {
                     $earnedweight += $correctdata['weight_amount'];
                 }
             }
@@ -263,8 +263,8 @@ class qtype_buchungssatz_question extends question_graded_automatically {
                 // Student has this account on credit side - earn account weight.
                 $earnedweight += $correctdata['weight_account'];
 
-                // Check if amount matches exactly.
-                if ($studentaggregated['credit'][$account]['amount'] == $correctdata['amount']) {
+                // Check if amount matches (with floating-point tolerance).
+                if ($this->amounts_equal($studentaggregated['credit'][$account]['amount'], $correctdata['amount'])) {
                     $earnedweight += $correctdata['weight_amount'];
                 }
             }
@@ -286,6 +286,7 @@ class qtype_buchungssatz_question extends question_graded_automatically {
      *
      * For each account on each side, sums the amounts.
      * For correct entries, also sums the weights.
+     * Account names are normalized to lowercase for case-insensitive matching.
      *
      * @param array $entries The entries to aggregate.
      * @param bool $includweights Whether to include and aggregate weights (for correct entries).
@@ -300,7 +301,8 @@ class qtype_buchungssatz_question extends question_graded_automatically {
 
         foreach ($entries as $entry) {
             // Aggregate Debit (Soll) side.
-            $sollkonto = $entry['sollkonto'] ?? '';
+            // Normalize account name to lowercase for case-insensitive matching.
+            $sollkonto = strtolower(trim($entry['sollkonto'] ?? ''));
             if (!empty($sollkonto)) {
                 if (!isset($aggregated['debit'][$sollkonto])) {
                     $aggregated['debit'][$sollkonto] = [
@@ -317,7 +319,8 @@ class qtype_buchungssatz_question extends question_graded_automatically {
             }
 
             // Aggregate Credit (Haben) side.
-            $habenkonto = $entry['habenkonto'] ?? '';
+            // Normalize account name to lowercase for case-insensitive matching.
+            $habenkonto = strtolower(trim($entry['habenkonto'] ?? ''));
             if (!empty($habenkonto)) {
                 if (!isset($aggregated['credit'][$habenkonto])) {
                     $aggregated['credit'][$habenkonto] = [
@@ -335,6 +338,18 @@ class qtype_buchungssatz_question extends question_graded_automatically {
         }
 
         return $aggregated;
+    }
+
+    /**
+     * Compare two amounts with floating-point tolerance.
+     *
+     * @param float $amount1 First amount.
+     * @param float $amount2 Second amount.
+     * @param float $tolerance The tolerance for comparison (default 0.01).
+     * @return bool True if amounts are equal within tolerance.
+     */
+    protected function amounts_equal(float $amount1, float $amount2, float $tolerance = 0.01): bool {
+        return abs($amount1 - $amount2) < $tolerance;
     }
 
     /**

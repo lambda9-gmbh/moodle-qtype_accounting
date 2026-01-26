@@ -323,6 +323,14 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             return $html;
         }
 
+        // If no accounts are available, render a text input instead of a dropdown.
+        if (empty($accounts)) {
+            return '<input type="text" name="' . $name . '" id="' . $name . '" value="' . s($value) . '" ' .
+                   'class="form-control buchungssatz-account-input" ' .
+                   'placeholder="' . get_string('enteraccount', 'qtype_buchungssatz') . '" ' .
+                   'aria-label="' . get_string('account', 'qtype_buchungssatz') . '">';
+        }
+
         return $this->render_account_select($name, $value, $accounts, get_string('selectaccount', 'qtype_buchungssatz'));
     }
 
@@ -380,6 +388,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         }
 
         return html_writer::select($options, $name, $selected, null, [
+            'id' => $name,
             'class' => 'form-control buchungssatz-account-select',
             'aria-label' => get_string('account', 'qtype_buchungssatz'),
         ]);

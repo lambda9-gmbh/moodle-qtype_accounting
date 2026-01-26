@@ -61,6 +61,7 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
 
         $mform->addElement('text', 'currency_symbol',
             get_string('currency_symbol', 'qtype_buchungssatz'), ['size' => 5]);
+        $mform->setType('currency_symbol', PARAM_TEXT);
         $mform->setDefault('currency_symbol', '€');
 
         // Decimal places.
