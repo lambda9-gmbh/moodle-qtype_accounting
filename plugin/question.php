@@ -201,7 +201,14 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     }
 
     /**
-     * Calculate the fraction of correctness.
+     * Calculate the fraction of correctness using aggregation-based weighted scoring.
+     *
+     * The algorithm aggregates entries by account on each side (Debit/Credit):
+     * 1. Aggregate correct entries: sum amounts and weights for same account on same side
+     * 2. Aggregate student entries: sum amounts for same account on same side
+     * 3. Compare aggregated answers: for each account in correct answer, check if student
+     *    has it with the correct amount
+     * 4. Calculate earned weight based on account and amount correctness
      *
      * @param array $response The response data.
      * @return float The fraction of correctness (0 to 1).
@@ -211,45 +218,62 @@ class qtype_buchungssatz_question extends question_graded_automatically {
             return 0;
         }
 
-        $totalfraction = 0;
-        $maxfraction = 0;
+        // Aggregate correct entries by account on each side.
+        $correctaggregated = $this->aggregate_entries($this->entries, true);
 
-        // Get student responses.
+        // Get and aggregate student entries.
         $studententries = $this->parse_response($response);
+        $studentaggregated = $this->aggregate_entries($studententries, false);
 
-        // Calculate max possible fraction.
-        foreach ($this->entries as $entry) {
-            $maxfraction += $entry['fraction'];
+        // Calculate total possible weight from aggregated correct answer.
+        $totalweight = 0;
+        foreach ($correctaggregated['debit'] as $accountdata) {
+            $totalweight += $accountdata['weight_account'];
+            $totalweight += $accountdata['weight_amount'];
+        }
+        foreach ($correctaggregated['credit'] as $accountdata) {
+            $totalweight += $accountdata['weight_account'];
+            $totalweight += $accountdata['weight_amount'];
         }
 
-        if ($maxfraction == 0) {
+        if ($totalweight == 0) {
             return 0;
         }
 
-        // Match student entries against correct entries.
-        $matchedcorrect = [];
+        // Calculate earned weight by comparing student's aggregated answer to correct answer.
+        $earnedweight = 0;
 
-        foreach ($studententries as $studententry) {
-            foreach ($this->entries as $index => $correctentry) {
-                if (in_array($index, $matchedcorrect)) {
-                    continue;
-                }
+        // Check Debit (Soll) side.
+        foreach ($correctaggregated['debit'] as $account => $correctdata) {
+            if (isset($studentaggregated['debit'][$account])) {
+                // Student has this account on debit side - earn account weight.
+                $earnedweight += $correctdata['weight_account'];
 
-                if ($this->entries_match($studententry, $correctentry)) {
-                    $totalfraction += $correctentry['fraction'];
-                    $matchedcorrect[] = $index;
-                    break;
+                // Check if amount matches exactly.
+                if ($studentaggregated['debit'][$account]['amount'] == $correctdata['amount']) {
+                    $earnedweight += $correctdata['weight_amount'];
                 }
             }
+            // If student doesn't have the account, they earn 0 for both account and amount.
         }
 
-        $fraction = $totalfraction / $maxfraction;
+        // Check Credit (Haben) side.
+        foreach ($correctaggregated['credit'] as $account => $correctdata) {
+            if (isset($studentaggregated['credit'][$account])) {
+                // Student has this account on credit side - earn account weight.
+                $earnedweight += $correctdata['weight_account'];
 
-        // Extra entry deduction is saved but not applied yet.
-        // TODO: Implement when we have access to the quiz slot's max mark.
+                // Check if amount matches exactly.
+                if ($studentaggregated['credit'][$account]['amount'] == $correctdata['amount']) {
+                    $earnedweight += $correctdata['weight_amount'];
+                }
+            }
+            // If student doesn't have the account, they earn 0 for both account and amount.
+        }
+
+        $fraction = $earnedweight / $totalweight;
 
         // Apply all-or-nothing grading if enabled.
-        // If any entry is incorrect, the student gets 0 points.
         if (!empty($this->allornothinggrading) && $fraction < 1) {
             return 0;
         }
@@ -258,37 +282,59 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     }
 
     /**
-     * Count the number of extra entries beyond the correct entries.
+     * Aggregate entries by account on each side (Debit/Credit).
      *
-     * Extra entries are those beyond the number of correct entries.
-     * Each extra line can count as 0, 1, or 2 entries depending on which sides are filled:
-     * - Debit side filled (account + amount) = 1 entry
-     * - Credit side filled (account + amount) = 1 entry
-     * - Both sides filled = 2 entries
+     * For each account on each side, sums the amounts.
+     * For correct entries, also sums the weights.
      *
-     * @param array $studententries The parsed student entries.
-     * @return int The count of extra entries.
+     * @param array $entries The entries to aggregate.
+     * @param bool $includweights Whether to include and aggregate weights (for correct entries).
+     * @return array Aggregated data with 'debit' and 'credit' keys, each containing
+     *               account => ['amount' => float, 'weight_account' => int, 'weight_amount' => int].
      */
-    protected function count_extra_entries(array $studententries): int {
-        $correctcount = count($this->entries);
-        $extracount = 0;
+    protected function aggregate_entries(array $entries, bool $includweights): array {
+        $aggregated = [
+            'debit' => [],
+            'credit' => [],
+        ];
 
-        // Only count entries beyond the number of correct entries.
-        for ($i = $correctcount; $i < count($studententries); $i++) {
-            $entry = $studententries[$i];
-
-            // Count debit side as extra if filled.
-            if (!empty($entry['sollkonto'])) {
-                $extracount++;
+        foreach ($entries as $entry) {
+            // Aggregate Debit (Soll) side.
+            $sollkonto = $entry['sollkonto'] ?? '';
+            if (!empty($sollkonto)) {
+                if (!isset($aggregated['debit'][$sollkonto])) {
+                    $aggregated['debit'][$sollkonto] = [
+                        'amount' => 0,
+                        'weight_account' => 0,
+                        'weight_amount' => 0,
+                    ];
+                }
+                $aggregated['debit'][$sollkonto]['amount'] += (float)($entry['sollbetrag'] ?? 0);
+                if ($includweights) {
+                    $aggregated['debit'][$sollkonto]['weight_account'] += ($entry['weight_sollkonto'] ?? 1);
+                    $aggregated['debit'][$sollkonto]['weight_amount'] += ($entry['weight_sollbetrag'] ?? 1);
+                }
             }
 
-            // Count credit side as extra if filled.
-            if (!empty($entry['habenkonto'])) {
-                $extracount++;
+            // Aggregate Credit (Haben) side.
+            $habenkonto = $entry['habenkonto'] ?? '';
+            if (!empty($habenkonto)) {
+                if (!isset($aggregated['credit'][$habenkonto])) {
+                    $aggregated['credit'][$habenkonto] = [
+                        'amount' => 0,
+                        'weight_account' => 0,
+                        'weight_amount' => 0,
+                    ];
+                }
+                $aggregated['credit'][$habenkonto]['amount'] += (float)($entry['habenbetrag'] ?? 0);
+                if ($includweights) {
+                    $aggregated['credit'][$habenkonto]['weight_account'] += ($entry['weight_habenkonto'] ?? 1);
+                    $aggregated['credit'][$habenkonto]['weight_amount'] += ($entry['weight_habenbetrag'] ?? 1);
+                }
             }
         }
 
-        return $extracount;
+        return $aggregated;
     }
 
     /**
@@ -315,25 +361,6 @@ class qtype_buchungssatz_question extends question_graded_automatically {
         }
 
         return $entries;
-    }
-
-    /**
-     * Check if a student entry matches a correct entry.
-     *
-     * @param array $student The student entry.
-     * @param array $correct The correct entry.
-     * @return bool True if the entries match.
-     */
-    protected function entries_match(array $student, array $correct): bool {
-        // Compare accounts (case-insensitive).
-        $sollmatch = strcasecmp($student['sollkonto'], $correct['sollkonto']) === 0;
-        $habenmatch = strcasecmp($student['habenkonto'], $correct['habenkonto']) === 0;
-
-        // Compare amounts with small tolerance for floating point.
-        $sollamountmatch = abs($student['sollbetrag'] - $correct['sollbetrag']) < 0.01;
-        $habenamountmatch = abs($student['habenbetrag'] - $correct['habenbetrag']) < 0.01;
-
-        return $sollmatch && $habenmatch && $sollamountmatch && $habenamountmatch;
     }
 
     /**

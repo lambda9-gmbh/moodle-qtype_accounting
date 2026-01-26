@@ -55,9 +55,13 @@ $string['addentry'] = 'Buchungszeile hinzufügen';
 $string['deleteentry'] = 'Löschen';
 
 // Kontenfelder.
+$string['per'] = 'Per';
+$string['an'] = 'an';
 $string['soll'] = 'Soll';
 $string['haben'] = 'Haben';
 $string['account'] = 'Konto';
+$string['weight'] = 'Gewicht';
+$string['weight_help'] = 'Gewichtung für dieses Feld bei der Bewertung. Höhere Werte bedeuten mehr Punkte.';
 $string['accountnumber'] = 'Kontonummer';
 $string['amount'] = 'Betrag';
 $string['selectaccount'] = '-- Konto auswählen --';
@@ -72,6 +76,11 @@ $string['explanation_help'] = 'Eine optionale Erklärung für diesen Buchungssat
 // Feedback.
 $string['correctansweris'] = 'Die richtige Antwort lautet:';
 $string['pleaseenteranswer'] = 'Bitte geben Sie mindestens einen vollständigen Buchungssatz ein.';
+$string['allcorrect'] = 'Alle Einträge sind korrekt!';
+$string['debitincorrect'] = 'Die Soll-Seite ist nicht korrekt.';
+$string['debitpartiallyincorrect'] = 'Die Soll-Seite ist teilweise nicht korrekt.';
+$string['creditincorrect'] = 'Die Haben-Seite ist nicht korrekt.';
+$string['creditpartiallyincorrect'] = 'Die Haben-Seite ist teilweise nicht korrekt.';
 
 // Validierungsfehler.
 $string['err_noentries'] = 'Bitte geben Sie mindestens eine Buchungszeile mit Konto und Betrag ein.';

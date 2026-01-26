@@ -30,7 +30,10 @@
         <FIELD NAME="sollbetrag" TYPE="number" LENGTH="15" DECIMALS="2" NOTNULL="true" DEFAULT="0" COMMENT="Debit amount"/>
         <FIELD NAME="habenkonto" TYPE="char" LENGTH="100" NOTNULL="true" DEFAULT="" COMMENT="Credit account name/number"/>
         <FIELD NAME="habenbetrag" TYPE="number" LENGTH="15" DECIMALS="2" NOTNULL="true" DEFAULT="0" COMMENT="Credit amount"/>
-        <FIELD NAME="fraction" TYPE="number" LENGTH="12" DECIMALS="7" NOTNULL="true" DEFAULT="1" COMMENT="Fraction of total grade for this entry"/>
+        <FIELD NAME="weight_sollkonto" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" COMMENT="Weight for debit account"/>
+        <FIELD NAME="weight_sollbetrag" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" COMMENT="Weight for debit amount"/>
+        <FIELD NAME="weight_habenkonto" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" COMMENT="Weight for credit account"/>
+        <FIELD NAME="weight_habenbetrag" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" COMMENT="Weight for credit amount"/>
         <FIELD NAME="explanation" TYPE="text" NOTNULL="false" COMMENT="Teacher explanation for this entry"/>
       </FIELDS>
       <KEYS>

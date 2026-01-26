@@ -157,5 +157,42 @@ function xmldb_qtype_buchungssatz_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2024010115, 'qtype', 'buchungssatz');
     }
 
+    if ($oldversion < 2024010116) {
+        // Replace single fraction field with 4 weight fields for granular grading.
+        $table = new xmldb_table('qtype_buchungssatz_entries');
+
+        // Add weight_sollkonto field.
+        $field = new xmldb_field('weight_sollkonto', XMLDB_TYPE_INTEGER, '5', null, XMLDB_NOTNULL, null, '1', 'habenbetrag');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Add weight_sollbetrag field.
+        $field = new xmldb_field('weight_sollbetrag', XMLDB_TYPE_INTEGER, '5', null, XMLDB_NOTNULL, null, '1', 'weight_sollkonto');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Add weight_habenkonto field.
+        $field = new xmldb_field('weight_habenkonto', XMLDB_TYPE_INTEGER, '5', null, XMLDB_NOTNULL, null, '1', 'weight_sollbetrag');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Add weight_habenbetrag field.
+        $field = new xmldb_field('weight_habenbetrag', XMLDB_TYPE_INTEGER, '5', null, XMLDB_NOTNULL, null, '1', 'weight_habenkonto');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Drop the old fraction field.
+        $field = new xmldb_field('fraction');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2024010116, 'qtype', 'buchungssatz');
+    }
+
     return true;
 }

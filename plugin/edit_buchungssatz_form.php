@@ -102,129 +102,241 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
 
         // Get all accounts for dropdowns.
         $allaccounts = $this->get_all_accounts_by_chart();
-        $sollaccountoptions = ['' => get_string('noaccountselected', 'qtype_buchungssatz')];
-        $habenaccountoptions = ['' => get_string('selectaccount', 'qtype_buchungssatz')];
 
-        // Get current chart and populate account options.
-        // Try multiple sources for the chart ID since options might not be loaded yet.
+        // Get current chart ID.
         $currentchartid = 0;
-        $existingentries = [];
-
         if (!empty($this->question->options->chartofaccountsid)) {
             $currentchartid = (int)$this->question->options->chartofaccountsid;
         } else if (!empty($this->question->chartofaccountsid)) {
             $currentchartid = (int)$this->question->chartofaccountsid;
         }
 
-        // Always try to load from database if we have a question ID.
+        // Load from database if we have a question ID.
         if (!empty($this->question->id)) {
             $options = $DB->get_record('qtype_buchungssatz_options', ['questionid' => $this->question->id]);
-            if ($options) {
-                if (!$currentchartid) {
-                    $currentchartid = (int)$options->chartofaccountsid;
-                }
-            }
-            // Also load existing entries to pass to JavaScript for value restoration.
-            $entries = $DB->get_records('qtype_buchungssatz_entries',
-                ['questionid' => $this->question->id], 'sortorder ASC');
-            foreach ($entries as $entry) {
-                $existingentries[] = [
-                    'sollkonto' => $entry->sollkonto,
-                    'habenkonto' => $entry->habenkonto,
-                ];
+            if ($options && !$currentchartid) {
+                $currentchartid = (int)$options->chartofaccountsid;
             }
         }
 
-        // Include ALL accounts from ALL charts in the select options.
-        // This is necessary because Moodle's form validation checks that submitted values
-        // exist in the options list. JavaScript will filter the displayed options based on
-        // the selected chart, but the underlying select needs all possible values as valid.
-        foreach ($allaccounts as $chartaccounts) {
-            $sollaccountoptions = $sollaccountoptions + $chartaccounts;
-            $habenaccountoptions = $habenaccountoptions + $chartaccounts;
+        // Build account options for select elements - only include accounts from the selected chart.
+        $sollaccountoptions = ['' => get_string('noaccountselected', 'qtype_buchungssatz')];
+        $habenaccountoptions = ['' => get_string('selectaccount', 'qtype_buchungssatz')];
+        if ($currentchartid > 0 && isset($allaccounts[$currentchartid])) {
+            $sollaccountoptions = $sollaccountoptions + $allaccounts[$currentchartid];
+            $habenaccountoptions = $habenaccountoptions + $allaccounts[$currentchartid];
         }
 
-        // Define the repeatable elements for entries.
-        $repeatarray = [];
-        $repeatarray[] = $mform->createElement('html', '<div class="buchungssatz-entry-group card mb-3 p-3">');
-        $repeatheader = [];
-        $repeatheader[] = $mform->createElement('submit', 'entry_delete', get_string('deleteentry', 'qtype_buchungssatz'), ['class' => 'delete_entry']);
-        $repeatarray[] = $mform->createElement('group', 'entry_header', '<strong style="font-size: 1.25rem;">' . get_string('entry', 'qtype_buchungssatz') . '</strong>', $repeatheader, null, false);
-        $repeatarray[] = $mform->createElement('select', 'sollkonto',
-            get_string('soll', 'qtype_buchungssatz') . ' ' . get_string('account', 'qtype_buchungssatz'),
-            $sollaccountoptions, ['class' => 'buchungssatz-sollkonto']);
-        $repeatarray[] = $mform->createElement('text', 'sollbetrag',
-            get_string('soll', 'qtype_buchungssatz') . ' ' . get_string('amount', 'qtype_buchungssatz'),
-            ['size' => 15, 'placeholder' => '0.00', 'class' => 'buchungssatz-sollbetrag']);
-        $repeatarray[] = $mform->createElement('select', 'habenkonto',
-            get_string('haben', 'qtype_buchungssatz') . ' ' . get_string('account', 'qtype_buchungssatz'),
-            $habenaccountoptions, ['class' => 'buchungssatz-habenkonto']);
-        $repeatarray[] = $mform->createElement('text', 'habenbetrag',
-            get_string('haben', 'qtype_buchungssatz') . ' ' . get_string('amount', 'qtype_buchungssatz'),
-            ['size' => 15, 'placeholder' => '0.00', 'class' => 'buchungssatz-habenbetrag']);
-        $gradegroup = [];
-        $gradegroup[] = $mform->createElement('text', 'grade', '',
-            ['size' => 5, 'class' => 'buchungssatz-grade', 'placeholder' => '0-100']);
-        $gradegroup[] = $mform->createElement('html',
-            '<button type="button" class="btn btn-outline-secondary btn-sm ml-2 buchungssatz-distribute-grades-btn">' .
-            get_string('distributegradesequally', 'qtype_buchungssatz') . '</button>');
-        $repeatarray[] = $mform->createElement('group', 'gradegroup',
-            get_string('grade', 'qtype_buchungssatz'), $gradegroup, ' ', false);
-        $repeatarray[] = $mform->createElement('textarea', 'explanation',
-            get_string('explanation', 'qtype_buchungssatz'),
-            ['rows' => 2, 'cols' => 50, 'class' => 'buchungssatz-explanation']);
-        $repeatarray[] = $mform->createElement('html', '</div>');
-
-        // Set up repeat options.
-        $repeatoptions = [];
-        $repeatoptions['sollkonto']['type'] = PARAM_TEXT;
-        $repeatoptions['sollbetrag']['type'] = PARAM_RAW;
-        $repeatoptions['habenkonto']['type'] = PARAM_TEXT;
-        $repeatoptions['habenbetrag']['type'] = PARAM_RAW;
-        $repeatoptions['grade']['type'] = PARAM_RAW;
-        $repeatoptions['explanation']['type'] = PARAM_TEXT;
-
-        // Determine how many entries to show initially.
-        $repeatcount = 1;
+        // Load existing entries for pre-populating the form.
+        $existingentries = [];
         if (!empty($this->question->options->entries)) {
-            $repeatcount = count($this->question->options->entries);
+            $existingentries = array_values($this->question->options->entries);
+        }
+        // Default to 2 entries for new questions, otherwise use the number of existing entries.
+        $entrycount = count($existingentries) > 0 ? count($existingentries) : 2;
+
+        // Build the table HTML with form elements.
+        $tablehtml = $this->build_entries_table($sollaccountoptions, $habenaccountoptions, $entrycount, $existingentries);
+        $mform->addElement('html', $tablehtml);
+
+        // Hidden fields for form element registration.
+        // These fields receive their values from the visible form fields via JavaScript on submit.
+        for ($i = 0; $i < 20; $i++) {
+            $mform->addElement('hidden', "sollkonto[$i]", '');
+            $mform->setType("sollkonto[$i]", PARAM_TEXT);
+            $mform->addElement('hidden', "sollbetrag[$i]", '');
+            $mform->setType("sollbetrag[$i]", PARAM_RAW);
+            $mform->addElement('hidden', "habenkonto[$i]", '');
+            $mform->setType("habenkonto[$i]", PARAM_TEXT);
+            $mform->addElement('hidden', "habenbetrag[$i]", '');
+            $mform->setType("habenbetrag[$i]", PARAM_RAW);
+            $mform->addElement('hidden', "weight_sollkonto[$i]", '1');
+            $mform->setType("weight_sollkonto[$i]", PARAM_INT);
+            $mform->addElement('hidden', "weight_sollbetrag[$i]", '1');
+            $mform->setType("weight_sollbetrag[$i]", PARAM_INT);
+            $mform->addElement('hidden', "weight_habenkonto[$i]", '1');
+            $mform->setType("weight_habenkonto[$i]", PARAM_INT);
+            $mform->addElement('hidden', "weight_habenbetrag[$i]", '1');
+            $mform->setType("weight_habenbetrag[$i]", PARAM_INT);
         }
 
-        // Add the repeating elements.
-        $this->repeat_elements(
-            $repeatarray,
-            $repeatcount,
-            $repeatoptions,
-            'entry_repeats',
-            'entry_add',
-            1,
-            get_string('addentry', 'qtype_buchungssatz'),
-            false,
-            'entry_delete',
-            true
-        );
-
-        // Add JavaScript for dynamic account dropdowns and other functionality.
-        $this->add_entry_javascript($mform, $allaccounts, $currentchartid, $existingentries);
-    }
-
-    /**
-     * Add JavaScript for entry field handling.
-     *
-     * @param MoodleQuickForm $mform The form being built.
-     * @param array $allaccounts All accounts grouped by chart ID.
-     * @param int $currentchartid The current chart ID.
-     * @param array $existingentries Existing entry values for restoration.
-     */
-    protected function add_entry_javascript($mform, array $allaccounts, int $currentchartid, array $existingentries): void {
-        global $PAGE;
-
-        // Call the AMD module with the required data.
+        // Add JavaScript for dynamic functionality.
         $PAGE->requires->js_call_amd('qtype_buchungssatz/editform', 'init', [
             $allaccounts,
             $currentchartid,
             $existingentries,
         ]);
+
+        // Add the standard "Multiple tries" section (penalty and hints).
+        $this->add_interactive_settings();
+    }
+
+    /**
+     * Build the entries table HTML.
+     *
+     * @param array $sollaccountoptions Options for debit account select.
+     * @param array $habenaccountoptions Options for credit account select.
+     * @param int $entrycount Number of entries to show.
+     * @param array $existingentries Existing entry data.
+     * @return string The HTML for the entries table.
+     */
+    protected function build_entries_table(array $sollaccountoptions, array $habenaccountoptions,
+            int $entrycount, array $existingentries): string {
+
+        $perstr = get_string('per', 'qtype_buchungssatz');
+        $anstr = get_string('an', 'qtype_buchungssatz');
+        $sollstr = get_string('soll', 'qtype_buchungssatz');
+        $habenstr = get_string('haben', 'qtype_buchungssatz');
+        $kontostr = get_string('account', 'qtype_buchungssatz');
+        $betragstr = get_string('amount', 'qtype_buchungssatz');
+        $weightstr = get_string('weight', 'qtype_buchungssatz');
+        $deletestr = get_string('deleteentry', 'qtype_buchungssatz');
+        $addentrystr = get_string('addentry', 'qtype_buchungssatz');
+
+        $html = '<table class="table table-bordered buchungssatz-edit-table" id="buchungssatz-entries-table">';
+
+        // Header row 1.
+        $html .= '<thead>';
+        $html .= '<tr>';
+        $html .= '<th class="buchungssatz-edit-label"></th>';
+        $html .= '<th colspan="2" class="text-center">' . $sollstr . '</th>';
+        $html .= '<th class="buchungssatz-edit-label"></th>';
+        $html .= '<th colspan="2" class="text-center">' . $habenstr . '</th>';
+        $html .= '<th class="buchungssatz-edit-actions"></th>';
+        $html .= '</tr>';
+
+        // Header row 2.
+        $html .= '<tr>';
+        $html .= '<th class="buchungssatz-edit-label">' . $perstr . '</th>';
+        $html .= '<th>' . $kontostr . '</th>';
+        $html .= '<th>' . $betragstr . '</th>';
+        $html .= '<th class="buchungssatz-edit-label">' . $anstr . '</th>';
+        $html .= '<th>' . $kontostr . '</th>';
+        $html .= '<th>' . $betragstr . '</th>';
+        $html .= '<th></th>';
+        $html .= '</tr>';
+        $html .= '</thead>';
+
+        $html .= '<tbody id="buchungssatz-entries-body">';
+
+        // Generate rows for each entry.
+        for ($i = 0; $i < $entrycount; $i++) {
+            $entry = $existingentries[$i] ?? null;
+            $html .= $this->build_entry_rows($i, $sollaccountoptions, $habenaccountoptions, $entry, $i === 0);
+        }
+
+        $html .= '</tbody>';
+        $html .= '</table>';
+
+        // Add entry button.
+        $html .= '<button type="button" class="btn btn-secondary mt-2" id="buchungssatz-add-entry">';
+        $html .= '+ ' . $addentrystr;
+        $html .= '</button>';
+
+        // Template for new rows (hidden, used by JavaScript).
+        $html .= '<template id="buchungssatz-entry-template">';
+        $html .= $this->build_entry_rows('__INDEX__', $sollaccountoptions, $habenaccountoptions, null, false);
+        $html .= '</template>';
+
+        return $html;
+    }
+
+    /**
+     * Build HTML for a single entry (data row + weight row).
+     *
+     * @param int|string $index Entry index or placeholder.
+     * @param array $sollaccountoptions Options for debit account select.
+     * @param array $habenaccountoptions Options for credit account select.
+     * @param object|null $entry Existing entry data.
+     * @param bool $isfirst Whether this is the first entry.
+     * @return string The HTML for the entry rows.
+     */
+    protected function build_entry_rows($index, array $sollaccountoptions, array $habenaccountoptions,
+            $entry, bool $isfirst): string {
+
+        $perstr = get_string('per', 'qtype_buchungssatz');
+        $anstr = get_string('an', 'qtype_buchungssatz');
+        $weightstr = get_string('weight', 'qtype_buchungssatz');
+
+        // Get existing values.
+        $sollkonto = $entry->sollkonto ?? '';
+        $sollbetragraw = $entry->sollbetrag ?? '';
+        $habenkonto = $entry->habenkonto ?? '';
+        $habenbetragraw = $entry->habenbetrag ?? '';
+        $weightsollkonto = $entry->weight_sollkonto ?? 1;
+        $weightsollbetrag = $entry->weight_sollbetrag ?? 1;
+        $weighthabenkonto = $entry->weight_habenkonto ?? 1;
+        $weighthabenbetrag = $entry->weight_habenbetrag ?? 1;
+
+        // Format amounts in German format with 2 decimal places for display.
+        // Teacher view always uses German format.
+        $sollbetrag = $this->format_amount_for_edit((float)$sollbetragraw);
+        $habenbetrag = $this->format_amount_for_edit((float)$habenbetragraw);
+
+        // Build select options HTML for sollkonto.
+        // Use string comparison because PHP may cast numeric array keys to integers.
+        $sollselecthtml = '<select name="sollkonto_display[' . $index . ']" class="form-control buchungssatz-sollkonto" data-index="' . $index . '">';
+        foreach ($sollaccountoptions as $value => $label) {
+            $selected = ((string)$value === (string)$sollkonto) ? ' selected' : '';
+            $sollselecthtml .= '<option value="' . s($value) . '"' . $selected . '>' . s($label) . '</option>';
+        }
+        $sollselecthtml .= '</select>';
+
+        // Build select options HTML for habenkonto.
+        $habenselecthtml = '<select name="habenkonto_display[' . $index . ']" class="form-control buchungssatz-habenkonto" data-index="' . $index . '">';
+        foreach ($habenaccountoptions as $value => $label) {
+            $selected = ((string)$value === (string)$habenkonto) ? ' selected' : '';
+            $habenselecthtml .= '<option value="' . s($value) . '"' . $selected . '>' . s($label) . '</option>';
+        }
+        $habenselecthtml .= '</select>';
+
+        $html = '';
+
+        // Data row.
+        $html .= '<tr class="buchungssatz-entry-row" data-entry-index="' . $index . '">';
+        $html .= '<td class="buchungssatz-edit-label">' . ($isfirst ? $perstr : '') . '</td>';
+        $html .= '<td class="buchungssatz-edit-data">' . $sollselecthtml . '</td>';
+        $html .= '<td class="buchungssatz-edit-data">';
+        $html .= '<input type="text" name="sollbetrag_display[' . $index . ']" value="' . s($sollbetrag) . '" ';
+        $html .= 'class="form-control buchungssatz-sollbetrag" data-index="' . $index . '" placeholder="0,00">';
+        $html .= '</td>';
+        $html .= '<td class="buchungssatz-edit-label">' . ($isfirst ? $anstr : '') . '</td>';
+        $html .= '<td class="buchungssatz-edit-data">' . $habenselecthtml . '</td>';
+        $html .= '<td class="buchungssatz-edit-data">';
+        $html .= '<input type="text" name="habenbetrag_display[' . $index . ']" value="' . s($habenbetrag) . '" ';
+        $html .= 'class="form-control buchungssatz-habenbetrag" data-index="' . $index . '" placeholder="0,00">';
+        $html .= '</td>';
+        $html .= '<td class="buchungssatz-edit-actions">';
+        $html .= '<button type="button" class="btn btn-sm btn-outline-danger buchungssatz-delete-entry" data-index="' . $index . '" title="Delete">';
+        $html .= '<i class="fa fa-trash"></i>';
+        $html .= '</button>';
+        $html .= '</td>';
+        $html .= '</tr>';
+
+        // Weight row.
+        $html .= '<tr class="buchungssatz-weight-row" data-entry-index="' . $index . '">';
+        $html .= '<td></td>';
+        $html .= '<td class="buchungssatz-weight-cell">';
+        $html .= $weightstr . ': <input type="number" name="weight_sollkonto_display[' . $index . ']" value="' . (int)$weightsollkonto . '" ';
+        $html .= 'class="form-control-sm buchungssatz-weight" data-index="' . $index . '" data-field="sollkonto" min="0" style="width: 60px;">';
+        $html .= '</td>';
+        $html .= '<td class="buchungssatz-weight-cell">';
+        $html .= $weightstr . ': <input type="number" name="weight_sollbetrag_display[' . $index . ']" value="' . (int)$weightsollbetrag . '" ';
+        $html .= 'class="form-control-sm buchungssatz-weight" data-index="' . $index . '" data-field="sollbetrag" min="0" style="width: 60px;">';
+        $html .= '</td>';
+        $html .= '<td></td>';
+        $html .= '<td class="buchungssatz-weight-cell">';
+        $html .= $weightstr . ': <input type="number" name="weight_habenkonto_display[' . $index . ']" value="' . (int)$weighthabenkonto . '" ';
+        $html .= 'class="form-control-sm buchungssatz-weight" data-index="' . $index . '" data-field="habenkonto" min="0" style="width: 60px;">';
+        $html .= '</td>';
+        $html .= '<td class="buchungssatz-weight-cell">';
+        $html .= $weightstr . ': <input type="number" name="weight_habenbetrag_display[' . $index . ']" value="' . (int)$weighthabenbetrag . '" ';
+        $html .= 'class="form-control-sm buchungssatz-weight" data-index="' . $index . '" data-field="habenbetrag" min="0" style="width: 60px;">';
+        $html .= '</td>';
+        $html .= '<td></td>';
+        $html .= '</tr>';
+
+        return $html;
     }
 
     /**
@@ -295,6 +407,23 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
     }
 
     /**
+     * Format an amount for display in the edit form.
+     *
+     * Teacher view always uses German format with 2 decimal places and thousand separators.
+     * Returns empty string for zero/empty values.
+     *
+     * @param float $amount The amount to format.
+     * @return string The formatted amount or empty string.
+     */
+    protected function format_amount_for_edit(float $amount): string {
+        if (abs($amount) < 0.001) {
+            return '';
+        }
+        // German format: dot as thousand separator, comma as decimal separator.
+        return number_format($amount, 2, ',', '.');
+    }
+
+    /**
      * Preprocess the question data for the form.
      *
      * @param object $question The question data.
@@ -315,21 +444,17 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
 
             // Load entries into array form fields.
             if (!empty($question->options->entries)) {
-                $question->sollkonto = [];
-                $question->sollbetrag = [];
-                $question->habenkonto = [];
-                $question->habenbetrag = [];
-                $question->grade = [];
-                $question->explanation = [];
-
+                $i = 0;
                 foreach ($question->options->entries as $entry) {
-                    $question->sollkonto[] = $entry->sollkonto;
-                    $question->sollbetrag[] = $entry->sollbetrag;
-                    $question->habenkonto[] = $entry->habenkonto;
-                    $question->habenbetrag[] = $entry->habenbetrag;
-                    // Convert fraction (0-1) to grade percentage (0-100).
-                    $question->grade[] = $entry->fraction * 100;
-                    $question->explanation[] = $entry->explanation ?? '';
+                    $question->sollkonto[$i] = $entry->sollkonto;
+                    $question->sollbetrag[$i] = $entry->sollbetrag;
+                    $question->habenkonto[$i] = $entry->habenkonto;
+                    $question->habenbetrag[$i] = $entry->habenbetrag;
+                    $question->weight_sollkonto[$i] = $entry->weight_sollkonto ?? 1;
+                    $question->weight_sollbetrag[$i] = $entry->weight_sollbetrag ?? 1;
+                    $question->weight_habenkonto[$i] = $entry->weight_habenkonto ?? 1;
+                    $question->weight_habenbetrag[$i] = $entry->weight_habenbetrag ?? 1;
+                    $i++;
                 }
             }
         }
@@ -354,73 +479,46 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         }
 
         $hasentries = false;
-        $totalgrade = 0;
-        $validindices = [];
 
-        // Iterate over actual array keys rather than using entry_repeats counter,
-        // since indices may not be sequential if entries were deleted.
+        // Get all unique indices from both sollkonto and habenkonto arrays.
+        $sollkontoarray = $data['sollkonto'] ?? [];
         $habenkontoarray = $data['habenkonto'] ?? [];
-        foreach ($habenkontoarray as $i => $habenkonto) {
+        $allindices = array_unique(array_merge(array_keys($sollkontoarray), array_keys($habenkontoarray)));
+
+        foreach ($allindices as $i) {
             $sollkonto = trim($data['sollkonto'][$i] ?? '');
-            $habenkonto = trim($habenkonto ?? '');
+            $habenkonto = trim($data['habenkonto'][$i] ?? '');
             $sollbetragraw = trim($data['sollbetrag'][$i] ?? '');
             $habenbetragraw = trim($data['habenbetrag'][$i] ?? '');
-            $graderaw = trim($data['grade'][$i] ?? '');
-            $sollbetrag = floatval($sollbetragraw);
-            $habenbetrag = floatval($habenbetragraw);
-            $grade = floatval($graderaw);
-
-            // Check if entry has any data filled in.
-            $hasanydata = !empty($sollkonto) || $sollbetragraw !== '' || $habenbetragraw !== '' || $graderaw !== '';
 
             // Skip completely empty entries.
-            if (!$hasanydata && empty($habenkonto)) {
+            if (empty($sollkonto) && $sollbetragraw === '' && empty($habenkonto) && $habenbetragraw === '') {
                 continue;
             }
 
-            // Entry has some data - validate all required fields.
             $hasentries = true;
-            $validindices[] = $i;
 
-            // Credit account is always required.
-            if (empty($habenkonto)) {
-                $errors["habenkonto[$i]"] = get_string('err_habenrequired', 'qtype_buchungssatz');
-            }
-
-            // Credit amount is always required.
-            if ($habenbetragraw === '') {
-                $errors["habenbetrag[$i]"] = get_string('err_habenamountrequired', 'qtype_buchungssatz');
-            } else if ($habenbetrag < 0) {
-                $errors["habenbetrag[$i]"] = get_string('err_negativeamount', 'qtype_buchungssatz');
-            }
-
-            // Debit amount is required only if debit account is selected.
+            // Debit amount is required if debit account is selected.
             if (!empty($sollkonto)) {
                 if ($sollbetragraw === '') {
                     $errors["sollbetrag[$i]"] = get_string('err_sollbetragrequired', 'qtype_buchungssatz');
-                } else if ($sollbetrag < 0) {
+                } else if (floatval($sollbetragraw) < 0) {
                     $errors["sollbetrag[$i]"] = get_string('err_negativeamount', 'qtype_buchungssatz');
                 }
             }
 
-            // Grade is required and must be between 0 and 100.
-            if ($graderaw === '') {
-                $errors["gradegroup[$i]"] = get_string('err_graderequired', 'qtype_buchungssatz');
-            } else if ($grade < 0 || $grade > 100) {
-                $errors["gradegroup[$i]"] = get_string('err_gradeinvalid', 'qtype_buchungssatz');
-            } else {
-                $totalgrade += $grade;
+            // Credit amount is required if credit account is selected.
+            if (!empty($habenkonto)) {
+                if ($habenbetragraw === '') {
+                    $errors["habenbetrag[$i]"] = get_string('err_habenamountrequired', 'qtype_buchungssatz');
+                } else if (floatval($habenbetragraw) < 0) {
+                    $errors["habenbetrag[$i]"] = get_string('err_negativeamount', 'qtype_buchungssatz');
+                }
             }
         }
 
         if (!$hasentries) {
-            $errors['habenkonto[0]'] = get_string('err_noentries', 'qtype_buchungssatz');
-        } else if (abs($totalgrade - 100) > 0.01) {
-            // All grades must sum to exactly 100% - show error on all grade fields.
-            $errormsg = get_string('err_gradesumnotcomplete', 'qtype_buchungssatz', round($totalgrade, 2));
-            foreach ($validindices as $idx) {
-                $errors["gradegroup[$idx]"] = $errormsg;
-            }
+            $errors['sollkonto[0]'] = get_string('err_noentries', 'qtype_buchungssatz');
         }
 
         return $errors;

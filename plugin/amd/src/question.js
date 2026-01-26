@@ -21,12 +21,12 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['jquery'], function($) {
+define(['jquery', 'core/str'], function($, Str) {
 
     /**
      * Initialize the question interface.
      *
-     * @param {string} questionDivId The ID of the question container.
+     * @param {string} containerId The ID of the question container.
      * @param {Array} accounts The available accounts for selection.
      * @param {number} maxEntries Maximum number of entries allowed.
      * @param {boolean} allowEdit Whether the user can add/delete entries.
@@ -35,11 +35,8 @@ define(['jquery'], function($) {
         const container = $('#' + containerId);
 
         if (container.length === 0) {
-            console.log('Buchungssatz: Container not found: ' + containerId);
             return;
         }
-
-        console.log('Buchungssatz: Initialized container: ' + containerId);
 
         maxEntries = maxEntries || 1;
         allowEdit = allowEdit !== false;
@@ -64,18 +61,15 @@ define(['jquery'], function($) {
             }
         });
 
-
         // Add entry button handler.
         if (allowEdit && maxEntries > 1) {
             container.find('.buchungssatz-add-entry').on('click', function() {
-                console.log('Buchungssatz: Add entry clicked');
                 addEntry(container, maxEntries);
             });
 
             // Delete entry button handler (using delegation for dynamically shown rows).
             container.on('click', '.buchungssatz-delete-entry', function() {
                 const entryIndex = $(this).data('entry');
-                console.log('Buchungssatz: Delete entry clicked: ' + entryIndex);
                 deleteEntry(container, entryIndex);
             });
 
@@ -85,20 +79,20 @@ define(['jquery'], function($) {
     }
 
     /**
-     * Add a new entry row.
+     * Add a new entry row (show the next hidden row).
      *
      * @param {jQuery} container The question container.
      * @param {number} maxEntries Maximum number of entries.
      */
     function addEntry(container, maxEntries) {
-        const entries = container.find('.buchungssatz-entry');
-        const hiddenEntries = entries.filter(function() {
+        const entryRows = container.find('.buchungssatz-entry-row');
+        const hiddenRows = entryRows.filter(function() {
             return $(this).css('display') === 'none';
         });
 
-        if (hiddenEntries.length > 0) {
-            const firstHidden = hiddenEntries.first();
-            firstHidden.css('display', 'flex');
+        if (hiddenRows.length > 0) {
+            const firstHidden = hiddenRows.first();
+            firstHidden.css('display', '');
 
             // Re-initialize Select2 if available.
             if (typeof $.fn.select2 !== 'undefined') {
@@ -111,26 +105,27 @@ define(['jquery'], function($) {
 
             updateDeleteButtons(container);
             updateAddButton(container, maxEntries);
+            updatePerAnLabels(container);
         }
     }
 
     /**
-     * Delete an entry row.
+     * Delete an entry row (hide it and clear fields).
      *
      * @param {jQuery} container The question container.
      * @param {number} entryIndex The index of the entry to delete.
      */
     function deleteEntry(container, entryIndex) {
-        const visibleEntries = container.find('.buchungssatz-entry').filter(function() {
+        const visibleRows = container.find('.buchungssatz-entry-row').filter(function() {
             return $(this).css('display') !== 'none';
         });
 
         // Don't delete if only one entry remains.
-        if (visibleEntries.length <= 1) {
+        if (visibleRows.length <= 1) {
             return;
         }
 
-        const entryRow = container.find('.buchungssatz-entry[data-entry="' + entryIndex + '"]');
+        const entryRow = container.find('.buchungssatz-entry-row[data-entry="' + entryIndex + '"]');
         if (entryRow.length > 0) {
             // Clear the fields.
             entryRow.find('select').val('');
@@ -148,8 +143,12 @@ define(['jquery'], function($) {
             // Hide the row.
             entryRow.css('display', 'none');
 
+            // Also hide any associated explanation row.
+            entryRow.next('.buchungssatz-explanation-row').css('display', 'none');
+
             updateDeleteButtons(container);
             updateAddButton(container, 50); // Use high number, actual max from init.
+            updatePerAnLabels(container);
         }
     }
 
@@ -160,16 +159,16 @@ define(['jquery'], function($) {
      * @param {jQuery} container The question container.
      */
     function updateDeleteButtons(container) {
-        const visibleEntries = container.find('.buchungssatz-entry').filter(function() {
+        const visibleRows = container.find('.buchungssatz-entry-row').filter(function() {
             return $(this).css('display') !== 'none';
         });
 
-        if (visibleEntries.length <= 1) {
-            container.find('.buchungssatz-delete-entry').css('display', 'none');
+        if (visibleRows.length <= 1) {
+            container.find('.buchungssatz-delete-entry').css('visibility', 'hidden');
         } else {
-            container.find('.buchungssatz-entry').each(function() {
+            container.find('.buchungssatz-entry-row').each(function() {
                 if ($(this).css('display') !== 'none') {
-                    $(this).find('.buchungssatz-delete-entry').css('display', 'inline-block');
+                    $(this).find('.buchungssatz-delete-entry').css('visibility', 'visible');
                 }
             });
         }
@@ -182,16 +181,48 @@ define(['jquery'], function($) {
      * @param {number} maxEntries Maximum entries allowed.
      */
     function updateAddButton(container, maxEntries) {
-        const visibleEntries = container.find('.buchungssatz-entry').filter(function() {
+        const visibleRows = container.find('.buchungssatz-entry-row').filter(function() {
             return $(this).css('display') !== 'none';
         });
 
         const addButton = container.find('.buchungssatz-add-entry');
-        if (visibleEntries.length >= maxEntries) {
+        if (visibleRows.length >= maxEntries) {
             addButton.css('display', 'none');
         } else {
             addButton.css('display', 'inline-block');
         }
+    }
+
+    /**
+     * Update Per/an labels so they only appear on the first visible row.
+     *
+     * @param {jQuery} container The question container.
+     */
+    function updatePerAnLabels(container) {
+        const entryRows = container.find('.buchungssatz-entry-row');
+        let isFirst = true;
+
+        Str.get_strings([
+            {key: 'per', component: 'qtype_buchungssatz'},
+            {key: 'an', component: 'qtype_buchungssatz'}
+        ]).then(function(strings) {
+            const perStr = strings[0];
+            const anStr = strings[1];
+
+            entryRows.each(function() {
+                if ($(this).css('display') === 'none') {
+                    return; // Skip hidden rows.
+                }
+
+                const labelCells = $(this).find('.buchungssatz-label-cell');
+                if (labelCells.length >= 2) {
+                    $(labelCells[0]).text(isFirst ? perStr : '');
+                    $(labelCells[1]).text(isFirst ? anStr : '');
+                }
+
+                isFirst = false;
+            });
+        });
     }
 
     return {

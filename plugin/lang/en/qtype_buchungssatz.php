@@ -55,9 +55,13 @@ $string['addentry'] = 'Add Entry';
 $string['deleteentry'] = 'Delete';
 
 // Account fields.
+$string['per'] = 'Per';
+$string['an'] = 'to';
 $string['soll'] = 'Debit';
 $string['haben'] = 'Credit';
 $string['account'] = 'Account';
+$string['weight'] = 'Weight';
+$string['weight_help'] = 'Weight for this field in grading. Higher values mean more points.';
 $string['accountnumber'] = 'Account number';
 $string['amount'] = 'Amount';
 $string['selectaccount'] = '-- Select account --';
@@ -72,6 +76,11 @@ $string['explanation_help'] = 'An optional explanation for this entry that will 
 // Feedback.
 $string['correctansweris'] = 'The correct answer is:';
 $string['pleaseenteranswer'] = 'Please enter at least one complete booking entry.';
+$string['allcorrect'] = 'All entries are correct!';
+$string['debitincorrect'] = 'The debit side (Soll) is incorrect.';
+$string['debitpartiallyincorrect'] = 'The debit side (Soll) is partially incorrect.';
+$string['creditincorrect'] = 'The credit side (Haben) is incorrect.';
+$string['creditpartiallyincorrect'] = 'The credit side (Haben) is partially incorrect.';
 
 // Validation errors.
 $string['err_noentries'] = 'Please enter at least one booking entry with account and amount.';

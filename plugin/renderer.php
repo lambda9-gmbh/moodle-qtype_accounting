@@ -61,10 +61,19 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         // Wrap everything in our own container.
         $result .= html_writer::start_div('buchungssatz-question-container', ['id' => $containerid]);
 
-        $result .= html_writer::start_div('buchungssatz-entries');
+        // Calculate overall feedback using aggregation (only in readonly/review mode).
+        $overallfeedback = null;
+        if ($options->readonly) {
+            $overallfeedback = $this->calculate_aggregated_feedback($question, $response);
+        }
+
+        // Start the table.
+        $result .= '<table class="table table-bordered buchungssatz-student-table">';
 
         // Header row - always show actions column if not readonly.
         $result .= $this->render_header_row(!$options->readonly);
+
+        $result .= '<tbody class="buchungssatz-entries">';
 
         // Determine which rows should be visible initially.
         $visiblerows = 1; // At least one row visible.
@@ -75,11 +84,11 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             }
         }
 
-        // In readonly mode (reviewing), ensure we show enough rows for all correct entries too.
-        // This handles the case where student entered fewer entries than required.
+        // In readonly mode (reviewing), ensure we show enough rows for all student entries.
+        // We no longer need to show correct entry count since order doesn't matter.
         if ($options->readonly) {
-            $correctentrycount = count($question->entries);
-            $visiblerows = max($visiblerows, $correctentrycount);
+            // Just ensure we show all rows that have data.
+            $visiblerows = max($visiblerows, 1);
         }
 
         // Get the accountsindropdown limit.
@@ -104,10 +113,16 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
                 $habenaccounts = $accounts;
             }
 
-            $result .= $this->render_entry_row($qa, $options, $i, $response, $sollaccounts, $habenaccounts, $question, $hidden, $showdelete);
+            $result .= $this->render_entry_row($qa, $options, $i, $response, $sollaccounts, $habenaccounts, $question, $hidden, $showdelete, $i === 0, $overallfeedback);
         }
 
-        $result .= html_writer::end_div();
+        $result .= '</tbody>';
+        $result .= '</table>';
+
+        // Show overall feedback summary after the table in review mode.
+        if ($options->readonly && $overallfeedback !== null) {
+            $result .= $this->render_feedback_summary($overallfeedback);
+        }
 
         // Add "Add Entry" button if not readonly.
         if (!$options->readonly) {
@@ -136,53 +151,52 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
     }
 
     /**
-     * Render the header row for the booking entries.
+     * Render the table header for the booking entries.
      *
      * @param bool $showactions Whether to show an actions column.
      * @return string
      */
     protected function render_header_row(bool $showactions = false): string {
-        $html = '';
+        $perstr = get_string('per', 'qtype_buchungssatz');
+        $anstr = get_string('an', 'qtype_buchungssatz');
+        $sollstr = get_string('soll', 'qtype_buchungssatz');
+        $habenstr = get_string('haben', 'qtype_buchungssatz');
+        $kontostr = get_string('account', 'qtype_buchungssatz');
+        $betragstr = get_string('amount', 'qtype_buchungssatz');
 
-        // First row - main headers (Soll / Haben).
-        $html .= html_writer::start_div('buchungssatz-header-main',
-            ['style' => 'display: flex; border-bottom: 1px solid #dee2e6;']);
+        $html = '<thead>';
 
-        $html .= html_writer::div(get_string('soll', 'qtype_buchungssatz'), '',
-            ['style' => 'flex: 1; text-align: center; font-weight: bold; padding: 0.5rem;']);
-        $html .= html_writer::div(get_string('haben', 'qtype_buchungssatz'), '',
-            ['style' => 'flex: 1; text-align: center; font-weight: bold; padding: 0.5rem;']);
-
+        // First header row - Soll / Haben.
+        $html .= '<tr>';
+        $html .= '<th class="buchungssatz-label-cell"></th>';
+        $html .= '<th colspan="2" class="text-center">' . $sollstr . '</th>';
+        $html .= '<th class="buchungssatz-label-cell"></th>';
+        $html .= '<th colspan="2" class="text-center">' . $habenstr . '</th>';
         if ($showactions) {
-            $html .= html_writer::div('', '', ['style' => 'flex: 0 0 28px;']);
+            $html .= '<th class="buchungssatz-actions-cell"></th>';
         }
+        $html .= '</tr>';
 
-        $html .= html_writer::end_div();
-
-        // Second row - sub headers (Account / Amount / Account / Amount).
-        $html .= html_writer::start_div('buchungssatz-header-sub',
-            ['style' => 'display: flex; margin-bottom: 0.5rem; padding: 0.25rem 0;']);
-
-        $html .= html_writer::div(get_string('account', 'qtype_buchungssatz'), 'buchungssatz-header-account pr-2',
-            ['style' => 'text-align: center; font-weight: bold;']);
-        $html .= html_writer::div(get_string('amount', 'qtype_buchungssatz'), 'buchungssatz-header-amount pr-2',
-            ['style' => 'font-weight: bold;']);
-        $html .= html_writer::div(get_string('account', 'qtype_buchungssatz'), 'buchungssatz-header-account pr-2',
-            ['style' => 'text-align: center; font-weight: bold;']);
-        $html .= html_writer::div(get_string('amount', 'qtype_buchungssatz'), 'buchungssatz-header-amount pr-2',
-            ['style' => 'font-weight: bold;']);
-
+        // Second header row - Per / Account / Amount / an / Account / Amount.
+        $html .= '<tr>';
+        $html .= '<th class="buchungssatz-label-cell">' . $perstr . '</th>';
+        $html .= '<th>' . $kontostr . '</th>';
+        $html .= '<th>' . $betragstr . '</th>';
+        $html .= '<th class="buchungssatz-label-cell">' . $anstr . '</th>';
+        $html .= '<th>' . $kontostr . '</th>';
+        $html .= '<th>' . $betragstr . '</th>';
         if ($showactions) {
-            $html .= html_writer::div('', '', ['style' => 'flex: 0 0 28px;']);
+            $html .= '<th></th>';
         }
+        $html .= '</tr>';
 
-        $html .= html_writer::end_div();
+        $html .= '</thead>';
 
         return $html;
     }
 
     /**
-     * Render a single entry row.
+     * Render a single entry row as a table row.
      *
      * @param question_attempt $qa The question attempt object.
      * @param question_display_options $options The display options.
@@ -193,6 +207,8 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      * @param object $question The question object.
      * @param bool $hidden Whether the row should be hidden initially.
      * @param bool $showdelete Whether to show the delete button.
+     * @param bool $isfirst Whether this is the first entry row.
+     * @param array|null $overallfeedback The overall aggregated feedback (for review mode).
      * @return string The HTML output.
      */
     protected function render_entry_row(
@@ -204,7 +220,9 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         array $habenaccounts,
         object $question,
         bool $hidden = false,
-        bool $showdelete = false
+        bool $showdelete = false,
+        bool $isfirst = false,
+        ?array $overallfeedback = null
     ): string {
         $sollkontoname = $qa->get_qt_field_name("sollkonto_{$index}");
         $sollbetragname = $qa->get_qt_field_name("sollbetrag_{$index}");
@@ -218,71 +236,130 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         $readonly = $options->readonly;
 
-        // Get feedback for this entry if in readonly mode (reviewing).
-        $feedback = null;
-        $correctentry = $question->entries[$index] ?? null;
-        $hasstudentdata = !empty($sollkontoval) || !empty($habenkontoval);
+        // Get Per/an labels.
+        $perstr = get_string('per', 'qtype_buchungssatz');
+        $anstr = get_string('an', 'qtype_buchungssatz');
 
-        // Show feedback if either: student entered data OR there's a correct entry at this index.
-        if ($readonly && ($hasstudentdata || $correctentry !== null)) {
-            $studententry = [
-                'sollkonto' => $sollkontoval,
-                'sollbetrag' => $sollbetragval,
-                'habenkonto' => $habenkontoval,
-                'habenbetrag' => $habenbetragval,
-            ];
-            // Strict index matching - compare against the correct entry at the same index.
-            $feedback = $this->get_entry_feedback($studententry, $correctentry);
-        }
+        // No per-field highlighting - we show overall feedback summary instead.
+        $feedbackclass = '';
 
-        $rowattrs = ['data-entry' => $index];
-        if ($hidden) {
-            $rowattrs['style'] = 'display: none;';
-        } else {
-            $rowattrs['style'] = 'display: flex; flex-wrap: wrap;';
-        }
-        $html = html_writer::start_div('buchungssatz-entry mb-2 align-items-center', $rowattrs);
+        // Build table row.
+        $rowstyle = $hidden ? 'display: none;' : '';
+        $html = '<tr class="buchungssatz-entry-row" data-entry="' . $index . '" style="' . $rowstyle . '">';
 
-        // Main row container.
-        $html .= html_writer::start_div('', ['style' => 'display: flex; width: 100%; align-items: center;']);
+        // Per label cell (only show text on first row).
+        $html .= '<td class="buchungssatz-label-cell">' . ($isfirst ? $perstr : '') . '</td>';
 
-        // Soll (Debit) side.
-        $sollkontoclass = $feedback ? ($feedback['sollkonto_correct'] ? 'buchungssatz-correct' : 'buchungssatz-incorrect') : '';
-        $sollbetragclass = $feedback ? ($feedback['sollbetrag_correct'] ? 'buchungssatz-correct' : 'buchungssatz-incorrect') : '';
-        $html .= $this->render_account_amount($readonly, $sollkontoval, $sollkontoname, $sollaccounts, $sollbetragval, $sollbetragname, false, $sollkontoclass, $sollbetragclass);
+        // Soll (Debit) account cell.
+        $html .= '<td class="buchungssatz-data-cell">';
+        $html .= $this->render_account_field($readonly, $sollkontoval, $sollkontoname, $sollaccounts, $feedbackclass);
+        $html .= '</td>';
 
-        // Haben (Credit) side.
-        $habenkontoclass = $feedback ? ($feedback['habenkonto_correct'] ? 'buchungssatz-correct' : 'buchungssatz-incorrect') : '';
-        $habenbetragclass = $feedback ? ($feedback['habenbetrag_correct'] ? 'buchungssatz-correct' : 'buchungssatz-incorrect') : '';
-        $html .= $this->render_account_amount($readonly, $habenkontoval, $habenkontoname, $habenaccounts, $habenbetragval, $habenbetragname, false, $habenkontoclass, $habenbetragclass);
+        // Get number format settings from question.
+        $numberformat = $question->numberformat ?? 'de';
+        $decimalplaces = $question->decimalplaces ?? 2;
 
-        // Delete button column.
+        // Soll (Debit) amount cell.
+        $html .= '<td class="buchungssatz-data-cell">';
+        $html .= $this->render_amount_field($readonly, $sollbetragval, $sollbetragname, $feedbackclass, $numberformat, $decimalplaces);
+        $html .= '</td>';
+
+        // "an" label cell (only show text on first row).
+        $html .= '<td class="buchungssatz-label-cell">' . ($isfirst ? $anstr : '') . '</td>';
+
+        // Haben (Credit) account cell.
+        $html .= '<td class="buchungssatz-data-cell">';
+        $html .= $this->render_account_field($readonly, $habenkontoval, $habenkontoname, $habenaccounts, $feedbackclass);
+        $html .= '</td>';
+
+        // Haben (Credit) amount cell.
+        $html .= '<td class="buchungssatz-data-cell">';
+        $html .= $this->render_amount_field($readonly, $habenbetragval, $habenbetragname, $feedbackclass, $numberformat, $decimalplaces);
+        $html .= '</td>';
+
+        // Delete button cell.
         if ($showdelete) {
-            $html .= html_writer::start_div('', ['style' => 'flex: 0 0 28px;']);
-            $html .= html_writer::tag('button', '×', [
-                'type' => 'button',
-                'class' => 'btn btn-outline-danger btn-sm buchungssatz-delete-entry',
-                'data-entry' => $index,
-                'title' => get_string('delete', 'moodle'),
-                'style' => 'line-height: 1; padding: 0.2rem 0.4rem; font-size: 1rem;',
-            ]);
-            $html .= html_writer::end_div();
+            $html .= '<td class="buchungssatz-actions-cell">';
+            $html .= '<button type="button" class="btn btn-outline-danger btn-sm buchungssatz-delete-entry" ';
+            $html .= 'data-entry="' . $index . '" title="' . get_string('delete', 'moodle') . '">';
+            $html .= '<i class="fa fa-trash"></i>';
+            $html .= '</button>';
+            $html .= '</td>';
         }
 
-        $html .= html_writer::end_div(); // End main row container.
-
-        // Show explanation if entry has errors.
-        if ($feedback && !$feedback['all_correct'] && !empty($feedback['explanation'])) {
-            $html .= html_writer::div(
-                html_writer::tag('strong', get_string('explanation', 'qtype_buchungssatz') . ': ') . s($feedback['explanation']),
-                'buchungssatz-entry-explanation',
-                ['style' => 'width: 100%; padding: 0.5rem; margin-top: 0.25rem; background-color: #fff3cd; border-radius: 0.25rem; font-size: 0.9em;']
-            );
-        }
-
-        $html .= html_writer::end_div();
+        $html .= '</tr>';
 
         return $html;
+    }
+
+    /**
+     * Render an account field (select or readonly display).
+     *
+     * @param bool $readonly Whether the field is readonly.
+     * @param string $value The current value.
+     * @param string $name The field name.
+     * @param array $accounts The available accounts.
+     * @param string $feedbackclass CSS class for feedback styling.
+     * @return string The HTML output.
+     */
+    protected function render_account_field(bool $readonly, string $value, string $name, array $accounts, string $feedbackclass = ''): string {
+        if ($readonly) {
+            // Look up account name for display.
+            $displayval = $value;
+            if (!empty($value)) {
+                foreach ($accounts as $account) {
+                    if ($account->accountnumber === $value) {
+                        $displayval = $value . ' - ' . $account->accountname;
+                        break;
+                    }
+                }
+            }
+            $spanclass = 'buchungssatz-readonly';
+            if (!empty($feedbackclass)) {
+                $spanclass .= ' ' . $feedbackclass;
+            }
+            $html = '<span class="' . $spanclass . '">' . s($displayval) . '</span>';
+            $html .= '<input type="hidden" name="' . $name . '" value="' . s($value) . '">';
+            return $html;
+        }
+
+        return $this->render_account_select($name, $value, $accounts, get_string('selectaccount', 'qtype_buchungssatz'));
+    }
+
+    /**
+     * Render an amount field (input or readonly display).
+     *
+     * @param bool $readonly Whether the field is readonly.
+     * @param string $value The current value.
+     * @param string $name The field name.
+     * @param string $feedbackclass CSS class for feedback styling.
+     * @param string $numberformat The number format ('de' or 'us').
+     * @param int $decimalplaces The number of decimal places.
+     * @return string The HTML output.
+     */
+    protected function render_amount_field(
+        bool $readonly,
+        string $value,
+        string $name,
+        string $feedbackclass = '',
+        string $numberformat = 'de',
+        int $decimalplaces = 2
+    ): string {
+        if ($readonly) {
+            $spanclass = 'buchungssatz-readonly';
+            if (!empty($feedbackclass)) {
+                $spanclass .= ' ' . $feedbackclass;
+            }
+            // Format the amount for display.
+            $displayval = $this->format_amount_display((float)$value, $numberformat, $decimalplaces);
+            $html = '<span class="' . $spanclass . '">' . s($displayval) . '</span>';
+            $html .= '<input type="hidden" name="' . $name . '" value="' . s($value) . '">';
+            return $html;
+        }
+
+        return '<input type="number" name="' . $name . '" id="' . $name . '" value="' . s($value) . '" ' .
+               'class="form-control buchungssatz-amount-input" step="0.01" min="0" placeholder="0.00" ' .
+               'aria-label="' . get_string('amount', 'qtype_buchungssatz') . '">';
     }
 
     /**
@@ -306,90 +383,6 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             'class' => 'form-control buchungssatz-account-select',
             'aria-label' => get_string('account', 'qtype_buchungssatz'),
         ]);
-    }
-
-    /**
-     * Render an account and amount field pair.
-     *
-     * @param bool $readonly Whether the fields are readonly.
-     * @param string $kontoval The account value.
-     * @param string $kontoname The account field name.
-     * @param array $accounts The available accounts.
-     * @param string $betragval The amount value.
-     * @param string $betragname The amount field name.
-     * @param bool $addborder Whether to add a right border.
-     * @param string $kontoclass Additional CSS class for account field (for correctness styling).
-     * @param string $betragclass Additional CSS class for amount field (for correctness styling).
-     * @return string The HTML output.
-     */
-    protected function render_account_amount(
-        bool $readonly,
-        string $kontoval,
-        string $kontoname,
-        array $accounts,
-        string $betragval,
-        string $betragname,
-        bool $addborder = false,
-        string $kontoclass = '',
-        string $betragclass = ''
-    ): string {
-        $html = html_writer::start_div('', ['class' => 'buchungssatz-account pr-2']);
-        if ($readonly) {
-            // Look up account name for display.
-            $displayval = $kontoval;
-            if (!empty($kontoval)) {
-                foreach ($accounts as $account) {
-                    if ($account->accountnumber === $kontoval) {
-                        $displayval = $kontoval . ' - ' . $account->accountname;
-                        break;
-                    }
-                }
-            }
-            $spanclass = 'buchungssatz-readonly';
-            if (!empty($kontoclass)) {
-                $spanclass .= ' ' . $kontoclass;
-            }
-            $html .= html_writer::tag('span', s($displayval), ['class' => $spanclass]);
-            $html .= html_writer::empty_tag('input', [
-                'type' => 'hidden',
-                'name' => $kontoname,
-                'value' => $kontoval,
-            ]);
-        } else {
-            $html .= $this->render_account_select($kontoname, $kontoval, $accounts,
-                get_string('selectaccount', 'qtype_buchungssatz'));
-        }
-        $html .= html_writer::end_div();
-
-        // Amount field.
-        $amountstyle = $addborder ? 'border-right: 1px solid #dee2e6; padding-right: 0.5rem; margin-right: 0.5rem;' : '';
-        $html .= html_writer::start_div('', ['class' => 'buchungssatz-amount pr-2', 'style' => $amountstyle]);
-        if ($readonly) {
-            $spanclass = 'buchungssatz-readonly';
-            if (!empty($betragclass)) {
-                $spanclass .= ' ' . $betragclass;
-            }
-            $html .= html_writer::tag('span', s($betragval), ['class' => $spanclass]);
-            $html .= html_writer::empty_tag('input', [
-                'type' => 'hidden',
-                'name' => $betragname,
-                'value' => $betragval,
-            ]);
-        } else {
-            $html .= html_writer::empty_tag('input', [
-                'type' => 'number',
-                'name' => $betragname,
-                'id' => $betragname,
-                'value' => $betragval,
-                'class' => 'form-control buchungssatz-amount-input',
-                'step' => '0.01',
-                'min' => '0',
-                'placeholder' => '0.00',
-                'aria-label' => get_string('sollamount', 'qtype_buchungssatz'),
-            ]);
-        }
-        $html .= html_writer::end_div();
-        return $html;
     }
 
     /**
@@ -574,80 +567,235 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
     }
 
     /**
-     * Get feedback for a student entry by comparing against the correct entry at the same index.
+     * Calculate aggregated feedback by comparing student response to correct answer.
      *
-     * @param array $studententry The student's entry.
-     * @param array|null $correctentry The correct entry at the same index, or null if none.
-     * @return array The feedback data with correctness flags and explanation.
+     * Uses the same aggregation logic as grading: sums amounts per account on each side,
+     * then compares the aggregated totals.
+     *
+     * @param object $question The question object with correct entries.
+     * @param array $response The student's response data.
+     * @return array Feedback with status per side ('correct', 'partial', 'incorrect') and details.
      */
-    protected function get_entry_feedback(array $studententry, ?array $correctentry): array {
+    protected function calculate_aggregated_feedback(object $question, array $response): array {
         $feedback = [
-            'sollkonto_correct' => false,
-            'sollbetrag_correct' => false,
-            'habenkonto_correct' => false,
-            'habenbetrag_correct' => false,
-            'all_correct' => false,
-            'explanation' => '',
+            'debit_status' => 'correct',   // 'correct', 'partial', or 'incorrect'.
+            'credit_status' => 'correct',  // 'correct', 'partial', or 'incorrect'.
+            'all_correct' => true,
+            'debit_details' => [],
+            'credit_details' => [],
         ];
 
-        // If there's no correct entry at this index, all student fields are incorrect (extra entry).
-        if ($correctentry === null) {
-            // Student entry is extra - no explanation available.
+        if (empty($question->entries)) {
             return $feedback;
         }
 
-        // If the student entry is empty but correct entry exists, show all as incorrect with explanation.
-        if (empty($studententry['sollkonto']) && empty($studententry['habenkonto'])) {
-            // Show explanation for missing entry.
-            if (!empty($correctentry['explanation'])) {
-                $feedback['explanation'] = $correctentry['explanation'];
+        // Aggregate correct entries.
+        $correctaggregated = $this->aggregate_entries_for_feedback($question->entries);
+
+        // Parse and aggregate student entries.
+        $studententries = $this->parse_student_response($response);
+        $studentaggregated = $this->aggregate_entries_for_feedback($studententries);
+
+        // Compare Debit (Soll) side.
+        $debitcorrectcount = 0;
+        $debittotalcount = 0;
+        foreach ($correctaggregated['debit'] as $account => $correctamount) {
+            $debittotalcount++;
+            $studentamount = $studentaggregated['debit'][$account] ?? null;
+            if ($studentamount === null) {
+                // Student missing this account.
+                $feedback['debit_details'][] = [
+                    'account' => $account,
+                    'correct_amount' => $correctamount,
+                    'student_amount' => null,
+                    'status' => 'missing',
+                ];
+            } else if ($studentamount != $correctamount) {
+                // Amount doesn't match.
+                $feedback['debit_details'][] = [
+                    'account' => $account,
+                    'correct_amount' => $correctamount,
+                    'student_amount' => $studentamount,
+                    'status' => 'wrong_amount',
+                ];
+            } else {
+                // Correct.
+                $debitcorrectcount++;
+                $feedback['debit_details'][] = [
+                    'account' => $account,
+                    'correct_amount' => $correctamount,
+                    'student_amount' => $studentamount,
+                    'status' => 'correct',
+                ];
             }
-            return $feedback;
         }
 
-        // Simple direct comparison - each field compared against the same index's correct entry.
-        $feedback['sollkonto_correct'] = strcasecmp($studententry['sollkonto'], $correctentry['sollkonto']) === 0;
-        $feedback['sollbetrag_correct'] = $this->amounts_match($studententry['sollbetrag'], $correctentry['sollbetrag']);
-        $feedback['habenkonto_correct'] = strcasecmp($studententry['habenkonto'], $correctentry['habenkonto']) === 0;
-        $feedback['habenbetrag_correct'] = $this->amounts_match($studententry['habenbetrag'], $correctentry['habenbetrag']);
-
-        $feedback['all_correct'] = $feedback['sollkonto_correct'] && $feedback['sollbetrag_correct'] &&
-                                   $feedback['habenkonto_correct'] && $feedback['habenbetrag_correct'];
-
-        // Show explanation if any field is incorrect.
-        if (!$feedback['all_correct'] && !empty($correctentry['explanation'])) {
-            $feedback['explanation'] = $correctentry['explanation'];
+        // Determine debit status.
+        if ($debittotalcount > 0) {
+            if ($debitcorrectcount === $debittotalcount) {
+                $feedback['debit_status'] = 'correct';
+            } else if ($debitcorrectcount > 0) {
+                $feedback['debit_status'] = 'partial';
+            } else {
+                $feedback['debit_status'] = 'incorrect';
+            }
         }
+
+        // Compare Credit (Haben) side.
+        $creditcorrectcount = 0;
+        $credittotalcount = 0;
+        foreach ($correctaggregated['credit'] as $account => $correctamount) {
+            $credittotalcount++;
+            $studentamount = $studentaggregated['credit'][$account] ?? null;
+            if ($studentamount === null) {
+                // Student missing this account.
+                $feedback['credit_details'][] = [
+                    'account' => $account,
+                    'correct_amount' => $correctamount,
+                    'student_amount' => null,
+                    'status' => 'missing',
+                ];
+            } else if ($studentamount != $correctamount) {
+                // Amount doesn't match.
+                $feedback['credit_details'][] = [
+                    'account' => $account,
+                    'correct_amount' => $correctamount,
+                    'student_amount' => $studentamount,
+                    'status' => 'wrong_amount',
+                ];
+            } else {
+                // Correct.
+                $creditcorrectcount++;
+                $feedback['credit_details'][] = [
+                    'account' => $account,
+                    'correct_amount' => $correctamount,
+                    'student_amount' => $studentamount,
+                    'status' => 'correct',
+                ];
+            }
+        }
+
+        // Determine credit status.
+        if ($credittotalcount > 0) {
+            if ($creditcorrectcount === $credittotalcount) {
+                $feedback['credit_status'] = 'correct';
+            } else if ($creditcorrectcount > 0) {
+                $feedback['credit_status'] = 'partial';
+            } else {
+                $feedback['credit_status'] = 'incorrect';
+            }
+        }
+
+        $feedback['all_correct'] = ($feedback['debit_status'] === 'correct' && $feedback['credit_status'] === 'correct');
 
         return $feedback;
     }
 
     /**
-     * Check if a student amount matches the correct amount.
+     * Aggregate entries by account on each side for feedback display.
      *
-     * An amount is "non-existent" if it's empty or equals 0.
-     * If correct amount is non-existent, student's empty or 0 is correct.
-     * Otherwise, values must match within 0.01 tolerance.
-     *
-     * @param string $studentamount The student's amount value.
-     * @param float $correctamount The correct amount value.
-     * @return bool True if amounts match.
+     * @param array $entries The entries to aggregate.
+     * @return array Aggregated data with 'debit' and 'credit' keys, each account => amount.
      */
-    protected function amounts_match(string $studentamount, float $correctamount): bool {
-        $studentfloat = (float)$studentamount;
-        $studentempty = $studentamount === '' || abs($studentfloat) < 0.01;
-        $correctempty = abs($correctamount) < 0.01;
+    protected function aggregate_entries_for_feedback(array $entries): array {
+        $aggregated = [
+            'debit' => [],
+            'credit' => [],
+        ];
 
-        // If correct amount is non-existent (0), student's empty or 0 is correct.
-        if ($correctempty) {
-            return $studentempty;
+        foreach ($entries as $entry) {
+            // Aggregate Debit (Soll) side.
+            $sollkonto = $entry['sollkonto'] ?? '';
+            if (!empty($sollkonto)) {
+                if (!isset($aggregated['debit'][$sollkonto])) {
+                    $aggregated['debit'][$sollkonto] = 0;
+                }
+                $aggregated['debit'][$sollkonto] += (float)($entry['sollbetrag'] ?? 0);
+            }
+
+            // Aggregate Credit (Haben) side.
+            $habenkonto = $entry['habenkonto'] ?? '';
+            if (!empty($habenkonto)) {
+                if (!isset($aggregated['credit'][$habenkonto])) {
+                    $aggregated['credit'][$habenkonto] = 0;
+                }
+                $aggregated['credit'][$habenkonto] += (float)($entry['habenbetrag'] ?? 0);
+            }
         }
 
-        // Correct amount has a value - student must enter something and match it.
-        if ($studentamount === '') {
-            return false;
+        return $aggregated;
+    }
+
+    /**
+     * Parse student response into entries array.
+     *
+     * @param array $response The response data.
+     * @return array The parsed entries.
+     */
+    protected function parse_student_response(array $response): array {
+        $entries = [];
+        $maxentries = 20;
+
+        for ($i = 0; $i < $maxentries; $i++) {
+            $sollkonto = trim($response["sollkonto_{$i}"] ?? '');
+            $habenkonto = trim($response["habenkonto_{$i}"] ?? '');
+
+            if (!empty($sollkonto) || !empty($habenkonto)) {
+                $entries[] = [
+                    'sollkonto' => $sollkonto,
+                    'sollbetrag' => (float)($response["sollbetrag_{$i}"] ?? 0),
+                    'habenkonto' => $habenkonto,
+                    'habenbetrag' => (float)($response["habenbetrag_{$i}"] ?? 0),
+                ];
+            }
         }
 
-        return abs($studentfloat - $correctamount) < 0.01;
+        return $entries;
+    }
+
+    /**
+     * Render the feedback summary showing overall correct/incorrect per side.
+     *
+     * @param array $feedback The aggregated feedback data.
+     * @return string The HTML output.
+     */
+    protected function render_feedback_summary(array $feedback): string {
+        $html = html_writer::start_div('buchungssatz-feedback-summary mt-3');
+
+        if ($feedback['all_correct']) {
+            $html .= html_writer::tag('div',
+                '<i class="fa fa-check-circle"></i> ' . get_string('allcorrect', 'qtype_buchungssatz'),
+                ['class' => 'alert alert-success']
+            );
+        } else {
+            // Show which side(s) are incorrect or partially incorrect.
+            $messages = [];
+
+            if ($feedback['debit_status'] === 'incorrect') {
+                $messages[] = get_string('debitincorrect', 'qtype_buchungssatz');
+            } else if ($feedback['debit_status'] === 'partial') {
+                $messages[] = get_string('debitpartiallyincorrect', 'qtype_buchungssatz');
+            }
+
+            if ($feedback['credit_status'] === 'incorrect') {
+                $messages[] = get_string('creditincorrect', 'qtype_buchungssatz');
+            } else if ($feedback['credit_status'] === 'partial') {
+                $messages[] = get_string('creditpartiallyincorrect', 'qtype_buchungssatz');
+            }
+
+            // Determine alert class based on whether it's fully wrong or partially wrong.
+            $haspartial = ($feedback['debit_status'] === 'partial' || $feedback['credit_status'] === 'partial');
+            $alertclass = $haspartial ? 'alert alert-warning' : 'alert alert-danger';
+            $icon = $haspartial ? 'fa-exclamation-triangle' : 'fa-times-circle';
+
+            $html .= html_writer::tag('div',
+                '<i class="fa ' . $icon . '"></i> ' . implode(' ', $messages),
+                ['class' => $alertclass]
+            );
+        }
+
+        $html .= html_writer::end_div();
+
+        return $html;
     }
 }

@@ -95,20 +95,12 @@ class qtype_buchungssatz extends question_type {
         $options->maxentries = $question->maxentries ?? 5;
         $DB->insert_record('qtype_buchungssatz_options', $options);
 
-        // Save correct answer entries. Credit (Haben) account is required, Debit (Soll) is optional.
+        // Save correct answer entries. Either Debit (Soll) or Credit (Haben) account is required.
         // Form fields are arrays: sollkonto[], sollbetrag[], etc.
-        // Note: Array indices may not be sequential if entries were deleted, so we iterate over
-        // the actual keys in the habenkonto array rather than using a numeric counter.
         // Also handle Behat data where values may be strings instead of arrays.
         $sortorder = 0;
 
-        // Ensure habenkonto is an array (Behat may pass strings).
-        $habenkontoarray = $question->habenkonto ?? [];
-        if (!is_array($habenkontoarray)) {
-            $habenkontoarray = [$habenkontoarray];
-        }
-
-        // Similarly ensure other fields are arrays.
+        // Ensure all field arrays are properly formatted.
         $sollkontoarray = $question->sollkonto ?? [];
         if (!is_array($sollkontoarray)) {
             $sollkontoarray = [$sollkontoarray];
@@ -117,31 +109,44 @@ class qtype_buchungssatz extends question_type {
         if (!is_array($sollbetragarray)) {
             $sollbetragarray = [$sollbetragarray];
         }
+        $habenkontoarray = $question->habenkonto ?? [];
+        if (!is_array($habenkontoarray)) {
+            $habenkontoarray = [$habenkontoarray];
+        }
         $habenbetragarray = $question->habenbetrag ?? [];
         if (!is_array($habenbetragarray)) {
             $habenbetragarray = [$habenbetragarray];
         }
-        $gradearray = $question->grade ?? [];
-        if (!is_array($gradearray)) {
-            $gradearray = [$gradearray];
+        // Weight fields arrays.
+        $weightsollkontoarray = $question->weight_sollkonto ?? [];
+        if (!is_array($weightsollkontoarray)) {
+            $weightsollkontoarray = [$weightsollkontoarray];
         }
-        $explanationarray = $question->explanation ?? [];
-        if (!is_array($explanationarray)) {
-            $explanationarray = [$explanationarray];
+        $weightsollbetragarray = $question->weight_sollbetrag ?? [];
+        if (!is_array($weightsollbetragarray)) {
+            $weightsollbetragarray = [$weightsollbetragarray];
+        }
+        $weighthabenkontoarray = $question->weight_habenkonto ?? [];
+        if (!is_array($weighthabenkontoarray)) {
+            $weighthabenkontoarray = [$weighthabenkontoarray];
+        }
+        $weighthabenbetragarray = $question->weight_habenbetrag ?? [];
+        if (!is_array($weighthabenbetragarray)) {
+            $weighthabenbetragarray = [$weighthabenbetragarray];
         }
 
-        foreach ($habenkontoarray as $i => $habenkonto) {
+        // Get all unique indices from both sollkonto and habenkonto arrays.
+        $allindices = array_unique(array_merge(array_keys($sollkontoarray), array_keys($habenkontoarray)));
+        sort($allindices);
+
+        foreach ($allindices as $i) {
             $sollkonto = trim($sollkontoarray[$i] ?? '');
-            $habenkonto = trim($habenkonto ?? '');
+            $habenkonto = trim($habenkontoarray[$i] ?? '');
 
-            // Only save entries that have a Credit (Haben) account.
-            if (empty($habenkonto)) {
+            // Save entries that have either a Debit (Soll) or Credit (Haben) account.
+            if (empty($sollkonto) && empty($habenkonto)) {
                 continue;
             }
-
-            // Convert grade percentage (0-100) to fraction (0-1).
-            $grade = floatval($gradearray[$i] ?? 0);
-            $fraction = $grade / 100;
 
             $record = new stdClass();
             $record->questionid = $question->id;
@@ -150,8 +155,11 @@ class qtype_buchungssatz extends question_type {
             $record->sollbetrag = floatval($sollbetragarray[$i] ?? 0);
             $record->habenkonto = $habenkonto;
             $record->habenbetrag = floatval($habenbetragarray[$i] ?? 0);
-            $record->fraction = $fraction;
-            $record->explanation = $explanationarray[$i] ?? '';
+            $record->weight_sollkonto = intval($weightsollkontoarray[$i] ?? 1);
+            $record->weight_sollbetrag = intval($weightsollbetragarray[$i] ?? 1);
+            $record->weight_habenkonto = intval($weighthabenkontoarray[$i] ?? 1);
+            $record->weight_habenbetrag = intval($weighthabenbetragarray[$i] ?? 1);
+            $record->explanation = '';
             $DB->insert_record('qtype_buchungssatz_entries', $record);
         }
 
@@ -220,7 +228,10 @@ class qtype_buchungssatz extends question_type {
                     'sollbetrag' => $entry->sollbetrag,
                     'habenkonto' => $entry->habenkonto,
                     'habenbetrag' => $entry->habenbetrag,
-                    'fraction' => $entry->fraction,
+                    'weight_sollkonto' => $entry->weight_sollkonto ?? 1,
+                    'weight_sollbetrag' => $entry->weight_sollbetrag ?? 1,
+                    'weight_habenkonto' => $entry->weight_habenkonto ?? 1,
+                    'weight_habenbetrag' => $entry->weight_habenbetrag ?? 1,
                     'explanation' => $entry->explanation ?? '',
                 ];
             }

@@ -27,10 +27,10 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
     let accountsByChart = {};
     let lastChartId = null;
     let chartManagementOpened = false;
+    let nextEntryIndex = 0;
 
     // DOM element references
     let chartSelect = null;
-    let existingEntries = [];
     let initialChartId = '0';
 
     /**
@@ -38,12 +38,11 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
      *
      * @param {Object} accounts All accounts grouped by chart ID.
      * @param {string|number} chartId The initial chart ID.
-     * @param {Array} entries Existing entry values for restoration.
+     * @param {Array} entries Existing entry values (unused but kept for API compatibility).
      */
     function init(accounts, chartId, entries) {
         accountsByChart = accounts || {};
         initialChartId = String(chartId || '0');
-        existingEntries = entries || [];
 
         chartSelect = document.getElementById('id_chartofaccountsid');
 
@@ -53,17 +52,41 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
         }
         lastChartId = chartSelect ? chartSelect.value : '0';
 
-        // Setup event handlers
+        // Calculate next entry index from existing rows.
+        calculateNextEntryIndex();
+
+        // Setup event handlers.
         setupChartChangeHandler();
         setupSollkontoChangeHandler();
-        setupMutationObserver();
-        setupDistributeGradesHandler();
-        setupCsvImportHandler();
+        setupAddEntryHandler();
+        setupDeleteEntryHandler();
+        setupFormSubmitHandler();
         setupChartManagementRefresh();
 
-        // Initial dropdown population
-        updateAccountDropdowns(true, existingEntries.length > 0);
+        // Don't rebuild dropdowns on init - PHP already populated them correctly.
+        // Only update sollbetrag states (disable if no debit account selected).
         updateAllSollbetragStates();
+
+        // Update delete button states (disable if only one entry).
+        updateDeleteButtonStates();
+
+        // Sync display fields to hidden fields for any existing entries.
+        syncAllDisplayToHidden();
+    }
+
+    /**
+     * Calculate the next entry index from existing rows.
+     */
+    function calculateNextEntryIndex() {
+        const existingRows = document.querySelectorAll('.buchungssatz-entry-row');
+        let maxIndex = -1;
+        existingRows.forEach(function(row) {
+            const index = parseInt(row.getAttribute('data-entry-index'), 10);
+            if (!isNaN(index) && index > maxIndex) {
+                maxIndex = index;
+            }
+        });
+        nextEntryIndex = maxIndex + 1;
     }
 
     /**
@@ -73,7 +96,7 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
         if (chartSelect) {
             chartSelect.addEventListener('change', function() {
                 lastChartId = null; // Reset to force rebuild
-                updateAccountDropdowns(true, false);
+                updateAccountDropdowns(true);
             });
         }
     }
@@ -83,246 +106,364 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
      */
     function setupSollkontoChangeHandler() {
         document.addEventListener('change', function(e) {
-            if (e.target.name && e.target.name.startsWith('sollkonto[')) {
-                updateSollbetragState(e.target);
+            if (e.target.classList.contains('buchungssatz-sollkonto')) {
+                const index = e.target.getAttribute('data-index');
+                updateSollbetragState(index);
+                syncDisplayToHidden(index);
+            }
+            // Also sync other display fields on change.
+            if (e.target.classList.contains('buchungssatz-habenkonto') ||
+                e.target.classList.contains('buchungssatz-weight')) {
+                const index = e.target.getAttribute('data-index');
+                syncDisplayToHidden(index);
             }
         });
-    }
 
-    /**
-     * Setup MutationObserver for dynamically added elements.
-     */
-    function setupMutationObserver() {
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.addedNodes.length) {
-                    updateAccountDropdowns(true, false);
-                }
-            });
+        // Sync amount fields on input (not just change).
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('buchungssatz-sollbetrag') ||
+                e.target.classList.contains('buchungssatz-habenbetrag') ||
+                e.target.classList.contains('buchungssatz-weight')) {
+                const index = e.target.getAttribute('data-index');
+                syncDisplayToHidden(index);
+            }
         });
 
-        const form = document.querySelector('form');
-        if (form) {
-            observer.observe(form, {childList: true, subtree: true});
-        }
+        // Format amount fields on blur (when user leaves the field).
+        document.addEventListener('blur', function(e) {
+            if (e.target.classList.contains('buchungssatz-sollbetrag') ||
+                e.target.classList.contains('buchungssatz-habenbetrag')) {
+                // Format the display value in German format.
+                const formatted = formatGermanNumber(e.target.value);
+                e.target.value = formatted;
+                // Also sync to hidden field (with plain number).
+                const index = e.target.getAttribute('data-index');
+                syncDisplayToHidden(index);
+            }
+        }, true); // Use capture to ensure we get the event before it bubbles.
     }
 
     /**
-     * Setup distribute grades equally button handler.
+     * Setup add entry button handler.
      */
-    function setupDistributeGradesHandler() {
-        document.addEventListener('click', function(e) {
-            const btn = e.target.closest('.buchungssatz-distribute-grades-btn');
-            if (btn) {
+    function setupAddEntryHandler() {
+        const addButton = document.getElementById('buchungssatz-add-entry');
+        if (addButton) {
+            addButton.addEventListener('click', function(e) {
                 e.preventDefault();
-                e.stopPropagation();
+                addEntryRow();
+            });
+        }
+    }
 
-                const gradeInputs = document.querySelectorAll("input[name^='grade[']");
-                const visibleGrades = [];
-
-                gradeInputs.forEach(function(input) {
-                    const entryGroup = input.closest('.buchungssatz-entry-group');
-                    const isVisible = !entryGroup ||
-                        entryGroup.offsetParent !== null ||
-                        window.getComputedStyle(entryGroup).display !== 'none';
-
-                    if (isVisible) {
-                        visibleGrades.push(input);
-                    }
-                });
-
-                if (visibleGrades.length > 0) {
-                    const gradePerEntry = 100 / visibleGrades.length;
-                    visibleGrades.forEach(function(gradeInput) {
-                        gradeInput.value = gradePerEntry;
-                    });
-                }
+    /**
+     * Setup delete entry button handler (event delegation).
+     */
+    function setupDeleteEntryHandler() {
+        document.addEventListener('click', function(e) {
+            const deleteBtn = e.target.closest('.buchungssatz-delete-entry');
+            if (deleteBtn) {
+                e.preventDefault();
+                const index = deleteBtn.getAttribute('data-index');
+                deleteEntryRow(index);
             }
         });
     }
 
     /**
-     * Setup CSV import functionality.
+     * Setup form submit handler to sync all display fields to hidden fields.
      */
-    function setupCsvImportHandler() {
-        const importBtn = document.getElementById('buchungssatz-import-btn');
-        const csvFileInput = document.getElementById('buchungssatz-csv-file');
-        const csvFilenameDisplay = document.getElementById('buchungssatz-csv-filename');
-
-        if (csvFileInput && csvFilenameDisplay) {
-            csvFileInput.addEventListener('change', function() {
-                if (csvFileInput.files.length > 0) {
-                    csvFilenameDisplay.textContent = csvFileInput.files[0].name;
-                    csvFilenameDisplay.style.color = '#212529';
-                } else {
-                    Str.get_string('nofileselected', 'qtype_buchungssatz').then(function(str) {
-                        csvFilenameDisplay.textContent = str;
-                        csvFilenameDisplay.style.color = '#6c757d';
-                    });
-                }
-            });
-        }
-
-        if (importBtn && csvFileInput) {
-            importBtn.addEventListener('click', function() {
-                const file = csvFileInput.files[0];
-                if (!file) {
-                    Str.get_string('nofileselected', 'qtype_buchungssatz').then(function(str) {
-                        alert(str);
-                    });
-                    return;
-                }
-
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const csvData = e.target.result.trim();
-                    if (!csvData) {
-                        Str.get_string('nocsverror', 'qtype_buchungssatz').then(function(str) {
-                            alert(str);
-                        });
-                        return;
-                    }
-
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('POST', Config.wwwroot + '/question/type/buchungssatz/ajax/import_entries.php', true);
-                    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-                    xhr.onreadystatechange = function() {
-                        if (xhr.readyState === 4) {
-                            handleImportResponse(xhr, csvFileInput, csvFilenameDisplay);
-                        }
-                    };
-                    xhr.send('sesskey=' + Config.sesskey + '&csvdata=' + encodeURIComponent(csvData));
-                };
-                reader.onerror = function() {
-                    Str.get_string('filereaderror', 'qtype_buchungssatz').then(function(str) {
-                        alert(str);
-                    });
-                };
-                reader.readAsText(file);
-            });
-        }
-    }
-
-    /**
-     * Handle import response from server.
-     *
-     * @param {XMLHttpRequest} xhr The XMLHttpRequest object.
-     * @param {HTMLElement} csvFileInput The file input element.
-     * @param {HTMLElement} csvFilenameDisplay The filename display element.
-     */
-    function handleImportResponse(xhr, csvFileInput, csvFilenameDisplay) {
-        if (xhr.status === 200) {
-            try {
-                const response = JSON.parse(xhr.responseText);
-                if (response.success) {
-                    // Update chart selection
-                    if (response.chartid && chartSelect) {
-                        let optionExists = false;
-                        for (let i = 0; i < chartSelect.options.length; i++) {
-                            if (chartSelect.options[i].value == response.chartid) {
-                                optionExists = true;
-                                break;
-                            }
-                        }
-                        if (!optionExists) {
-                            const opt = document.createElement('option');
-                            opt.value = response.chartid;
-                            opt.text = response.chartname;
-                            chartSelect.add(opt);
-                        }
-                        chartSelect.value = response.chartid;
-                    }
-
-                    accountsByChart = response.accounts;
-
-                    // Update dropdowns with new chart's accounts BEFORE populating
-                    // This ensures existing select elements have the correct options
-                    updateAccountDropdowns(true, false);
-
-                    // Populate form fields and trigger reload for proper rendering
-                    populateAndReloadForm(response.entries);
-                } else {
-                    Str.get_string('importerror', 'qtype_buchungssatz').then(function(str) {
-                        alert(str + response.error);
-                    });
-                }
-            } catch (e) {
-                Str.get_string('importerror', 'qtype_buchungssatz').then(function(str) {
-                    alert(str + e.message);
-                });
-            }
-        } else {
-            Str.get_string('importerror', 'qtype_buchungssatz').then(function(str) {
-                alert(str + 'HTTP ' + xhr.status);
-            });
-        }
-    }
-
-    /**
-     * Populate form with imported entries and trigger a form reload.
-     * This lets Moodle's repeat_elements render the form properly.
-     *
-     * @param {Array} entries The imported entries.
-     */
-    function populateAndReloadForm(entries) {
+    function setupFormSubmitHandler() {
         const form = document.querySelector('form.mform') || document.querySelector('form');
-        if (!form) {
-            console.error('Could not find form');
+        if (form) {
+            form.addEventListener('submit', function() {
+                syncAllDisplayToHidden();
+            });
+        }
+    }
+
+    /**
+     * Add a new entry row to the table.
+     */
+    function addEntryRow() {
+        const template = document.getElementById('buchungssatz-entry-template');
+        const tbody = document.getElementById('buchungssatz-entries-body');
+
+        if (!template || !tbody) {
+            console.error('Template or tbody not found', {template: template, tbody: tbody});
             return;
         }
 
-        // Set entry_repeats to entries.length - 1 (entry_add button will increment by 1)
-        const repeatsInput = document.querySelector("input[name='entry_repeats']");
-        if (repeatsInput) {
-            repeatsInput.value = Math.max(0, entries.length - 1);
-        }
+        // Clone the template content (template.content is a DocumentFragment).
+        const clone = template.content.cloneNode(true);
 
-        // Calculate grade per entry
-        const gradePerEntry = entries.length > 0 ? (100 / entries.length) : 0;
+        // Update all __INDEX__ placeholders in the cloned content.
+        // We need to update attributes and text content.
+        clone.querySelectorAll('[data-index="__INDEX__"]').forEach(function(el) {
+            el.setAttribute('data-index', nextEntryIndex);
+        });
+        clone.querySelectorAll('[data-entry-index="__INDEX__"]').forEach(function(el) {
+            el.setAttribute('data-entry-index', nextEntryIndex);
+        });
+        clone.querySelectorAll('[name*="__INDEX__"]').forEach(function(el) {
+            el.name = el.name.replace('__INDEX__', nextEntryIndex);
+        });
 
-        // Set or create hidden form fields for each entry
-        for (let i = 0; i < entries.length; i++) {
-            setFormField(form, 'sollkonto[' + i + ']', entries[i].sollkonto);
-            setFormField(form, 'sollbetrag[' + i + ']', entries[i].sollbetrag);
-            setFormField(form, 'habenkonto[' + i + ']', entries[i].habenkonto);
-            setFormField(form, 'habenbetrag[' + i + ']', entries[i].habenbetrag);
-            setFormField(form, 'grade[' + i + ']', gradePerEntry.toFixed(6));
-            setFormField(form, 'explanation[' + i + ']', '');
-        }
+        // Append the cloned rows to the tbody.
+        tbody.appendChild(clone);
 
-        // Update sollbetrag states AFTER setting values
-        // This enables sollbetrag fields (disabled fields are not submitted)
-        updateAllSollbetragStates();
+        // Update dropdowns for the new row.
+        updateAccountDropdowns(false);
+        updateSollbetragState(nextEntryIndex);
 
-        // Click the "Add entry" button to trigger form reload
-        // Moodle will re-render the form with entry_repeats + 1 entries
-        const addButton = document.querySelector('input[name="entry_add"]');
-        if (addButton) {
-            addButton.click();
-        } else {
-            console.error('Could not find entry_add button');
-        }
+        // Initialize hidden fields for the new index.
+        initializeHiddenFieldsForIndex(nextEntryIndex);
+
+        // Update delete button states (enable all since we now have more than one).
+        updateDeleteButtonStates();
+
+        nextEntryIndex++;
     }
 
     /**
-     * Set a form field value, creating a hidden field if it doesn't exist.
+     * Initialize hidden form fields for a given index.
      *
-     * @param {HTMLElement} form The form element.
-     * @param {string} name The field name.
-     * @param {string} value The field value.
+     * @param {number} index The entry index.
      */
-    function setFormField(form, name, value) {
-        let field = form.querySelector('[name="' + name + '"]');
-        if (field) {
-            field.value = value;
-        } else {
-            // Create hidden field for values that don't have DOM elements yet
-            field = document.createElement('input');
-            field.type = 'hidden';
-            field.name = name;
-            field.value = value;
-            form.appendChild(field);
+    function initializeHiddenFieldsForIndex(index) {
+        const form = document.querySelector('form.mform') || document.querySelector('form');
+        if (!form) {
+            return;
         }
+
+        // The hidden fields should already exist (they're pre-created up to index 19).
+        // Just sync the display values to them.
+        syncDisplayToHidden(index);
+    }
+
+    /**
+     * Delete an entry row from the table.
+     *
+     * @param {string|number} index The entry index to delete.
+     */
+    function deleteEntryRow(index) {
+        // Prevent deleting the last remaining entry.
+        const allEntryRows = document.querySelectorAll('.buchungssatz-entry-row');
+        if (allEntryRows.length <= 1) {
+            return;
+        }
+
+        const entryRow = document.querySelector('.buchungssatz-entry-row[data-entry-index="' + index + '"]');
+        const weightRow = document.querySelector('.buchungssatz-weight-row[data-entry-index="' + index + '"]');
+
+        if (entryRow) {
+            entryRow.remove();
+        }
+        if (weightRow) {
+            weightRow.remove();
+        }
+
+        // Clear the hidden fields for this index.
+        clearHiddenFieldsForIndex(index);
+
+        // Update Per/an labels (first visible row should have them).
+        updatePerAnLabels();
+
+        // Update delete button states (disable if only one entry remains).
+        updateDeleteButtonStates();
+    }
+
+    /**
+     * Update the enabled/disabled state of all delete buttons.
+     * Disable delete buttons when only one entry remains.
+     */
+    function updateDeleteButtonStates() {
+        const allEntryRows = document.querySelectorAll('.buchungssatz-entry-row');
+        const deleteButtons = document.querySelectorAll('.buchungssatz-delete-entry');
+        const isOnlyOne = allEntryRows.length <= 1;
+
+        deleteButtons.forEach(function(button) {
+            button.disabled = isOnlyOne;
+            if (isOnlyOne) {
+                button.classList.add('disabled');
+                button.style.opacity = '0.5';
+                button.style.cursor = 'not-allowed';
+            } else {
+                button.classList.remove('disabled');
+                button.style.opacity = '';
+                button.style.cursor = '';
+            }
+        });
+    }
+
+    /**
+     * Clear hidden form fields for a given index.
+     *
+     * @param {string|number} index The entry index.
+     */
+    function clearHiddenFieldsForIndex(index) {
+        // Clear all Moodle hidden fields.
+        const allFields = ['sollkonto', 'sollbetrag', 'habenkonto', 'habenbetrag',
+                        'weight_sollkonto', 'weight_sollbetrag', 'weight_habenkonto', 'weight_habenbetrag'];
+        allFields.forEach(function(field) {
+            const hiddenField = getFieldByName(field + '[' + index + ']');
+            if (hiddenField) {
+                hiddenField.value = '';
+            }
+        });
+    }
+
+    /**
+     * Update Per/an labels so they only appear on the first visible row.
+     */
+    function updatePerAnLabels() {
+        const entryRows = document.querySelectorAll('.buchungssatz-entry-row');
+        let isFirst = true;
+
+        Str.get_strings([
+            {key: 'per', component: 'qtype_buchungssatz'},
+            {key: 'an', component: 'qtype_buchungssatz'}
+        ]).then(function(strings) {
+            const perStr = strings[0];
+            const anStr = strings[1];
+
+            entryRows.forEach(function(row) {
+                const perCell = row.querySelector('td:first-child');
+                const anCell = row.querySelector('td:nth-child(4)');
+
+                if (perCell) {
+                    perCell.textContent = isFirst ? perStr : '';
+                }
+                if (anCell) {
+                    anCell.textContent = isFirst ? anStr : '';
+                }
+
+                isFirst = false;
+            });
+        });
+    }
+
+    /**
+     * Parse a German formatted number (1.234,56) to a plain number.
+     *
+     * @param {string} value The German formatted number string.
+     * @return {string} The plain number string (e.g., "1234.56").
+     */
+    function parseGermanNumber(value) {
+        if (!value || value.trim() === '') {
+            return '';
+        }
+        // Remove thousand separators (dots) and replace decimal comma with dot.
+        let cleaned = value.trim();
+        cleaned = cleaned.replace(/\./g, ''); // Remove thousand separators.
+        cleaned = cleaned.replace(',', '.'); // Replace decimal comma with dot.
+        return cleaned;
+    }
+
+    /**
+     * Format a number in German format (1.234,56) with 2 decimal places.
+     *
+     * @param {string|number} value The number to format.
+     * @return {string} The formatted number string.
+     */
+    function formatGermanNumber(value) {
+        if (value === '' || value === null || value === undefined) {
+            return '';
+        }
+
+        // Parse to float first (handle both German and plain formats).
+        let num;
+        if (typeof value === 'string') {
+            // Try to parse as German format first.
+            let cleaned = value.trim();
+            if (cleaned.includes(',')) {
+                // Likely German format.
+                cleaned = cleaned.replace(/\./g, '');
+                cleaned = cleaned.replace(',', '.');
+            }
+            num = parseFloat(cleaned);
+        } else {
+            num = parseFloat(value);
+        }
+
+        if (isNaN(num)) {
+            return '';
+        }
+
+        // Format with 2 decimal places in German format.
+        // toLocaleString with de-DE gives us the correct format.
+        return num.toLocaleString('de-DE', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    /**
+     * Get a form field by name, handling array-style names properly.
+     *
+     * @param {string} name The field name (e.g., "sollbetrag[0]").
+     * @return {Element|null} The form field element or null.
+     */
+    function getFieldByName(name) {
+        // Use getElementsByName which handles brackets properly.
+        const fields = document.getElementsByName(name);
+        return fields.length > 0 ? fields[0] : null;
+    }
+
+    /**
+     * Sync a single entry's display fields to hidden form fields.
+     *
+     * @param {string|number} index The entry index.
+     */
+    function syncDisplayToHidden(index) {
+        // Sync account selects.
+        const sollkontoDisplay = document.querySelector('.buchungssatz-sollkonto[data-index="' + index + '"]');
+        const sollkontoHidden = getFieldByName('sollkonto[' + index + ']');
+        if (sollkontoDisplay && sollkontoHidden) {
+            sollkontoHidden.value = sollkontoDisplay.value;
+        }
+
+        const habenkontoDisplay = document.querySelector('.buchungssatz-habenkonto[data-index="' + index + '"]');
+        const habenkontoHidden = getFieldByName('habenkonto[' + index + ']');
+        if (habenkontoDisplay && habenkontoHidden) {
+            habenkontoHidden.value = habenkontoDisplay.value;
+        }
+
+        // Sync amount fields - parse German format to plain numbers for hidden fields.
+        const sollbetragDisplay = document.querySelector('.buchungssatz-sollbetrag[data-index="' + index + '"]');
+        const sollbetragHidden = getFieldByName('sollbetrag[' + index + ']');
+        if (sollbetragDisplay && sollbetragHidden) {
+            sollbetragHidden.value = parseGermanNumber(sollbetragDisplay.value);
+        }
+
+        const habenbetragDisplay = document.querySelector('.buchungssatz-habenbetrag[data-index="' + index + '"]');
+        const habenbetragHidden = getFieldByName('habenbetrag[' + index + ']');
+        if (habenbetragDisplay && habenbetragHidden) {
+            habenbetragHidden.value = parseGermanNumber(habenbetragDisplay.value);
+        }
+
+        // Sync weight fields.
+        const weightFields = ['sollkonto', 'sollbetrag', 'habenkonto', 'habenbetrag'];
+        weightFields.forEach(function(field) {
+            const displayField = document.querySelector('.buchungssatz-weight[data-index="' + index + '"][data-field="' + field + '"]');
+            const hiddenField = getFieldByName('weight_' + field + '[' + index + ']');
+            if (displayField && hiddenField) {
+                hiddenField.value = displayField.value;
+            }
+        });
+    }
+
+    /**
+     * Sync all display fields to hidden form fields.
+     */
+    function syncAllDisplayToHidden() {
+        const entryRows = document.querySelectorAll('.buchungssatz-entry-row');
+        entryRows.forEach(function(row) {
+            const index = row.getAttribute('data-entry-index');
+            if (index !== '__INDEX__') {
+                syncDisplayToHidden(index);
+            }
+        });
     }
 
     /**
@@ -362,7 +503,7 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
             if (xhr.readyState === 4 && xhr.status === 200) {
                 try {
                     accountsByChart = JSON.parse(xhr.responseText);
-                    updateAccountDropdowns(true, false);
+                    updateAccountDropdowns(true);
                 } catch (e) {
                     console.error('Failed to parse accounts response', e);
                 }
@@ -375,29 +516,24 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
      * Update account dropdowns based on selected chart.
      *
      * @param {boolean} forceRebuild Whether to force rebuild even if chart hasn't changed.
-     * @param {boolean} useExistingValues Whether to use existing entry values.
      */
-    function updateAccountDropdowns(forceRebuild, useExistingValues) {
+    function updateAccountDropdowns(forceRebuild) {
         const chartId = chartSelect ? chartSelect.value : '0';
         const accounts = accountsByChart[chartId] || {};
 
-        // Skip if chart hasn't changed (unless forced)
+        // Skip if chart hasn't changed (unless forced).
         if (!forceRebuild && lastChartId === chartId) {
-            updateAllSollbetragStates();
             return;
         }
         lastChartId = chartId;
 
-        // Find all sollkonto and habenkonto selects
-        const sollSelects = document.querySelectorAll("select[name^='sollkonto[']");
-        const habenSelects = document.querySelectorAll("select[name^='habenkonto[']");
+        // Find all sollkonto and habenkonto selects (display fields).
+        const sollSelects = document.querySelectorAll('select.buchungssatz-sollkonto');
+        const habenSelects = document.querySelectorAll('select.buchungssatz-habenkonto');
 
-        sollSelects.forEach(function(select, idx) {
-            let currentValue = select.value;
-            if (useExistingValues && existingEntries[idx] && !currentValue) {
-                currentValue = existingEntries[idx].sollkonto || '';
-            }
-            // Keep first option (placeholder)
+        sollSelects.forEach(function(select) {
+            const currentValue = select.value;
+            // Keep first option (placeholder).
             while (select.options.length > 1) {
                 select.remove(1);
             }
@@ -412,11 +548,8 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
             }
         });
 
-        habenSelects.forEach(function(select, idx) {
-            let currentValue = select.value;
-            if (useExistingValues && existingEntries[idx] && !currentValue) {
-                currentValue = existingEntries[idx].habenkonto || '';
-            }
+        habenSelects.forEach(function(select) {
+            const currentValue = select.value;
             while (select.options.length > 1) {
                 select.remove(1);
             }
@@ -437,18 +570,13 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
     /**
      * Update the disabled state of a Soll (debit) amount field.
      *
-     * @param {HTMLElement} sollSelect The Soll account select element.
+     * @param {string|number} index The entry index.
      */
-    function updateSollbetragState(sollSelect) {
-        const name = sollSelect.name;
-        const match = name.match(/\[(\d+)\]/);
-        if (!match) {
-            return;
-        }
-        const index = match[1];
-        const sollBetrag = document.querySelector("input[name='sollbetrag[" + index + "]']");
+    function updateSollbetragState(index) {
+        const sollSelect = document.querySelector('select.buchungssatz-sollkonto[data-index="' + index + '"]');
+        const sollBetrag = document.querySelector('input.buchungssatz-sollbetrag[data-index="' + index + '"]');
 
-        if (sollBetrag) {
+        if (sollSelect && sollBetrag) {
             const hasAccount = sollSelect.value !== '' && sollSelect.value !== null;
             sollBetrag.disabled = !hasAccount;
             sollBetrag.style.backgroundColor = hasAccount ? '' : '#e9ecef';
@@ -468,9 +596,12 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
      * Update all Soll (debit) amount field states.
      */
     function updateAllSollbetragStates() {
-        const sollSelects = document.querySelectorAll("select[name^='sollkonto[']");
-        sollSelects.forEach(function(select) {
-            updateSollbetragState(select);
+        const entryRows = document.querySelectorAll('.buchungssatz-entry-row');
+        entryRows.forEach(function(row) {
+            const index = row.getAttribute('data-entry-index');
+            if (index !== '__INDEX__') {
+                updateSollbetragState(index);
+            }
         });
     }
 

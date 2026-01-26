@@ -207,6 +207,141 @@
     justify-content: end;
 }
 
+/* Edit form table styles */
+.buchungssatz-edit-table {
+    table-layout: fixed;
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.buchungssatz-edit-table th,
+.buchungssatz-edit-table td {
+    vertical-align: middle;
+    padding: 0.5rem;
+}
+
+.buchungssatz-edit-table thead th {
+    background-color: #e9ecef;
+    font-weight: 600;
+    text-align: center;
+}
+
+.buchungssatz-edit-label {
+    width: 50px;
+    text-align: center;
+    background-color: #f8f9fa;
+    font-weight: normal;
+    font-style: italic;
+    color: #6c757d;
+}
+
+.buchungssatz-edit-data {
+    background-color: #fffef0;
+}
+
+.buchungssatz-edit-data select,
+.buchungssatz-edit-data input {
+    width: 100%;
+}
+
+.buchungssatz-edit-actions {
+    width: 50px;
+    text-align: center;
+}
+
+.buchungssatz-entry-row td {
+    border-bottom: none;
+}
+
+.buchungssatz-weight-row {
+    background-color: #f8f9fa;
+}
+
+.buchungssatz-weight-row td {
+    padding-top: 0.25rem;
+    padding-bottom: 0.5rem;
+    border-top: none;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.buchungssatz-weight-cell {
+    white-space: nowrap;
+}
+
+.buchungssatz-weight-cell input {
+    display: inline-block;
+    width: 60px;
+    text-align: center;
+}
+
+.buchungssatz-delete-entry {
+    padding: 0.25rem 0.5rem;
+}
+
+#buchungssatz-add-entry {
+    margin-top: 1rem;
+}
+
+/* Hide the template element */
+#buchungssatz-entry-template {
+    display: none;
+}
+
+/* Student view table styles */
+.buchungssatz-student-table {
+    table-layout: fixed;
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.buchungssatz-student-table th,
+.buchungssatz-student-table td {
+    vertical-align: middle;
+    padding: 0.5rem;
+}
+
+.buchungssatz-student-table thead th {
+    background-color: #e9ecef;
+    font-weight: 600;
+    text-align: center;
+}
+
+.buchungssatz-label-cell {
+    width: 50px;
+    text-align: center;
+    background-color: #f8f9fa;
+    font-weight: normal;
+    font-style: italic;
+    color: #6c757d;
+}
+
+.buchungssatz-data-cell {
+    background-color: #fffef0;
+}
+
+.buchungssatz-data-cell select,
+.buchungssatz-data-cell input {
+    width: 100%;
+}
+
+.buchungssatz-actions-cell {
+    width: 50px;
+    text-align: center;
+    background-color: #fff;
+}
+
+.buchungssatz-student-table .buchungssatz-entry-row td {
+    border-bottom: 1px solid #dee2e6;
+}
+
+.buchungssatz-student-table .buchungssatz-explanation-row td {
+    background-color: #fff3cd;
+    color: #856404;
+    font-size: 0.9em;
+    border-top: none;
+}
+
 /* Print styles */
 @media print {
     .buchungssatz-entries {
@@ -216,6 +351,10 @@
 
     .buchungssatz-account-select,
     .buchungssatz-amount {
+        border: 1px solid #000;
+    }
+
+    .buchungssatz-edit-table {
         border: 1px solid #000;
     }
 }
