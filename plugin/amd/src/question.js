@@ -47,7 +47,7 @@ define(['jquery', 'core/str'], function($, Str) {
 
         // Enable searchable dropdowns if Select2 is available (desktop only).
         // On mobile, native selects provide better UX.
-        var isMobile = window.innerWidth <= 768;
+        const isMobile = window.innerWidth <= 768;
         if (typeof $.fn.select2 !== 'undefined' && !isMobile) {
             container.find('.buchungssatz-account-select').select2({
                 placeholder: M.util.get_string('selectaccount', 'qtype_buchungssatz'),
@@ -108,7 +108,7 @@ define(['jquery', 'core/str'], function($, Str) {
             firstHidden.css('display', '');
 
             // Re-initialize Select2 if available (desktop only).
-            var isMobile = window.innerWidth <= 768;
+            const isMobile = window.innerWidth <= 768;
             if (typeof $.fn.select2 !== 'undefined' && !isMobile) {
                 firstHidden.find('.buchungssatz-account-select').select2({
                     placeholder: M.util.get_string('selectaccount', 'qtype_buchungssatz'),

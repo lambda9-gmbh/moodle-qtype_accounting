@@ -39,12 +39,12 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
      */
     function init() {
         // Read configuration from script tag (preferred) or data attribute (fallback).
-        var dataElement = document.getElementById('buchungssatz-editform-data');
-        var config = {};
+        const dataElement = document.getElementById('buchungssatz-editform-data');
+        let config = {};
         if (dataElement) {
             try {
                 // Script tags use textContent, div elements use data-config attribute.
-                var jsonText = dataElement.textContent || dataElement.getAttribute('data-config');
+                const jsonText = dataElement.textContent || dataElement.getAttribute('data-config');
                 if (jsonText) {
                     config = JSON.parse(jsonText);
                 }
