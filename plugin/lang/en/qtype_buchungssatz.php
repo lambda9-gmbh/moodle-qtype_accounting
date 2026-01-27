@@ -84,8 +84,10 @@ $string['pleaseenteranswer'] = 'Please enter at least one complete booking entry
 $string['allcorrect'] = 'All entries are correct!';
 $string['debitincorrect'] = 'The debit side (Soll) is incorrect.';
 $string['debitpartiallyincorrect'] = 'The debit side (Soll) is partially incorrect.';
+$string['debithasextraaccounts'] = 'The debit side (Soll) contains unnecessary accounts.';
 $string['creditincorrect'] = 'The credit side (Haben) is incorrect.';
 $string['creditpartiallyincorrect'] = 'The credit side (Haben) is partially incorrect.';
+$string['credithasextraaccounts'] = 'The credit side (Haben) contains unnecessary accounts.';
 
 // Validation errors.
 $string['err_noentries'] = 'Please enter at least one booking entry with account and amount.';

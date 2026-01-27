@@ -31,23 +31,19 @@ define(['jquery', 'core/str'], function($, Str) {
      * Initialize the question interface.
      *
      * @param {string} containerId The ID of the question container.
-     * @param {Array} accounts The available accounts for selection.
-     * @param {number} maxEntries Maximum number of entries allowed.
-     * @param {boolean} allowEdit Whether the user can add/delete entries.
-     * @param {string} numFormat The number format ('de' or 'us').
-     * @param {number} decimals The number of decimal places.
      */
-    function init(containerId, accounts, maxEntries, allowEdit, numFormat, decimals) {
+    function init(containerId) {
         const container = $('#' + containerId);
 
         if (container.length === 0) {
             return;
         }
 
-        maxEntries = maxEntries || 1;
-        allowEdit = allowEdit !== false;
-        numberFormat = numFormat || 'de';
-        decimalPlaces = decimals || 2;
+        // Read configuration from data attributes (avoids Moodle 3.10 js_call_amd size limits).
+        const maxEntries = parseInt(container.data('maxentries'), 10) || 20;
+        const allowEdit = container.data('allowedit') === 1 || container.data('allowedit') === '1';
+        numberFormat = container.data('numberformat') || 'de';
+        decimalPlaces = parseInt(container.data('decimalplaces'), 10) || 2;
 
         // Enable searchable dropdowns if Select2 is available (desktop only).
         // On mobile, native selects provide better UX.

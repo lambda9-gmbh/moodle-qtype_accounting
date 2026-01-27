@@ -271,7 +271,36 @@ class qtype_buchungssatz_question extends question_graded_automatically {
             // If student doesn't have the account, they earn 0 for both account and amount.
         }
 
+        // Check for extra accounts in student's response that aren't in the correct answer.
+        // If student has extra accounts, they cannot receive full marks.
+        $hasextraaccounts = false;
+
+        // Check for extra debit accounts.
+        foreach ($studentaggregated['debit'] as $account => $studentdata) {
+            if (!isset($correctaggregated['debit'][$account])) {
+                $hasextraaccounts = true;
+                break;
+            }
+        }
+
+        // Check for extra credit accounts.
+        if (!$hasextraaccounts) {
+            foreach ($studentaggregated['credit'] as $account => $studentdata) {
+                if (!isset($correctaggregated['credit'][$account])) {
+                    $hasextraaccounts = true;
+                    break;
+                }
+            }
+        }
+
         $fraction = $earnedweight / $totalweight;
+
+        // If student has extra accounts, cap the fraction below 1.0.
+        // This ensures they cannot get full marks with unnecessary entries.
+        if ($hasextraaccounts && $fraction >= 1) {
+            // Reduce to 99% to indicate something is wrong.
+            $fraction = 0.99;
+        }
 
         // Apply all-or-nothing grading if enabled.
         if (!empty($this->allornothinggrading) && $fraction < 1) {

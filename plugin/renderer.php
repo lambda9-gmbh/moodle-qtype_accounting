@@ -58,8 +58,20 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         // Create a unique container ID for this question.
         $containerid = 'buchungssatz-container-' . $qa->get_slot();
 
-        // Wrap everything in our own container.
-        $result .= html_writer::start_div('buchungssatz-question-container', ['id' => $containerid]);
+        // Get number format settings for data attributes.
+        $numberformat = $question->numberformat ?? 'de';
+        $decimalplaces = $question->decimalplaces ?? 2;
+
+        // Wrap everything in our own container with data attributes for JS.
+        $containerattrs = [
+            'id' => $containerid,
+            'data-accounts' => json_encode(array_values($accounts)),
+            'data-maxentries' => $maxentries,
+            'data-allowedit' => !$options->readonly ? '1' : '0',
+            'data-numberformat' => $numberformat,
+            'data-decimalplaces' => $decimalplaces,
+        ];
+        $result .= html_writer::start_div('buchungssatz-question-container', $containerattrs);
 
         // Calculate overall feedback using aggregation (only in readonly/review mode).
         $overallfeedback = null;
@@ -143,17 +155,8 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $PAGE->requires->string_for_js('selectaccount', 'qtype_buchungssatz');
 
         // Include JavaScript for interactive features.
-        $numberformat = $question->numberformat ?? 'de';
-        $decimalplaces = $question->decimalplaces ?? 2;
-
-        $PAGE->requires->js_call_amd('qtype_buchungssatz/question', 'init', [
-            $containerid,
-            $accounts,
-            $maxentries,
-            !$options->readonly,
-            $numberformat,
-            $decimalplaces,
-        ]);
+        // Only pass the container ID - other data is in data attributes to avoid Moodle 3.10 size limits.
+        $PAGE->requires->js_call_amd('qtype_buchungssatz/question', 'init', [$containerid]);
 
         return $result;
     }
@@ -797,6 +800,26 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             }
         }
 
+        // Check for extra accounts that student provided but aren't in the correct answer.
+        $feedback['has_extra_debit'] = false;
+        $feedback['has_extra_credit'] = false;
+
+        foreach ($studentaggregated['debit'] as $account => $amount) {
+            if (!isset($correctaggregated['debit'][$account])) {
+                $feedback['has_extra_debit'] = true;
+                $feedback['debit_status'] = 'partial'; // Can't be fully correct with extra accounts.
+                break;
+            }
+        }
+
+        foreach ($studentaggregated['credit'] as $account => $amount) {
+            if (!isset($correctaggregated['credit'][$account])) {
+                $feedback['has_extra_credit'] = true;
+                $feedback['credit_status'] = 'partial'; // Can't be fully correct with extra accounts.
+                break;
+            }
+        }
+
         $feedback['all_correct'] = ($feedback['debit_status'] === 'correct' && $feedback['credit_status'] === 'correct');
 
         return $feedback;
@@ -885,13 +908,21 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             if ($feedback['debit_status'] === 'incorrect') {
                 $messages[] = get_string('debitincorrect', 'qtype_buchungssatz');
             } else if ($feedback['debit_status'] === 'partial') {
-                $messages[] = get_string('debitpartiallyincorrect', 'qtype_buchungssatz');
+                if (!empty($feedback['has_extra_debit'])) {
+                    $messages[] = get_string('debithasextraaccounts', 'qtype_buchungssatz');
+                } else {
+                    $messages[] = get_string('debitpartiallyincorrect', 'qtype_buchungssatz');
+                }
             }
 
             if ($feedback['credit_status'] === 'incorrect') {
                 $messages[] = get_string('creditincorrect', 'qtype_buchungssatz');
             } else if ($feedback['credit_status'] === 'partial') {
-                $messages[] = get_string('creditpartiallyincorrect', 'qtype_buchungssatz');
+                if (!empty($feedback['has_extra_credit'])) {
+                    $messages[] = get_string('credithasextraaccounts', 'qtype_buchungssatz');
+                } else {
+                    $messages[] = get_string('creditpartiallyincorrect', 'qtype_buchungssatz');
+                }
             }
 
             // Determine alert class based on whether it's fully wrong or partially wrong.

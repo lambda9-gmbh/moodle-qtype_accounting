@@ -84,8 +84,10 @@ $string['pleaseenteranswer'] = 'Bitte geben Sie mindestens einen vollständigen 
 $string['allcorrect'] = 'Alle Einträge sind korrekt!';
 $string['debitincorrect'] = 'Die Soll-Seite ist nicht korrekt.';
 $string['debitpartiallyincorrect'] = 'Die Soll-Seite ist teilweise nicht korrekt.';
+$string['debithasextraaccounts'] = 'Die Soll-Seite enthält überflüssige Konten.';
 $string['creditincorrect'] = 'Die Haben-Seite ist nicht korrekt.';
 $string['creditpartiallyincorrect'] = 'Die Haben-Seite ist teilweise nicht korrekt.';
+$string['credithasextraaccounts'] = 'Die Haben-Seite enthält überflüssige Konten.';
 
 // Validierungsfehler.
 $string['err_noentries'] = 'Bitte geben Sie mindestens eine Buchungszeile mit Konto und Betrag ein.';
