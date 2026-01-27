@@ -264,10 +264,10 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $sollbetragraw = $entry->sollbetrag ?? '';
         $habenkonto = $entry->habenkonto ?? '';
         $habenbetragraw = $entry->habenbetrag ?? '';
-        $weightsollkonto = $entry->weight_sollkonto ?? 1;
-        $weightsollbetrag = $entry->weight_sollbetrag ?? 1;
-        $weighthabenkonto = $entry->weight_habenkonto ?? 1;
-        $weighthabenbetrag = $entry->weight_habenbetrag ?? 1;
+        $weightsollkonto = (int)($entry->weight_sollkonto ?? 1);
+        $weightsollbetrag = (int)($entry->weight_sollbetrag ?? 1);
+        $weighthabenkonto = (int)($entry->weight_habenkonto ?? 1);
+        $weighthabenbetrag = (int)($entry->weight_habenbetrag ?? 1);
 
         // Format amounts in German format with 2 decimal places for display.
         // Teacher view always uses German format.
@@ -318,24 +318,48 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $html .= '<tr class="buchungssatz-weight-row" data-entry-index="' . $index . '">';
         $html .= '<td></td>';
         $html .= '<td class="buchungssatz-weight-cell">';
-        $html .= $weightstr . ': <input type="number" name="weight_sollkonto_display[' . $index . ']" value="' . (int)$weightsollkonto . '" ';
-        $html .= 'class="form-control-sm buchungssatz-weight" data-index="' . $index . '" data-field="sollkonto" min="0" style="width: 60px;">';
+        $html .= $weightstr . ': ' . $this->build_weight_select('weight_sollkonto_display[' . $index . ']', $weightsollkonto, $index, 'sollkonto');
         $html .= '</td>';
         $html .= '<td class="buchungssatz-weight-cell">';
-        $html .= $weightstr . ': <input type="number" name="weight_sollbetrag_display[' . $index . ']" value="' . (int)$weightsollbetrag . '" ';
-        $html .= 'class="form-control-sm buchungssatz-weight" data-index="' . $index . '" data-field="sollbetrag" min="0" style="width: 60px;">';
+        $html .= $weightstr . ': ' . $this->build_weight_select('weight_sollbetrag_display[' . $index . ']', $weightsollbetrag, $index, 'sollbetrag');
         $html .= '</td>';
         $html .= '<td></td>';
         $html .= '<td class="buchungssatz-weight-cell">';
-        $html .= $weightstr . ': <input type="number" name="weight_habenkonto_display[' . $index . ']" value="' . (int)$weighthabenkonto . '" ';
-        $html .= 'class="form-control-sm buchungssatz-weight" data-index="' . $index . '" data-field="habenkonto" min="0" style="width: 60px;">';
+        $html .= $weightstr . ': ' . $this->build_weight_select('weight_habenkonto_display[' . $index . ']', $weighthabenkonto, $index, 'habenkonto');
         $html .= '</td>';
         $html .= '<td class="buchungssatz-weight-cell">';
-        $html .= $weightstr . ': <input type="number" name="weight_habenbetrag_display[' . $index . ']" value="' . (int)$weighthabenbetrag . '" ';
-        $html .= 'class="form-control-sm buchungssatz-weight" data-index="' . $index . '" data-field="habenbetrag" min="0" style="width: 60px;">';
+        $html .= $weightstr . ': ' . $this->build_weight_select('weight_habenbetrag_display[' . $index . ']', $weighthabenbetrag, $index, 'habenbetrag');
         $html .= '</td>';
         $html .= '<td></td>';
         $html .= '</tr>';
+
+        return $html;
+    }
+
+    /**
+     * Build a weight select dropdown with options 1, 2, and 3.
+     *
+     * @param string $name The form field name.
+     * @param int $selectedvalue The currently selected value (1, 2, or 3).
+     * @param int|string $index The entry index.
+     * @param string $field The field name (sollkonto, sollbetrag, habenkonto, habenbetrag).
+     * @return string The HTML for the select dropdown.
+     */
+    protected function build_weight_select(string $name, int $selectedvalue, $index, string $field): string {
+        // Ensure the selected value is within the valid range (1-3), default to 1.
+        if ($selectedvalue < 1 || $selectedvalue > 3) {
+            $selectedvalue = 1;
+        }
+
+        $html = '<select name="' . $name . '" class="form-control-sm buchungssatz-weight" ';
+        $html .= 'data-index="' . $index . '" data-field="' . $field . '" style="width: 60px;">';
+
+        for ($i = 1; $i <= 3; $i++) {
+            $selected = ($i === $selectedvalue) ? ' selected' : '';
+            $html .= '<option value="' . $i . '"' . $selected . '>' . $i . '</option>';
+        }
+
+        $html .= '</select>';
 
         return $html;
     }
