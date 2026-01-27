@@ -286,11 +286,11 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $rowstyle = $hidden ? 'display: none;' : '';
         $html = '<tr class="buchungssatz-entry-row" data-entry="' . $index . '" style="' . $rowstyle . '">';
 
-        // Per label cell (only show text on first row).
-        $html .= '<td class="buchungssatz-label-cell">' . ($isfirst ? $perstr : '') . '</td>';
+        // Per label cell (only show text on first row) - add data-section for mobile header.
+        $html .= '<td class="buchungssatz-label-cell" data-section="soll">' . ($isfirst ? $perstr : '') . '</td>';
 
-        // Soll (Debit) account cell.
-        $html .= '<td class="buchungssatz-data-cell">';
+        // Soll (Debit) account cell - add data-label for mobile.
+        $html .= '<td class="buchungssatz-data-cell" data-label="' . get_string('account', 'qtype_buchungssatz') . '">';
         $html .= $this->render_account_field($readonly, $sollkontoval, $sollkontoname, $sollaccounts, $feedbackclass);
         $html .= '</td>';
 
@@ -298,21 +298,21 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $numberformat = $question->numberformat ?? 'de';
         $decimalplaces = $question->decimalplaces ?? 2;
 
-        // Soll (Debit) amount cell.
-        $html .= '<td class="buchungssatz-data-cell">';
+        // Soll (Debit) amount cell - add data-label for mobile.
+        $html .= '<td class="buchungssatz-data-cell" data-label="' . get_string('amount', 'qtype_buchungssatz') . '">';
         $html .= $this->render_amount_field($readonly, $sollbetragval, $sollbetragname, $feedbackclass, $numberformat, $decimalplaces);
         $html .= '</td>';
 
-        // "an" label cell (only show text on first row).
-        $html .= '<td class="buchungssatz-label-cell">' . ($isfirst ? $anstr : '') . '</td>';
+        // "an" label cell (only show text on first row) - add data-section for mobile header.
+        $html .= '<td class="buchungssatz-label-cell" data-section="haben">' . ($isfirst ? $anstr : '') . '</td>';
 
-        // Haben (Credit) account cell.
-        $html .= '<td class="buchungssatz-data-cell">';
+        // Haben (Credit) account cell - add data-label for mobile.
+        $html .= '<td class="buchungssatz-data-cell" data-label="' . get_string('account', 'qtype_buchungssatz') . '">';
         $html .= $this->render_account_field($readonly, $habenkontoval, $habenkontoname, $habenaccounts, $feedbackclass);
         $html .= '</td>';
 
-        // Haben (Credit) amount cell.
-        $html .= '<td class="buchungssatz-data-cell">';
+        // Haben (Credit) amount cell - add data-label for mobile.
+        $html .= '<td class="buchungssatz-data-cell" data-label="' . get_string('amount', 'qtype_buchungssatz') . '">';
         $html .= $this->render_amount_field($readonly, $habenbetragval, $habenbetragname, $feedbackclass, $numberformat, $decimalplaces);
         $html .= '</td>';
 
@@ -554,13 +554,22 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $numberformat = $question->numberformat ?? 'de';
         $decimalplaces = $question->decimalplaces ?? 2;
 
+        $sollkontostr = get_string('sollkonto', 'qtype_buchungssatz');
+        $sollbetragstr = get_string('sollbetrag', 'qtype_buchungssatz');
+        $habenkontostr = get_string('habenkonto', 'qtype_buchungssatz');
+        $habenbetragstr = get_string('habenbetrag', 'qtype_buchungssatz');
+
         $html .= html_writer::start_tag('tbody');
         foreach ($question->entries as $entry) {
             $html .= html_writer::start_tag('tr');
-            $html .= html_writer::tag('td', s($this->get_account_display($entry['sollkonto'], $accounts)));
-            $html .= html_writer::tag('td', $this->format_amount_display($entry['sollbetrag'], $numberformat, $decimalplaces));
-            $html .= html_writer::tag('td', s($this->get_account_display($entry['habenkonto'], $accounts)));
-            $html .= html_writer::tag('td', $this->format_amount_display($entry['habenbetrag'], $numberformat, $decimalplaces));
+            $html .= html_writer::tag('td', s($this->get_account_display($entry['sollkonto'], $accounts)),
+                ['data-label' => $sollkontostr]);
+            $html .= html_writer::tag('td', $this->format_amount_display($entry['sollbetrag'], $numberformat, $decimalplaces),
+                ['data-label' => $sollbetragstr]);
+            $html .= html_writer::tag('td', s($this->get_account_display($entry['habenkonto'], $accounts)),
+                ['data-label' => $habenkontostr]);
+            $html .= html_writer::tag('td', $this->format_amount_display($entry['habenbetrag'], $numberformat, $decimalplaces),
+                ['data-label' => $habenbetragstr]);
             $html .= html_writer::end_tag('tr');
             // Show explanation as separate row if present.
             if (!empty($entry['explanation'])) {

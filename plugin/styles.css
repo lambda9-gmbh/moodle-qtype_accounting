@@ -186,8 +186,12 @@
     margin-bottom: 0.5rem;
 }
 
-/* Responsive adjustments */
+/* ========================================
+   MOBILE RESPONSIVE STYLES
+   ======================================== */
+
 @media (max-width: 768px) {
+    /* Legacy flexbox styles for backwards compatibility */
     .buchungssatz-header .col-md-6,
     .buchungssatz-subheader .col-md-3,
     .buchungssatz-entry .col-md-3 {
@@ -199,8 +203,281 @@
         max-width: 100%;
     }
 
-    .buchungssatz-account-select {
-        min-width: 100%;
+    /* Hide table header on mobile */
+    .buchungssatz-student-table thead,
+    .buchungssatz-student-table colgroup {
+        display: none;
+    }
+
+    /* Transform table to block layout - override table-layout: fixed */
+    .buchungssatz-student-table {
+        display: block !important;
+        width: 100% !important;
+        table-layout: auto !important;
+    }
+
+    .buchungssatz-student-table tbody {
+        display: block !important;
+        width: 100% !important;
+    }
+
+    /* Only show visible rows as blocks - don't override inline display:none */
+    .buchungssatz-student-table tr {
+        display: block;
+        width: 100% !important;
+    }
+
+    /* Hidden rows must stay hidden */
+    .buchungssatz-student-table tr[style*="display: none"],
+    .buchungssatz-student-table tr[style*="display:none"] {
+        display: none !important;
+    }
+
+    /* Each row becomes a card - don't use !important on display to allow hiding */
+    .buchungssatz-student-table .buchungssatz-entry-row {
+        display: block;
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        padding: 0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        overflow: visible !important;
+        position: relative;
+    }
+
+    /* Reset any problematic Select2 containers */
+    .buchungssatz-student-table .select2-container {
+        position: static !important;
+        display: block !important;
+        width: 100% !important;
+    }
+
+    .buchungssatz-student-table .select2-container--default .select2-selection--single {
+        height: auto;
+        min-height: 44px;
+    }
+
+    /* Hide Select2 dropdown wrapper if it exists */
+    .buchungssatz-student-table .select2-container .select2-dropdown {
+        position: absolute;
+        z-index: 9999;
+    }
+
+    /* All cells become block elements - override desktop max-width: 0 hack */
+    .buchungssatz-student-table td {
+        display: block !important;
+        width: 100% !important;
+        border: none !important;
+        padding: 0.75rem 1rem;
+        max-width: none !important;
+        overflow: visible !important;
+        box-sizing: border-box;
+    }
+
+    /* Soll section header (label cell) */
+    .buchungssatz-student-table td.buchungssatz-label-cell[data-section="soll"] {
+        background-color: #d4edda;
+        color: #155724;
+        font-weight: 700;
+        font-style: normal;
+        text-align: left;
+        padding: 0.75rem 1rem;
+    }
+
+    .buchungssatz-student-table td.buchungssatz-label-cell[data-section="soll"]::before {
+        content: "Soll";
+    }
+
+    /* Hide original Per text on mobile, show Soll instead */
+    .buchungssatz-student-table td.buchungssatz-label-cell[data-section="soll"] {
+        font-size: 0;
+    }
+    .buchungssatz-student-table td.buchungssatz-label-cell[data-section="soll"]::before {
+        font-size: 1rem;
+    }
+
+    /* Haben section header */
+    .buchungssatz-student-table td.buchungssatz-label-cell[data-section="haben"] {
+        background-color: #cce5ff;
+        color: #004085;
+        font-weight: 700;
+        font-style: normal;
+        text-align: left;
+        padding: 0.75rem 1rem;
+        border-top: 1px solid #dee2e6;
+    }
+
+    .buchungssatz-student-table td.buchungssatz-label-cell[data-section="haben"]::before {
+        content: "Haben";
+    }
+
+    .buchungssatz-student-table td.buchungssatz-label-cell[data-section="haben"] {
+        font-size: 0;
+    }
+    .buchungssatz-student-table td.buchungssatz-label-cell[data-section="haben"]::before {
+        font-size: 1rem;
+    }
+
+    /* Data cells with labels */
+    .buchungssatz-student-table .buchungssatz-data-cell {
+        background: #fff;
+        padding: 0.5rem 1rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .buchungssatz-student-table .buchungssatz-data-cell::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 0.75rem;
+        color: #6c757d;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    /* Force all inputs/selects to be visible */
+    .buchungssatz-student-table select,
+    .buchungssatz-student-table input {
+        position: relative !important;
+        z-index: 2 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    /* Reset any absolutely positioned children */
+    .buchungssatz-student-table td > * {
+        position: relative !important;
+        max-width: 100% !important;
+    }
+
+    /* Full-width, touch-friendly inputs */
+    .buchungssatz-student-table .buchungssatz-account-select,
+    .buchungssatz-student-table select.form-control,
+    .buchungssatz-student-table select {
+        width: 100% !important;
+        min-height: 44px;
+        font-size: 16px; /* Prevents iOS zoom */
+        display: block !important;
+        -webkit-appearance: menulist;
+        appearance: menulist;
+        background-color: #fff;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 0.5rem;
+    }
+
+    .buchungssatz-student-table .buchungssatz-amount-input,
+    .buchungssatz-student-table input.form-control,
+    .buchungssatz-student-table input[type="text"] {
+        width: 100% !important;
+        min-height: 44px;
+        font-size: 16px; /* Prevents iOS zoom */
+        display: block !important;
+        background-color: #fff;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 0.5rem;
+    }
+
+    /* Select2 mobile fixes */
+    .buchungssatz-student-table .select2-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        position: relative !important;
+    }
+
+    .buchungssatz-student-table .select2-container .select2-selection {
+        min-height: 44px;
+        font-size: 16px;
+    }
+
+    .buchungssatz-student-table .select2-container .select2-selection__rendered {
+        line-height: 42px;
+    }
+
+    .buchungssatz-student-table .select2-container .select2-selection__arrow {
+        height: 42px;
+    }
+
+    /* Ensure Select2 dropdown doesn't overflow card */
+    .select2-container--open .select2-dropdown {
+        max-width: calc(100vw - 2rem);
+    }
+
+    /* Actions cell */
+    .buchungssatz-student-table .buchungssatz-actions-cell {
+        text-align: right;
+        padding: 0.75rem 1rem;
+        border-top: 1px solid #dee2e6;
+        background: #f8f9fa;
+    }
+
+    /* Touch-friendly delete button */
+    .buchungssatz-student-table .buchungssatz-delete-entry {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    /* Full-width add entry button */
+    .buchungssatz-controls .buchungssatz-add-entry {
+        width: 100%;
+        min-height: 44px;
+        font-size: 16px;
+    }
+
+    /* Readonly spans in review mode */
+    .buchungssatz-student-table .buchungssatz-readonly {
+        display: block;
+        width: 100%;
+        min-height: 44px;
+        padding: 0.75rem;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+    }
+
+    /* Correct response table - also transform to cards */
+    .buchungssatz-correct-response .buchungssatz-solution thead {
+        display: none;
+    }
+
+    .buchungssatz-correct-response .buchungssatz-solution,
+    .buchungssatz-correct-response .buchungssatz-solution tbody,
+    .buchungssatz-correct-response .buchungssatz-solution tr {
+        display: block;
+        width: 100%;
+    }
+
+    .buchungssatz-correct-response .buchungssatz-solution tr {
+        border: 1px solid #c3e6cb;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        padding: 1rem;
+        background: #fff;
+    }
+
+    .buchungssatz-correct-response .buchungssatz-solution td {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: none;
+        padding: 0.25rem 0;
+    }
+
+    .buchungssatz-correct-response .buchungssatz-solution td::before {
+        content: attr(data-label) ": ";
+        font-weight: 600;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 375px) {
+    .buchungssatz-student-table .buchungssatz-entry-row {
+        border-radius: 4px;
+    }
+
+    .buchungssatz-student-table td {
+        padding: 0.5rem 0.75rem;
     }
 }
 
