@@ -1,0 +1,88 @@
+# Docker Compose for Moodle 3.10 compatibility testing
+# Uses PHP 7.4 and Moodle 3.10 stable branch
+#
+# Access:
+#   Moodle:      http://localhost:8082
+#   phpMyAdmin:  http://localhost:8083
+#
+# Usage:
+#   docker compose -f docker-compose.moodle310.yml up -d --build
+
+services:
+  moodle310:
+    build:
+      context: .
+      dockerfile: Dockerfile.moodle310
+    container_name: moft-moodle310
+    ports:
+      - "8082:80"
+    environment:
+      - MOODLE_DOCKER_DBTYPE=mariadb
+      - MOODLE_DOCKER_DBHOST=mariadb310
+      - MOODLE_DOCKER_DBNAME=moodle310
+      - MOODLE_DOCKER_DBUSER=moodle
+      - MOODLE_DOCKER_DBPASS=moodle_password
+    volumes:
+      - moodledata310:/var/www/moodledata
+      - behatdata310:/var/www/behatdata
+      - ../plugin:/var/www/html/question/type/buchungssatz
+      - ./config.moodle310.php:/var/www/html/config.php
+    depends_on:
+      mariadb310:
+        condition: service_healthy
+    networks:
+      - moft-network-310
+
+  mariadb310:
+    # Use MariaDB 10.5 for Moodle 3.10 compatibility
+    image: mariadb:10.5
+    container_name: moft-mariadb310
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_DATABASE=moodle310
+      - MYSQL_USER=moodle
+      - MYSQL_PASSWORD=moodle_password
+    volumes:
+      - mariadb_data310:/var/lib/mysql
+      - ./init:/docker-entrypoint-initdb.d
+    networks:
+      - moft-network-310
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  phpmyadmin310:
+    image: phpmyadmin:5
+    container_name: moft-phpmyadmin310
+    ports:
+      - "8083:80"
+    environment:
+      - PMA_HOST=mariadb310
+      - PMA_USER=root
+      - PMA_PASSWORD=root_password
+    depends_on:
+      - mariadb310
+    networks:
+      - moft-network-310
+
+  selenium310:
+    image: selenium/standalone-firefox:latest
+    container_name: moft-selenium310
+    ports:
+      - "4445:4444"
+      - "7901:7900"
+    shm_size: '2gb'
+    networks:
+      - moft-network-310
+
+volumes:
+  moodledata310:
+  mariadb_data310:
+  behatdata310:
+
+networks:
+  moft-network-310:
+    driver: bridge

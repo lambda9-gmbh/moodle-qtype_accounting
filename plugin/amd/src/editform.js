@@ -35,16 +35,49 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
 
     /**
      * Initialize the edit form enhancements.
-     *
-     * @param {Object} accounts All accounts grouped by chart ID.
-     * @param {string|number} chartId The initial chart ID.
-     * @param {Array} entries Existing entry values (unused but kept for API compatibility).
+     * Data is read from a script tag to avoid js_call_amd size limits and HTML encoding issues.
      */
-    function init(accounts, chartId, entries) {
-        accountsByChart = accounts || {};
-        initialChartId = String(chartId || '0');
+    function init() {
+        // Read configuration from script tag (preferred) or data attribute (fallback).
+        var dataElement = document.getElementById('buchungssatz-editform-data');
+        var config = {};
+        if (dataElement) {
+            try {
+                // Script tags use textContent, div elements use data-config attribute.
+                var jsonText = dataElement.textContent || dataElement.getAttribute('data-config');
+                if (jsonText) {
+                    config = JSON.parse(jsonText);
+                }
+            } catch (e) {
+                console.error('Failed to parse editform config', e);
+            }
+        }
 
+        accountsByChart = config.accounts || {};
+        initialChartId = String(config.chartId || '0');
+
+        // Find chart select by ID first, then fall back to name (for Moodle 4.x compatibility).
         chartSelect = document.getElementById('id_chartofaccountsid');
+        if (!chartSelect) {
+            chartSelect = document.querySelector('select[name="chartofaccountsid"]');
+        }
+
+        // Debug logging to help identify issues.
+        console.log('Buchungssatz: Init started');
+        console.log('Buchungssatz: dataElement found =', !!dataElement);
+        console.log('Buchungssatz: chartSelect found =', !!chartSelect);
+        console.log('Buchungssatz: accountsByChart keys =', Object.keys(accountsByChart));
+        console.log('Buchungssatz: initialChartId =', initialChartId);
+
+        if (!chartSelect) {
+            console.warn('Buchungssatz: Chart select element not found');
+        }
+        if (!dataElement) {
+            console.warn('Buchungssatz: Data element not found');
+        }
+        if (Object.keys(accountsByChart).length === 0) {
+            console.warn('Buchungssatz: No accounts data loaded');
+        }
 
         // Initial setup - populate dropdowns based on selected chart
         if (chartSelect && initialChartId && (!chartSelect.value || chartSelect.value === '0')) {
@@ -95,9 +128,13 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
     function setupChartChangeHandler() {
         if (chartSelect) {
             chartSelect.addEventListener('change', function() {
+                console.log('Buchungssatz: Chart changed to', chartSelect.value);
+                console.log('Buchungssatz: Available chart IDs', Object.keys(accountsByChart));
                 lastChartId = null; // Reset to force rebuild
                 updateAccountDropdowns(true);
             });
+        } else {
+            console.warn('Buchungssatz: Cannot setup chart change handler - chartSelect is null');
         }
     }
 
@@ -106,6 +143,10 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
      */
     function setupSollkontoChangeHandler() {
         document.addEventListener('change', function(e) {
+            // Guard against events where target doesn't have classList.
+            if (!e.target || !e.target.classList) {
+                return;
+            }
             if (e.target.classList.contains('buchungssatz-sollkonto')) {
                 const index = e.target.getAttribute('data-index');
                 updateSollbetragState(index);
@@ -121,6 +162,10 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
 
         // Sync amount fields on input (not just change).
         document.addEventListener('input', function(e) {
+            // Guard against events where target doesn't have classList.
+            if (!e.target || !e.target.classList) {
+                return;
+            }
             if (e.target.classList.contains('buchungssatz-sollbetrag') ||
                 e.target.classList.contains('buchungssatz-habenbetrag') ||
                 e.target.classList.contains('buchungssatz-weight')) {
@@ -131,6 +176,10 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
 
         // Format amount fields on blur (when user leaves the field).
         document.addEventListener('blur', function(e) {
+            // Guard against events where target doesn't have classList.
+            if (!e.target || !e.target.classList) {
+                return;
+            }
             if (e.target.classList.contains('buchungssatz-sollbetrag') ||
                 e.target.classList.contains('buchungssatz-habenbetrag')) {
                 // Format the display value in German format.
@@ -521,8 +570,14 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
         const chartId = chartSelect ? chartSelect.value : '0';
         const accounts = accountsByChart[chartId] || {};
 
+        console.log('Buchungssatz: updateAccountDropdowns called');
+        console.log('Buchungssatz: chartId =', chartId, 'type:', typeof chartId);
+        console.log('Buchungssatz: accounts for this chart =', accounts);
+        console.log('Buchungssatz: number of accounts =', Object.keys(accounts).length);
+
         // Skip if chart hasn't changed (unless forced).
         if (!forceRebuild && lastChartId === chartId) {
+            console.log('Buchungssatz: Skipping update - chart unchanged');
             return;
         }
         lastChartId = chartId;

@@ -62,6 +62,9 @@
 
 .buchungssatz-account-select {
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .buchungssatz-amount {
@@ -293,12 +296,14 @@
     table-layout: fixed;
     width: 100%;
     margin-bottom: 0;
+    border-collapse: collapse;
 }
 
 .buchungssatz-student-table th,
 .buchungssatz-student-table td {
     vertical-align: middle;
     padding: 0.5rem;
+    border: 1px solid #dee2e6;
 }
 
 .buchungssatz-student-table thead th {
@@ -307,17 +312,20 @@
     text-align: center;
 }
 
+/* Label cells (Per, an) - narrow fixed width columns */
 .buchungssatz-label-cell {
-    width: 50px;
     text-align: center;
     background-color: #f8f9fa;
     font-weight: normal;
     font-style: italic;
     color: #6c757d;
+    vertical-align: middle;
 }
 
+/* Data cells (Account dropdowns, Amount inputs) */
 .buchungssatz-data-cell {
     background-color: #fffef0;
+    overflow: hidden;
 }
 
 .buchungssatz-data-cell select,
@@ -325,9 +333,33 @@
     width: 100%;
 }
 
+/* Force account select to respect table cell width */
+.buchungssatz-student-table .buchungssatz-account-select,
+.buchungssatz-student-table select.form-control {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+}
+
+/* Ensure the table cell constrains its content */
+.buchungssatz-student-table td {
+    overflow: hidden;
+    max-width: 0;
+}
+
+/* Amount inputs should also respect cell width */
+.buchungssatz-student-table .buchungssatz-amount-input,
+.buchungssatz-student-table input.form-control {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box;
+}
+
+/* Actions cell (delete button) */
 .buchungssatz-actions-cell {
-    width: 50px;
     text-align: center;
+    vertical-align: middle;
     background-color: #fff;
 }
 

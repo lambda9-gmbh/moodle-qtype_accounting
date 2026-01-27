@@ -70,6 +70,9 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         // Start the table.
         $result .= '<table class="table table-bordered buchungssatz-student-table">';
 
+        // Define column widths with colgroup for consistent rendering across Bootstrap versions.
+        $result .= $this->render_colgroup(!$options->readonly);
+
         // Header row - always show actions column if not readonly.
         $result .= $this->render_header_row(!$options->readonly);
 
@@ -140,11 +143,16 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $PAGE->requires->string_for_js('selectaccount', 'qtype_buchungssatz');
 
         // Include JavaScript for interactive features.
+        $numberformat = $question->numberformat ?? 'de';
+        $decimalplaces = $question->decimalplaces ?? 2;
+
         $PAGE->requires->js_call_amd('qtype_buchungssatz/question', 'init', [
             $containerid,
             $accounts,
             $maxentries,
             !$options->readonly,
+            $numberformat,
+            $decimalplaces,
         ]);
 
         return $result;
@@ -191,6 +199,37 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $html .= '</tr>';
 
         $html .= '</thead>';
+
+        return $html;
+    }
+
+    /**
+     * Render colgroup to define explicit column widths.
+     *
+     * This ensures consistent column widths across Bootstrap 4 (Moodle 3.x) and Bootstrap 5 (Moodle 4.x).
+     *
+     * @param bool $showactions Whether to include an actions column.
+     * @return string The HTML colgroup element.
+     */
+    protected function render_colgroup(bool $showactions = false): string {
+        $html = '<colgroup>';
+        // Column 1: Per label (narrow).
+        $html .= '<col style="width: 40px;">';
+        // Column 2: Soll Account (flexible).
+        $html .= '<col style="width: auto;">';
+        // Column 3: Soll Amount (wider for numbers like 12.000,55).
+        $html .= '<col style="width: 120px;">';
+        // Column 4: an label (narrow).
+        $html .= '<col style="width: 40px;">';
+        // Column 5: Haben Account (flexible).
+        $html .= '<col style="width: auto;">';
+        // Column 6: Haben Amount (wider for numbers like 12.000,55).
+        $html .= '<col style="width: 120px;">';
+        if ($showactions) {
+            // Column 7: Actions/Delete button (narrow).
+            $html .= '<col style="width: 50px;">';
+        }
+        $html .= '</colgroup>';
 
         return $html;
     }
@@ -358,15 +397,19 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             if (!empty($feedbackclass)) {
                 $spanclass .= ' ' . $feedbackclass;
             }
-            // Format the amount for display.
-            $displayval = $this->format_amount_display((float)$value, $numberformat, $decimalplaces);
+            // Parse the amount (handles both German and US formats) then format for display.
+            $parsedvalue = $this->parse_amount_input($value);
+            $displayval = $this->format_amount_display($parsedvalue, $numberformat, $decimalplaces);
             $html = '<span class="' . $spanclass . '">' . s($displayval) . '</span>';
             $html .= '<input type="hidden" name="' . $name . '" value="' . s($value) . '">';
             return $html;
         }
 
-        return '<input type="number" name="' . $name . '" id="' . $name . '" value="' . s($value) . '" ' .
-               'class="form-control buchungssatz-amount-input" step="0.01" min="0" placeholder="0.00" ' .
+        // Use type="text" to allow formatted numbers with thousand separators.
+        $placeholder = ($numberformat === 'us') ? '0.00' : '0,00';
+        return '<input type="text" name="' . $name . '" id="' . $name . '" value="' . s($value) . '" ' .
+               'class="form-control buchungssatz-amount-input" placeholder="' . $placeholder . '" ' .
+               'inputmode="decimal" ' .
                'aria-label="' . get_string('amount', 'qtype_buchungssatz') . '">';
     }
 
@@ -554,6 +597,56 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             }
         }
         return $accountnumber;
+    }
+
+    /**
+     * Parse an amount input string that may be in German or US format.
+     *
+     * Handles formats like:
+     * - "12000" (plain number)
+     * - "12.000,00" (German format)
+     * - "12,000.00" (US format)
+     *
+     * @param string $value The input value to parse.
+     * @return float The parsed numeric value.
+     */
+    protected function parse_amount_input(string $value): float {
+        $value = trim($value);
+        if ($value === '') {
+            return 0.0;
+        }
+
+        // Find positions of last comma and last dot.
+        $lastcomma = strrpos($value, ',');
+        $lastdot = strrpos($value, '.');
+
+        if ($lastcomma !== false && $lastdot !== false) {
+            // Both separators present - the last one is the decimal separator.
+            if ($lastcomma > $lastdot) {
+                // German format: 12.000,00.
+                $value = str_replace('.', '', $value);
+                $value = str_replace(',', '.', $value);
+            } else {
+                // US format: 12,000.00.
+                $value = str_replace(',', '', $value);
+            }
+        } else if ($lastcomma !== false) {
+            // Only comma present - could be German decimal separator.
+            // Check if there are exactly 2-3 digits after comma (likely decimal).
+            $aftercomma = substr($value, $lastcomma + 1);
+            if (strlen($aftercomma) <= 3 && ctype_digit($aftercomma)) {
+                // Treat comma as decimal separator.
+                $value = str_replace(',', '.', $value);
+            }
+            // Otherwise it might be a thousand separator with no decimals.
+            // e.g., "12,000" - remove the comma.
+            else {
+                $value = str_replace(',', '', $value);
+            }
+        }
+        // If only dot present, PHP's floatval handles it correctly.
+
+        return (float)$value;
     }
 
     /**
@@ -752,9 +845,9 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             if (!empty($sollkonto) || !empty($habenkonto)) {
                 $entries[] = [
                     'sollkonto' => $sollkonto,
-                    'sollbetrag' => (float)($response["sollbetrag_{$i}"] ?? 0),
+                    'sollbetrag' => $this->parse_amount_input($response["sollbetrag_{$i}"] ?? ''),
                     'habenkonto' => $habenkonto,
-                    'habenbetrag' => (float)($response["habenbetrag_{$i}"] ?? 0),
+                    'habenbetrag' => $this->parse_amount_input($response["habenbetrag_{$i}"] ?? ''),
                 ];
             }
         }

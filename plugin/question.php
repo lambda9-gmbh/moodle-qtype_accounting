@@ -353,6 +353,54 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     }
 
     /**
+     * Parse an amount input string that may be in German or US format.
+     *
+     * Handles formats like:
+     * - "12000" (plain number)
+     * - "12.000,00" (German format)
+     * - "12,000.00" (US format)
+     *
+     * @param string $value The input value to parse.
+     * @return float The parsed numeric value.
+     */
+    protected function parse_amount_input(string $value): float {
+        $value = trim($value);
+        if ($value === '') {
+            return 0.0;
+        }
+
+        // Find positions of last comma and last dot.
+        $lastcomma = strrpos($value, ',');
+        $lastdot = strrpos($value, '.');
+
+        if ($lastcomma !== false && $lastdot !== false) {
+            // Both separators present - the last one is the decimal separator.
+            if ($lastcomma > $lastdot) {
+                // German format: 12.000,00.
+                $value = str_replace('.', '', $value);
+                $value = str_replace(',', '.', $value);
+            } else {
+                // US format: 12,000.00.
+                $value = str_replace(',', '', $value);
+            }
+        } else if ($lastcomma !== false) {
+            // Only comma present - could be German decimal separator.
+            // Check if there are exactly 2-3 digits after comma (likely decimal).
+            $aftercomma = substr($value, $lastcomma + 1);
+            if (strlen($aftercomma) <= 3 && ctype_digit($aftercomma)) {
+                // Treat comma as decimal separator.
+                $value = str_replace(',', '.', $value);
+            } else {
+                // Otherwise it might be a thousand separator with no decimals.
+                $value = str_replace(',', '', $value);
+            }
+        }
+        // If only dot present, PHP's floatval handles it correctly.
+
+        return (float)$value;
+    }
+
+    /**
      * Parse the response into structured entries.
      *
      * @param array $response The response data.
@@ -368,9 +416,9 @@ class qtype_buchungssatz_question extends question_graded_automatically {
             if (!empty($sollkonto) || !empty($habenkonto)) {
                 $entries[] = [
                     'sollkonto' => $sollkonto,
-                    'sollbetrag' => (float)($response["sollbetrag_{$i}"] ?? 0),
+                    'sollbetrag' => $this->parse_amount_input($response["sollbetrag_{$i}"] ?? ''),
                     'habenkonto' => $habenkonto,
-                    'habenbetrag' => (float)($response["habenbetrag_{$i}"] ?? 0),
+                    'habenbetrag' => $this->parse_amount_input($response["habenbetrag_{$i}"] ?? ''),
                 ];
             }
         }

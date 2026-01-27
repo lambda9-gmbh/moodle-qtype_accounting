@@ -162,11 +162,16 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         }
 
         // Add JavaScript for dynamic functionality.
-        $PAGE->requires->js_call_amd('qtype_buchungssatz/editform', 'init', [
-            $allaccounts,
-            $currentchartid,
-            $existingentries,
-        ]);
+        // Pass data via script tag to avoid js_call_amd size limits and HTML encoding issues.
+        $jsdata = [
+            'accounts' => $allaccounts,
+            'chartId' => $currentchartid,
+            'entries' => $existingentries,
+        ];
+        $mform->addElement('html', '<script type="application/json" id="buchungssatz-editform-data">' .
+            json_encode($jsdata, JSON_HEX_TAG | JSON_HEX_AMP) . '</script>');
+
+        $PAGE->requires->js_call_amd('qtype_buchungssatz/editform', 'init', []);
 
         // Add the standard "Multiple tries" section (penalty and hints).
         $this->add_interactive_settings();

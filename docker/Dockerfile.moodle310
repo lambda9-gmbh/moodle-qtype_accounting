@@ -1,0 +1,69 @@
+FROM php:7.4-apache
+
+# Moodle 3.10 requires PHP 7.2 - 7.4
+# Using PHP 7.4 for best compatibility
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libzip-dev \
+    libicu-dev \
+    libxml2-dev \
+    libpq-dev \
+    unzip \
+    git \
+    curl \
+    locales \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install required locales for PHPUnit tests
+RUN sed -i '/en_AU.UTF-8/s/^# //g' /etc/locale.gen && locale-gen en_AU.UTF-8
+
+# Configure and install PHP extensions
+# Note: xmlrpc is bundled with PHP 7.4 (removed in PHP 8.0)
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) \
+    gd \
+    mysqli \
+    pdo \
+    pdo_mysql \
+    zip \
+    intl \
+    xml \
+    soap \
+    opcache \
+    exif \
+    xmlrpc
+
+# Install redis extension
+RUN pecl install redis-5.3.7 && docker-php-ext-enable redis
+
+# Configure PHP
+RUN echo "max_input_vars = 5000" >> /usr/local/etc/php/conf.d/moodle.ini \
+    && echo "upload_max_filesize = 256M" >> /usr/local/etc/php/conf.d/moodle.ini \
+    && echo "post_max_size = 256M" >> /usr/local/etc/php/conf.d/moodle.ini \
+    && echo "memory_limit = 512M" >> /usr/local/etc/php/conf.d/moodle.ini \
+    && echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/moodle.ini
+
+# Enable Apache modules
+RUN a2enmod rewrite
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Download Moodle 3.10 (last release was 3.10.11)
+ARG MOODLE_VERSION=MOODLE_310_STABLE
+RUN curl -L https://github.com/moodle/moodle/archive/refs/heads/${MOODLE_VERSION}.tar.gz | tar xz --strip-components=1
+
+# Create moodledata directory
+RUN mkdir -p /var/www/moodledata && chown -R www-data:www-data /var/www/moodledata
+
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html
+
+# Expose port
+EXPOSE 80
+
+CMD ["apache2-foreground"]

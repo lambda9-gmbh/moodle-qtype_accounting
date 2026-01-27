@@ -23,6 +23,10 @@
 
 define(['jquery', 'core/str'], function($, Str) {
 
+    // Module-level settings for number formatting.
+    let numberFormat = 'de';
+    let decimalPlaces = 2;
+
     /**
      * Initialize the question interface.
      *
@@ -30,8 +34,10 @@ define(['jquery', 'core/str'], function($, Str) {
      * @param {Array} accounts The available accounts for selection.
      * @param {number} maxEntries Maximum number of entries allowed.
      * @param {boolean} allowEdit Whether the user can add/delete entries.
+     * @param {string} numFormat The number format ('de' or 'us').
+     * @param {number} decimals The number of decimal places.
      */
-    function init(containerId, accounts, maxEntries, allowEdit) {
+    function init(containerId, accounts, maxEntries, allowEdit, numFormat, decimals) {
         const container = $('#' + containerId);
 
         if (container.length === 0) {
@@ -40,6 +46,8 @@ define(['jquery', 'core/str'], function($, Str) {
 
         maxEntries = maxEntries || 1;
         allowEdit = allowEdit !== false;
+        numberFormat = numFormat || 'de';
+        decimalPlaces = decimals || 2;
 
         // Enable searchable dropdowns if Select2 is available.
         if (typeof $.fn.select2 !== 'undefined') {
@@ -59,6 +67,12 @@ define(['jquery', 'core/str'], function($, Str) {
             if (habenInput.val() === '' || habenInput.val() === '0') {
                 habenInput.val($(this).val());
             }
+        });
+
+        // Format amount fields on blur.
+        container.find('.buchungssatz-amount-input').on('blur', function() {
+            const formatted = formatNumber($(this).val());
+            $(this).val(formatted);
         });
 
         // Add entry button handler.
@@ -129,7 +143,7 @@ define(['jquery', 'core/str'], function($, Str) {
         if (entryRow.length > 0) {
             // Clear the fields.
             entryRow.find('select').val('');
-            entryRow.find('input[type="number"]').val('');
+            entryRow.find('input.buchungssatz-amount-input').val('');
 
             // Destroy Select2 if active.
             if (typeof $.fn.select2 !== 'undefined') {
@@ -222,6 +236,70 @@ define(['jquery', 'core/str'], function($, Str) {
 
                 isFirst = false;
             });
+        });
+    }
+
+    /**
+     * Parse a formatted number string to a plain number.
+     * Handles both German (1.234,56) and US (1,234.56) formats.
+     *
+     * @param {string} value The formatted number string.
+     * @return {string} The plain number string (e.g., "1234.56").
+     */
+    function parseNumber(value) {
+        if (!value || value.trim() === '') {
+            return '';
+        }
+
+        let cleaned = value.trim();
+
+        // Detect format based on the position of comma and dot.
+        const lastComma = cleaned.lastIndexOf(',');
+        const lastDot = cleaned.lastIndexOf('.');
+
+        if (lastComma > lastDot) {
+            // German format: comma is decimal separator.
+            cleaned = cleaned.replace(/\./g, ''); // Remove thousand separators.
+            cleaned = cleaned.replace(',', '.'); // Replace decimal comma with dot.
+        } else if (lastDot > lastComma) {
+            // US format: dot is decimal separator.
+            cleaned = cleaned.replace(/,/g, ''); // Remove thousand separators.
+        }
+
+        return cleaned;
+    }
+
+    /**
+     * Format a number according to the question's number format settings.
+     *
+     * @param {string|number} value The number to format.
+     * @return {string} The formatted number string.
+     */
+    function formatNumber(value) {
+        if (value === '' || value === null || value === undefined) {
+            return '';
+        }
+
+        // Parse to float first.
+        const plainValue = parseNumber(String(value));
+        const num = parseFloat(plainValue);
+
+        if (isNaN(num)) {
+            return '';
+        }
+
+        // Format according to settings.
+        if (numberFormat === 'us') {
+            return num.toLocaleString('en-US', {
+                minimumFractionDigits: decimalPlaces,
+                maximumFractionDigits: decimalPlaces
+            });
+        }
+
+        // Default: German/EU format.
+        return num.toLocaleString('de-DE', {
+            minimumFractionDigits: decimalPlaces,
+            maximumFractionDigits: decimalPlaces
         });
     }
 
