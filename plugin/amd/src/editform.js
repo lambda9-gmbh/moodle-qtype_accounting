@@ -100,6 +100,9 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
         // Only update sollbetrag states (disable if no debit account selected).
         updateAllSollbetragStates();
 
+        // Update weight field states (disable if no account selected).
+        updateAllWeightStates();
+
         // Update delete button states (disable if only one entry).
         updateDeleteButtonStates();
 
@@ -139,7 +142,7 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
     }
 
     /**
-     * Setup event delegation for sollkonto changes.
+     * Setup event delegation for sollkonto and habenkonto changes.
      */
     function setupSollkontoChangeHandler() {
         document.addEventListener('change', function(e) {
@@ -150,11 +153,17 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
             if (e.target.classList.contains('buchungssatz-sollkonto')) {
                 const index = e.target.getAttribute('data-index');
                 updateSollbetragState(index);
+                updateWeightStates(index);
                 syncDisplayToHidden(index);
             }
-            // Also sync other display fields on change.
-            if (e.target.classList.contains('buchungssatz-habenkonto') ||
-                e.target.classList.contains('buchungssatz-weight')) {
+            // Handle habenkonto changes to update weight states.
+            if (e.target.classList.contains('buchungssatz-habenkonto')) {
+                const index = e.target.getAttribute('data-index');
+                updateWeightStates(index);
+                syncDisplayToHidden(index);
+            }
+            // Also sync weight fields on change.
+            if (e.target.classList.contains('buchungssatz-weight')) {
                 const index = e.target.getAttribute('data-index');
                 syncDisplayToHidden(index);
             }
@@ -264,6 +273,7 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
         // Update dropdowns for the new row.
         updateAccountDropdowns(false);
         updateSollbetragState(nextEntryIndex);
+        updateWeightStates(nextEntryIndex);
 
         // Initialize hidden fields for the new index.
         initializeHiddenFieldsForIndex(nextEntryIndex);
@@ -620,6 +630,7 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
         });
 
         updateAllSollbetragStates();
+        updateAllWeightStates();
     }
 
     /**
@@ -656,6 +667,64 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
             const index = row.getAttribute('data-entry-index');
             if (index !== '__INDEX__') {
                 updateSollbetragState(index);
+            }
+        });
+    }
+
+    /**
+     * Update the disabled state of weight selectors based on account selection.
+     * Disables sollkonto/sollbetrag weights when no debit account is selected.
+     * Disables habenkonto/habenbetrag weights when no credit account is selected.
+     *
+     * @param {string|number} index The entry index.
+     */
+    function updateWeightStates(index) {
+        const sollSelect = document.querySelector('select.buchungssatz-sollkonto[data-index="' + index + '"]');
+        const habenSelect = document.querySelector('select.buchungssatz-habenkonto[data-index="' + index + '"]');
+
+        const hasSollAccount = sollSelect && sollSelect.value !== '' && sollSelect.value !== null;
+        const hasHabenAccount = habenSelect && habenSelect.value !== '' && habenSelect.value !== null;
+
+        // Update soll (debit) weight fields.
+        const weightSollkonto = document.querySelector('.buchungssatz-weight[data-index="' + index + '"][data-field="sollkonto"]');
+        const weightSollbetrag = document.querySelector('.buchungssatz-weight[data-index="' + index + '"][data-field="sollbetrag"]');
+
+        if (weightSollkonto) {
+            weightSollkonto.disabled = !hasSollAccount;
+            weightSollkonto.style.opacity = hasSollAccount ? '' : '0.5';
+            weightSollkonto.style.cursor = hasSollAccount ? '' : 'not-allowed';
+        }
+        if (weightSollbetrag) {
+            weightSollbetrag.disabled = !hasSollAccount;
+            weightSollbetrag.style.opacity = hasSollAccount ? '' : '0.5';
+            weightSollbetrag.style.cursor = hasSollAccount ? '' : 'not-allowed';
+        }
+
+        // Update haben (credit) weight fields.
+        const weightHabenkonto = document.querySelector('.buchungssatz-weight[data-index="' + index + '"][data-field="habenkonto"]');
+        const weightHabenbetrag = document.querySelector('.buchungssatz-weight[data-index="' + index + '"][data-field="habenbetrag"]');
+
+        if (weightHabenkonto) {
+            weightHabenkonto.disabled = !hasHabenAccount;
+            weightHabenkonto.style.opacity = hasHabenAccount ? '' : '0.5';
+            weightHabenkonto.style.cursor = hasHabenAccount ? '' : 'not-allowed';
+        }
+        if (weightHabenbetrag) {
+            weightHabenbetrag.disabled = !hasHabenAccount;
+            weightHabenbetrag.style.opacity = hasHabenAccount ? '' : '0.5';
+            weightHabenbetrag.style.cursor = hasHabenAccount ? '' : 'not-allowed';
+        }
+    }
+
+    /**
+     * Update all weight field states.
+     */
+    function updateAllWeightStates() {
+        const entryRows = document.querySelectorAll('.buchungssatz-entry-row');
+        entryRows.forEach(function(row) {
+            const index = row.getAttribute('data-entry-index');
+            if (index !== '__INDEX__') {
+                updateWeightStates(index);
             }
         });
     }

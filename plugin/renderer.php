@@ -807,7 +807,11 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         foreach ($studentaggregated['debit'] as $account => $amount) {
             if (!isset($correctaggregated['debit'][$account])) {
                 $feedback['has_extra_debit'] = true;
-                $feedback['debit_status'] = 'partial'; // Can't be fully correct with extra accounts.
+                // Only downgrade from 'correct' to 'partial' for extra accounts.
+                // If already 'incorrect', keep it that way.
+                if ($feedback['debit_status'] === 'correct') {
+                    $feedback['debit_status'] = 'partial';
+                }
                 break;
             }
         }
@@ -815,7 +819,11 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         foreach ($studentaggregated['credit'] as $account => $amount) {
             if (!isset($correctaggregated['credit'][$account])) {
                 $feedback['has_extra_credit'] = true;
-                $feedback['credit_status'] = 'partial'; // Can't be fully correct with extra accounts.
+                // Only downgrade from 'correct' to 'partial' for extra accounts.
+                // If already 'incorrect', keep it that way.
+                if ($feedback['credit_status'] === 'correct') {
+                    $feedback['credit_status'] = 'partial';
+                }
                 break;
             }
         }

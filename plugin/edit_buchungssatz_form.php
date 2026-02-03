@@ -356,8 +356,8 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
             $selectedvalue = 1;
         }
 
-        $html = '<select name="' . $name . '" class="form-control-sm buchungssatz-weight" ';
-        $html .= 'data-index="' . $index . '" data-field="' . $field . '" style="width: 60px;">';
+        $html = '<select name="' . $name . '" class="form-control buchungssatz-weight" ';
+        $html .= 'data-index="' . $index . '" data-field="' . $field . '" style="width: auto; display: inline-block;">';
 
         for ($i = 1; $i <= 3; $i++) {
             $selected = ($i === $selectedvalue) ? ' selected' : '';
