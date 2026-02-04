@@ -17,7 +17,8 @@ $CFG->dboptions = array(
     'dbcollation' => 'utf8mb4_unicode_ci',
 );
 
-$CFG->wwwroot   = 'http://localhost:8080';
+$CFG->wwwroot   = getenv('MOODLE_WWWROOT');
+$CFG->sslproxy  = filter_var(getenv('MOODLE_SSLPROXY'), FILTER_VALIDATE_BOOLEAN);
 $CFG->dataroot  = '/var/www/moodledata';
 $CFG->admin     = 'admin';
 

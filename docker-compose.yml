@@ -1,7 +1,7 @@
 services:
   moodle:
     build:
-      context: .
+      context: ./docker
       dockerfile: Dockerfile
       args:
         - PHP_VERSION=${PHP_VERSION:-8.2}
@@ -10,6 +10,8 @@ services:
     ports:
       - "${MOODLE_PORT:-8080}:80"
     environment:
+      - MOODLE_WWWROOT=${MOODLE_WWWROOT:-http://localhost:8080}
+      - MOODLE_SSLPROXY=${MOODLE_SSLPROXY:-}
       - MOODLE_DOCKER_DBTYPE=mariadb
       - MOODLE_DOCKER_DBHOST=mariadb
       - MOODLE_DOCKER_DBNAME=${MYSQL_DATABASE:-moodle}
@@ -18,8 +20,8 @@ services:
     volumes:
       - moodledata:/var/www/moodledata
       - behatdata:/var/www/behatdata
-      - ../plugin:/var/www/html/question/type/buchungssatz
-      - ./config.php:/var/www/html/config.php
+      - ./plugin:/var/www/html/question/type/buchungssatz
+      - ./docker/config.php:/var/www/html/config.php
     depends_on:
       mariadb:
         condition: service_healthy
