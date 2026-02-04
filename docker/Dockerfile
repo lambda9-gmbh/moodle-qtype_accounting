@@ -1,4 +1,5 @@
-FROM php:8.1-apache
+ARG PHP_VERSION=8.2
+FROM php:${PHP_VERSION}-apache
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
@@ -49,7 +50,7 @@ RUN a2enmod rewrite
 WORKDIR /var/www/html
 
 # Download Moodle
-ARG MOODLE_VERSION=MOODLE_404_STABLE
+ARG MOODLE_VERSION=MOODLE_405_STABLE
 RUN curl -L https://github.com/moodle/moodle/archive/refs/heads/${MOODLE_VERSION}.tar.gz | tar xz --strip-components=1
 
 # Create moodledata directory
