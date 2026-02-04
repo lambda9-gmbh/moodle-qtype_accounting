@@ -52,6 +52,8 @@ $string['maxentries'] = 'Maximale Anzahl Buchungszeilen';
 $string['correctanswer'] = 'Musterlösung';
 $string['entry'] = 'Buchungszeile {no}';
 $string['addentry'] = 'Buchungszeile hinzufügen';
+$string['adddebitentry'] = 'Sollbuchung hinzufügen';
+$string['addcreditentry'] = 'Habenbuchung hinzufügen';
 $string['deleteentry'] = 'Löschen';
 
 // Kontenfelder.

@@ -139,12 +139,16 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             $result .= $this->render_feedback_summary($overallfeedback);
         }
 
-        // Add "Add Entry" button if not readonly.
+        // Add "Add Debit Entry" and "Add Credit Entry" buttons if not readonly.
         if (!$options->readonly) {
             $result .= html_writer::start_div('buchungssatz-controls mt-2');
-            $result .= html_writer::tag('button', get_string('addentry', 'qtype_buchungssatz'), [
+            $result .= html_writer::tag('button', get_string('adddebitentry', 'qtype_buchungssatz'), [
                 'type' => 'button',
-                'class' => 'btn btn-secondary btn-sm buchungssatz-add-entry',
+                'class' => 'btn btn-secondary btn-sm buchungssatz-add-debit-entry mr-2',
+            ]);
+            $result .= html_writer::tag('button', get_string('addcreditentry', 'qtype_buchungssatz'), [
+                'type' => 'button',
+                'class' => 'btn btn-secondary btn-sm buchungssatz-add-credit-entry',
             ]);
             $result .= html_writer::end_div();
         }
@@ -287,7 +291,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         // Build table row.
         $rowstyle = $hidden ? 'display: none;' : '';
-        $html = '<tr class="buchungssatz-entry-row" data-entry="' . $index . '" style="' . $rowstyle . '">';
+        $html = '<tr class="buchungssatz-entry-row" data-entry="' . $index . '" data-entry-type="both" style="' . $rowstyle . '">';
 
         // Per label cell (only show text on first row) - add data-section for mobile header.
         $html .= '<td class="buchungssatz-label-cell" data-section="soll">' . ($isfirst ? $perstr : '') . '</td>';
@@ -306,8 +310,17 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $html .= $this->render_amount_field($readonly, $sollbetragval, $sollbetragname, $feedbackclass, $numberformat, $decimalplaces);
         $html .= '</td>';
 
-        // "an" label cell (only show text on first row) - add data-section for mobile header.
-        $html .= '<td class="buchungssatz-label-cell" data-section="haben">' . ($isfirst ? $anstr : '') . '</td>';
+        // "an" label cell - contains debit delete button if editable.
+        $html .= '<td class="buchungssatz-label-cell" data-section="haben">';
+        if ($showdelete) {
+            $html .= '<button type="button" class="btn btn-outline-danger btn-sm buchungssatz-delete-debit" ';
+            $html .= 'data-entry="' . $index . '" title="' . get_string('soll', 'qtype_buchungssatz') . '">';
+            $html .= '<i class="fa fa-trash"></i>';
+            $html .= '</button>';
+        } else {
+            $html .= ($isfirst ? $anstr : '');
+        }
+        $html .= '</td>';
 
         // Haben (Credit) account cell - add data-label for mobile.
         $html .= '<td class="buchungssatz-data-cell" data-label="' . get_string('account', 'qtype_buchungssatz') . '">';
@@ -319,11 +332,11 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $html .= $this->render_amount_field($readonly, $habenbetragval, $habenbetragname, $feedbackclass, $numberformat, $decimalplaces);
         $html .= '</td>';
 
-        // Delete button cell.
+        // Delete button cell (credit delete only - debit delete is in the "an" cell).
         if ($showdelete) {
             $html .= '<td class="buchungssatz-actions-cell">';
-            $html .= '<button type="button" class="btn btn-outline-danger btn-sm buchungssatz-delete-entry" ';
-            $html .= 'data-entry="' . $index . '" title="' . get_string('delete', 'moodle') . '">';
+            $html .= '<button type="button" class="btn btn-outline-danger btn-sm buchungssatz-delete-credit" ';
+            $html .= 'data-entry="' . $index . '" title="' . get_string('haben', 'qtype_buchungssatz') . '">';
             $html .= '<i class="fa fa-trash"></i>';
             $html .= '</button>';
             $html .= '</td>';

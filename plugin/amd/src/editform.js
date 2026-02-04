@@ -202,30 +202,204 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
     }
 
     /**
-     * Setup add entry button handler.
+     * Setup add entry button handlers.
      */
     function setupAddEntryHandler() {
-        const addButton = document.getElementById('buchungssatz-add-entry');
-        if (addButton) {
-            addButton.addEventListener('click', function(e) {
+        const addDebitButton = document.getElementById('buchungssatz-add-debit-entry');
+        const addCreditButton = document.getElementById('buchungssatz-add-credit-entry');
+
+        if (addDebitButton) {
+            addDebitButton.addEventListener('click', function(e) {
                 e.preventDefault();
-                addEntryRow();
+                addEntryRow('debit');
+            });
+        }
+
+        if (addCreditButton) {
+            addCreditButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                addEntryRow('credit');
             });
         }
     }
 
     /**
-     * Setup delete entry button handler (event delegation).
+     * Setup delete entry button handlers (event delegation).
      */
     function setupDeleteEntryHandler() {
         document.addEventListener('click', function(e) {
-            const deleteBtn = e.target.closest('.buchungssatz-delete-entry');
-            if (deleteBtn) {
+            // Handle delete debit button.
+            const deleteDebitBtn = e.target.closest('.buchungssatz-delete-debit');
+            if (deleteDebitBtn) {
                 e.preventDefault();
-                const index = deleteBtn.getAttribute('data-index');
-                deleteEntryRow(index);
+                const index = deleteDebitBtn.getAttribute('data-index');
+                deleteEntrySide(index, 'debit');
+                return;
+            }
+
+            // Handle delete credit button.
+            const deleteCreditBtn = e.target.closest('.buchungssatz-delete-credit');
+            if (deleteCreditBtn) {
+                e.preventDefault();
+                const index = deleteCreditBtn.getAttribute('data-index');
+                deleteEntrySide(index, 'credit');
+                return;
             }
         });
+    }
+
+    /**
+     * Delete one side of an entry (debit or credit).
+     *
+     * @param {string|number} index The entry index.
+     * @param {string} side The side to delete: 'debit' or 'credit'.
+     */
+    function deleteEntrySide(index, side) {
+        const entryRow = document.querySelector('.buchungssatz-entry-row[data-entry-index="' + index + '"]');
+        const weightRow = document.querySelector('.buchungssatz-weight-row[data-entry-index="' + index + '"]');
+
+        if (!entryRow) {
+            return;
+        }
+
+        const currentType = entryRow.getAttribute('data-entry-type') || 'both';
+
+        if (currentType === 'both') {
+            // Row has both sides - just hide the deleted side.
+            const newType = (side === 'debit') ? 'credit' : 'debit';
+            entryRow.setAttribute('data-entry-type', newType);
+
+            // Apply visibility for the new type.
+            applyEntryTypeVisibilityToRow(entryRow, weightRow, newType);
+
+            // Clear the hidden side's fields.
+            clearEntrySideFields(index, side);
+
+            updatePerAnLabels();
+        } else if ((currentType === 'debit' && side === 'debit') ||
+                   (currentType === 'credit' && side === 'credit')) {
+            // Row only has this side - delete the entire row.
+            deleteEntryRow(index);
+        }
+        // If trying to delete a side that's already hidden, do nothing.
+    }
+
+    /**
+     * Apply entry type visibility to existing row elements.
+     *
+     * @param {Element} entryRow The entry row element.
+     * @param {Element|null} weightRow The weight row element.
+     * @param {string} entryType The entry type: 'debit', 'credit', or 'both'.
+     */
+    function applyEntryTypeVisibilityToRow(entryRow, weightRow, entryType) {
+        const cells = entryRow.querySelectorAll('td');
+        // Indices: 0=Per, 1=sollkonto, 2=sollbetrag, 3=debit delete, 4=habenkonto, 5=habenbetrag, 6=credit delete.
+        const perCell = cells[0];
+        const sollkontoCell = cells[1];
+        const sollbetragCell = cells[2];
+        const debitDeleteCell = cells[3];
+        const habenkontoCell = cells[4];
+        const habenbetragCell = cells[5];
+        const creditDeleteCell = cells[6];
+
+        let weightCells = [];
+        if (weightRow) {
+            weightCells = weightRow.querySelectorAll('td');
+        }
+
+        // Reset all hidden classes first.
+        [perCell, sollkontoCell, sollbetragCell, debitDeleteCell, habenkontoCell, habenbetragCell, creditDeleteCell].forEach(function(cell) {
+            if (cell) {
+                cell.classList.remove('buchungssatz-hidden-cell');
+            }
+        });
+        weightCells.forEach(function(cell) {
+            cell.classList.remove('buchungssatz-hidden-cell');
+        });
+
+        if (entryType === 'debit') {
+            // Hide credit (haben) side - keep debit delete visible.
+            if (habenkontoCell) {
+                habenkontoCell.classList.add('buchungssatz-hidden-cell');
+            }
+            if (habenbetragCell) {
+                habenbetragCell.classList.add('buchungssatz-hidden-cell');
+            }
+            if (creditDeleteCell) {
+                creditDeleteCell.classList.add('buchungssatz-hidden-cell');
+            }
+            if (weightCells.length > 5) {
+                weightCells[4].classList.add('buchungssatz-hidden-cell');
+                weightCells[5].classList.add('buchungssatz-hidden-cell');
+                weightCells[6].classList.add('buchungssatz-hidden-cell');
+            }
+        } else if (entryType === 'credit') {
+            // Hide debit (soll) side including debit delete.
+            if (perCell) {
+                perCell.classList.add('buchungssatz-hidden-cell');
+            }
+            if (sollkontoCell) {
+                sollkontoCell.classList.add('buchungssatz-hidden-cell');
+            }
+            if (sollbetragCell) {
+                sollbetragCell.classList.add('buchungssatz-hidden-cell');
+            }
+            if (debitDeleteCell) {
+                debitDeleteCell.classList.add('buchungssatz-hidden-cell');
+            }
+            if (weightCells.length > 3) {
+                weightCells[0].classList.add('buchungssatz-hidden-cell');
+                weightCells[1].classList.add('buchungssatz-hidden-cell');
+                weightCells[2].classList.add('buchungssatz-hidden-cell');
+                weightCells[3].classList.add('buchungssatz-hidden-cell');
+            }
+        }
+    }
+
+    /**
+     * Clear the fields for one side of an entry.
+     *
+     * @param {string|number} index The entry index.
+     * @param {string} side The side to clear: 'debit' or 'credit'.
+     */
+    function clearEntrySideFields(index, side) {
+        if (side === 'debit') {
+            const sollkonto = document.querySelector('.buchungssatz-sollkonto[data-index="' + index + '"]');
+            const sollbetrag = document.querySelector('.buchungssatz-sollbetrag[data-index="' + index + '"]');
+            if (sollkonto) {
+                sollkonto.value = '';
+            }
+            if (sollbetrag) {
+                sollbetrag.value = '';
+            }
+            // Clear hidden fields too.
+            const sollkontoHidden = getFieldByName('sollkonto[' + index + ']');
+            const sollbetragHidden = getFieldByName('sollbetrag[' + index + ']');
+            if (sollkontoHidden) {
+                sollkontoHidden.value = '';
+            }
+            if (sollbetragHidden) {
+                sollbetragHidden.value = '';
+            }
+        } else if (side === 'credit') {
+            const habenkonto = document.querySelector('.buchungssatz-habenkonto[data-index="' + index + '"]');
+            const habenbetrag = document.querySelector('.buchungssatz-habenbetrag[data-index="' + index + '"]');
+            if (habenkonto) {
+                habenkonto.value = '';
+            }
+            if (habenbetrag) {
+                habenbetrag.value = '';
+            }
+            // Clear hidden fields too.
+            const habenkontoHidden = getFieldByName('habenkonto[' + index + ']');
+            const habenbetragHidden = getFieldByName('habenbetrag[' + index + ']');
+            if (habenkontoHidden) {
+                habenkontoHidden.value = '';
+            }
+            if (habenbetragHidden) {
+                habenbetragHidden.value = '';
+            }
+        }
     }
 
     /**
@@ -242,8 +416,40 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
 
     /**
      * Add a new entry row to the table.
+     *
+     * @param {string} entryType The type of entry: 'debit', 'credit', or 'both'.
      */
-    function addEntryRow() {
+    function addEntryRow(entryType) {
+        entryType = entryType || 'both';
+
+        // First, check if we can complete an existing incomplete row.
+        const incompleteRow = findIncompleteRow(entryType);
+        if (incompleteRow) {
+            // Complete the existing row by making it 'both'.
+            incompleteRow.setAttribute('data-entry-type', 'both');
+
+            // Find the associated weight row.
+            const index = incompleteRow.getAttribute('data-entry-index');
+            const weightRow = document.querySelector('.buchungssatz-weight-row[data-entry-index="' + index + '"]');
+
+            // Remove hidden-cell classes from both rows.
+            incompleteRow.querySelectorAll('.buchungssatz-hidden-cell').forEach(function(el) {
+                el.classList.remove('buchungssatz-hidden-cell');
+            });
+            if (weightRow) {
+                weightRow.querySelectorAll('.buchungssatz-hidden-cell').forEach(function(el) {
+                    el.classList.remove('buchungssatz-hidden-cell');
+                });
+            }
+
+            // Update states for the completed row.
+            updateSollbetragState(index);
+            updateWeightStates(index);
+            updatePerAnLabels();
+            return;
+        }
+
+        // No incomplete row to complete, so add a new row.
         const template = document.getElementById('buchungssatz-entry-template');
         const tbody = document.getElementById('buchungssatz-entries-body');
 
@@ -267,6 +473,15 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
             el.name = el.name.replace('__INDEX__', nextEntryIndex);
         });
 
+        // Set the entry type on the entry row.
+        const entryRow = clone.querySelector('.buchungssatz-entry-row');
+        if (entryRow) {
+            entryRow.setAttribute('data-entry-type', entryType);
+        }
+
+        // Apply hidden-cell class based on entry type.
+        applyEntryTypeVisibility(clone, entryType);
+
         // Append the cloned rows to the tbody.
         tbody.appendChild(clone);
 
@@ -281,7 +496,110 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
         // Update delete button states (enable all since we now have more than one).
         updateDeleteButtonStates();
 
+        // Update Per/an labels.
+        updatePerAnLabels();
+
         nextEntryIndex++;
+    }
+
+    /**
+     * Find an incomplete row that can be completed with the given entry type.
+     *
+     * @param {string} entryType The type of entry being added: 'debit' or 'credit'.
+     * @return {Element|null} The incomplete row to complete, or null if none found.
+     */
+    function findIncompleteRow(entryType) {
+        // Look for rows that are incomplete (only one side).
+        const allRows = document.querySelectorAll('.buchungssatz-entry-row');
+
+        for (let i = 0; i < allRows.length; i++) {
+            const row = allRows[i];
+            const rowType = row.getAttribute('data-entry-type');
+
+            // If adding debit, look for a credit-only row.
+            // If adding credit, look for a debit-only row.
+            if (entryType === 'debit' && rowType === 'credit') {
+                return row;
+            } else if (entryType === 'credit' && rowType === 'debit') {
+                return row;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Apply visibility classes based on entry type.
+     *
+     * @param {DocumentFragment|Element} container The container with the entry rows.
+     * @param {string} entryType The type of entry: 'debit', 'credit', or 'both'.
+     */
+    function applyEntryTypeVisibility(container, entryType) {
+        const entryRow = container.querySelector('.buchungssatz-entry-row');
+        const weightRow = container.querySelector('.buchungssatz-weight-row');
+
+        if (!entryRow) {
+            return;
+        }
+
+        // Get cells in the entry row.
+        // Structure: 0=Per, 1=sollkonto, 2=sollbetrag, 3=debit delete, 4=habenkonto, 5=habenbetrag, 6=credit delete.
+        const cells = entryRow.querySelectorAll('td');
+
+        const perCell = cells[0];
+        const sollkontoCell = cells[1];
+        const sollbetragCell = cells[2];
+        const debitDeleteCell = cells[3];  // Contains debit delete button.
+        const habenkontoCell = cells[4];
+        const habenbetragCell = cells[5];
+        const creditDeleteCell = cells[6];  // Contains credit delete button.
+
+        // Weight row cells: 0=empty, 1=weight_sollkonto, 2=weight_sollbetrag, 3=empty, 4=weight_habenkonto, 5=weight_habenbetrag, 6=empty.
+        let weightCells = [];
+        if (weightRow) {
+            weightCells = weightRow.querySelectorAll('td');
+        }
+
+        if (entryType === 'debit') {
+            // Hide credit (haben) side - keep debit delete visible.
+            if (habenkontoCell) {
+                habenkontoCell.classList.add('buchungssatz-hidden-cell');
+            }
+            if (habenbetragCell) {
+                habenbetragCell.classList.add('buchungssatz-hidden-cell');
+            }
+            if (creditDeleteCell) {
+                creditDeleteCell.classList.add('buchungssatz-hidden-cell');
+            }
+            // Weight row: hide haben weight cells.
+            if (weightCells.length > 5) {
+                weightCells[4].classList.add('buchungssatz-hidden-cell');
+                weightCells[5].classList.add('buchungssatz-hidden-cell');
+                weightCells[6].classList.add('buchungssatz-hidden-cell');
+            }
+        } else if (entryType === 'credit') {
+            // Hide debit (soll) side including debit delete button.
+            if (perCell) {
+                perCell.classList.add('buchungssatz-hidden-cell');
+            }
+            if (sollkontoCell) {
+                sollkontoCell.classList.add('buchungssatz-hidden-cell');
+            }
+            if (sollbetragCell) {
+                sollbetragCell.classList.add('buchungssatz-hidden-cell');
+            }
+            if (debitDeleteCell) {
+                debitDeleteCell.classList.add('buchungssatz-hidden-cell');
+            }
+            // Weight row: hide soll weight cells.
+            if (weightCells.length > 3) {
+                weightCells[0].classList.add('buchungssatz-hidden-cell');
+                weightCells[1].classList.add('buchungssatz-hidden-cell');
+                weightCells[2].classList.add('buchungssatz-hidden-cell');
+                weightCells[3].classList.add('buchungssatz-hidden-cell');
+            }
+        }
+        // 'both' keeps everything visible.
     }
 
     /**
@@ -316,9 +634,17 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
         const weightRow = document.querySelector('.buchungssatz-weight-row[data-entry-index="' + index + '"]');
 
         if (entryRow) {
+            // Reset entry type to 'both' and remove hidden-cell classes before removing.
+            entryRow.setAttribute('data-entry-type', 'both');
+            entryRow.querySelectorAll('.buchungssatz-hidden-cell').forEach(function(el) {
+                el.classList.remove('buchungssatz-hidden-cell');
+            });
             entryRow.remove();
         }
         if (weightRow) {
+            weightRow.querySelectorAll('.buchungssatz-hidden-cell').forEach(function(el) {
+                el.classList.remove('buchungssatz-hidden-cell');
+            });
             weightRow.remove();
         }
 
@@ -338,7 +664,7 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
      */
     function updateDeleteButtonStates() {
         const allEntryRows = document.querySelectorAll('.buchungssatz-entry-row');
-        const deleteButtons = document.querySelectorAll('.buchungssatz-delete-entry');
+        const deleteButtons = document.querySelectorAll('.buchungssatz-delete-debit, .buchungssatz-delete-credit');
         const isOnlyOne = allEntryRows.length <= 1;
 
         deleteButtons.forEach(function(button) {
@@ -373,31 +699,27 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
     }
 
     /**
-     * Update Per/an labels so they only appear on the first visible row.
+     * Update Per label so it only appears on the first visible debit entry.
+     * Note: The "an" cell now contains the debit delete button, so we don't update it.
      */
     function updatePerAnLabels() {
         const entryRows = document.querySelectorAll('.buchungssatz-entry-row');
-        let isFirst = true;
+        let firstDebitFound = false;
 
-        Str.get_strings([
-            {key: 'per', component: 'qtype_buchungssatz'},
-            {key: 'an', component: 'qtype_buchungssatz'}
-        ]).then(function(strings) {
-            const perStr = strings[0];
-            const anStr = strings[1];
-
+        Str.get_string('per', 'qtype_buchungssatz').then(function(perStr) {
             entryRows.forEach(function(row) {
+                const entryType = row.getAttribute('data-entry-type') || 'both';
                 const perCell = row.querySelector('td:first-child');
-                const anCell = row.querySelector('td:nth-child(4)');
 
-                if (perCell) {
-                    perCell.textContent = isFirst ? perStr : '';
+                // Handle "Per" label (debit side).
+                if ((entryType === 'debit' || entryType === 'both') && perCell) {
+                    if (!firstDebitFound) {
+                        perCell.textContent = perStr;
+                        firstDebitFound = true;
+                    } else {
+                        perCell.textContent = '';
+                    }
                 }
-                if (anCell) {
-                    anCell.textContent = isFirst ? anStr : '';
-                }
-
-                isFirst = false;
             });
         });
     }
