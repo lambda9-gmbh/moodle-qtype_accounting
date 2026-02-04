@@ -651,6 +651,135 @@
     border-top: none;
 }
 
+/* ========================================
+   DEBIT/CREDIT ENTRY TYPE STYLES
+   ======================================== */
+
+/* Hidden cells for debit-only or credit-only entries.
+   Use visibility:hidden to preserve table cell space while hiding content. */
+.buchungssatz-hidden-cell {
+    visibility: hidden !important;
+    border-color: transparent !important;
+    background-color: transparent !important;
+}
+
+/* Also hide all content inside hidden cells */
+.buchungssatz-hidden-cell * {
+    visibility: hidden !important;
+}
+
+/* Mobile: use display:none on mobile since table becomes block layout */
+@media (max-width: 768px) {
+    /* Higher specificity to override .buchungssatz-student-table td rule */
+    .buchungssatz-student-table td.buchungssatz-hidden-cell,
+    td.buchungssatz-hidden-cell {
+        display: none !important;
+    }
+
+    /* Button container for mobile - stack buttons */
+    .buchungssatz-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .buchungssatz-controls .btn {
+        width: 100%;
+    }
+
+    /* ========================================
+       MOBILE DEBIT/CREDIT ENTRY HANDLING
+       ======================================== */
+
+    /* For debit-only entries: The "an" label cell (cell 3) contains the debit delete button.
+       On mobile, transform it to a plain cell at the end of the Soll section, not a Haben header. */
+    .buchungssatz-student-table tr[data-entry-type="debit"] td.buchungssatz-label-cell[data-section="haben"] {
+        background-color: transparent;
+        color: inherit;
+        font-weight: normal;
+        font-size: 1rem;
+        border-top: none;
+        text-align: right;
+        padding: 0.5rem 1rem;
+    }
+
+    /* Remove the "Haben" label text for debit-only entries */
+    .buchungssatz-student-table tr[data-entry-type="debit"] td.buchungssatz-label-cell[data-section="haben"]::before {
+        content: "" !important;
+    }
+
+    /* For credit-only entries: Hide the debit delete button inside cell 3 */
+    .buchungssatz-student-table tr[data-entry-type="credit"] .buchungssatz-delete-debit {
+        display: none !important;
+    }
+
+    /* Style the delete buttons for mobile touch */
+    .buchungssatz-student-table .buchungssatz-delete-debit,
+    .buchungssatz-student-table .buchungssatz-delete-credit {
+        min-width: 44px;
+        min-height: 44px;
+        padding: 0.5rem 1rem;
+    }
+
+    /* For debit-only: move debit delete button to appear at end of Soll section
+       by reordering with flexbox if the row uses flex display */
+    .buchungssatz-student-table tr[data-entry-type="debit"] {
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* For credit-only entries: ensure proper card structure */
+    .buchungssatz-student-table tr[data-entry-type="credit"] {
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* For both entry types: maintain block order */
+    .buchungssatz-student-table tr[data-entry-type="both"] {
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Actions cell at the bottom with delete button for credit */
+    .buchungssatz-student-table tr[data-entry-type="credit"] .buchungssatz-actions-cell,
+    .buchungssatz-student-table tr[data-entry-type="both"] .buchungssatz-actions-cell {
+        order: 10;
+    }
+
+    /* For debit-only, the "an" cell with debit delete should be at the end of visible cells */
+    .buchungssatz-student-table tr[data-entry-type="debit"] td.buchungssatz-label-cell[data-section="haben"] {
+        order: 10;
+        background-color: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+    }
+
+    /* For credit-only entries: Cell 3 (data-section="haben") needs to be visible as header,
+       even though JS adds buchungssatz-hidden-cell to it. Override specifically. */
+    .buchungssatz-student-table tr[data-entry-type="credit"] td.buchungssatz-label-cell[data-section="haben"].buchungssatz-hidden-cell {
+        display: block !important;
+        background-color: #cce5ff;
+        color: #004085;
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    /* Ensure the ::before content for "Haben" shows for credit-only */
+    .buchungssatz-student-table tr[data-entry-type="credit"] td.buchungssatz-label-cell[data-section="haben"].buchungssatz-hidden-cell::before {
+        content: "Haben" !important;
+        font-size: 1rem !important;
+    }
+}
+
+/* ========================================
+   EDIT TABLE MOBILE STYLES
+   ======================================== */
+@media (max-width: 768px) {
+    /* Hidden cells in edit table should also use display:none on mobile */
+    .buchungssatz-edit-table td.buchungssatz-hidden-cell {
+        display: none !important;
+    }
+}
+
 /* Print styles */
 @media print {
     .buchungssatz-entries {

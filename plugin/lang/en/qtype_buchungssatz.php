@@ -52,6 +52,8 @@ $string['maxentries'] = 'Maximum entries';
 $string['correctanswer'] = 'Correct Answer';
 $string['entry'] = 'Entry {no}';
 $string['addentry'] = 'Add Entry';
+$string['adddebitentry'] = 'Add Debit Entry';
+$string['addcreditentry'] = 'Add Credit Entry';
 $string['deleteentry'] = 'Delete';
 
 // Account fields.

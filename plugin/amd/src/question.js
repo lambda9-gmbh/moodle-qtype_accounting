@@ -74,20 +74,31 @@ define(['jquery', 'core/str'], function($, Str) {
             $(this).val(formatted);
         });
 
-        // Add entry button handler.
+        // Add entry button handlers.
         if (allowEdit && maxEntries > 1) {
-            container.find('.buchungssatz-add-entry').on('click', function() {
-                addEntry(container, maxEntries);
+            container.find('.buchungssatz-add-debit-entry').on('click', function() {
+                addEntry(container, maxEntries, 'debit');
             });
 
-            // Delete entry button handler (using delegation for dynamically shown rows).
-            container.on('click', '.buchungssatz-delete-entry', function() {
+            container.find('.buchungssatz-add-credit-entry').on('click', function() {
+                addEntry(container, maxEntries, 'credit');
+            });
+
+            // Delete debit button handler (using delegation for dynamically shown rows).
+            container.on('click', '.buchungssatz-delete-debit', function() {
                 const entryIndex = $(this).data('entry');
-                deleteEntry(container, entryIndex);
+                deleteEntrySide(container, entryIndex, 'debit');
+            });
+
+            // Delete credit button handler (using delegation for dynamically shown rows).
+            container.on('click', '.buchungssatz-delete-credit', function() {
+                const entryIndex = $(this).data('entry');
+                deleteEntrySide(container, entryIndex, 'credit');
             });
 
             // Update delete button visibility.
             updateDeleteButtons(container);
+            updateAddButtons(container, maxEntries);
         }
     }
 
@@ -96,8 +107,38 @@ define(['jquery', 'core/str'], function($, Str) {
      *
      * @param {jQuery} container The question container.
      * @param {number} maxEntries Maximum number of entries.
+     * @param {string} entryType The type of entry: 'debit', 'credit', or 'both'.
      */
-    function addEntry(container, maxEntries) {
+    function addEntry(container, maxEntries, entryType) {
+        entryType = entryType || 'both';
+
+        // First, check if we can complete an existing incomplete row.
+        const incompleteRow = findIncompleteRow(container, entryType);
+        if (incompleteRow) {
+            // Complete the existing row by making it 'both'.
+            incompleteRow.attr('data-entry-type', 'both');
+            applyEntryTypeVisibility(incompleteRow, 'both');
+
+            // Re-initialize Select2 on the newly visible selects.
+            const isMobile = window.innerWidth <= 768;
+            if (typeof $.fn.select2 !== 'undefined' && !isMobile) {
+                incompleteRow.find('.buchungssatz-account-select').each(function() {
+                    if (!$(this).closest('td').hasClass('buchungssatz-hidden-cell') && !$(this).data('select2')) {
+                        $(this).select2({
+                            placeholder: M.util.get_string('selectaccount', 'qtype_buchungssatz'),
+                            allowClear: true,
+                            width: '100%',
+                            dropdownAutoWidth: true
+                        });
+                    }
+                });
+            }
+
+            updatePerAnLabels(container);
+            return;
+        }
+
+        // No incomplete row to complete, so add a new row.
         const entryRows = container.find('.buchungssatz-entry-row');
         const hiddenRows = entryRows.filter(function() {
             return $(this).css('display') === 'none';
@@ -107,21 +148,110 @@ define(['jquery', 'core/str'], function($, Str) {
             const firstHidden = hiddenRows.first();
             firstHidden.css('display', '');
 
+            // Set the entry type attribute.
+            firstHidden.attr('data-entry-type', entryType);
+
+            // Apply hidden-cell class based on entry type.
+            applyEntryTypeVisibility(firstHidden, entryType);
+
             // Re-initialize Select2 if available (desktop only).
+            // Only for visible selects.
             const isMobile = window.innerWidth <= 768;
             if (typeof $.fn.select2 !== 'undefined' && !isMobile) {
-                firstHidden.find('.buchungssatz-account-select').select2({
-                    placeholder: M.util.get_string('selectaccount', 'qtype_buchungssatz'),
-                    allowClear: true,
-                    width: '100%',
-                    dropdownAutoWidth: true
+                firstHidden.find('.buchungssatz-account-select').each(function() {
+                    // Check if the parent cell is visible.
+                    if (!$(this).closest('td').hasClass('buchungssatz-hidden-cell')) {
+                        $(this).select2({
+                            placeholder: M.util.get_string('selectaccount', 'qtype_buchungssatz'),
+                            allowClear: true,
+                            width: '100%',
+                            dropdownAutoWidth: true
+                        });
+                    }
                 });
             }
 
             updateDeleteButtons(container);
-            updateAddButton(container, maxEntries);
+            updateAddButtons(container, maxEntries);
             updatePerAnLabels(container);
         }
+    }
+
+    /**
+     * Find an incomplete row that can be completed with the given entry type.
+     *
+     * @param {jQuery} container The question container.
+     * @param {string} entryType The type of entry being added: 'debit' or 'credit'.
+     * @return {jQuery|null} The incomplete row to complete, or null if none found.
+     */
+    function findIncompleteRow(container, entryType) {
+        // Look for visible rows that are incomplete (only one side).
+        const visibleRows = container.find('.buchungssatz-entry-row').filter(function() {
+            return $(this).css('display') !== 'none';
+        });
+
+        let incompleteRow = null;
+
+        visibleRows.each(function() {
+            const rowType = $(this).attr('data-entry-type');
+
+            // If adding debit, look for a credit-only row.
+            // If adding credit, look for a debit-only row.
+            if (entryType === 'debit' && rowType === 'credit') {
+                incompleteRow = $(this);
+                return false; // Break the loop.
+            } else if (entryType === 'credit' && rowType === 'debit') {
+                incompleteRow = $(this);
+                return false; // Break the loop.
+            }
+        });
+
+        return incompleteRow;
+    }
+
+    /**
+     * Apply visibility classes based on entry type.
+     *
+     * @param {jQuery} row The entry row.
+     * @param {string} entryType The type of entry: 'debit', 'credit', or 'both'.
+     */
+    function applyEntryTypeVisibility(row, entryType) {
+        // Get all td cells in the row by index.
+        // Structure: 0=Per label, 1=soll account, 2=soll amount, 3=debit delete button, 4=haben account, 5=haben amount, 6=credit delete.
+        const allCells = row.find('td');
+
+        const perLabelCell = allCells.eq(0);
+        const sollAccountCell = allCells.eq(1);
+        const sollAmountCell = allCells.eq(2);
+        const debitDeleteCell = allCells.eq(3);  // Contains debit delete button.
+        const habenAccountCell = allCells.eq(4);
+        const habenAmountCell = allCells.eq(5);
+        const creditDeleteCell = allCells.eq(6);  // Contains credit delete button.
+
+        // Reset all hidden classes first.
+        perLabelCell.removeClass('buchungssatz-hidden-cell');
+        sollAccountCell.removeClass('buchungssatz-hidden-cell');
+        sollAmountCell.removeClass('buchungssatz-hidden-cell');
+        debitDeleteCell.removeClass('buchungssatz-hidden-cell');
+        habenAccountCell.removeClass('buchungssatz-hidden-cell');
+        habenAmountCell.removeClass('buchungssatz-hidden-cell');
+        creditDeleteCell.removeClass('buchungssatz-hidden-cell');
+
+        if (entryType === 'debit') {
+            // Hide credit (haben) side - show only debit fields.
+            // Keep debit delete button visible (cell 3), hide haben cells and credit delete.
+            habenAccountCell.addClass('buchungssatz-hidden-cell');
+            habenAmountCell.addClass('buchungssatz-hidden-cell');
+            creditDeleteCell.addClass('buchungssatz-hidden-cell');
+        } else if (entryType === 'credit') {
+            // Hide debit (soll) side - show only credit fields.
+            // Hide per, soll cells, and debit delete button.
+            perLabelCell.addClass('buchungssatz-hidden-cell');
+            sollAccountCell.addClass('buchungssatz-hidden-cell');
+            sollAmountCell.addClass('buchungssatz-hidden-cell');
+            debitDeleteCell.addClass('buchungssatz-hidden-cell');
+        }
+        // 'both' keeps everything visible.
     }
 
     /**
@@ -155,6 +285,10 @@ define(['jquery', 'core/str'], function($, Str) {
                 });
             }
 
+            // Reset entry type to 'both' and remove hidden-cell classes.
+            entryRow.attr('data-entry-type', 'both');
+            entryRow.find('.buchungssatz-hidden-cell').removeClass('buchungssatz-hidden-cell');
+
             // Hide the row.
             entryRow.css('display', 'none');
 
@@ -162,8 +296,64 @@ define(['jquery', 'core/str'], function($, Str) {
             entryRow.next('.buchungssatz-explanation-row').css('display', 'none');
 
             updateDeleteButtons(container);
-            updateAddButton(container, 50); // Use high number, actual max from init.
+            updateAddButtons(container, 50); // Use high number, actual max from init.
             updatePerAnLabels(container);
+        }
+    }
+
+    /**
+     * Delete one side of an entry (debit or credit).
+     *
+     * @param {jQuery} container The question container.
+     * @param {number} entryIndex The index of the entry.
+     * @param {string} side The side to delete: 'debit' or 'credit'.
+     */
+    function deleteEntrySide(container, entryIndex, side) {
+        const entryRow = container.find('.buchungssatz-entry-row[data-entry="' + entryIndex + '"]');
+
+        if (entryRow.length === 0) {
+            return;
+        }
+
+        const currentType = entryRow.attr('data-entry-type') || 'both';
+
+        if (currentType === 'both') {
+            // Row has both sides - just hide the deleted side.
+            const newType = (side === 'debit') ? 'credit' : 'debit';
+            entryRow.attr('data-entry-type', newType);
+
+            // Apply visibility for the new type.
+            applyEntryTypeVisibility(entryRow, newType);
+
+            // Clear the hidden side's fields.
+            clearEntrySideFields(entryRow, side);
+
+            updatePerAnLabels(container);
+        } else if ((currentType === 'debit' && side === 'debit') ||
+                   (currentType === 'credit' && side === 'credit')) {
+            // Row only has this side - delete the entire row.
+            deleteEntry(container, entryIndex);
+        }
+        // If trying to delete a side that's already hidden, do nothing.
+    }
+
+    /**
+     * Clear the fields for one side of an entry.
+     *
+     * @param {jQuery} entryRow The entry row.
+     * @param {string} side The side to clear: 'debit' or 'credit'.
+     */
+    function clearEntrySideFields(entryRow, side) {
+        if (side === 'debit') {
+            // Clear soll (debit) fields - cells 1 and 2.
+            const allCells = entryRow.find('td');
+            allCells.eq(1).find('select').val('');
+            allCells.eq(2).find('input').val('');
+        } else if (side === 'credit') {
+            // Clear haben (credit) fields - cells 4 and 5.
+            const allCells = entryRow.find('td');
+            allCells.eq(4).find('select').val('');
+            allCells.eq(5).find('input').val('');
         }
     }
 
@@ -179,63 +369,70 @@ define(['jquery', 'core/str'], function($, Str) {
         });
 
         if (visibleRows.length <= 1) {
-            container.find('.buchungssatz-delete-entry').css('visibility', 'hidden');
+            container.find('.buchungssatz-delete-debit, .buchungssatz-delete-credit').css('visibility', 'hidden');
         } else {
             container.find('.buchungssatz-entry-row').each(function() {
                 if ($(this).css('display') !== 'none') {
-                    $(this).find('.buchungssatz-delete-entry').css('visibility', 'visible');
+                    $(this).find('.buchungssatz-delete-debit, .buchungssatz-delete-credit').css('visibility', 'visible');
                 }
             });
         }
     }
 
     /**
-     * Update add button visibility.
+     * Update add buttons visibility.
      *
      * @param {jQuery} container The question container.
      * @param {number} maxEntries Maximum entries allowed.
      */
-    function updateAddButton(container, maxEntries) {
-        const visibleRows = container.find('.buchungssatz-entry-row').filter(function() {
-            return $(this).css('display') !== 'none';
+    function updateAddButtons(container, maxEntries) {
+        const hiddenRows = container.find('.buchungssatz-entry-row').filter(function() {
+            return $(this).css('display') === 'none';
         });
 
-        const addButton = container.find('.buchungssatz-add-entry');
-        if (visibleRows.length >= maxEntries) {
-            addButton.css('display', 'none');
+        const hasHiddenRows = hiddenRows.length > 0;
+
+        const addDebitButton = container.find('.buchungssatz-add-debit-entry');
+        const addCreditButton = container.find('.buchungssatz-add-credit-entry');
+
+        if (hasHiddenRows) {
+            addDebitButton.css('display', 'inline-block');
+            addCreditButton.css('display', 'inline-block');
         } else {
-            addButton.css('display', 'inline-block');
+            addDebitButton.css('display', 'none');
+            addCreditButton.css('display', 'none');
         }
     }
 
     /**
-     * Update Per/an labels so they only appear on the first visible row.
+     * Update Per label so it only appears on the first visible debit entry.
+     * Note: The "an" cell now contains the debit delete button, so we don't update it.
      *
      * @param {jQuery} container The question container.
      */
     function updatePerAnLabels(container) {
         const entryRows = container.find('.buchungssatz-entry-row');
-        let isFirst = true;
+        let firstDebitFound = false;
 
-        Str.get_strings([
-            {key: 'per', component: 'qtype_buchungssatz'},
-            {key: 'an', component: 'qtype_buchungssatz'}
-        ]).then(function(strings) {
-            const perStr = strings[0];
-            const anStr = strings[1];
-
+        Str.get_string('per', 'qtype_buchungssatz').then(function(perStr) {
             entryRows.each(function() {
                 if ($(this).css('display') === 'none') {
                     return; // Skip hidden rows.
                 }
 
-                const labelCells = $(this).find('.buchungssatz-label-cell');
-                if (labelCells.length >= 2) {
-                    $(labelCells[0]).text(isFirst ? perStr : '');
-                    $(labelCells[1]).text(isFirst ? anStr : '');
-                }
+                const entryType = $(this).attr('data-entry-type') || 'both';
+                const allCells = $(this).find('td');
+                const perCell = allCells.eq(0); // First cell is Per label.
 
-                isFirst = false;
+                // Handle "Per" label (debit side).
+                if (entryType === 'debit' || entryType === 'both') {
+                    if (!firstDebitFound) {
+                        perCell.text(perStr);
+                        firstDebitFound = true;
+                    } else {
+                        perCell.text('');
+                    }
+                }
             });
         });
     }
