@@ -37,6 +37,11 @@ require_capability('qtype/buchungssatz:managecharts', $context);
 $action = optional_param('action', '', PARAM_ALPHA);
 $chartid = optional_param('chartid', 0, PARAM_INT);
 
+// Instantiate the import form.
+require_once($CFG->dirroot . '/question/type/buchungssatz/chart_import_form.php');
+$importurl = new moodle_url($PAGE->url, ['action' => 'import']);
+$importform = new chart_import_form($importurl, ['contextid' => $context->id]);
+
 $PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/question/type/buchungssatz/manage_charts.php'));
 $PAGE->set_title(get_string('managecharts', 'qtype_buchungssatz'));
@@ -44,94 +49,38 @@ $PAGE->set_heading(get_string('managecharts', 'qtype_buchungssatz'));
 
 // Handle actions.
 switch ($action) {
-    case 'create':
-        if (data_submitted() && confirm_sesskey()) {
-            // CSV file is required.
-            if (empty($_FILES['csvfile']['tmp_name']) || $_FILES['csvfile']['error'] !== UPLOAD_ERR_OK) {
-                redirect($PAGE->url, get_string('csvfilerequired', 'qtype_buchungssatz'), null,
+    case 'import':
+        if ($importform->is_cancelled()) {
+            redirect($PAGE->url);
+        } else if ($data = $importform->get_data()) {
+            // Get parsed data from validation.
+            $parsed = $importform->get_parsed_data();
+
+            if (empty($parsed)) {
+                redirect($PAGE->url, get_string('chartimportfailed', 'qtype_buchungssatz'), null,
                     \core\output\notification::NOTIFY_ERROR);
             }
 
-            $csvdata = file_get_contents($_FILES['csvfile']['tmp_name']);
-            if (empty($csvdata)) {
-                redirect($PAGE->url, get_string('csvempty', 'qtype_buchungssatz'), null,
-                    \core\output\notification::NOTIFY_ERROR);
+            $chartname = $parsed['chartname'];
+
+            // If override enabled, delete existing chart.
+            if (!empty($data->overrideexisting)) {
+                $existingchart = chart_manager::get_chart_by_name($chartname, $context->id);
+                if ($existingchart) {
+                    chart_manager::delete_chart($existingchart->id);
+                }
             }
 
-            // Parse CSV to get chart name first.
-            try {
-                $parsed = \qtype_buchungssatz\import_helper::parse_csv($csvdata);
-                $chartname = $parsed['chartname'];
-            } catch (Exception $e) {
-                redirect($PAGE->url, $e->getMessage(), null, \core\output\notification::NOTIFY_ERROR);
-            }
-
-            // Check if chart with this name already exists.
-            $existingchart = chart_manager::get_chart_by_name($chartname, $context->id);
-            $override = optional_param('override', 0, PARAM_INT);
-
-            if ($existingchart && !$override) {
-                // Store CSV data in session for the confirmation step.
-                $_SESSION['qtype_buchungssatz_csv'] = $csvdata;
-                $_SESSION['qtype_buchungssatz_chartname'] = $chartname;
-                redirect(new moodle_url($PAGE->url, ['action' => 'confirmoverride', 'sesskey' => sesskey()]));
-            }
-
-            // If override requested, delete the existing chart first.
-            if ($existingchart && $override) {
-                chart_manager::delete_chart($existingchart->id);
-            }
-
+            // Import chart.
+            $csvdata = $importform->get_csv_content();
             $result = chart_manager::import_chart_from_csv($csvdata, $context->id);
+
             if ($result['chartid'] > 0) {
                 $message = get_string('chartimportsuccess', 'qtype_buchungssatz', $result['imported']);
                 if (!empty($result['errors'])) {
                     $message .= ' ' . get_string('witherrors', 'qtype_buchungssatz') . ': ' .
                         implode(', ', $result['errors']);
                 }
-                redirect($PAGE->url, $message, null, \core\output\notification::NOTIFY_SUCCESS);
-            } else {
-                $errormsg = get_string('chartimportfailed', 'qtype_buchungssatz');
-                if (!empty($result['errors'])) {
-                    $errormsg .= ': ' . implode(', ', $result['errors']);
-                }
-                redirect($PAGE->url, $errormsg, null, \core\output\notification::NOTIFY_ERROR);
-            }
-        }
-        break;
-
-    case 'confirmoverride':
-        // Show confirmation page for overriding existing chart.
-        if (!isset($_SESSION['qtype_buchungssatz_csv']) || !isset($_SESSION['qtype_buchungssatz_chartname'])) {
-            redirect($PAGE->url);
-        }
-        // Will be handled after the header output.
-        break;
-
-    case 'dooverride':
-        if (data_submitted() && confirm_sesskey()) {
-            if (!isset($_SESSION['qtype_buchungssatz_csv']) || !isset($_SESSION['qtype_buchungssatz_chartname'])) {
-                redirect($PAGE->url, get_string('chartimportfailed', 'qtype_buchungssatz'), null,
-                    \core\output\notification::NOTIFY_ERROR);
-            }
-
-            $csvdata = $_SESSION['qtype_buchungssatz_csv'];
-            $chartname = $_SESSION['qtype_buchungssatz_chartname'];
-
-            // Clear session data.
-            unset($_SESSION['qtype_buchungssatz_csv']);
-            unset($_SESSION['qtype_buchungssatz_chartname']);
-
-            // Delete existing chart.
-            $existingchart = chart_manager::get_chart_by_name($chartname, $context->id);
-            if ($existingchart) {
-                chart_manager::delete_chart($existingchart->id);
-            }
-
-            // Import new chart.
-            $result = chart_manager::import_chart_from_csv($csvdata, $context->id);
-            if ($result['chartid'] > 0) {
-                $message = get_string('chartimportsuccess', 'qtype_buchungssatz', $result['imported']);
                 redirect($PAGE->url, $message, null, \core\output\notification::NOTIFY_SUCCESS);
             } else {
                 $errormsg = get_string('chartimportfailed', 'qtype_buchungssatz');
@@ -159,19 +108,6 @@ switch ($action) {
         }
         break;
 
-    case 'import':
-        if ($chartid && data_submitted() && confirm_sesskey()) {
-            $csvdata = optional_param('csvdata', '', PARAM_RAW);
-            if (!empty($csvdata)) {
-                $result = chart_manager::import_from_csv($chartid, $csvdata);
-                $message = get_string('imported', 'qtype_buchungssatz', $result['imported']);
-                if (!empty($result['errors'])) {
-                    $message .= ' ' . implode(', ', $result['errors']);
-                }
-                redirect($PAGE->url, $message, null, \core\output\notification::NOTIFY_INFO);
-            }
-        }
-        break;
 
     case 'export':
         if ($chartid) {
@@ -187,56 +123,12 @@ switch ($action) {
 
 echo $OUTPUT->header();
 
-// Handle confirmation page for overriding existing chart.
-if ($action === 'confirmoverride' && isset($_SESSION['qtype_buchungssatz_chartname'])) {
-    $chartname = $_SESSION['qtype_buchungssatz_chartname'];
-
-    echo $OUTPUT->heading(get_string('confirmoverride', 'qtype_buchungssatz'), 3);
-    echo '<div class="alert alert-warning">';
-    echo get_string('chartexistswarning', 'qtype_buchungssatz', s($chartname));
-    echo '</div>';
-
-    echo '<form method="post">';
-    echo '<input type="hidden" name="action" value="dooverride">';
-    echo '<input type="hidden" name="sesskey" value="' . sesskey() . '">';
-    echo '<button type="submit" class="btn btn-danger mr-2">' . get_string('overridechart', 'qtype_buchungssatz') . '</button>';
-    echo '<a href="' . $PAGE->url->out() . '" class="btn btn-secondary">' . get_string('cancel') . '</a>';
-    echo '</form>';
-
-    echo $OUTPUT->footer();
-    exit;
-}
-
 // Get all charts.
 $charts = chart_manager::get_charts_for_context($context->id);
 
 // Display import form.
 echo $OUTPUT->heading(get_string('importchartfromcsv', 'qtype_buchungssatz'), 3);
-echo '<form method="post" class="mb-4" enctype="multipart/form-data">';
-echo '<input type="hidden" name="action" value="create">';
-echo '<input type="hidden" name="sesskey" value="' . sesskey() . '">';
-echo '<div class="form-group row fitem">';
-echo '<div class="col-md-3 col-form-label d-flex pb-0 pr-md-0">';
-echo '<label>' . get_string('csvfile', 'qtype_buchungssatz') . ' *</label>';
-echo '</div>';
-echo '<div class="col-md-9 form-inline align-items-start felement">';
-echo '<div class="custom-file-input-wrapper" style="display: flex; align-items: center; gap: 10px;">';
-echo '<label for="csvfile" class="btn btn-outline-secondary mb-0" style="cursor: pointer;">';
-echo get_string('choosefile', 'qtype_buchungssatz');
-echo '</label>';
-echo '<span id="csv-filename" style="color: #6c757d; font-size: 0.9em;">' . get_string('nofileselected', 'qtype_buchungssatz') . '</span>';
-echo '<input type="file" name="csvfile" id="csvfile" accept=".csv,.txt" style="display: none;" required>';
-echo '</div>';
-echo '<small class="form-text text-muted d-block mt-2">' . get_string('csvfilehelp', 'qtype_buchungssatz') . '</small>';
-echo '</div>';
-echo '</div>';
-echo '<div class="form-group row fitem">';
-echo '<div class="col-md-3"></div>';
-echo '<div class="col-md-9">';
-echo '<button type="submit" class="btn btn-primary">' . get_string('importchart', 'qtype_buchungssatz') . '</button>';
-echo '</div>';
-echo '</div>';
-echo '</form>';
+$importform->display();
 
 // Create default SKR03 button.
 echo '<div class="mb-4">';
@@ -289,13 +181,5 @@ if (empty($charts)) {
 
     echo html_writer::table($table);
 }
-
-// JavaScript to update filename display when file is selected.
-$jscode = 'document.getElementById("csvfile").addEventListener("change", function() {
-    var filename = this.files.length > 0 ? this.files[0].name : "' .
-    addslashes_js(get_string('nofileselected', 'qtype_buchungssatz')) . '";
-    document.getElementById("csv-filename").textContent = filename;
-});';
-$PAGE->requires->js_init_code($jscode, true);
 
 echo $OUTPUT->footer();

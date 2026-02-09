@@ -194,5 +194,25 @@ function xmldb_qtype_buchungssatz_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2024010116, 'qtype', 'buchungssatz');
     }
 
+    if ($oldversion < 2024010119) {
+        $table = new xmldb_table('qtype_buchungssatz_accounts');
+        $field = new xmldb_field('accountclass', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', 'accountname');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->change_field_precision($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2024010119, 'qtype', 'buchungssatz');
+    }
+
+    if ($oldversion < 2024010121) {
+        $table = new xmldb_table('qtype_buchungssatz_accounts');
+        $field = new xmldb_field('accountclass', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0', null);
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->change_field_precision($table, $field, 10);
+        }
+
+        upgrade_plugin_savepoint(true, 2024010121, 'qtype', 'buchungssatz');
+    }
+
     return true;
 }

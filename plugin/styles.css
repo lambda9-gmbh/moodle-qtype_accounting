@@ -668,6 +668,12 @@
     visibility: hidden !important;
 }
 
+/* Edit table: use display:none for hidden cells to completely remove them */
+.buchungssatz-edit-table td.buchungssatz-hidden-cell,
+.buchungssatz-edit-table .buchungssatz-hidden-cell {
+    visibility: hidden !important;
+}
+
 /* Mobile: use display:none on mobile since table becomes block layout */
 @media (max-width: 768px) {
     /* Higher specificity to override .buchungssatz-student-table td rule */
@@ -776,7 +782,7 @@
 @media (max-width: 768px) {
     /* Hidden cells in edit table should also use display:none on mobile */
     .buchungssatz-edit-table td.buchungssatz-hidden-cell {
-        display: none !important;
+        visibility: hidden !important;
     }
 }
 

@@ -106,10 +106,12 @@ class import_helper {
                 ];
             }
 
-            // Check if first row looks like data (first column doesn't start with a digit).
-            $firstcol = trim($firstrow[0] ?? '');
-            if (!empty($firstcol) && !preg_match('/^\d/', $firstcol)) {
-                // Looks like a header we didn't recognize.
+            // Check if first row looks like data by examining the account number column (index 2).
+            // If Kontonr (account number) starts with a digit, it's a data row.
+            // If it doesn't, it's likely a header row.
+            $accountnumbercol = trim($firstrow[2] ?? '');
+            if (!empty($accountnumbercol) && !preg_match('/^\d/', $accountnumbercol)) {
+                // Account number doesn't start with digit - looks like a header.
                 $hasheader = true;
             }
         }
@@ -127,11 +129,7 @@ class import_helper {
      * @return int Valid account class (0-5), defaults to 0 if invalid.
      */
     public static function validate_account_class($value): int {
-        $intval = (int) $value;
-        if ($intval >= 0 && $intval <= 5) {
-            return $intval;
-        }
-        return 0;
+        return (int) $value;
     }
 
     /**

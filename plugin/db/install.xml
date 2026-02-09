@@ -51,7 +51,7 @@
         <FIELD NAME="chartid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Chart of accounts group ID"/>
         <FIELD NAME="accountnumber" TYPE="char" LENGTH="20" NOTNULL="true" DEFAULT="" COMMENT="Account number (Kontonr)"/>
         <FIELD NAME="accountname" TYPE="char" LENGTH="255" NOTNULL="true" DEFAULT="" COMMENT="Account name (Name)"/>
-        <FIELD NAME="accountclass" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" COMMENT="Account class 0-5 (Kontokl)"/>
+        <FIELD NAME="accountclass" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Account class (Kontokl)"/>
         <FIELD NAME="sortorder" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" COMMENT="Display order"/>
       </FIELDS>
       <KEYS>

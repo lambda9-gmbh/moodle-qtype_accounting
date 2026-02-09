@@ -142,11 +142,6 @@ class chart_manager {
     ): int {
         global $DB;
 
-        // Validate accountclass is in range 0-5.
-        if ($accountclass < 0 || $accountclass > 5) {
-            $accountclass = 0;
-        }
-
         $account = new \stdClass();
         $account->chartid = $chartid;
         $account->accountnumber = $accountnumber;
@@ -185,11 +180,6 @@ class chart_manager {
         int $accountclass
     ): bool {
         global $DB;
-
-        // Validate accountclass is in range 0-5.
-        if ($accountclass < 0 || $accountclass > 5) {
-            $accountclass = 0;
-        }
 
         $account = $DB->get_record('qtype_buchungssatz_accounts', ['id' => $accountid], '*', MUST_EXIST);
         $account->accountnumber = $accountnumber;

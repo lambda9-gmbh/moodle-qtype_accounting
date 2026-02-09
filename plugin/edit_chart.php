@@ -53,9 +53,6 @@ $manageurl = new moodle_url('/question/type/buchungssatz/manage_charts.php');
 $PAGE->navbar->add(get_string('managecharts', 'qtype_buchungssatz'), $manageurl);
 $PAGE->navbar->add($chart->name);
 
-// Valid account class values (0-5).
-$accountclassvalues = [0, 1, 2, 3, 4, 5];
-
 // Handle actions.
 switch ($action) {
     case 'add':
@@ -111,11 +108,8 @@ echo '<input type="text" class="form-control" name="accountname" placeholder="' 
      get_string('accountname', 'qtype_buchungssatz') . '" required>';
 echo '</div>';
 echo '<div class="col-md-3">';
-echo '<select class="form-control" name="accountclass" required>';
-foreach ($accountclassvalues as $value) {
-    echo '<option value="' . $value . '">' . $value . '</option>';
-}
-echo '</select>';
+echo '<input type="number" class="form-control" name="accountclass" placeholder="' .
+    get_string('accountclass', 'qtype_buchungssatz') . '" required>';
 echo '</div>';
 echo '<div class="col-md-3">';
 echo '<button type="submit" class="btn btn-primary">' . get_string('addaccount', 'qtype_buchungssatz') . '</button>';
@@ -154,20 +148,12 @@ if (empty($accounts)) {
                            value="' . s($account->accountnumber) . '" required style="width:100px">',
                 '<input type="text" class="form-control form-control-sm" name="accountname"
                         value="' . s($account->accountname) . '" required style="width:200px">',
-                '<select class="form-control form-control-sm" name="accountclass" required>',
+                '<input type="number" class="form-control form-control-sm" name="accountclass"
+                        value="' . s($account->accountclass) . '" required style="width:100px">',
                 '<button type="submit" class="btn btn-sm btn-success">' . get_string('save') . '</button>
                  <a href="' . $PAGE->url->out() . '" class="btn btn-sm btn-secondary">' . get_string('cancel') . '</a>
                  </form>',
             ];
-
-            // Build accountclass select.
-            $classselect = '<select class="form-control form-control-sm" name="accountclass" required>';
-            foreach ($accountclassvalues as $value) {
-                $selected = ($account->accountclass == $value) ? ' selected' : '';
-                $classselect .= '<option value="' . $value . '"' . $selected . '>' . $value . '</option>';
-            }
-            $classselect .= '</select>';
-            $row[2] = $classselect;
 
         } else {
             // Show view mode.

@@ -21,12 +21,11 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
+define(['jquery', 'core/str'], function($, Str) {
 
     // Module-level state
     let accountsByChart = {};
     let lastChartId = null;
-    let chartManagementOpened = false;
     let nextEntryIndex = 0;
 
     // DOM element references
@@ -94,7 +93,6 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
         setupAddEntryHandler();
         setupDeleteEntryHandler();
         setupFormSubmitHandler();
-        setupChartManagementRefresh();
 
         // Don't rebuild dropdowns on init - PHP already populated them correctly.
         // Only update sollbetrag states (disable if no debit account selected).
@@ -485,8 +483,8 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
         // Append the cloned rows to the tbody.
         tbody.appendChild(clone);
 
-        // Update dropdowns for the new row.
-        updateAccountDropdowns(false);
+        // Update dropdowns for the new row (force rebuild to populate new row's selects).
+        updateAccountDropdowns(true);
         updateSollbetragState(nextEntryIndex);
         updateWeightStates(nextEntryIndex);
 
@@ -845,52 +843,6 @@ define(['jquery', 'core/str', 'core/config'], function($, Str, Config) {
                 syncDisplayToHidden(index);
             }
         });
-    }
-
-    /**
-     * Setup auto-refresh when returning from chart management.
-     */
-    function setupChartManagementRefresh() {
-        const manageChartsLink = document.getElementById('buchungssatz-manage-charts-link');
-
-        if (manageChartsLink) {
-            manageChartsLink.addEventListener('click', function() {
-                chartManagementOpened = true;
-            });
-        }
-
-        document.addEventListener('visibilitychange', function() {
-            if (document.visibilityState === 'visible' && chartManagementOpened) {
-                chartManagementOpened = false;
-                refreshAccountsFromServer();
-            }
-        });
-
-        window.addEventListener('focus', function() {
-            if (chartManagementOpened) {
-                chartManagementOpened = false;
-                refreshAccountsFromServer();
-            }
-        });
-    }
-
-    /**
-     * Refresh accounts from server via AJAX.
-     */
-    function refreshAccountsFromServer() {
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', Config.wwwroot + '/question/type/buchungssatz/ajax/get_accounts.php?sesskey=' + Config.sesskey, true);
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === 4 && xhr.status === 200) {
-                try {
-                    accountsByChart = JSON.parse(xhr.responseText);
-                    updateAccountDropdowns(true);
-                } catch (e) {
-                    console.error('Failed to parse accounts response', e);
-                }
-            }
-        };
-        xhr.send();
     }
 
     /**

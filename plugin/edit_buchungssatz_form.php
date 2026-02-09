@@ -91,12 +91,6 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $mform->setType('chartofaccountsid', PARAM_INT);
         $mform->addHelpButton('chartofaccountsid', 'chartofaccounts', 'qtype_buchungssatz');
 
-        // Link to manage charts.
-        $manageurl = new moodle_url('/question/type/buchungssatz/manage_charts.php');
-        $mform->addElement('static', 'managecharts_link', '',
-            '<a href="' . $manageurl->out() . '" target="_blank" id="buchungssatz-manage-charts-link">' .
-            get_string('managecharts', 'qtype_buchungssatz') . '</a>');
-
         // Correct answer entries section.
         $mform->addElement('header', 'answerhdr', get_string('correctanswer', 'qtype_buchungssatz'));
         $mform->setExpanded('answerhdr', true);
