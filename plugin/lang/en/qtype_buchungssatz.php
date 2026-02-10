@@ -138,6 +138,7 @@ $string['nocharts'] = 'No charts of accounts have been created yet.';
 $string['accounts'] = 'Accounts';
 $string['chartcreated'] = 'Chart of accounts created successfully.';
 $string['chartdeleted'] = 'Chart of accounts deleted successfully.';
+$string['chartrenamed'] = 'Chart of accounts renamed successfully.';
 $string['defaultchartcreated'] = 'Default SKR03 chart created successfully.';
 $string['imported'] = '{$a} accounts imported successfully.';
 $string['confirmdelete'] = 'Are you sure you want to delete this chart of accounts?';
@@ -182,7 +183,17 @@ $string['importchartfromcsv'] = 'Import Chart of Accounts from CSV';
 $string['importchart'] = 'Import Chart';
 $string['csvfilerequired'] = 'A CSV file is required to create a chart of accounts.';
 $string['csvfilehelp'] = 'Upload a CSV file to import accounts. Format: Liste;Kontokl;Kontonr;Name (semicolon, tab, or comma delimiter). The chart name is extracted from the Liste column.';
-$string['csvfile_help'] = 'Upload a CSV file containing chart of accounts data. The file should use the format: Liste;Kontokl;Kontonr;Name where Liste is the chart name, Kontokl is the account class, Kontonr is the account number, and Name is the account name. Semicolon, tab, or comma can be used as delimiter. Maximum file size: 2MB.';
+$string['csvfile_help'] = 'Upload a CSV file containing chart of accounts data.<br>
+Column format (in this order): Liste;Kontokl;Kontonr;Name<br>
+Column meanings:
+<ul>
+<li>Liste: Chart of accounts name</li>
+<li>Kontokl: Account class</li>
+<li>Kontonr: Account number</li>
+<li>Name: Account name</li>
+</ul>
+Delimiter: Semicolon (;), tab, or comma (,)<br>
+Maximum file size: 2MB';
 $string['overrideexisting'] = 'Override existing chart';
 $string['overrideexistingdesc'] = 'Replace existing chart with the same name';
 $string['overrideexisting_help'] = 'If enabled and a chart with the same name already exists, it will be deleted and replaced with the imported chart. Warning: This will permanently delete the existing chart and all its accounts.';
@@ -192,3 +203,4 @@ $string['witherrors'] = 'with errors';
 $string['chartimportfailed'] = 'Chart import failed';
 $string['importlineerror'] = 'Error on line {$a}';
 $string['createdefaultskr03'] = 'Create Default SKR03 Chart';
+$string['importdate'] = 'Import date';

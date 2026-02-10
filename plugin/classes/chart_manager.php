@@ -104,11 +104,23 @@ class chart_manager {
      * Get all charts for a context.
      *
      * @param int $contextid Context ID.
+     * @param string $sort Column to sort by ('name' or 'timecreated').
+     * @param string $dir Sort direction ('ASC' or 'DESC').
      * @return array The chart records.
      */
-    public static function get_charts_for_context(int $contextid): array {
+    public static function get_charts_for_context(int $contextid, string $sort = 'name', string $dir = 'ASC'): array {
         global $DB;
-        return $DB->get_records('qtype_buchungssatz_charts', ['contextid' => $contextid], 'name ASC');
+
+        // Whitelist allowed sort columns.
+        $allowedsorts = ['name', 'timecreated'];
+        if (!in_array($sort, $allowedsorts)) {
+            $sort = 'name';
+        }
+
+        // Validate direction.
+        $dir = strtoupper($dir) === 'DESC' ? 'DESC' : 'ASC';
+
+        return $DB->get_records('qtype_buchungssatz_charts', ['contextid' => $contextid], "$sort $dir");
     }
 
     /**

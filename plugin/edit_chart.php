@@ -86,12 +86,36 @@ switch ($action) {
                 \core\output\notification::NOTIFY_SUCCESS);
         }
         break;
+
+    case 'rename':
+        if (data_submitted() && confirm_sesskey()) {
+            $newname = required_param('chartname', PARAM_TEXT);
+            chart_manager::update_chart($chartid, $newname);
+            redirect($PAGE->url, get_string('chartrenamed', 'qtype_buchungssatz'), null,
+                \core\output\notification::NOTIFY_SUCCESS);
+        }
+        break;
 }
 
 echo $OUTPUT->header();
 
 // Back link.
 echo '<p><a href="' . $manageurl->out() . '">&laquo; ' . get_string('managecharts', 'qtype_buchungssatz') . '</a></p>';
+
+// Rename chart form.
+echo $OUTPUT->heading(get_string('chartname', 'qtype_buchungssatz'), 3);
+echo '<form method="post" class="mb-4">';
+echo '<input type="hidden" name="action" value="rename">';
+echo '<input type="hidden" name="sesskey" value="' . sesskey() . '">';
+echo '<div class="row">';
+echo '<div class="col-md-6">';
+echo '<input type="text" class="form-control" name="chartname" value="' . s($chart->name) . '" required>';
+echo '</div>';
+echo '<div class="col-md-3">';
+echo '<button type="submit" class="btn btn-secondary">' . get_string('save') . '</button>';
+echo '</div>';
+echo '</div>';
+echo '</form>';
 
 // Add account form.
 echo $OUTPUT->heading(get_string('addaccount', 'qtype_buchungssatz'), 3);

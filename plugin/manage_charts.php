@@ -36,6 +36,8 @@ require_capability('qtype/buchungssatz:managecharts', $context);
 
 $action = optional_param('action', '', PARAM_ALPHA);
 $chartid = optional_param('chartid', 0, PARAM_INT);
+$tsort = optional_param('tsort', 'name', PARAM_ALPHA);
+$tdir = optional_param('tdir', 'asc', PARAM_ALPHA);
 
 // Instantiate the import form.
 require_once($CFG->dirroot . '/question/type/buchungssatz/chart_import_form.php');
@@ -43,7 +45,7 @@ $importurl = new moodle_url($PAGE->url, ['action' => 'import']);
 $importform = new chart_import_form($importurl, ['contextid' => $context->id]);
 
 $PAGE->set_context($context);
-$PAGE->set_url(new moodle_url('/question/type/buchungssatz/manage_charts.php'));
+$PAGE->set_url(new moodle_url('/question/type/buchungssatz/manage_charts.php', ['tsort' => $tsort, 'tdir' => $tdir]));
 $PAGE->set_title(get_string('managecharts', 'qtype_buchungssatz'));
 $PAGE->set_heading(get_string('managecharts', 'qtype_buchungssatz'));
 
@@ -124,7 +126,7 @@ switch ($action) {
 echo $OUTPUT->header();
 
 // Get all charts.
-$charts = chart_manager::get_charts_for_context($context->id);
+$charts = chart_manager::get_charts_for_context($context->id, $tsort, $tdir);
 
 // Display import form.
 echo $OUTPUT->heading(get_string('importchartfromcsv', 'qtype_buchungssatz'), 3);
@@ -144,10 +146,27 @@ echo $OUTPUT->heading(get_string('managecharts', 'qtype_buchungssatz'), 3);
 if (empty($charts)) {
     echo $OUTPUT->notification(get_string('nocharts', 'qtype_buchungssatz'), 'info');
 } else {
+    // Build sortable column header links.
+    $sortablecolumns = ['name', 'timecreated'];
+    $headers = [];
+    foreach (['name' => 'chartname', 'timecreated' => 'importdate'] as $col => $stringkey) {
+        $label = get_string($stringkey, 'qtype_buchungssatz');
+        if ($tsort === $col) {
+            $newdir = ($tdir === 'asc') ? 'desc' : 'asc';
+            $arrow = ($tdir === 'asc') ? ' ▲' : ' ▼';
+        } else {
+            $newdir = 'asc';
+            $arrow = '';
+        }
+        $sorturl = new moodle_url('/question/type/buchungssatz/manage_charts.php', ['tsort' => $col, 'tdir' => $newdir]);
+        $headers[$col] = html_writer::link($sorturl, $label . $arrow, ['class' => 'buchungssatz-sort-link']);
+    }
+
     $table = new html_table();
     $table->head = [
-        get_string('chartname', 'qtype_buchungssatz'),
+        $headers['name'],
         get_string('accounts', 'qtype_buchungssatz'),
+        $headers['timecreated'],
         get_string('actions'),
     ];
 
@@ -175,6 +194,7 @@ if (empty($charts)) {
         $table->data[] = [
             s($chart->name),
             $accountcount,
+            userdate($chart->timecreated, get_string('strftimedatetimeshort', 'langconfig')),
             implode(' ', $actions),
         ];
     }

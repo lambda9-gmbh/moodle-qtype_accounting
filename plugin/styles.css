@@ -786,6 +786,17 @@
     }
 }
 
+/* Sortable table header links */
+.buchungssatz-sort-link {
+    text-decoration: none;
+    white-space: nowrap;
+    color: inherit;
+}
+
+.buchungssatz-sort-link:hover {
+    text-decoration: underline;
+}
+
 /* Print styles */
 @media print {
     .buchungssatz-entries {

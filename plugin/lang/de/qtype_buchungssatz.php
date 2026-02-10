@@ -138,6 +138,7 @@ $string['nocharts'] = 'Es wurden noch keine Kontenpläne erstellt.';
 $string['accounts'] = 'Konten';
 $string['chartcreated'] = 'Kontenplan erfolgreich erstellt.';
 $string['chartdeleted'] = 'Kontenplan erfolgreich gelöscht.';
+$string['chartrenamed'] = 'Kontenplan erfolgreich umbenannt.';
 $string['defaultchartcreated'] = 'Standard-SKR03-Kontenplan erfolgreich erstellt.';
 $string['imported'] = '{$a} Konten erfolgreich importiert.';
 $string['confirmdelete'] = 'Sind Sie sicher, dass Sie diesen Kontenplan löschen möchten?';
@@ -182,7 +183,17 @@ $string['importchartfromcsv'] = 'Kontenplan aus CSV importieren';
 $string['importchart'] = 'Kontenplan importieren';
 $string['csvfilerequired'] = 'Eine CSV-Datei ist erforderlich, um einen Kontenplan zu erstellen.';
 $string['csvfilehelp'] = 'Laden Sie eine CSV-Datei hoch, um Konten zu importieren. Format: Liste;Kontokl;Kontonr;Name (Semikolon, Tab oder Komma als Trennzeichen). Der Kontenplanname wird aus der Liste-Spalte übernommen.';
-$string['csvfile_help'] = 'Laden Sie eine CSV-Datei mit Kontenplan-Daten hoch. Die Datei sollte das Format Liste;Kontokl;Kontonr;Name verwenden, wobei Liste der Kontenplanname ist, Kontokl die Kontoklasse, Kontonr die Kontonummer und Name die Kontobezeichnung. Als Trennzeichen können Semikolon, Tabulator oder Komma verwendet werden. Maximale Dateigröße: 2 MB.';
+$string['csvfile_help'] = 'Laden Sie eine CSV-Datei mit Kontenplan-Daten hoch.<br>
+Spaltenformat (in dieser Reihenfolge): Liste;Kontokl;Kontonr;Name<br>
+Bedeutung der Spalten:
+<ul>
+<li>Liste: Name des Kontenplans</li>
+<li>Kontokl: Kontoklasse</li>
+<li>Kontonr: Kontonummer</li>
+<li>Name: Kontobezeichnung</li>
+</ul>
+Trennzeichen: Semikolon (;), Tabulator oder Komma (,)<br>
+Maximale Dateigröße: 2 MB';
 $string['overrideexisting'] = 'Bestehenden Kontenplan überschreiben';
 $string['overrideexistingdesc'] = 'Bestehenden Kontenplan mit gleichem Namen ersetzen';
 $string['overrideexisting_help'] = 'Wenn aktiviert und ein Kontenplan mit demselben Namen bereits existiert, wird dieser gelöscht und durch den importierten Kontenplan ersetzt. Warnung: Dies löscht den bestehenden Kontenplan und alle seine Konten dauerhaft.';
@@ -192,3 +203,4 @@ $string['witherrors'] = 'mit Fehlern';
 $string['chartimportfailed'] = 'Kontenplan-Import fehlgeschlagen';
 $string['importlineerror'] = 'Fehler in Zeile {$a}';
 $string['createdefaultskr03'] = 'SKR03 Standardkontenplan erstellen';
+$string['importdate'] = 'Importdatum';
