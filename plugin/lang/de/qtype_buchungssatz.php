@@ -169,7 +169,7 @@ $string['importsuccess'] = 'Import erfolgreich! ';
 $string['entriesimported'] = 'Buchungen importiert.';
 $string['importerror'] = 'Importfehler: ';
 $string['csvempty'] = 'CSV-Daten sind leer.';
-$string['csvnodata'] = 'CSV muss mindestens eine Kopfzeile und eine Datenzeile enthalten.';
+$string['csvnodata'] = 'CSV muss mindestens zwei Zeilen (Kopfzeile und Daten) für das mehrspaltige Format oder mindestens eine Kontozeile für das einfache Format enthalten.';
 $string['csvinvalidformat'] = 'Soll- und Habenkonto-Spalten konnten nicht erkannt werden. Bitte überprüfen Sie das CSV-Format.';
 $string['csvnoentries'] = 'Keine gültigen Buchungen in den CSV-Daten gefunden.';
 $string['importedchart'] = 'Importierter Kontenplan';
@@ -182,9 +182,9 @@ $string['distributegradesequally'] = 'Gleichmäßig verteilen';
 $string['importchartfromcsv'] = 'Kontenplan aus CSV importieren';
 $string['importchart'] = 'Kontenplan importieren';
 $string['csvfilerequired'] = 'Eine CSV-Datei ist erforderlich, um einen Kontenplan zu erstellen.';
-$string['csvfilehelp'] = 'Laden Sie eine CSV-Datei hoch, um Konten zu importieren. Format: Liste;Kontokl;Kontonr;Name (Semikolon, Tab oder Komma als Trennzeichen). Der Kontenplanname wird aus der Liste-Spalte übernommen.';
-$string['csvfile_help'] = 'Laden Sie eine CSV-Datei mit Kontenplan-Daten hoch.<br>
-Spaltenformat (in dieser Reihenfolge): Liste;Kontokl;Kontonr;Name<br>
+$string['csvfilehelp'] = 'Laden Sie eine CSV-Datei hoch, um Konten zu importieren. Unterstützte Formate: Mehrspaltig (Liste;Kontokl;Kontonr;Name) oder einfach (ein Konto pro Zeile: Kontonummer gefolgt von Kontobezeichnung). Der Kontenplanname wird aus der Liste-Spalte übernommen oder automatisch generiert.';
+$string['csvfile_help'] = 'Laden Sie eine CSV-Datei mit Kontenplan-Daten hoch.<br><br>
+<strong>Mehrspaltiges Format:</strong> Liste;Kontokl;Kontonr;Name<br>
 Bedeutung der Spalten:
 <ul>
 <li>Liste: Name des Kontenplans</li>
@@ -192,7 +192,10 @@ Bedeutung der Spalten:
 <li>Kontonr: Kontonummer</li>
 <li>Name: Kontobezeichnung</li>
 </ul>
-Trennzeichen: Semikolon (;), Tabulator oder Komma (,)<br>
+Trennzeichen: Semikolon (;), Tabulator oder Komma (,)<br><br>
+<strong>Einfaches Format:</strong> Ein Konto pro Zeile<br>
+Jede Zeile: Kontonummer gefolgt von Kontobezeichnung, getrennt durch Leerzeichen.<br>
+Beispiel: <code>0110 Immaterielle Vermögensgegenstände</code><br><br>
 Maximale Dateigröße: 2 MB';
 $string['overrideexisting'] = 'Bestehenden Kontenplan überschreiben';
 $string['overrideexistingdesc'] = 'Bestehenden Kontenplan mit gleichem Namen ersetzen';

@@ -169,7 +169,7 @@ $string['importsuccess'] = 'Import successful! ';
 $string['entriesimported'] = 'entries imported.';
 $string['importerror'] = 'Import error: ';
 $string['csvempty'] = 'CSV data is empty.';
-$string['csvnodata'] = 'CSV must contain at least a header row and one data row.';
+$string['csvnodata'] = 'CSV must contain at least two rows (header and data) for multi-column format, or at least one account line for simple format.';
 $string['csvinvalidformat'] = 'Could not detect debit and credit account columns. Please check the CSV format.';
 $string['csvnoentries'] = 'No valid entries found in CSV data.';
 $string['importedchart'] = 'Imported Chart';
@@ -182,9 +182,9 @@ $string['distributegradesequally'] = 'Distribute equally';
 $string['importchartfromcsv'] = 'Import Chart of Accounts from CSV';
 $string['importchart'] = 'Import Chart';
 $string['csvfilerequired'] = 'A CSV file is required to create a chart of accounts.';
-$string['csvfilehelp'] = 'Upload a CSV file to import accounts. Format: Liste;Kontokl;Kontonr;Name (semicolon, tab, or comma delimiter). The chart name is extracted from the Liste column.';
-$string['csvfile_help'] = 'Upload a CSV file containing chart of accounts data.<br>
-Column format (in this order): Liste;Kontokl;Kontonr;Name<br>
+$string['csvfilehelp'] = 'Upload a CSV file to import accounts. Supported formats: Multi-column (Liste;Kontokl;Kontonr;Name) or simple (one account per line: account number followed by account name). The chart name is extracted from the Liste column or auto-generated.';
+$string['csvfile_help'] = 'Upload a CSV file containing chart of accounts data.<br><br>
+<strong>Multi-column format:</strong> Liste;Kontokl;Kontonr;Name<br>
 Column meanings:
 <ul>
 <li>Liste: Chart of accounts name</li>
@@ -192,7 +192,10 @@ Column meanings:
 <li>Kontonr: Account number</li>
 <li>Name: Account name</li>
 </ul>
-Delimiter: Semicolon (;), tab, or comma (,)<br>
+Delimiter: Semicolon (;), tab, or comma (,)<br><br>
+<strong>Simple format:</strong> One account per line<br>
+Each line: account number followed by account name, separated by space.<br>
+Example: <code>0110 Immaterielle Vermögensgegenstände</code><br><br>
 Maximum file size: 2MB';
 $string['overrideexisting'] = 'Override existing chart';
 $string['overrideexistingdesc'] = 'Replace existing chart with the same name';

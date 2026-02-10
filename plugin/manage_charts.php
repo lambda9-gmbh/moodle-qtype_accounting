@@ -75,7 +75,8 @@ switch ($action) {
 
             // Import chart.
             $csvdata = $importform->get_csv_content();
-            $result = chart_manager::import_chart_from_csv($csvdata, $context->id);
+            $csvfilename = $importform->get_csv_filename();
+            $result = chart_manager::import_chart_from_csv($csvdata, $context->id, $csvfilename);
 
             if ($result['chartid'] > 0) {
                 $message = get_string('chartimportsuccess', 'qtype_buchungssatz', $result['imported']);

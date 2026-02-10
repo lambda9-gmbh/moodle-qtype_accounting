@@ -288,18 +288,19 @@ class chart_manager {
     /**
      * Import a complete chart of accounts from CSV.
      *
-     * Expected CSV format: Liste;Kontokl;Kontonr;Name
-     * The chart name is extracted from the "Liste" column.
+     * Supports multi-column format (Liste;Kontokl;Kontonr;Name) and simple format
+     * (one account per line: "accountnumber accountname").
      *
      * @param string $csvcontent CSV content.
      * @param int $contextid Context ID.
+     * @param string $filename Optional original filename (used as chart name for simple format).
      * @return array ['chartid' => int, 'chartname' => string, 'imported' => int, 'errors' => array]
      */
-    public static function import_chart_from_csv(string $csvcontent, int $contextid): array {
+    public static function import_chart_from_csv(string $csvcontent, int $contextid, string $filename = ''): array {
         $result = ['chartid' => 0, 'chartname' => '', 'imported' => 0, 'errors' => []];
 
         try {
-            $parsed = import_helper::parse_csv($csvcontent);
+            $parsed = import_helper::parse_csv($csvcontent, $filename);
         } catch (\Exception $e) {
             $result['errors'][] = $e->getMessage();
             return $result;

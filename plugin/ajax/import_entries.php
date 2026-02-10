@@ -17,7 +17,8 @@
 /**
  * AJAX endpoint to import chart of accounts from CSV.
  *
- * Expected CSV format: Liste;Kontokl;Kontonr;Name
+ * Supports multi-column format (Liste;Kontokl;Kontonr;Name)
+ * and simple format (one account per line: "accountnumber accountname").
  *
  * @package    qtype_buchungssatz
  * @copyright  2024 Hochschule Flensburg / lambda9

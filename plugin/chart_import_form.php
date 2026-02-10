@@ -46,6 +46,13 @@ class chart_import_form extends moodleform {
     private $_parsed_data = null;
 
     /**
+     * Original filename from the uploaded CSV file.
+     *
+     * @var string
+     */
+    private $_csv_filename = '';
+
+    /**
      * Form definition.
      */
     public function definition() {
@@ -86,8 +93,9 @@ class chart_import_form extends moodleform {
     public function validation($data, $files) {
         $errors = parent::validation($data, $files);
 
-        // Get CSV content from draft file area.
+        // Get CSV content and filename from draft file area.
         $csvdata = $this->get_draft_file_content($data['csvfile']);
+        $this->_csv_filename = $this->get_draft_filename($data['csvfile']);
 
         // Check if file is empty.
         if (empty($csvdata)) {
@@ -97,7 +105,7 @@ class chart_import_form extends moodleform {
 
         // Parse CSV using import_helper.
         try {
-            $parsed = import_helper::parse_csv($csvdata);
+            $parsed = import_helper::parse_csv($csvdata, $this->_csv_filename);
             // Store parsed data for reuse in processing.
             $this->_parsed_data = $parsed;
         } catch (Exception $e) {
@@ -145,12 +153,44 @@ class chart_import_form extends moodleform {
     }
 
     /**
+     * Get filename from draft file area.
+     *
+     * @param int $draftitemid Draft item ID from filepicker.
+     * @return string Filename or empty string if no file found.
+     */
+    private function get_draft_filename($draftitemid) {
+        if (empty($draftitemid)) {
+            return '';
+        }
+
+        $fs = get_file_storage();
+        $usercontext = context_user::instance($GLOBALS['USER']->id);
+        $files = $fs->get_area_files($usercontext->id, 'user', 'draft', $draftitemid, 'id', false);
+
+        if (empty($files)) {
+            return '';
+        }
+
+        $file = reset($files);
+        return $file->get_filename();
+    }
+
+    /**
      * Get parsed CSV data from validation.
      *
      * @return array|null Parsed CSV data or null if not validated yet.
      */
     public function get_parsed_data() {
         return $this->_parsed_data;
+    }
+
+    /**
+     * Get the original CSV filename from the uploaded file.
+     *
+     * @return string The filename, or empty string if not available.
+     */
+    public function get_csv_filename() {
+        return $this->_csv_filename;
     }
 
     /**
