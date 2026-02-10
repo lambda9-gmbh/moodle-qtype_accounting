@@ -416,7 +416,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             // Parse the amount (handles both German and US formats) then format for display.
             $parsedvalue = $this->parse_amount_input($value);
             $displayval = $this->format_amount_display($parsedvalue, $numberformat, $decimalplaces);
-            $html = '<span class="' . $spanclass . '">' . s($displayval) . '</span>';
+            $html = '<span class="' . $spanclass . '" style="text-align: end;">' . s($displayval) . '</span>';
             $html .= '<input type="hidden" name="' . $name . '" value="' . s($value) . '">';
             return $html;
         }
@@ -579,13 +579,13 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         foreach ($question->entries as $entry) {
             $html .= html_writer::start_tag('tr');
             $html .= html_writer::tag('td', s($this->get_account_display($entry['sollkonto'], $accounts)),
-                ['data-label' => $sollkontostr]);
+                ['data-label' => $sollkontostr, 'style' => 'text-align: start;' ]);
             $html .= html_writer::tag('td', $this->format_amount_display($entry['sollbetrag'], $numberformat, $decimalplaces),
-                ['data-label' => $sollbetragstr]);
+                ['data-label' => $sollbetragstr, 'style' => 'text-align: end;' ]);
             $html .= html_writer::tag('td', s($this->get_account_display($entry['habenkonto'], $accounts)),
-                ['data-label' => $habenkontostr]);
+                ['data-label' => $habenkontostr, 'style' => 'text-align: start;' ]);
             $html .= html_writer::tag('td', $this->format_amount_display($entry['habenbetrag'], $numberformat, $decimalplaces),
-                ['data-label' => $habenbetragstr]);
+                ['data-label' => $habenbetragstr, 'style' => 'text-align: end;' ]);
             $html .= html_writer::end_tag('tr');
             // Show explanation as separate row if present.
             if (!empty($entry['explanation'])) {
