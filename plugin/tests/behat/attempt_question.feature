@@ -53,8 +53,8 @@ Feature: Attempt Buchungssatz questions
       | questioncategory | qtype        | name            | questiontext                  |
       | Test questions   | buchungssatz | Multi Question  | Record multiple transactions. |
     And I am on the "Multi Question" "core_question > preview" page logged in as "teacher1"
-    Then I should see "Add Entry"
-    When I click on "Add Entry" "button"
+    Then I should see "Add Debit Entry"
+    When I click on "Add Debit Entry" "button"
     Then ".buchungssatz-entry-row" "css_element" should exist
 
   @javascript

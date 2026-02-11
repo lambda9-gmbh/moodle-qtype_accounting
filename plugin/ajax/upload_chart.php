@@ -15,10 +15,11 @@
 // along with MoFT BuSa.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * AJAX endpoint to import chart of accounts from CSV.
+ * AJAX endpoint to upload a chart of accounts from a Moodle draft file.
  *
- * Supports multi-column format (Liste;Kontokl;Kontonr;Name)
- * and simple format (one account per line: "accountnumber accountname").
+ * Reads a CSV file from the Moodle draft area, imports it as a chart
+ * of accounts scoped to the given course context, and returns the
+ * chart data plus refreshed account lists.
  *
  * @package    qtype_buchungssatz
  * @copyright  2024 Hochschule Flensburg / lambda9
@@ -35,43 +36,42 @@ use qtype_buchungssatz\import_helper;
 require_login();
 require_sesskey();
 
-$csvdata = required_param('csvdata', PARAM_RAW);
+$draftitemid = required_param('draftitemid', PARAM_INT);
 $courseid = required_param('courseid', PARAM_INT);
 
 header('Content-Type: application/json');
 
 try {
-    $result = import_chart_from_csv($csvdata, $courseid);
-    echo json_encode($result);
-} catch (Exception $e) {
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-}
+    global $USER, $DB;
 
-/**
- * Import chart of accounts from CSV data.
- *
- * @param string $csvdata The raw CSV data.
- * @param int $contextid The course context ID to scope the chart to.
- * @return array Result with chart info and accounts.
- */
-function import_chart_from_csv(string $csvdata, int $contextid): array {
-    global $DB;
+    // Read the file from the draft area.
+    $usercontext = context_user::instance($USER->id);
+    $fs = get_file_storage();
+    $files = $fs->get_area_files($usercontext->id, 'user', 'draft', $draftitemid, 'id DESC', false);
 
-    // Parse CSV to extract chart name and accounts.
-    $parsed = import_helper::parse_csv($csvdata);
-    $chartname = $parsed['chartname'];
-    $accounts = $parsed['accounts'];
+    if (empty($files)) {
+        throw new Exception(get_string('csvempty', 'qtype_buchungssatz'));
+    }
 
-    // Check if a chart with matching accounts already exists in this context.
-    $chartid = import_helper::find_matching_chart($accounts, $contextid);
+    $file = reset($files);
+    $csvcontent = $file->get_content();
+    $filename = $file->get_filename();
+
+    if (empty(trim($csvcontent))) {
+        throw new Exception(get_string('csvempty', 'qtype_buchungssatz'));
+    }
+
+    // Parse to check for duplicates first.
+    $parsed = import_helper::parse_csv($csvcontent, $filename);
+    $chartid = import_helper::find_matching_chart($parsed['accounts'], $courseid);
 
     if ($chartid) {
-        // Use existing chart.
+        // Reuse existing chart.
         $chart = $DB->get_record('qtype_buchungssatz_charts', ['id' => $chartid]);
         $chartname = $chart->name;
     } else {
-        // Create a new chart of accounts in the course context.
-        $importresult = chart_manager::import_chart_from_csv($csvdata, $contextid);
+        // Import new chart into the course context.
+        $importresult = chart_manager::import_chart_from_csv($csvcontent, $courseid, $filename);
 
         if ($importresult['chartid'] === 0) {
             throw new Exception(implode(', ', $importresult['errors']));
@@ -81,22 +81,27 @@ function import_chart_from_csv(string $csvdata, int $contextid): array {
         $chartname = $importresult['chartname'];
     }
 
-    // Get all charts and accounts for this context for dropdown refresh.
+    // Return all charts and accounts for this context so the UI can refresh.
     $allaccounts = [];
+    $allcharts = [];
     $charts = $DB->get_records('qtype_buchungssatz_charts',
-        ['contextid' => $contextid], 'name ASC');
-    foreach ($charts as $chart) {
-        $chartaccounts = chart_manager::get_accounts($chart->id);
-        $allaccounts[$chart->id] = [];
+        ['contextid' => $courseid], 'name ASC');
+    foreach ($charts as $c) {
+        $allcharts[$c->id] = $c->name;
+        $chartaccounts = chart_manager::get_accounts($c->id);
+        $allaccounts[$c->id] = [];
         foreach ($chartaccounts as $acc) {
-            $allaccounts[$chart->id][$acc->accountnumber] = $acc->accountnumber . ' - ' . $acc->accountname;
+            $allaccounts[$c->id][$acc->accountnumber] = $acc->accountnumber . ' - ' . $acc->accountname;
         }
     }
 
-    return [
+    echo json_encode([
         'success' => true,
         'chartid' => $chartid,
         'chartname' => $chartname,
+        'charts' => $allcharts,
         'accounts' => $allaccounts,
-    ];
+    ]);
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }

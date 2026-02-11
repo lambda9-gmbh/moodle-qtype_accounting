@@ -26,6 +26,10 @@ defined('MOODLE_INTERNAL') || die();
 
 /**
  * Provides the information to backup Buchungssatz questions.
+ *
+ * @package    qtype_buchungssatz
+ * @copyright  2024 Hochschule Flensburg / lambda9
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class backup_qtype_buchungssatz_plugin extends backup_qtype_plugin {
 
@@ -44,26 +48,58 @@ class backup_qtype_buchungssatz_plugin extends backup_qtype_plugin {
         // Connect the visible container ASAP.
         $plugin->add_child($pluginwrapper);
 
-        // Define each element.
-        $options = new backup_nested_element('buchungssatz_options',
-            null, ['chartofaccountsid', 'allowmultipleentries', 'maxentries']);
+        // Chart of accounts data.
+        $chart = new backup_nested_element('buchungssatz_chart', null, ['name']);
+        $chartaccounts = new backup_nested_element('chart_accounts');
+        $chartaccount = new backup_nested_element('chart_account', null,
+            ['accountnumber', 'accountname', 'accountclass', 'sortorder']);
 
+        // Options with all current fields.
+        $options = new backup_nested_element('buchungssatz_options', null,
+            ['chartofaccountsid', 'accountsindropdown', 'numberformat', 'currency_symbol',
+             'decimalplaces', 'extraentrydeduction', 'allornothinggrading',
+             'allowmultipleentries', 'maxentries']);
+
+        // Entries with current weight fields and explanation.
         $entries = new backup_nested_element('buchungssatz_entries');
         $entry = new backup_nested_element('entry', ['id'],
-            ['sortorder', 'sollkonto', 'sollbetrag', 'habenkonto', 'habenbetrag', 'fraction']);
+            ['sortorder', 'sollkonto', 'sollbetrag', 'habenkonto', 'habenbetrag',
+             'weight_sollkonto', 'weight_sollbetrag', 'weight_habenkonto', 'weight_habenbetrag',
+             'explanation']);
 
         // Build the tree.
+        $pluginwrapper->add_child($chart);
+        $chart->add_child($chartaccounts);
+        $chartaccounts->add_child($chartaccount);
         $pluginwrapper->add_child($options);
         $pluginwrapper->add_child($entries);
         $entries->add_child($entry);
 
-        // Set source to populate the data.
+        // Set source for chart data via SQL join through options.
+        $chart->set_source_sql(
+            "SELECT c.name
+               FROM {qtype_buchungssatz_charts} c
+               JOIN {qtype_buchungssatz_options} o ON o.chartofaccountsid = c.id
+              WHERE o.questionid = ?",
+            [backup::VAR_PARENTID]
+        );
+
+        $chartaccount->set_source_sql(
+            "SELECT a.accountnumber, a.accountname, a.accountclass, a.sortorder
+               FROM {qtype_buchungssatz_accounts} a
+               JOIN {qtype_buchungssatz_charts} c ON c.id = a.chartid
+               JOIN {qtype_buchungssatz_options} o ON o.chartofaccountsid = c.id
+              WHERE o.questionid = ?
+           ORDER BY a.sortorder, a.accountnumber",
+            [backup::VAR_PARENTID]
+        );
+
+        // Set source for options and entries.
         $options->set_source_table('qtype_buchungssatz_options',
             ['questionid' => backup::VAR_PARENTID]);
         $entry->set_source_table('qtype_buchungssatz_entries',
             ['questionid' => backup::VAR_PARENTID], 'sortorder ASC');
 
-        // Don't need to annotate ids nor files.
         return $plugin;
     }
 }

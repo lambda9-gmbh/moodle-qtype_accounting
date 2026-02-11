@@ -27,7 +27,7 @@ defined('MOODLE_INTERNAL') || die();
 $capabilities = [
     'qtype/buchungssatz:managecharts' => [
         'captype' => 'write',
-        'contextlevel' => CONTEXT_SYSTEM,
+        'contextlevel' => CONTEXT_COURSE,
         'archetypes' => [
             'manager' => CAP_ALLOW,
             'editingteacher' => CAP_ALLOW,

@@ -27,6 +27,7 @@ define(['jquery', 'core/str'], function($, Str) {
     let accountsByChart = {};
     let lastChartId = null;
     let nextEntryIndex = 0;
+    let courseId = 0;
 
     // DOM element references
     let chartSelect = null;
@@ -54,6 +55,7 @@ define(['jquery', 'core/str'], function($, Str) {
 
         accountsByChart = config.accounts || {};
         initialChartId = String(config.chartId || '0');
+        courseId = config.courseId || 0;
 
         // Find chart select by ID first, then fall back to name (for Moodle 4.x compatibility).
         chartSelect = document.getElementById('id_chartofaccountsid');
@@ -93,6 +95,7 @@ define(['jquery', 'core/str'], function($, Str) {
         setupAddEntryHandler();
         setupDeleteEntryHandler();
         setupFormSubmitHandler();
+        setupCsvUploadHandler();
 
         // Don't rebuild dropdowns on init - PHP already populated them correctly.
         // Only update sollbetrag states (disable if no debit account selected).
@@ -410,6 +413,96 @@ define(['jquery', 'core/str'], function($, Str) {
                 syncAllDisplayToHidden();
             });
         }
+    }
+
+    /**
+     * Setup CSV upload button handler.
+     * Reads the draft item ID from Moodle's filepicker hidden field,
+     * sends it to the server to import the chart, and updates the
+     * chart dropdown and account data on success.
+     */
+    function setupCsvUploadHandler() {
+        const uploadBtn = document.getElementById('buchungssatz-csv-upload-btn');
+        const statusSpan = document.getElementById('buchungssatz-csv-upload-status');
+
+        if (!uploadBtn) {
+            return;
+        }
+
+        uploadBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // Moodle filepicker stores the draft item ID in a hidden input named "chartcsvfile".
+            var draftInput = document.querySelector('input[name="chartcsvfile"]');
+            var draftItemId = draftInput ? draftInput.value : '';
+
+            if (!draftItemId || draftItemId === '0') {
+                if (statusSpan) {
+                    Str.get_string('csvfilerequired', 'qtype_buchungssatz').then(function(str) {
+                        statusSpan.innerHTML = '<span class="text-danger">' + str + '</span>';
+                    });
+                }
+                return;
+            }
+
+            if (statusSpan) {
+                statusSpan.innerHTML = '<span class="text-info"><i class="fa fa-spinner fa-spin"></i></span>';
+            }
+
+            // Send draft item ID to the upload endpoint.
+            var params = new URLSearchParams();
+            params.append('sesskey', M.cfg.sesskey);
+            params.append('draftitemid', draftItemId);
+            params.append('courseid', courseId);
+
+            fetch(M.cfg.wwwroot + '/question/type/buchungssatz/ajax/upload_chart.php', {
+                method: 'POST',
+                body: params
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    // Update accounts data.
+                    accountsByChart = data.accounts || accountsByChart;
+
+                    // Rebuild the entire chart dropdown from the returned list.
+                    if (chartSelect && data.charts) {
+                        // Keep the first "no chart selected" option.
+                        var firstOption = chartSelect.options[0];
+                        chartSelect.innerHTML = '';
+                        chartSelect.add(firstOption);
+
+                        for (var id in data.charts) {
+                            var option = document.createElement('option');
+                            option.value = id;
+                            option.text = data.charts[id];
+                            chartSelect.add(option);
+                        }
+
+                        // Select the newly uploaded chart.
+                        chartSelect.value = String(data.chartid);
+                        lastChartId = null;
+                        updateAccountDropdowns(true);
+                    }
+
+                    if (statusSpan) {
+                        Str.get_string('importsuccess', 'qtype_buchungssatz').then(function(str) {
+                            statusSpan.innerHTML = '<span class="text-success">' + str + '</span>';
+                        });
+                    }
+                } else {
+                    if (statusSpan) {
+                        statusSpan.innerHTML = '<span class="text-danger">' +
+                            (data.error || 'Upload failed.') + '</span>';
+                    }
+                }
+            })
+            .catch(function(err) {
+                if (statusSpan) {
+                    statusSpan.innerHTML = '<span class="text-danger">' + err.message + '</span>';
+                }
+            });
+        });
     }
 
     /**

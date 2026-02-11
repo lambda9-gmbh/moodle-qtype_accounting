@@ -32,6 +32,7 @@ $string['pluginnamesummary'] = 'Ein Fragetyp zum Üben von Buchungssätzen. Stud
 // Formularfelder.
 $string['chartofaccounts'] = 'Kontenplan';
 $string['chartofaccounts_help'] = 'Wählen Sie den Kontenplan aus, den Studierende für ihre Buchungen verwenden sollen.';
+$string['chartofaccounts_section'] = 'Kontenplan';
 $string['accountsindropdown'] = 'Anzahl zusätzlicher Konten in der Auswahlliste';
 $string['accountsindropdown_help'] = 'Die Anzahl der zufälligen zusätzlichen Konten, die neben dem richtigen Konto in der Auswahlliste angezeigt werden sollen. Setzen Sie den Wert auf 0, um alle Konten des ausgewählten Kontenplans anzuzeigen. Beispiel: Bei Eingabe von 3 wird das richtige Konto plus 3 zufällige Konten angezeigt (4 insgesamt).';
 $string['numberformat'] = 'Zahlenformat';
@@ -103,6 +104,7 @@ $string['err_sollbetragrequired'] = 'Der Soll-Betrag ist erforderlich, wenn ein 
 $string['err_graderequired'] = 'Die Bewertung ist erforderlich.';
 $string['err_gradeinvalid'] = 'Die Bewertung muss zwischen 0 und 100 liegen.';
 $string['err_gradesumnotcomplete'] = 'Die Summe aller Bewertungen muss genau 100% betragen. Aktuelle Summe: {$a}%';
+$string['err_chartrequired'] = 'Bitte wählen Sie einen Kontenplan aus.';
 $string['err_accountsindropdown_negative'] = 'Die Anzahl der Konten in der Auswahlliste darf nicht negativ sein.';
 
 // Kontenplanverwaltung.
@@ -123,7 +125,8 @@ $string['accountclass_4'] = 'Aufwendungen';
 $string['accountclass_5'] = 'Erträge';
 
 // Datenschutz.
-$string['privacy:metadata'] = 'Das Buchungssatz-Fragetyp-Plugin speichert keine personenbezogenen Daten.';
+$string['privacy:metadata:qtype_buchungssatz_charts'] = 'Die Kontenpläne-Tabelle speichert, wer den jeweiligen Kontenplan zuletzt geändert hat.';
+$string['privacy:metadata:qtype_buchungssatz_charts:usermodified'] = 'Die ID des Benutzers, der den Kontenplan zuletzt geändert hat.';
 
 // Berechtigungen.
 $string['buchungssatz:managecharts'] = 'Kontenpläne verwalten';
@@ -207,3 +210,6 @@ $string['chartimportfailed'] = 'Kontenplan-Import fehlgeschlagen';
 $string['importlineerror'] = 'Fehler in Zeile {$a}';
 $string['createdefaultskr03'] = 'SKR03 Standardkontenplan erstellen';
 $string['importdate'] = 'Importdatum';
+$string['uploadchartcsv'] = 'Kontenplan hochladen (CSV)';
+$string['uploadchartcsv_btn'] = 'Hochladen';
+$string['uploadchartcsv_help'] = 'Laden Sie eine CSV-Datei hoch, um einen neuen Kontenplan für diesen Kurs zu erstellen. Der Kontenplan erscheint sofort nach dem Hochladen in der Auswahlliste. Unterstützte Formate: Mehrspaltig (Liste;Kontokl;Kontonr;Name) oder einfach (ein Konto pro Zeile: Kontonummer gefolgt von Kontobezeichnung).';

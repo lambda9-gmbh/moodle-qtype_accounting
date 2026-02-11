@@ -12,7 +12,7 @@ echo "First run will build the image and may take several minutes."
 cd "$PROJECT_DIR/docker"
 
 # Build and start containers
-docker compose up -d --build
+docker compose --profile testing up -d --build
 
 echo ""
 echo "Waiting for database to be ready..."

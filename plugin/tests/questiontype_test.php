@@ -20,6 +20,7 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 require_once($CFG->dirroot . '/question/type/buchungssatz/questiontype.php');
+require_once($CFG->dirroot . '/question/format/xml/format.php');
 
 /**
  * Unit tests for qtype_buchungssatz (question type class).
@@ -236,5 +237,430 @@ class questiontype_test extends \advanced_testcase {
 
         $this->assertIsArray($responses);
         $this->assertEmpty($responses);
+    }
+
+    /**
+     * Helper to build the XML data array structure for import tests.
+     *
+     * Constructs the nested array format that Moodle's XML parser produces.
+     *
+     * @param array $options Options fields (chartofaccountsid, allowmultipleentries, etc).
+     * @param array $entries Array of entry arrays with sollkonto, sollbetrag, etc.
+     * @param array|null $chartdata Chart data with 'chartname' and 'accounts' keys.
+     * @return array The XML data structure.
+     */
+    protected function build_xml_import_data(array $options = [], array $entries = [],
+            ?array $chartdata = null): array {
+        $data = [
+            '@' => ['type' => 'buchungssatz'],
+            '#' => [
+                'name' => [0 => ['#' => ['text' => [0 => ['#' => 'Imported Question']]]]],
+                'questiontext' => [0 => [
+                    '@' => ['format' => 'html'],
+                    '#' => ['text' => [0 => ['#' => 'Test question text']]],
+                ]],
+                'generalfeedback' => [0 => [
+                    '@' => ['format' => 'html'],
+                    '#' => ['text' => [0 => ['#' => '']]],
+                ]],
+                'defaultmark' => [0 => ['#' => '1']],
+                'penalty' => [0 => ['#' => '0.3333333']],
+            ],
+        ];
+
+        // Add options fields.
+        $defaults = [
+            'chartofaccountsid' => '0',
+            'accountsindropdown' => '0',
+            'numberformat' => 'de',
+            'currency_symbol' => '€',
+            'decimalplaces' => '2',
+            'extraentrydeduction' => '',
+            'allornothinggrading' => '0',
+            'allowmultipleentries' => '1',
+            'maxentries' => '5',
+        ];
+        foreach (array_merge($defaults, $options) as $field => $value) {
+            $data['#'][$field] = [0 => ['#' => (string) $value]];
+        }
+
+        // Add entries.
+        if (!empty($entries)) {
+            $xmlentries = [];
+            foreach ($entries as $i => $entry) {
+                $xmlentry = ['#' => []];
+                foreach ($entry as $field => $value) {
+                    $xmlentry['#'][$field] = [0 => ['#' => (string) $value]];
+                }
+                $xmlentries[$i] = $xmlentry;
+            }
+            $data['#']['entries'] = [0 => ['#' => ['entry' => $xmlentries]]];
+        }
+
+        // Add chart data.
+        if ($chartdata !== null) {
+            $chartxml = ['#' => [
+                'chartname' => [0 => ['#' => $chartdata['chartname']]],
+            ]];
+            $xmlaccounts = [];
+            foreach ($chartdata['accounts'] as $i => $acc) {
+                $xmlaccounts[$i] = ['#' => [
+                    'accountnumber' => [0 => ['#' => $acc['accountnumber']]],
+                    'accountname' => [0 => ['#' => $acc['accountname']]],
+                    'accountclass' => [0 => ['#' => (string) $acc['accountclass']]],
+                    'sortorder' => [0 => ['#' => (string) $acc['sortorder']]],
+                ]];
+            }
+            $chartxml['#']['account'] = $xmlaccounts;
+            $data['#']['chartofaccounts'] = [0 => $chartxml];
+        }
+
+        return $data;
+    }
+
+    /**
+     * Test that export_to_xml includes correct answer entries.
+     */
+    public function test_export_to_xml_includes_entries(): void {
+        $this->resetAfterTest(true);
+
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category();
+
+        $questiondata = [
+            'category' => $category->id,
+            'name' => 'XML Export Entries Test',
+            'questiontext' => ['text' => 'Test', 'format' => FORMAT_HTML],
+            'generalfeedback' => ['text' => '', 'format' => FORMAT_HTML],
+            'defaultmark' => 1,
+            'penalty' => 0.3333333,
+            'qtype' => 'buchungssatz',
+            'chartofaccountsid' => 0,
+            'allowmultipleentries' => 1,
+            'maxentries' => 5,
+            'sollkonto' => ['1200', '1000'],
+            'sollbetrag' => [500.00, 300.00],
+            'habenkonto' => ['8400', '8400'],
+            'habenbetrag' => [500.00, 300.00],
+            'weight_sollkonto' => [2, 1],
+            'weight_sollbetrag' => [1, 1],
+            'weight_habenkonto' => [2, 1],
+            'weight_habenbetrag' => [1, 1],
+        ];
+
+        $question = $generator->create_question('buchungssatz', null, $questiondata);
+
+        // Load question data with options.
+        $questionobj = new \stdClass();
+        $questionobj->id = $question->id;
+        $questionobj->qtype = 'buchungssatz';
+        $this->qtype->get_question_options($questionobj);
+
+        $format = new \qformat_xml();
+        $xml = $this->qtype->export_to_xml($questionobj, $format);
+
+        // Verify entries block is present.
+        $this->assertStringContainsString('<entries>', $xml);
+        $this->assertStringContainsString('<entry>', $xml);
+
+        // Verify first entry data.
+        $this->assertStringContainsString('<sollkonto>1200</sollkonto>', $xml);
+        $this->assertStringContainsString('<habenkonto>8400</habenkonto>', $xml);
+        $this->assertStringContainsString('<weight_sollkonto>2</weight_sollkonto>', $xml);
+
+        // Verify second entry data.
+        $this->assertStringContainsString('<sollkonto>1000</sollkonto>', $xml);
+    }
+
+    /**
+     * Test that export_to_xml includes chart of accounts data.
+     */
+    public function test_export_to_xml_includes_chart(): void {
+        $this->resetAfterTest(true);
+
+        // Create a chart with accounts.
+        $contextid = \context_system::instance()->id;
+        $chartid = chart_manager::create_chart('Test Export Chart', $contextid);
+        chart_manager::add_account($chartid, '1200', 'Bank', 1, 0);
+        chart_manager::add_account($chartid, '8400', 'Erlöse', 5, 1);
+
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category();
+
+        $questiondata = [
+            'category' => $category->id,
+            'name' => 'XML Export Chart Test',
+            'questiontext' => ['text' => 'Test', 'format' => FORMAT_HTML],
+            'generalfeedback' => ['text' => '', 'format' => FORMAT_HTML],
+            'defaultmark' => 1,
+            'penalty' => 0.3333333,
+            'qtype' => 'buchungssatz',
+            'chartofaccountsid' => $chartid,
+            'allowmultipleentries' => 0,
+            'maxentries' => 1,
+            'sollkonto' => ['1200'],
+            'sollbetrag' => [1000.00],
+            'habenkonto' => ['8400'],
+            'habenbetrag' => [1000.00],
+            'weight_sollkonto' => [1],
+            'weight_sollbetrag' => [1],
+            'weight_habenkonto' => [1],
+            'weight_habenbetrag' => [1],
+        ];
+
+        $question = $generator->create_question('buchungssatz', null, $questiondata);
+
+        $questionobj = new \stdClass();
+        $questionobj->id = $question->id;
+        $questionobj->qtype = 'buchungssatz';
+        $this->qtype->get_question_options($questionobj);
+
+        $format = new \qformat_xml();
+        $xml = $this->qtype->export_to_xml($questionobj, $format);
+
+        // Verify chart block is present.
+        $this->assertStringContainsString('<chartofaccounts>', $xml);
+        $this->assertStringContainsString('<chartname>Test Export Chart</chartname>', $xml);
+        $this->assertStringContainsString('<accountnumber>1200</accountnumber>', $xml);
+        $this->assertStringContainsString('<accountname>Bank</accountname>', $xml);
+        $this->assertStringContainsString('<accountnumber>8400</accountnumber>', $xml);
+    }
+
+    /**
+     * Test that export_to_xml omits chart block when chartofaccountsid is 0.
+     */
+    public function test_export_to_xml_no_chart(): void {
+        $this->resetAfterTest(true);
+
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category();
+
+        $questiondata = [
+            'category' => $category->id,
+            'name' => 'XML Export No Chart Test',
+            'questiontext' => ['text' => 'Test', 'format' => FORMAT_HTML],
+            'generalfeedback' => ['text' => '', 'format' => FORMAT_HTML],
+            'defaultmark' => 1,
+            'penalty' => 0.3333333,
+            'qtype' => 'buchungssatz',
+            'chartofaccountsid' => 0,
+            'allowmultipleentries' => 0,
+            'maxentries' => 1,
+            'sollkonto' => ['1200'],
+            'sollbetrag' => [1000.00],
+            'habenkonto' => ['8400'],
+            'habenbetrag' => [1000.00],
+            'weight_sollkonto' => [1],
+            'weight_sollbetrag' => [1],
+            'weight_habenkonto' => [1],
+            'weight_habenbetrag' => [1],
+        ];
+
+        $question = $generator->create_question('buchungssatz', null, $questiondata);
+
+        $questionobj = new \stdClass();
+        $questionobj->id = $question->id;
+        $questionobj->qtype = 'buchungssatz';
+        $this->qtype->get_question_options($questionobj);
+
+        $format = new \qformat_xml();
+        $xml = $this->qtype->export_to_xml($questionobj, $format);
+
+        $this->assertStringNotContainsString('<chartofaccounts>', $xml);
+    }
+
+    /**
+     * Test importing entries from XML data.
+     */
+    public function test_import_from_xml_with_entries(): void {
+        global $CFG;
+        $this->resetAfterTest(true);
+
+        $data = $this->build_xml_import_data(
+            ['allowmultipleentries' => '1', 'maxentries' => '5'],
+            [
+                [
+                    'sortorder' => '0',
+                    'sollkonto' => '1200',
+                    'sollbetrag' => '500',
+                    'habenkonto' => '8400',
+                    'habenbetrag' => '500',
+                    'weight_sollkonto' => '2',
+                    'weight_sollbetrag' => '1',
+                    'weight_habenkonto' => '2',
+                    'weight_habenbetrag' => '1',
+                    'explanation' => '',
+                ],
+                [
+                    'sortorder' => '1',
+                    'sollkonto' => '1000',
+                    'sollbetrag' => '300',
+                    'habenkonto' => '8400',
+                    'habenbetrag' => '300',
+                    'weight_sollkonto' => '1',
+                    'weight_sollbetrag' => '1',
+                    'weight_habenkonto' => '1',
+                    'weight_habenbetrag' => '1',
+                    'explanation' => '',
+                ],
+            ]
+        );
+
+        $format = new \qformat_xml();
+        $defaultquestion = new \stdClass();
+
+        $qo = $this->qtype->import_from_xml($data, $defaultquestion, $format);
+
+        $this->assertNotFalse($qo);
+        $this->assertEquals('buchungssatz', $qo->qtype);
+
+        // Verify entries were parsed.
+        $this->assertCount(2, $qo->sollkonto);
+        $this->assertEquals('1200', $qo->sollkonto[0]);
+        $this->assertEquals('500', $qo->sollbetrag[0]);
+        $this->assertEquals('8400', $qo->habenkonto[0]);
+        $this->assertEquals('500', $qo->habenbetrag[0]);
+        $this->assertEquals(2, $qo->weight_sollkonto[0]);
+        $this->assertEquals(1, $qo->weight_sollbetrag[0]);
+
+        // Verify second entry.
+        $this->assertEquals('1000', $qo->sollkonto[1]);
+        $this->assertEquals('300', $qo->sollbetrag[1]);
+    }
+
+    /**
+     * Test importing chart of accounts from XML creates a new chart.
+     */
+    public function test_import_from_xml_creates_chart(): void {
+        $this->resetAfterTest(true);
+
+        $course = $this->getDataGenerator()->create_course();
+
+        $chartaccounts = [
+            ['accountnumber' => '1200', 'accountname' => 'Bank', 'accountclass' => 1, 'sortorder' => 0],
+            ['accountnumber' => '8400', 'accountname' => 'Erlöse', 'accountclass' => 5, 'sortorder' => 1],
+        ];
+
+        $data = $this->build_xml_import_data(
+            [],
+            [
+                [
+                    'sortorder' => '0',
+                    'sollkonto' => '1200',
+                    'sollbetrag' => '1000',
+                    'habenkonto' => '8400',
+                    'habenbetrag' => '1000',
+                    'weight_sollkonto' => '1',
+                    'weight_sollbetrag' => '1',
+                    'weight_habenkonto' => '1',
+                    'weight_habenbetrag' => '1',
+                    'explanation' => '',
+                ],
+            ],
+            ['chartname' => 'Import Test Chart', 'accounts' => $chartaccounts]
+        );
+
+        $format = new \qformat_xml();
+        $format->course = $course;
+        $defaultquestion = new \stdClass();
+
+        $qo = $this->qtype->import_from_xml($data, $defaultquestion, $format);
+
+        $this->assertNotFalse($qo);
+        $this->assertGreaterThan(0, $qo->chartofaccountsid);
+
+        // Verify chart was created.
+        $chart = chart_manager::get_chart($qo->chartofaccountsid);
+        $this->assertNotFalse($chart);
+        $this->assertEquals('Import Test Chart', $chart->name);
+
+        // Verify accounts were created.
+        $accounts = chart_manager::get_accounts($qo->chartofaccountsid);
+        $this->assertCount(2, $accounts);
+    }
+
+    /**
+     * Test importing reuses an existing matching chart.
+     */
+    public function test_import_from_xml_reuses_existing_chart(): void {
+        $this->resetAfterTest(true);
+
+        $course = $this->getDataGenerator()->create_course();
+        $coursecontext = \context_course::instance($course->id);
+
+        // Pre-create a chart in the course context.
+        $existingchartid = chart_manager::create_chart('Reuse Chart', $coursecontext->id);
+        chart_manager::add_account($existingchartid, '1200', 'Bank', 1, 0);
+        chart_manager::add_account($existingchartid, '8400', 'Erlöse', 5, 1);
+
+        $chartaccounts = [
+            ['accountnumber' => '1200', 'accountname' => 'Bank', 'accountclass' => 1, 'sortorder' => 0],
+            ['accountnumber' => '8400', 'accountname' => 'Erlöse', 'accountclass' => 5, 'sortorder' => 1],
+        ];
+
+        $data = $this->build_xml_import_data(
+            [],
+            [
+                [
+                    'sortorder' => '0',
+                    'sollkonto' => '1200',
+                    'sollbetrag' => '1000',
+                    'habenkonto' => '8400',
+                    'habenbetrag' => '1000',
+                    'weight_sollkonto' => '1',
+                    'weight_sollbetrag' => '1',
+                    'weight_habenkonto' => '1',
+                    'weight_habenbetrag' => '1',
+                    'explanation' => '',
+                ],
+            ],
+            ['chartname' => 'Reuse Chart', 'accounts' => $chartaccounts]
+        );
+
+        $format = new \qformat_xml();
+        $format->course = $course;
+        $defaultquestion = new \stdClass();
+
+        $qo = $this->qtype->import_from_xml($data, $defaultquestion, $format);
+
+        $this->assertNotFalse($qo);
+        // Should reuse the existing chart, not create a new one.
+        $this->assertEquals($existingchartid, $qo->chartofaccountsid);
+    }
+
+    /**
+     * Test import_from_xml returns false for non-buchungssatz questions.
+     */
+    public function test_import_from_xml_wrong_type(): void {
+        $data = [
+            '@' => ['type' => 'multichoice'],
+            '#' => [],
+        ];
+
+        $format = new \qformat_xml();
+        $defaultquestion = new \stdClass();
+
+        $result = $this->qtype->import_from_xml($data, $defaultquestion, $format);
+        $this->assertFalse($result);
+    }
+
+    /**
+     * Test import_from_xml with no entries produces empty arrays.
+     */
+    public function test_import_from_xml_no_entries(): void {
+        $this->resetAfterTest(true);
+
+        $data = $this->build_xml_import_data();
+
+        $format = new \qformat_xml();
+        $defaultquestion = new \stdClass();
+
+        $qo = $this->qtype->import_from_xml($data, $defaultquestion, $format);
+
+        $this->assertNotFalse($qo);
+        $this->assertEmpty($qo->sollkonto);
+        $this->assertEmpty($qo->habenkonto);
+        $this->assertEmpty($qo->sollbetrag);
+        $this->assertEmpty($qo->habenbetrag);
     }
 }

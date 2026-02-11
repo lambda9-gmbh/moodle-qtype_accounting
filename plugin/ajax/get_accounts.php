@@ -15,7 +15,7 @@
 // along with MoFT BuSa.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * AJAX endpoint to get accounts for all charts.
+ * AJAX endpoint to get accounts for charts in a course context.
  *
  * @package    qtype_buchungssatz
  * @copyright  2024 Hochschule Flensburg / lambda9
@@ -33,10 +33,11 @@ use qtype_buchungssatz\chart_manager;
 require_login();
 require_sesskey();
 
-$context = context_system::instance();
+$courseid = required_param('courseid', PARAM_INT);
 
-// Get all charts.
-$charts = $DB->get_records('qtype_buchungssatz_charts', null, 'name ASC');
+// Get charts scoped to the course context.
+$charts = $DB->get_records('qtype_buchungssatz_charts',
+    ['contextid' => $courseid], 'name ASC');
 
 $result = [];
 foreach ($charts as $chart) {

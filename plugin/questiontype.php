@@ -281,6 +281,187 @@ class qtype_buchungssatz extends question_type {
      * @return array The extra question fields.
      */
     public function extra_question_fields(): array {
-        return ['qtype_buchungssatz_options', 'chartofaccountsid', 'accountsindropdown', 'numberformat', 'currency_symbol', 'decimalplaces', 'extraentrydeduction', 'allornothinggrading', 'allowmultipleentries', 'maxentries'];
+        return ['qtype_buchungssatz_options', 'chartofaccountsid', 'accountsindropdown', 'numberformat',
+            'currency_symbol', 'decimalplaces', 'extraentrydeduction', 'allornothinggrading',
+            'allowmultipleentries', 'maxentries'];
+    }
+
+    /**
+     * Export this question to the Moodle XML format.
+     *
+     * Appends correct answer entries and full chart of accounts data
+     * to the auto-exported options fields from extra_question_fields().
+     *
+     * @param object $question The question data to export.
+     * @param qformat_xml $format The XML format helper.
+     * @param mixed $extra Any additional format specific data.
+     * @return string The XML fragment for this question type.
+     */
+    public function export_to_xml($question, qformat_xml $format, $extra = null) {
+        // Parent exports the extra_question_fields (options table fields).
+        $expout = parent::export_to_xml($question, $format, $extra);
+
+        // Export correct answer entries.
+        if (!empty($question->options->entries)) {
+            $expout .= "    <entries>\n";
+            foreach ($question->options->entries as $entry) {
+                $expout .= "      <entry>\n";
+                $expout .= "        <sortorder>{$entry->sortorder}</sortorder>\n";
+                $expout .= "        <sollkonto>" . $format->xml_escape($entry->sollkonto) . "</sollkonto>\n";
+                $expout .= "        <sollbetrag>{$entry->sollbetrag}</sollbetrag>\n";
+                $expout .= "        <habenkonto>" . $format->xml_escape($entry->habenkonto) . "</habenkonto>\n";
+                $expout .= "        <habenbetrag>{$entry->habenbetrag}</habenbetrag>\n";
+                $expout .= "        <weight_sollkonto>" . ($entry->weight_sollkonto ?? 1) . "</weight_sollkonto>\n";
+                $expout .= "        <weight_sollbetrag>" . ($entry->weight_sollbetrag ?? 1) . "</weight_sollbetrag>\n";
+                $expout .= "        <weight_habenkonto>" . ($entry->weight_habenkonto ?? 1) . "</weight_habenkonto>\n";
+                $expout .= "        <weight_habenbetrag>" . ($entry->weight_habenbetrag ?? 1) . "</weight_habenbetrag>\n";
+                $expout .= "        <explanation>" . $format->xml_escape($entry->explanation ?? '') . "</explanation>\n";
+                $expout .= "      </entry>\n";
+            }
+            $expout .= "    </entries>\n";
+        }
+
+        // Export chart of accounts with full account data.
+        $chartid = $question->options->chartofaccountsid ?? 0;
+        if ($chartid > 0) {
+            $chart = \qtype_buchungssatz\chart_manager::get_chart($chartid);
+            if ($chart) {
+                $accounts = \qtype_buchungssatz\chart_manager::get_accounts($chartid);
+                $expout .= "    <chartofaccounts>\n";
+                $expout .= "      <chartname>" . $format->xml_escape($chart->name) . "</chartname>\n";
+                foreach ($accounts as $account) {
+                    $expout .= "      <account>\n";
+                    $expout .= "        <accountnumber>" . $format->xml_escape($account->accountnumber)
+                        . "</accountnumber>\n";
+                    $expout .= "        <accountname>" . $format->xml_escape($account->accountname)
+                        . "</accountname>\n";
+                    $expout .= "        <accountclass>{$account->accountclass}</accountclass>\n";
+                    $expout .= "        <sortorder>{$account->sortorder}</sortorder>\n";
+                    $expout .= "      </account>\n";
+                }
+                $expout .= "    </chartofaccounts>\n";
+            }
+        }
+
+        return $expout;
+    }
+
+    /**
+     * Import a question from the Moodle XML format.
+     *
+     * Parses correct answer entries and chart of accounts data,
+     * resolving the chart to an existing or newly created chart
+     * in the target course context.
+     *
+     * @param array $data The XML data for this question.
+     * @param object $question The default question object.
+     * @param qformat_xml $format The XML format helper.
+     * @param mixed $extra Any additional format specific data.
+     * @return object|false The question object, or false if not this type.
+     */
+    public function import_from_xml($data, $question, qformat_xml $format, $extra = null) {
+        // Check this is our question type.
+        $qtype = $data['@']['type'];
+        if ($qtype != $this->name()) {
+            return false;
+        }
+
+        // Import headers and extra_question_fields (cannot call parent because
+        // the base implementation unconditionally parses 'answer' elements).
+        $qo = $format->import_headers($data);
+        $qo->qtype = $qtype;
+
+        $extraquestionfields = $this->extra_question_fields();
+        array_shift($extraquestionfields); // Remove table name.
+        foreach ($extraquestionfields as $field) {
+            $qo->$field = $format->getpath($data, ['#', $field, 0, '#'], '');
+        }
+
+        // Parse correct answer entries.
+        $qo->sollkonto = [];
+        $qo->sollbetrag = [];
+        $qo->habenkonto = [];
+        $qo->habenbetrag = [];
+        $qo->weight_sollkonto = [];
+        $qo->weight_sollbetrag = [];
+        $qo->weight_habenkonto = [];
+        $qo->weight_habenbetrag = [];
+
+        $entries = $format->getpath($data, ['#', 'entries', 0, '#', 'entry'], []);
+        foreach ($entries as $i => $entrydata) {
+            $qo->sollkonto[$i] = $format->getpath($entrydata, ['#', 'sollkonto', 0, '#'], '');
+            $qo->sollbetrag[$i] = $format->getpath($entrydata, ['#', 'sollbetrag', 0, '#'], 0);
+            $qo->habenkonto[$i] = $format->getpath($entrydata, ['#', 'habenkonto', 0, '#'], '');
+            $qo->habenbetrag[$i] = $format->getpath($entrydata, ['#', 'habenbetrag', 0, '#'], 0);
+            $qo->weight_sollkonto[$i] = (int) $format->getpath($entrydata,
+                ['#', 'weight_sollkonto', 0, '#'], 1);
+            $qo->weight_sollbetrag[$i] = (int) $format->getpath($entrydata,
+                ['#', 'weight_sollbetrag', 0, '#'], 1);
+            $qo->weight_habenkonto[$i] = (int) $format->getpath($entrydata,
+                ['#', 'weight_habenkonto', 0, '#'], 1);
+            $qo->weight_habenbetrag[$i] = (int) $format->getpath($entrydata,
+                ['#', 'weight_habenbetrag', 0, '#'], 1);
+        }
+
+        // Parse and resolve chart of accounts.
+        $chartdata = $format->getpath($data, ['#', 'chartofaccounts', 0], null);
+        if ($chartdata !== null) {
+            $chartname = $format->getpath($chartdata, ['#', 'chartname', 0, '#'], '');
+            $xmlaccounts = $format->getpath($chartdata, ['#', 'account'], []);
+
+            if (!empty($chartname) && !empty($xmlaccounts)) {
+                // Build accounts array keyed by account number.
+                $accountsbynum = [];
+                $accountslist = [];
+                foreach ($xmlaccounts as $accdata) {
+                    $accountnumber = $format->getpath($accdata, ['#', 'accountnumber', 0, '#'], '');
+                    $accountname = $format->getpath($accdata, ['#', 'accountname', 0, '#'], '');
+                    $accountclass = (int) $format->getpath($accdata, ['#', 'accountclass', 0, '#'], 0);
+                    $sortorder = (int) $format->getpath($accdata, ['#', 'sortorder', 0, '#'], 0);
+
+                    $accountsbynum[$accountnumber] = [
+                        'accountnumber' => $accountnumber,
+                        'accountname' => $accountname,
+                        'accountclass' => $accountclass,
+                        'sortorder' => $sortorder,
+                    ];
+                    $accountslist[] = $accountsbynum[$accountnumber];
+                }
+
+                // Determine target course context.
+                $contextid = 0;
+                if (!empty($format->course->id)) {
+                    $coursecontext = \context_course::instance($format->course->id);
+                    $contextid = $coursecontext->id;
+                } else if (!empty($format->category->contextid)) {
+                    $contextid = $format->category->contextid;
+                }
+
+                if ($contextid > 0) {
+                    // Try to find existing matching chart in target context.
+                    $chartid = \qtype_buchungssatz\chart_manager::find_matching_chart_in_context(
+                        $chartname, $contextid, $accountsbynum
+                    );
+
+                    if (!$chartid) {
+                        // Create new chart with all accounts.
+                        $chartid = \qtype_buchungssatz\chart_manager::create_chart($chartname, $contextid);
+                        foreach ($accountslist as $acc) {
+                            \qtype_buchungssatz\chart_manager::add_account(
+                                $chartid,
+                                $acc['accountnumber'],
+                                $acc['accountname'],
+                                $acc['accountclass'],
+                                $acc['sortorder']
+                            );
+                        }
+                    }
+
+                    $qo->chartofaccountsid = $chartid;
+                }
+            }
+        }
+
+        return $qo;
     }
 }

@@ -90,19 +90,11 @@ Feature: Create and edit Buchungssatz questions
     Then I should see "Multiple tries"
 
   @javascript
-  Scenario: Manage charts link is visible
-    Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
-    When I press "Create a new question ..."
-    And I set the field "Accounting Entry (Buchungssatz)" to "1"
-    And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
-    Then I should see "Manage Charts of Accounts"
-
-  @javascript
   Scenario: Add entry button works
     Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."
     And I set the field "Accounting Entry (Buchungssatz)" to "1"
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
-    Then I should see "Add Entry"
-    When I click on "Add Entry" "button"
+    Then I should see "Add Debit Entry"
+    When I click on "Add Debit Entry" "button"
     Then ".buchungssatz-entry-row" "css_element" should exist

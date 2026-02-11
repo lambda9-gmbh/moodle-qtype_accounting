@@ -84,12 +84,34 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $mform->setDefault('allornothinggrading', 0);
         $mform->addHelpButton('allornothinggrading', 'allornothinggrading', 'qtype_buchungssatz');
 
-        // Chart of accounts selection.
+        // Chart of accounts section.
+        $mform->addElement('header', 'charthdr', get_string('chartofaccounts_section', 'qtype_buchungssatz'));
+        $mform->setExpanded('charthdr', true);
+
         $charts = $this->get_available_charts();
         $mform->addElement('select', 'chartofaccountsid',
             get_string('chartofaccounts', 'qtype_buchungssatz'), $charts);
         $mform->setType('chartofaccountsid', PARAM_INT);
         $mform->addHelpButton('chartofaccountsid', 'chartofaccounts', 'qtype_buchungssatz');
+        $mform->addRule('chartofaccountsid', get_string('err_chartrequired', 'qtype_buchungssatz'),
+            'nonzero', null, 'client');
+
+        // Moodle file picker for CSV upload.
+        $mform->addElement('filepicker', 'chartcsvfile',
+            get_string('uploadchartcsv', 'qtype_buchungssatz'), null,
+            ['maxbytes' => 2097152, 'accepted_types' => ['.csv', '.txt']]);
+        $mform->addHelpButton('chartcsvfile', 'uploadchartcsv', 'qtype_buchungssatz');
+
+        // Upload button + status (rendered below the filepicker).
+        $uploadbtnlabel = get_string('uploadchartcsv_btn', 'qtype_buchungssatz');
+        $uploadhtml = '<div class="form-group row fitem">';
+        $uploadhtml .= '<div class="col-md-3"></div>';
+        $uploadhtml .= '<div class="col-md-9 felement">';
+        $uploadhtml .= '<button type="button" id="buchungssatz-csv-upload-btn" class="btn btn-secondary">';
+        $uploadhtml .= s($uploadbtnlabel) . '</button>';
+        $uploadhtml .= ' <span id="buchungssatz-csv-upload-status"></span>';
+        $uploadhtml .= '</div></div>';
+        $mform->addElement('html', $uploadhtml);
 
         // Correct answer entries section.
         $mform->addElement('header', 'answerhdr', get_string('correctanswer', 'qtype_buchungssatz'));
@@ -157,10 +179,15 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
 
         // Add JavaScript for dynamic functionality.
         // Pass data via script tag to avoid js_call_amd size limits and HTML encoding issues.
+        // Determine course context ID for AJAX calls.
+        $coursecontext = $this->context->get_course_context(false);
+        $coursecontextid = $coursecontext ? $coursecontext->id : 0;
+
         $jsdata = [
             'accounts' => $allaccounts,
             'chartId' => $currentchartid,
             'entries' => $existingentries,
+            'courseId' => $coursecontextid,
         ];
         $mform->addElement('html', '<script type="application/json" id="buchungssatz-editform-data">' .
             json_encode($jsdata, JSON_HEX_TAG | JSON_HEX_AMP) . '</script>');
@@ -429,32 +456,13 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
 
         $charts = [0 => get_string('nochartselected', 'qtype_buchungssatz')];
 
-        // Always include system context charts.
-        $systemcontext = context_system::instance();
-        $contextids = [$systemcontext->id];
-
-        // Try to get the current context.
-        try {
-            $currentcontext = $this->context ?? context_system::instance();
-            if ($currentcontext->id != $systemcontext->id) {
-                $contextids[] = $currentcontext->id;
-                // Also include parent contexts.
-                $parentcontexts = $currentcontext->get_parent_context_ids();
-                $contextids = array_merge($contextids, $parentcontexts);
+        $coursecontext = $this->context->get_course_context(false);
+        if ($coursecontext) {
+            $records = $DB->get_records('qtype_buchungssatz_charts',
+                ['contextid' => $coursecontext->id], 'name ASC');
+            foreach ($records as $record) {
+                $charts[$record->id] = $record->name;
             }
-        } catch (Exception $e) {
-            // Just use system context if there's an error.
-        }
-
-        // Remove duplicates.
-        $contextids = array_unique($contextids);
-
-        list($insql, $params) = $DB->get_in_or_equal($contextids, SQL_PARAMS_NAMED);
-        $records = $DB->get_records_select('qtype_buchungssatz_charts',
-            "contextid $insql", $params, 'name ASC');
-
-        foreach ($records as $record) {
-            $charts[$record->id] = $record->name;
         }
 
         return $charts;
@@ -525,6 +533,12 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
      */
     public function validation($data, $files): array {
         $errors = parent::validation($data, $files);
+
+        // Validate chart of accounts is selected.
+        $chartofaccountsid = (int) ($data['chartofaccountsid'] ?? 0);
+        if ($chartofaccountsid === 0) {
+            $errors['chartofaccountsid'] = get_string('err_chartrequired', 'qtype_buchungssatz');
+        }
 
         // Validate accountsindropdown is not negative.
         $accountsindropdown = (int) ($data['accountsindropdown'] ?? 0);

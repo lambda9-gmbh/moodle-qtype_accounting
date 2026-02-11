@@ -23,16 +23,3 @@
  */
 
 defined('MOODLE_INTERNAL') || die();
-
-if ($ADMIN->fulltree) {
-    // Add a link to manage charts of accounts.
-    $settings->add(new admin_setting_heading(
-        'qtype_buchungssatz/managecharts_heading',
-        get_string('managecharts', 'qtype_buchungssatz'),
-        html_writer::link(
-            new moodle_url('/question/type/buchungssatz/manage_charts.php'),
-            get_string('managecharts', 'qtype_buchungssatz'),
-            ['class' => 'btn btn-secondary']
-        )
-    ));
-}

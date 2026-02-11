@@ -236,3 +236,8 @@ The quiz display shows:
 2. Entry rows with dropdowns for accounts and number inputs for amounts
 3. Add/Delete buttons for managing entries
 4. Correct answer display shows account number + name (e.g., "1200 - Bank")
+
+## Planning
+
+- When creating a plan, always ask if something is unclear
+- Keep your plan clean and concise, but understandable

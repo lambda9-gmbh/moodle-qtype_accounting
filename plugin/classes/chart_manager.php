@@ -340,6 +340,79 @@ class chart_manager {
     }
 
     /**
+     * Find a chart by name in a given context that contains all required account numbers.
+     *
+     * @param string $name Chart name to search for.
+     * @param int $contextid Context ID to search in.
+     * @param array $accounts Array of account data keyed by account number.
+     * @return int|null Chart ID if a matching chart is found, null otherwise.
+     */
+    public static function find_matching_chart_in_context(string $name, int $contextid, array $accounts): ?int {
+        global $DB;
+
+        $charts = $DB->get_records('qtype_buchungssatz_charts', ['name' => $name, 'contextid' => $contextid]);
+        if (empty($charts)) {
+            return null;
+        }
+
+        $requiredaccounts = array_keys($accounts);
+        sort($requiredaccounts);
+
+        foreach ($charts as $chart) {
+            $chartaccounts = $DB->get_records('qtype_buchungssatz_accounts', ['chartid' => $chart->id]);
+            $chartaccountnumbers = [];
+            foreach ($chartaccounts as $acc) {
+                $chartaccountnumbers[] = $acc->accountnumber;
+            }
+            sort($chartaccountnumbers);
+
+            // Check if this chart contains all required accounts.
+            $hasall = true;
+            foreach ($requiredaccounts as $required) {
+                if (!in_array($required, $chartaccountnumbers)) {
+                    $hasall = false;
+                    break;
+                }
+            }
+
+            if ($hasall) {
+                return (int) $chart->id;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Create a copy of a chart (with all accounts) in a new context.
+     *
+     * @param int $sourcechartid Source chart ID.
+     * @param int $targetcontextid Target context ID.
+     * @return int The new chart ID.
+     */
+    public static function duplicate_chart(int $sourcechartid, int $targetcontextid): int {
+        $source = self::get_chart($sourcechartid);
+        if (!$source) {
+            throw new \moodle_exception('chartnotfound', 'qtype_buchungssatz');
+        }
+
+        $newchartid = self::create_chart($source->name, $targetcontextid);
+
+        $accounts = self::get_accounts($sourcechartid);
+        foreach ($accounts as $account) {
+            self::add_account(
+                $newchartid,
+                $account->accountnumber,
+                $account->accountname,
+                $account->accountclass,
+                $account->sortorder
+            );
+        }
+
+        return $newchartid;
+    }
+
+    /**
      * Create a default German SKR03 chart of accounts (simplified).
      *
      * @param int $contextid Context ID.

@@ -32,6 +32,7 @@ $string['pluginnamesummary'] = 'A question type for practicing accounting entrie
 // Form labels.
 $string['chartofaccounts'] = 'Chart of Accounts';
 $string['chartofaccounts_help'] = 'Select the chart of accounts that students will use to select accounts for their entries.';
+$string['chartofaccounts_section'] = 'Chart of Accounts';
 $string['accountsindropdown'] = 'Number of additional accounts in selection list';
 $string['accountsindropdown_help'] = 'The number of random additional accounts to show in the dropdown selection list alongside the correct account. Set to 0 to show all accounts from the selected chart. For example, entering 3 will show the correct account plus 3 random accounts (4 total).';
 $string['numberformat'] = 'Number format';
@@ -103,6 +104,7 @@ $string['err_sollbetragrequired'] = 'Debit amount is required when a debit accou
 $string['err_graderequired'] = 'Grade is required.';
 $string['err_gradeinvalid'] = 'Grade must be between 0 and 100.';
 $string['err_gradesumnotcomplete'] = 'The sum of all grades must equal exactly 100%. Current sum: {$a}%';
+$string['err_chartrequired'] = 'Please select a chart of accounts.';
 $string['err_accountsindropdown_negative'] = 'The number of accounts in selection list cannot be negative.';
 
 // Chart of accounts management.
@@ -123,7 +125,8 @@ $string['accountclass_4'] = 'Expenses';
 $string['accountclass_5'] = 'Revenue';
 
 // Privacy.
-$string['privacy:metadata'] = 'The Buchungssatz question type plugin does not store any personal data.';
+$string['privacy:metadata:qtype_buchungssatz_charts'] = 'The charts of accounts table stores who last modified each chart.';
+$string['privacy:metadata:qtype_buchungssatz_charts:usermodified'] = 'The ID of the user who last modified the chart of accounts.';
 
 // Capabilities.
 $string['buchungssatz:managecharts'] = 'Manage charts of accounts';
@@ -207,3 +210,6 @@ $string['chartimportfailed'] = 'Chart import failed';
 $string['importlineerror'] = 'Error on line {$a}';
 $string['createdefaultskr03'] = 'Create Default SKR03 Chart';
 $string['importdate'] = 'Import date';
+$string['uploadchartcsv'] = 'Upload Chart of Accounts (CSV)';
+$string['uploadchartcsv_btn'] = 'Upload';
+$string['uploadchartcsv_help'] = 'Upload a CSV file to create a new chart of accounts for this course. The chart will appear in the dropdown immediately after upload. Supported formats: multi-column (Liste;Kontokl;Kontonr;Name) or simple (one account per line: account number followed by account name).';

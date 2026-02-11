@@ -35,42 +35,4 @@ use Behat\Mink\Exception\ExpectationException;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class behat_qtype_buchungssatz extends behat_base {
-
-    /**
-     * Convert page names to URLs for behat navigation.
-     *
-     * Recognised page names are:
-     * | Page name             | Description                           |
-     * | Manage charts         | Chart of accounts management page     |
-     * | Edit chart            | Edit a specific chart (requires id)   |
-     *
-     * @param string $page The page name.
-     * @return moodle_url The URL.
-     * @throws Exception If the page is not recognised.
-     */
-    protected function resolve_page_url(string $page): moodle_url {
-        switch (strtolower($page)) {
-            case 'manage charts':
-                return new moodle_url('/question/type/buchungssatz/manage_charts.php');
-            default:
-                throw new Exception("Unrecognised qtype_buchungssatz page '{$page}'");
-        }
-    }
-
-    /**
-     * Convert page names with an identifier to URLs for behat navigation.
-     *
-     * @param string $page The page name.
-     * @param string $identifier The identifier (e.g., chart ID).
-     * @return moodle_url The URL.
-     * @throws Exception If the page is not recognised.
-     */
-    protected function resolve_page_instance_url(string $page, string $identifier): moodle_url {
-        switch (strtolower($page)) {
-            case 'edit chart':
-                return new moodle_url('/question/type/buchungssatz/edit_chart.php', ['id' => $identifier]);
-            default:
-                throw new Exception("Unrecognised qtype_buchungssatz page '{$page}' with identifier '{$identifier}'");
-        }
-    }
 }

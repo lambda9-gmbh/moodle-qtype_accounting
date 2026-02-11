@@ -36,6 +36,21 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /** @var int Chart of accounts ID. */
     public $chartofaccountsid;
 
+    /** @var int Number of accounts to show in dropdown (0 = all). */
+    public $accountsindropdown;
+
+    /** @var string Number format: 'de' or 'us'. */
+    public $numberformat;
+
+    /** @var string Currency symbol to display. */
+    public $currency_symbol;
+
+    /** @var int Number of decimal places for amounts. */
+    public $decimalplaces;
+
+    /** @var float|null Points deducted per extra entry. */
+    public $extraentrydeduction;
+
     /** @var bool Whether multiple booking entries are allowed. */
     public $allowmultipleentries;
 

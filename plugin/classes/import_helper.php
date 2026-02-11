@@ -137,7 +137,11 @@ class import_helper {
      * @return int Valid account class (0-5), defaults to 0 if invalid.
      */
     public static function validate_account_class($value): int {
-        return (int) $value;
+        $intval = (int) $value;
+        if ($intval < 0 || $intval > 5) {
+            return 0;
+        }
+        return $intval;
     }
 
     /**
@@ -323,15 +327,20 @@ class import_helper {
      * Find an existing chart that contains all the required accounts.
      *
      * @param array $accounts Array of account data to match (keyed by account number).
+     * @param int $contextid Optional context ID to scope the search to. 0 means all contexts.
      * @return int|null Chart ID if found, null otherwise.
      */
-    public static function find_matching_chart(array $accounts): ?int {
+    public static function find_matching_chart(array $accounts, int $contextid = 0): ?int {
         global $DB;
 
         $requiredaccounts = array_keys($accounts);
         sort($requiredaccounts);
 
-        $charts = $DB->get_records('qtype_buchungssatz_charts');
+        if ($contextid > 0) {
+            $charts = $DB->get_records('qtype_buchungssatz_charts', ['contextid' => $contextid]);
+        } else {
+            $charts = $DB->get_records('qtype_buchungssatz_charts');
+        }
 
         foreach ($charts as $chart) {
             $chartaccounts = $DB->get_records('qtype_buchungssatz_accounts', ['chartid' => $chart->id]);
