@@ -132,25 +132,37 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         }
 
         $result .= '</tbody>';
+
+        // Add buttons as a table footer row, positioned below the account columns.
+        if (!$options->readonly) {
+            $result .= '<tfoot class="buchungssatz-controls-footer">';
+            $result .= '<tr>';
+            $result .= '<td></td>'; // Per label column.
+            $result .= '<td>';
+            $result .= html_writer::tag('button', get_string('adddebitentry', 'qtype_buchungssatz'), [
+                'type' => 'button',
+                'class' => 'btn btn-secondary btn-sm buchungssatz-add-debit-entry',
+            ]);
+            $result .= '</td>';
+            $result .= '<td></td>'; // Soll Amount column.
+            $result .= '<td></td>'; // an label column.
+            $result .= '<td>';
+            $result .= html_writer::tag('button', get_string('addcreditentry', 'qtype_buchungssatz'), [
+                'type' => 'button',
+                'class' => 'btn btn-secondary btn-sm buchungssatz-add-credit-entry',
+            ]);
+            $result .= '</td>';
+            $result .= '<td></td>'; // Haben Amount column.
+            $result .= '<td></td>'; // Actions column.
+            $result .= '</tr>';
+            $result .= '</tfoot>';
+        }
+
         $result .= '</table>';
 
         // Show overall feedback summary after the table in review mode.
         if ($options->readonly && $overallfeedback !== null) {
             $result .= $this->render_feedback_summary($overallfeedback);
-        }
-
-        // Add "Add Debit Entry" and "Add Credit Entry" buttons if not readonly.
-        if (!$options->readonly) {
-            $result .= html_writer::start_div('buchungssatz-controls mt-2');
-            $result .= html_writer::tag('button', get_string('adddebitentry', 'qtype_buchungssatz'), [
-                'type' => 'button',
-                'class' => 'btn btn-secondary btn-sm buchungssatz-add-debit-entry mr-2',
-            ]);
-            $result .= html_writer::tag('button', get_string('addcreditentry', 'qtype_buchungssatz'), [
-                'type' => 'button',
-                'class' => 'btn btn-secondary btn-sm buchungssatz-add-credit-entry',
-            ]);
-            $result .= html_writer::end_div();
         }
 
         $result .= html_writer::end_div(); // End container.

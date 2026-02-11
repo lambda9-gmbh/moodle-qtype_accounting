@@ -419,8 +419,22 @@
         min-height: 44px;
     }
 
-    /* Full-width add entry button */
-    .buchungssatz-controls .buchungssatz-add-entry {
+    /* Footer with add-entry buttons - display as a row of two full-width buttons */
+    .buchungssatz-controls-footer,
+    .buchungssatz-controls-footer tr {
+        display: block !important;
+        width: 100% !important;
+    }
+
+    .buchungssatz-controls-footer td {
+        padding: 0.25rem 0 !important;
+    }
+
+    .buchungssatz-controls-footer td:empty {
+        display: none !important;
+    }
+
+    .buchungssatz-controls-footer .btn {
         width: 100%;
         min-height: 44px;
         font-size: 16px;
@@ -633,6 +647,14 @@
     box-sizing: border-box;
 }
 
+/* Footer row with add-entry buttons below account columns */
+.buchungssatz-controls-footer td {
+    border: none !important;
+    background-color: transparent !important;
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.25rem !important;
+}
+
 /* Actions cell (delete button) */
 .buchungssatz-actions-cell {
     text-align: center;
@@ -683,13 +705,11 @@
     }
 
     /* Button container for mobile - stack buttons */
-    .buchungssatz-controls {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
+    .buchungssatz-controls-footer {
+        display: block !important;
     }
 
-    .buchungssatz-controls .btn {
+    .buchungssatz-controls-footer .btn {
         width: 100%;
     }
 
