@@ -215,12 +215,6 @@ $accounts = chart_manager::get_accounts($chartid);
 
 echo $OUTPUT->heading(get_string('editaccounts', 'qtype_buchungssatz') . ' (' . count($accounts) . ')', 3);
 
-// Account class options for dropdowns and display.
-$accountclassoptions = [];
-for ($i = 0; $i <= 5; $i++) {
-    $accountclassoptions[$i] = $i . ' - ' . get_string('accountclass_' . $i, 'qtype_buchungssatz');
-}
-
 if (!empty($accounts)) {
     // Render edit forms outside the table for accounts being edited.
     if ($editaccount) {
@@ -267,8 +261,13 @@ if (!empty($accounts)) {
                 'size' => 30,
                 'form' => $formid,
             ]);
-            $classcell = html_writer::select($accountclassoptions, 'accountclass', $account->accountclass, false, [
+            $classcell = html_writer::empty_tag('input', [
+                'type' => 'number',
+                'name' => 'accountclass',
+                'value' => $account->accountclass,
                 'class' => 'form-control',
+                'size' => 5,
+                'min' => 0,
                 'form' => $formid,
             ]);
 
@@ -285,7 +284,7 @@ if (!empty($accounts)) {
             // Read-only display.
             $numbercell = format_string($account->accountnumber);
             $namecell = format_string($account->accountname);
-            $classcell = $accountclassoptions[$account->accountclass] ?? (string)$account->accountclass;
+            $classcell = (string)$account->accountclass;
 
             // Edit + Delete buttons.
             $editurl = new moodle_url($baseurl, ['editaccount' => $account->id]);
@@ -330,7 +329,15 @@ echo html_writer::empty_tag('input', [
     'size' => 30,
     'required' => 'required',
 ]);
-echo html_writer::select($accountclassoptions, 'accountclass', 0, false, ['class' => 'form-control mr-2']);
+echo html_writer::empty_tag('input', [
+    'type' => 'number',
+    'name' => 'accountclass',
+    'placeholder' => get_string('accountclass', 'qtype_buchungssatz'),
+    'class' => 'form-control mr-2',
+    'size' => 5,
+    'min' => 0,
+    'value' => 0,
+]);
 echo html_writer::empty_tag('input', [
     'type' => 'submit',
     'value' => get_string('addaccount', 'qtype_buchungssatz'),
