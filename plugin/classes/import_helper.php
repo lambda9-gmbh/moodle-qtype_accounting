@@ -138,9 +138,6 @@ class import_helper {
      */
     public static function validate_account_class($value): int {
         $intval = (int) $value;
-        if ($intval < 0 || $intval > 5) {
-            return 0;
-        }
         return $intval;
     }
 
