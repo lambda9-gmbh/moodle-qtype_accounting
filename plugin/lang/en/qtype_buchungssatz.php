@@ -154,6 +154,7 @@ $string['noaccounts'] = 'No accounts in this chart yet.';
 $string['accountadded'] = 'Account added successfully.';
 $string['accountupdated'] = 'Account updated successfully.';
 $string['accountdeleted'] = 'Account deleted successfully.';
+$string['chartnotfound'] = 'Chart of accounts not found.';
 $string['confirmdeleteaccount'] = 'Are you sure you want to delete this account?';
 $string['accountname'] = 'Account name';
 

@@ -154,6 +154,7 @@ $string['noaccounts'] = 'Noch keine Konten in diesem Kontenplan.';
 $string['accountadded'] = 'Konto erfolgreich hinzugefügt.';
 $string['accountupdated'] = 'Konto erfolgreich aktualisiert.';
 $string['accountdeleted'] = 'Konto erfolgreich gelöscht.';
+$string['chartnotfound'] = 'Kontenplan nicht gefunden.';
 $string['confirmdeleteaccount'] = 'Sind Sie sicher, dass Sie dieses Konto löschen möchten?';
 $string['accountname'] = 'Kontobezeichnung';
 

@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'qtype_buchungssatz';
-$plugin->version = 2024010124;
+$plugin->version = 2024010125;
 $plugin->requires = 2020110900; // Moodle 3.10+ (for compatibility testing)
 $plugin->maturity = MATURITY_ALPHA;
 $plugin->release = '0.1.0';

@@ -84,10 +84,7 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $mform->setDefault('allornothinggrading', 0);
         $mform->addHelpButton('allornothinggrading', 'allornothinggrading', 'qtype_buchungssatz');
 
-        // Chart of accounts section.
-        $mform->addElement('header', 'charthdr', get_string('chartofaccounts_section', 'qtype_buchungssatz'));
-        $mform->setExpanded('charthdr', true);
-
+        // Chart of accounts selection (last item in general section).
         $charts = $this->get_available_charts();
         $mform->addElement('select', 'chartofaccountsid',
             get_string('chartofaccounts', 'qtype_buchungssatz'), $charts);
@@ -95,23 +92,6 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $mform->addHelpButton('chartofaccountsid', 'chartofaccounts', 'qtype_buchungssatz');
         $mform->addRule('chartofaccountsid', get_string('err_chartrequired', 'qtype_buchungssatz'),
             'nonzero', null, 'client');
-
-        // Moodle file picker for CSV upload.
-        $mform->addElement('filepicker', 'chartcsvfile',
-            get_string('uploadchartcsv', 'qtype_buchungssatz'), null,
-            ['maxbytes' => 2097152, 'accepted_types' => ['.csv', '.txt']]);
-        $mform->addHelpButton('chartcsvfile', 'uploadchartcsv', 'qtype_buchungssatz');
-
-        // Upload button + status (rendered below the filepicker).
-        $uploadbtnlabel = get_string('uploadchartcsv_btn', 'qtype_buchungssatz');
-        $uploadhtml = '<div class="form-group row fitem">';
-        $uploadhtml .= '<div class="col-md-3"></div>';
-        $uploadhtml .= '<div class="col-md-9 felement">';
-        $uploadhtml .= '<button type="button" id="buchungssatz-csv-upload-btn" class="btn btn-secondary">';
-        $uploadhtml .= s($uploadbtnlabel) . '</button>';
-        $uploadhtml .= ' <span id="buchungssatz-csv-upload-status"></span>';
-        $uploadhtml .= '</div></div>';
-        $mform->addElement('html', $uploadhtml);
 
         // Correct answer entries section.
         $mform->addElement('header', 'answerhdr', get_string('correctanswer', 'qtype_buchungssatz'));
