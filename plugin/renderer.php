@@ -73,12 +73,6 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         ];
         $result .= html_writer::start_div('buchungssatz-question-container', $containerattrs);
 
-        // Calculate overall feedback using aggregation (only in readonly/review mode).
-        $overallfeedback = null;
-        if ($options->readonly) {
-            $overallfeedback = $this->calculate_aggregated_feedback($question, $response);
-        }
-
         // Start the table.
         $result .= '<table class="table table-bordered buchungssatz-student-table">';
 
@@ -128,7 +122,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
                 $habenaccounts = $accounts;
             }
 
-            $result .= $this->render_entry_row($qa, $options, $i, $response, $sollaccounts, $habenaccounts, $question, $hidden, $showdelete, $i === 0, $overallfeedback);
+            $result .= $this->render_entry_row($qa, $options, $i, $response, $sollaccounts, $habenaccounts, $question, $hidden, $showdelete, $i === 0);
         }
 
         $result .= '</tbody>';
@@ -159,11 +153,6 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         }
 
         $result .= '</table>';
-
-        // Show overall feedback summary after the table in review mode.
-        if ($options->readonly && $overallfeedback !== null) {
-            $result .= $this->render_feedback_summary($overallfeedback);
-        }
 
         $result .= html_writer::end_div(); // End container.
 
@@ -266,7 +255,6 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      * @param bool $hidden Whether the row should be hidden initially.
      * @param bool $showdelete Whether to show the delete button.
      * @param bool $isfirst Whether this is the first entry row.
-     * @param array|null $overallfeedback The overall aggregated feedback (for review mode).
      * @return string The HTML output.
      */
     protected function render_entry_row(
@@ -279,8 +267,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         object $question,
         bool $hidden = false,
         bool $showdelete = false,
-        bool $isfirst = false,
-        ?array $overallfeedback = null
+        bool $isfirst = false
     ): string {
         $sollkontoname = $qa->get_qt_field_name("sollkonto_{$index}");
         $sollbetragname = $qa->get_qt_field_name("sollbetrag_{$index}");
@@ -539,11 +526,19 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
     /**
      * Generate the specific feedback for the question.
      *
+     * Compares the student's response against the correct answer using aggregation
+     * and shows whether debit/credit sides are correct, partial, or incorrect.
+     *
      * @param question_attempt $qa The question attempt object.
      * @return string The HTML output.
      */
     public function specific_feedback(question_attempt $qa): string {
-        return '';
+        $question = $qa->get_question();
+        $response = $qa->get_last_qt_data();
+
+        $feedback = $this->calculate_aggregated_feedback($question, $response);
+
+        return $this->render_feedback_summary($feedback);
     }
 
     /**
