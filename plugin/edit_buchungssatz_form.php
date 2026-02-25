@@ -283,23 +283,11 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $weighthabenkonto = (int)($entry->weight_habenkonto ?? 1);
         $weighthabenbetrag = (int)($entry->weight_habenbetrag ?? 1);
 
-        // Determine entry type based on which fields are filled.
-        $hasdebit = !empty($sollkonto);
-        $hascredit = !empty($habenkonto);
-        if ($hasdebit && $hascredit) {
-            $entrytype = 'both';
-        } else if ($hasdebit) {
-            $entrytype = 'debit';
-        } else if ($hascredit) {
-            $entrytype = 'credit';
-        } else {
-            $entrytype = 'both'; // Default for new/empty entries.
-        }
-
-        // CSS class for hidden cells.
-        $hiddenclass = 'buchungssatz-hidden-cell';
-        $debithidden = ($entrytype === 'credit') ? ' ' . $hiddenclass : '';
-        $credithidden = ($entrytype === 'debit') ? ' ' . $hiddenclass : '';
+        // Determine entry type and hidden classes.
+        $entrytype = \qtype_buchungssatz\entry_helper::determine_entry_type($sollkonto, $habenkonto);
+        $hidden_classes = \qtype_buchungssatz\entry_helper::get_hidden_classes($entrytype);
+        $debithidden = $hidden_classes['debit'];
+        $credithidden = $hidden_classes['credit'];
 
         // Format amounts in German format with 2 decimal places for display.
         // Teacher view always uses German format.
@@ -307,20 +295,13 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $habenbetrag = $this->format_amount_for_edit((float)$habenbetragraw);
 
         // Build select options HTML for sollkonto.
-        // Use string comparison because PHP may cast numeric array keys to integers.
         $sollselecthtml = '<select name="sollkonto_display[' . $index . ']" class="form-control buchungssatz-sollkonto" data-index="' . $index . '">';
-        foreach ($sollaccountoptions as $value => $label) {
-            $selected = ((string)$value === (string)$sollkonto) ? ' selected' : '';
-            $sollselecthtml .= '<option value="' . s($value) . '"' . $selected . '>' . s($label) . '</option>';
-        }
+        $sollselecthtml .= \qtype_buchungssatz\entry_helper::build_account_options($sollaccountoptions, (string)$sollkonto, '');
         $sollselecthtml .= '</select>';
 
         // Build select options HTML for habenkonto.
         $habenselecthtml = '<select name="habenkonto_display[' . $index . ']" class="form-control buchungssatz-habenkonto" data-index="' . $index . '">';
-        foreach ($habenaccountoptions as $value => $label) {
-            $selected = ((string)$value === (string)$habenkonto) ? ' selected' : '';
-            $habenselecthtml .= '<option value="' . s($value) . '"' . $selected . '>' . s($label) . '</option>';
-        }
+        $habenselecthtml .= \qtype_buchungssatz\entry_helper::build_account_options($habenaccountoptions, (string)$habenkonto, '');
         $habenselecthtml .= '</select>';
 
         $html = '';
@@ -334,9 +315,7 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $html .= 'class="form-control buchungssatz-sollbetrag" data-index="' . $index . '" placeholder="0,00">';
         $html .= '</td>';
         $html .= '<td class="buchungssatz-edit-label' . $debithidden . '">';
-        $html .= '<button type="button" class="btn btn-sm btn-outline-danger buchungssatz-delete-debit" data-index="' . $index . '" title="' . get_string('soll', 'qtype_buchungssatz') . '">';
-        $html .= '<i class="fa fa-trash"></i>';
-        $html .= '</button>';
+        $html .= \qtype_buchungssatz\entry_helper::render_delete_button('debit', $index, 'data-index');
         $html .= '</td>';
         $html .= '<td class="buchungssatz-edit-data' . $credithidden . '">' . $habenselecthtml . '</td>';
         $html .= '<td class="buchungssatz-edit-data' . $credithidden . '">';
@@ -344,9 +323,7 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $html .= 'class="form-control buchungssatz-habenbetrag" data-index="' . $index . '" placeholder="0,00">';
         $html .= '</td>';
         $html .= '<td class="buchungssatz-edit-actions' . $credithidden . '">';
-        $html .= '<button type="button" class="btn btn-sm btn-outline-danger buchungssatz-delete-credit" data-index="' . $index . '" title="' . get_string('haben', 'qtype_buchungssatz') . '">';
-        $html .= '<i class="fa fa-trash"></i>';
-        $html .= '</button>';
+        $html .= \qtype_buchungssatz\entry_helper::render_delete_button('credit', $index, 'data-index');
         $html .= '</td>';
         $html .= '</tr>';
 

@@ -21,7 +21,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['jquery', 'core/str'], function($, Str) {
+define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str, EntryUtils) {
 
     // Module-level state
     let accountsByChart = {};
@@ -31,6 +31,9 @@ define(['jquery', 'core/str'], function($, Str) {
     // DOM element references
     let chartSelect = null;
     let initialChartId = '0';
+
+    /** CSS selector for entry rows in the edit form. */
+    var ROW_SELECTOR = '.buchungssatz-entry-row';
 
     /**
      * Initialize the edit form enhancements.
@@ -111,7 +114,7 @@ define(['jquery', 'core/str'], function($, Str) {
      * Calculate the next entry index from existing rows.
      */
     function calculateNextEntryIndex() {
-        const existingRows = document.querySelectorAll('.buchungssatz-entry-row');
+        const existingRows = document.querySelectorAll(ROW_SELECTOR);
         let maxIndex = -1;
         existingRows.forEach(function(row) {
             const index = parseInt(row.getAttribute('data-entry-index'), 10);
@@ -189,7 +192,7 @@ define(['jquery', 'core/str'], function($, Str) {
             if (e.target.classList.contains('buchungssatz-sollbetrag') ||
                 e.target.classList.contains('buchungssatz-habenbetrag')) {
                 // Format the display value in German format.
-                const formatted = formatGermanNumber(e.target.value);
+                const formatted = EntryUtils.formatNumber(e.target.value, 'de', 2);
                 e.target.value = formatted;
                 // Also sync to hidden field (with plain number).
                 const index = e.target.getAttribute('data-index');
@@ -252,7 +255,7 @@ define(['jquery', 'core/str'], function($, Str) {
      * @param {string} side The side to delete: 'debit' or 'credit'.
      */
     function deleteEntrySide(index, side) {
-        const entryRow = document.querySelector('.buchungssatz-entry-row[data-entry-index="' + index + '"]');
+        const entryRow = document.querySelector(ROW_SELECTOR + '[data-entry-index="' + index + '"]');
         const weightRow = document.querySelector('.buchungssatz-weight-row[data-entry-index="' + index + '"]');
 
         if (!entryRow) {
@@ -267,12 +270,15 @@ define(['jquery', 'core/str'], function($, Str) {
             entryRow.setAttribute('data-entry-type', newType);
 
             // Apply visibility for the new type.
-            applyEntryTypeVisibilityToRow(entryRow, weightRow, newType);
+            EntryUtils.applyEntryTypeVisibility(entryRow, newType);
+            EntryUtils.applyWeightRowVisibility(weightRow, newType);
 
-            // Clear the hidden side's fields.
-            clearEntrySideFields(index, side);
+            // Clear the hidden side's visible fields.
+            EntryUtils.clearEntrySideFields(entryRow, side);
+            // Clear the hidden form fields for this side.
+            clearHiddenFieldsForSide(index, side);
 
-            updatePerAnLabels();
+            EntryUtils.updatePerLabels(document, ROW_SELECTOR);
         } else if ((currentType === 'debit' && side === 'debit') ||
                    (currentType === 'credit' && side === 'credit')) {
             // Row only has this side - delete the entire row.
@@ -282,96 +288,15 @@ define(['jquery', 'core/str'], function($, Str) {
     }
 
     /**
-     * Apply entry type visibility to existing row elements.
-     *
-     * @param {Element} entryRow The entry row element.
-     * @param {Element|null} weightRow The weight row element.
-     * @param {string} entryType The entry type: 'debit', 'credit', or 'both'.
-     */
-    function applyEntryTypeVisibilityToRow(entryRow, weightRow, entryType) {
-        const cells = entryRow.querySelectorAll('td');
-        // Indices: 0=Per, 1=sollkonto, 2=sollbetrag, 3=debit delete, 4=habenkonto, 5=habenbetrag, 6=credit delete.
-        const perCell = cells[0];
-        const sollkontoCell = cells[1];
-        const sollbetragCell = cells[2];
-        const debitDeleteCell = cells[3];
-        const habenkontoCell = cells[4];
-        const habenbetragCell = cells[5];
-        const creditDeleteCell = cells[6];
-
-        let weightCells = [];
-        if (weightRow) {
-            weightCells = weightRow.querySelectorAll('td');
-        }
-
-        // Reset all hidden classes first.
-        [perCell, sollkontoCell, sollbetragCell, debitDeleteCell, habenkontoCell, habenbetragCell, creditDeleteCell].forEach(function(cell) {
-            if (cell) {
-                cell.classList.remove('buchungssatz-hidden-cell');
-            }
-        });
-        weightCells.forEach(function(cell) {
-            cell.classList.remove('buchungssatz-hidden-cell');
-        });
-
-        if (entryType === 'debit') {
-            // Hide credit (haben) side - keep debit delete visible.
-            if (habenkontoCell) {
-                habenkontoCell.classList.add('buchungssatz-hidden-cell');
-            }
-            if (habenbetragCell) {
-                habenbetragCell.classList.add('buchungssatz-hidden-cell');
-            }
-            if (creditDeleteCell) {
-                creditDeleteCell.classList.add('buchungssatz-hidden-cell');
-            }
-            if (weightCells.length > 5) {
-                weightCells[4].classList.add('buchungssatz-hidden-cell');
-                weightCells[5].classList.add('buchungssatz-hidden-cell');
-                weightCells[6].classList.add('buchungssatz-hidden-cell');
-            }
-        } else if (entryType === 'credit') {
-            // Hide debit (soll) side including debit delete.
-            if (perCell) {
-                perCell.classList.add('buchungssatz-hidden-cell');
-            }
-            if (sollkontoCell) {
-                sollkontoCell.classList.add('buchungssatz-hidden-cell');
-            }
-            if (sollbetragCell) {
-                sollbetragCell.classList.add('buchungssatz-hidden-cell');
-            }
-            if (debitDeleteCell) {
-                debitDeleteCell.classList.add('buchungssatz-hidden-cell');
-            }
-            if (weightCells.length > 3) {
-                weightCells[0].classList.add('buchungssatz-hidden-cell');
-                weightCells[1].classList.add('buchungssatz-hidden-cell');
-                weightCells[2].classList.add('buchungssatz-hidden-cell');
-                weightCells[3].classList.add('buchungssatz-hidden-cell');
-            }
-        }
-    }
-
-    /**
-     * Clear the fields for one side of an entry.
+     * Clear hidden form fields for one side of an entry.
      *
      * @param {string|number} index The entry index.
      * @param {string} side The side to clear: 'debit' or 'credit'.
      */
-    function clearEntrySideFields(index, side) {
+    function clearHiddenFieldsForSide(index, side) {
         if (side === 'debit') {
-            const sollkonto = document.querySelector('.buchungssatz-sollkonto[data-index="' + index + '"]');
-            const sollbetrag = document.querySelector('.buchungssatz-sollbetrag[data-index="' + index + '"]');
-            if (sollkonto) {
-                sollkonto.value = '';
-            }
-            if (sollbetrag) {
-                sollbetrag.value = '';
-            }
-            // Clear hidden fields too.
-            const sollkontoHidden = getFieldByName('sollkonto[' + index + ']');
-            const sollbetragHidden = getFieldByName('sollbetrag[' + index + ']');
+            var sollkontoHidden = getFieldByName('sollkonto[' + index + ']');
+            var sollbetragHidden = getFieldByName('sollbetrag[' + index + ']');
             if (sollkontoHidden) {
                 sollkontoHidden.value = '';
             }
@@ -379,17 +304,8 @@ define(['jquery', 'core/str'], function($, Str) {
                 sollbetragHidden.value = '';
             }
         } else if (side === 'credit') {
-            const habenkonto = document.querySelector('.buchungssatz-habenkonto[data-index="' + index + '"]');
-            const habenbetrag = document.querySelector('.buchungssatz-habenbetrag[data-index="' + index + '"]');
-            if (habenkonto) {
-                habenkonto.value = '';
-            }
-            if (habenbetrag) {
-                habenbetrag.value = '';
-            }
-            // Clear hidden fields too.
-            const habenkontoHidden = getFieldByName('habenkonto[' + index + ']');
-            const habenbetragHidden = getFieldByName('habenbetrag[' + index + ']');
+            var habenkontoHidden = getFieldByName('habenkonto[' + index + ']');
+            var habenbetragHidden = getFieldByName('habenbetrag[' + index + ']');
             if (habenkontoHidden) {
                 habenkontoHidden.value = '';
             }
@@ -420,7 +336,7 @@ define(['jquery', 'core/str'], function($, Str) {
         entryType = entryType || 'both';
 
         // First, check if we can complete an existing incomplete row.
-        const incompleteRow = findIncompleteRow(entryType);
+        const incompleteRow = EntryUtils.findIncompleteRow(document, entryType, ROW_SELECTOR);
         if (incompleteRow) {
             // Complete the existing row by making it 'both'.
             incompleteRow.setAttribute('data-entry-type', 'both');
@@ -430,19 +346,13 @@ define(['jquery', 'core/str'], function($, Str) {
             const weightRow = document.querySelector('.buchungssatz-weight-row[data-entry-index="' + index + '"]');
 
             // Remove hidden-cell classes from both rows.
-            incompleteRow.querySelectorAll('.buchungssatz-hidden-cell').forEach(function(el) {
-                el.classList.remove('buchungssatz-hidden-cell');
-            });
-            if (weightRow) {
-                weightRow.querySelectorAll('.buchungssatz-hidden-cell').forEach(function(el) {
-                    el.classList.remove('buchungssatz-hidden-cell');
-                });
-            }
+            EntryUtils.applyEntryTypeVisibility(incompleteRow, 'both');
+            EntryUtils.applyWeightRowVisibility(weightRow, 'both');
 
             // Update states for the completed row.
             updateSollbetragState(index);
             updateWeightStates(index);
-            updatePerAnLabels();
+            EntryUtils.updatePerLabels(document, ROW_SELECTOR);
             return;
         }
 
@@ -471,13 +381,15 @@ define(['jquery', 'core/str'], function($, Str) {
         });
 
         // Set the entry type on the entry row.
-        const entryRow = clone.querySelector('.buchungssatz-entry-row');
+        const entryRow = clone.querySelector(ROW_SELECTOR);
+        const weightRow = clone.querySelector('.buchungssatz-weight-row');
         if (entryRow) {
             entryRow.setAttribute('data-entry-type', entryType);
         }
 
         // Apply hidden-cell class based on entry type.
-        applyEntryTypeVisibility(clone, entryType);
+        EntryUtils.applyEntryTypeVisibility(entryRow, entryType);
+        EntryUtils.applyWeightRowVisibility(weightRow, entryType);
 
         // Append the cloned rows to the tbody.
         tbody.appendChild(clone);
@@ -494,109 +406,9 @@ define(['jquery', 'core/str'], function($, Str) {
         updateDeleteButtonStates();
 
         // Update Per/an labels.
-        updatePerAnLabels();
+        EntryUtils.updatePerLabels(document, ROW_SELECTOR);
 
         nextEntryIndex++;
-    }
-
-    /**
-     * Find an incomplete row that can be completed with the given entry type.
-     *
-     * @param {string} entryType The type of entry being added: 'debit' or 'credit'.
-     * @return {Element|null} The incomplete row to complete, or null if none found.
-     */
-    function findIncompleteRow(entryType) {
-        // Look for rows that are incomplete (only one side).
-        const allRows = document.querySelectorAll('.buchungssatz-entry-row');
-
-        for (let i = 0; i < allRows.length; i++) {
-            const row = allRows[i];
-            const rowType = row.getAttribute('data-entry-type');
-
-            // If adding debit, look for a credit-only row.
-            // If adding credit, look for a debit-only row.
-            if (entryType === 'debit' && rowType === 'credit') {
-                return row;
-            } else if (entryType === 'credit' && rowType === 'debit') {
-                return row;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Apply visibility classes based on entry type.
-     *
-     * @param {DocumentFragment|Element} container The container with the entry rows.
-     * @param {string} entryType The type of entry: 'debit', 'credit', or 'both'.
-     */
-    function applyEntryTypeVisibility(container, entryType) {
-        const entryRow = container.querySelector('.buchungssatz-entry-row');
-        const weightRow = container.querySelector('.buchungssatz-weight-row');
-
-        if (!entryRow) {
-            return;
-        }
-
-        // Get cells in the entry row.
-        // Structure: 0=Per, 1=sollkonto, 2=sollbetrag, 3=debit delete, 4=habenkonto, 5=habenbetrag, 6=credit delete.
-        const cells = entryRow.querySelectorAll('td');
-
-        const perCell = cells[0];
-        const sollkontoCell = cells[1];
-        const sollbetragCell = cells[2];
-        const debitDeleteCell = cells[3];  // Contains debit delete button.
-        const habenkontoCell = cells[4];
-        const habenbetragCell = cells[5];
-        const creditDeleteCell = cells[6];  // Contains credit delete button.
-
-        // Weight row cells: 0=empty, 1=weight_sollkonto, 2=weight_sollbetrag, 3=empty, 4=weight_habenkonto, 5=weight_habenbetrag, 6=empty.
-        let weightCells = [];
-        if (weightRow) {
-            weightCells = weightRow.querySelectorAll('td');
-        }
-
-        if (entryType === 'debit') {
-            // Hide credit (haben) side - keep debit delete visible.
-            if (habenkontoCell) {
-                habenkontoCell.classList.add('buchungssatz-hidden-cell');
-            }
-            if (habenbetragCell) {
-                habenbetragCell.classList.add('buchungssatz-hidden-cell');
-            }
-            if (creditDeleteCell) {
-                creditDeleteCell.classList.add('buchungssatz-hidden-cell');
-            }
-            // Weight row: hide haben weight cells.
-            if (weightCells.length > 5) {
-                weightCells[4].classList.add('buchungssatz-hidden-cell');
-                weightCells[5].classList.add('buchungssatz-hidden-cell');
-                weightCells[6].classList.add('buchungssatz-hidden-cell');
-            }
-        } else if (entryType === 'credit') {
-            // Hide debit (soll) side including debit delete button.
-            if (perCell) {
-                perCell.classList.add('buchungssatz-hidden-cell');
-            }
-            if (sollkontoCell) {
-                sollkontoCell.classList.add('buchungssatz-hidden-cell');
-            }
-            if (sollbetragCell) {
-                sollbetragCell.classList.add('buchungssatz-hidden-cell');
-            }
-            if (debitDeleteCell) {
-                debitDeleteCell.classList.add('buchungssatz-hidden-cell');
-            }
-            // Weight row: hide soll weight cells.
-            if (weightCells.length > 3) {
-                weightCells[0].classList.add('buchungssatz-hidden-cell');
-                weightCells[1].classList.add('buchungssatz-hidden-cell');
-                weightCells[2].classList.add('buchungssatz-hidden-cell');
-                weightCells[3].classList.add('buchungssatz-hidden-cell');
-            }
-        }
-        // 'both' keeps everything visible.
     }
 
     /**
@@ -622,26 +434,18 @@ define(['jquery', 'core/str'], function($, Str) {
      */
     function deleteEntryRow(index) {
         // Prevent deleting the last remaining entry.
-        const allEntryRows = document.querySelectorAll('.buchungssatz-entry-row');
+        const allEntryRows = document.querySelectorAll(ROW_SELECTOR);
         if (allEntryRows.length <= 1) {
             return;
         }
 
-        const entryRow = document.querySelector('.buchungssatz-entry-row[data-entry-index="' + index + '"]');
+        const entryRow = document.querySelector(ROW_SELECTOR + '[data-entry-index="' + index + '"]');
         const weightRow = document.querySelector('.buchungssatz-weight-row[data-entry-index="' + index + '"]');
 
         if (entryRow) {
-            // Reset entry type to 'both' and remove hidden-cell classes before removing.
-            entryRow.setAttribute('data-entry-type', 'both');
-            entryRow.querySelectorAll('.buchungssatz-hidden-cell').forEach(function(el) {
-                el.classList.remove('buchungssatz-hidden-cell');
-            });
             entryRow.remove();
         }
         if (weightRow) {
-            weightRow.querySelectorAll('.buchungssatz-hidden-cell').forEach(function(el) {
-                el.classList.remove('buchungssatz-hidden-cell');
-            });
             weightRow.remove();
         }
 
@@ -649,7 +453,7 @@ define(['jquery', 'core/str'], function($, Str) {
         clearHiddenFieldsForIndex(index);
 
         // Update Per/an labels (first visible row should have them).
-        updatePerAnLabels();
+        EntryUtils.updatePerLabels(document, ROW_SELECTOR);
 
         // Update delete button states (disable if only one entry remains).
         updateDeleteButtonStates();
@@ -660,7 +464,7 @@ define(['jquery', 'core/str'], function($, Str) {
      * Disable delete buttons when only one entry remains.
      */
     function updateDeleteButtonStates() {
-        const allEntryRows = document.querySelectorAll('.buchungssatz-entry-row');
+        const allEntryRows = document.querySelectorAll(ROW_SELECTOR);
         const deleteButtons = document.querySelectorAll('.buchungssatz-delete-debit, .buchungssatz-delete-credit');
         const isOnlyOne = allEntryRows.length <= 1;
 
@@ -692,87 +496,6 @@ define(['jquery', 'core/str'], function($, Str) {
             if (hiddenField) {
                 hiddenField.value = '';
             }
-        });
-    }
-
-    /**
-     * Update Per label so it only appears on the first visible debit entry.
-     * Note: The "an" cell now contains the debit delete button, so we don't update it.
-     */
-    function updatePerAnLabels() {
-        const entryRows = document.querySelectorAll('.buchungssatz-entry-row');
-        let firstDebitFound = false;
-
-        Str.get_string('per', 'qtype_buchungssatz').then(function(perStr) {
-            entryRows.forEach(function(row) {
-                const entryType = row.getAttribute('data-entry-type') || 'both';
-                const perCell = row.querySelector('td:first-child');
-
-                // Handle "Per" label (debit side).
-                if ((entryType === 'debit' || entryType === 'both') && perCell) {
-                    if (!firstDebitFound) {
-                        perCell.textContent = perStr;
-                        firstDebitFound = true;
-                    } else {
-                        perCell.textContent = '';
-                    }
-                }
-            });
-        });
-    }
-
-    /**
-     * Parse a German formatted number (1.234,56) to a plain number.
-     *
-     * @param {string} value The German formatted number string.
-     * @return {string} The plain number string (e.g., "1234.56").
-     */
-    function parseGermanNumber(value) {
-        if (!value || value.trim() === '') {
-            return '';
-        }
-        // Remove thousand separators (dots) and replace decimal comma with dot.
-        let cleaned = value.trim();
-        cleaned = cleaned.replace(/\./g, ''); // Remove thousand separators.
-        cleaned = cleaned.replace(',', '.'); // Replace decimal comma with dot.
-        return cleaned;
-    }
-
-    /**
-     * Format a number in German format (1.234,56) with 2 decimal places.
-     *
-     * @param {string|number} value The number to format.
-     * @return {string} The formatted number string.
-     */
-    function formatGermanNumber(value) {
-        if (value === '' || value === null || value === undefined) {
-            return '';
-        }
-
-        // Parse to float first (handle both German and plain formats).
-        let num;
-        if (typeof value === 'string') {
-            // Try to parse as German format first.
-            let cleaned = value.trim();
-            if (cleaned.includes(',')) {
-                // Likely German format.
-                cleaned = cleaned.replace(/\./g, '');
-                cleaned = cleaned.replace(',', '.');
-            }
-            num = parseFloat(cleaned);
-        } else {
-            num = parseFloat(value);
-        }
-
-        if (isNaN(num)) {
-            return '';
-        }
-
-        // Format with 2 decimal places in German format.
-        // toLocaleString with de-DE gives us the correct format.
-        return num.toLocaleString('de-DE', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
         });
     }
 
@@ -811,13 +534,13 @@ define(['jquery', 'core/str'], function($, Str) {
         const sollbetragDisplay = document.querySelector('.buchungssatz-sollbetrag[data-index="' + index + '"]');
         const sollbetragHidden = getFieldByName('sollbetrag[' + index + ']');
         if (sollbetragDisplay && sollbetragHidden) {
-            sollbetragHidden.value = parseGermanNumber(sollbetragDisplay.value);
+            sollbetragHidden.value = EntryUtils.parseNumber(sollbetragDisplay.value);
         }
 
         const habenbetragDisplay = document.querySelector('.buchungssatz-habenbetrag[data-index="' + index + '"]');
         const habenbetragHidden = getFieldByName('habenbetrag[' + index + ']');
         if (habenbetragDisplay && habenbetragHidden) {
-            habenbetragHidden.value = parseGermanNumber(habenbetragDisplay.value);
+            habenbetragHidden.value = EntryUtils.parseNumber(habenbetragDisplay.value);
         }
 
         // Sync weight fields.
@@ -835,7 +558,7 @@ define(['jquery', 'core/str'], function($, Str) {
      * Sync all display fields to hidden form fields.
      */
     function syncAllDisplayToHidden() {
-        const entryRows = document.querySelectorAll('.buchungssatz-entry-row');
+        const entryRows = document.querySelectorAll(ROW_SELECTOR);
         entryRows.forEach(function(row) {
             const index = row.getAttribute('data-entry-index');
             if (index !== '__INDEX__') {
@@ -935,7 +658,7 @@ define(['jquery', 'core/str'], function($, Str) {
      * Update all Soll (debit) amount field states.
      */
     function updateAllSollbetragStates() {
-        const entryRows = document.querySelectorAll('.buchungssatz-entry-row');
+        const entryRows = document.querySelectorAll(ROW_SELECTOR);
         entryRows.forEach(function(row) {
             const index = row.getAttribute('data-entry-index');
             if (index !== '__INDEX__') {
@@ -993,7 +716,7 @@ define(['jquery', 'core/str'], function($, Str) {
      * Update all weight field states.
      */
     function updateAllWeightStates() {
-        const entryRows = document.querySelectorAll('.buchungssatz-entry-row');
+        const entryRows = document.querySelectorAll(ROW_SELECTOR);
         entryRows.forEach(function(row) {
             const index = row.getAttribute('data-entry-index');
             if (index !== '__INDEX__') {

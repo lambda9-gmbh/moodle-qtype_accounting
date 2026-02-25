@@ -281,23 +281,11 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         $readonly = $options->readonly;
 
-        // Determine entry type based on which fields are filled.
-        $hassoll = !empty($sollkontoval);
-        $hashaben = !empty($habenkontoval);
-        if ($hassoll && $hashaben) {
-            $entrytype = 'both';
-        } else if ($hassoll) {
-            $entrytype = 'debit';
-        } else if ($hashaben) {
-            $entrytype = 'credit';
-        } else {
-            $entrytype = 'both';
-        }
-
-        // CSS class for hidden cells based on entry type.
-        $hiddenclass = 'buchungssatz-hidden-cell';
-        $debithidden = ($entrytype === 'credit') ? ' ' . $hiddenclass : '';
-        $credithidden = ($entrytype === 'debit') ? ' ' . $hiddenclass : '';
+        // Determine entry type and hidden classes.
+        $entrytype = \qtype_buchungssatz\entry_helper::determine_entry_type($sollkontoval, $habenkontoval);
+        $hidden_classes = \qtype_buchungssatz\entry_helper::get_hidden_classes($entrytype);
+        $debithidden = $hidden_classes['debit'];
+        $credithidden = $hidden_classes['credit'];
 
         // Get Per/an labels.
         $perstr = get_string('per', 'qtype_buchungssatz');
@@ -330,10 +318,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         // "an" label cell - contains debit delete button if editable.
         $html .= '<td class="buchungssatz-label-cell' . $debithidden . '" data-section="haben">';
         if ($showdelete) {
-            $html .= '<button type="button" class="btn btn-outline-danger btn-sm buchungssatz-delete-debit" ';
-            $html .= 'data-entry="' . $index . '" title="' . get_string('soll', 'qtype_buchungssatz') . '">';
-            $html .= '<i class="fa fa-trash"></i>';
-            $html .= '</button>';
+            $html .= \qtype_buchungssatz\entry_helper::render_delete_button('debit', $index, 'data-entry');
         } else {
             $html .= ($isfirst ? $anstr : '');
         }
@@ -352,10 +337,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         // Delete button cell (credit delete only - debit delete is in the "an" cell).
         if ($showdelete) {
             $html .= '<td class="buchungssatz-actions-cell' . $credithidden . '">';
-            $html .= '<button type="button" class="btn btn-outline-danger btn-sm buchungssatz-delete-credit" ';
-            $html .= 'data-entry="' . $index . '" title="' . get_string('haben', 'qtype_buchungssatz') . '">';
-            $html .= '<i class="fa fa-trash"></i>';
-            $html .= '</button>';
+            $html .= \qtype_buchungssatz\entry_helper::render_delete_button('credit', $index, 'data-entry');
             $html .= '</td>';
         }
 
@@ -377,14 +359,9 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
     protected function render_account_field(bool $readonly, string $value, string $name, array $accounts, string $feedbackclass = ''): string {
         if ($readonly) {
             // Look up account name for display.
-            $displayval = $value;
-            if (!empty($value)) {
-                foreach ($accounts as $account) {
-                    if ($account->accountnumber === $value) {
-                        $displayval = $value . ' - ' . $account->accountname;
-                        break;
-                    }
-                }
+            $displayval = \qtype_buchungssatz\entry_helper::format_account_display($value, $accounts);
+            if (empty($displayval)) {
+                $displayval = $value;
             }
             $spanclass = 'buchungssatz-readonly';
             if (!empty($feedbackclass)) {
@@ -456,18 +433,11 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      * @return string The HTML output.
      */
     protected function render_account_select(string $name, string $selected, array $accounts, string $placeholder): string {
-        $options = ['' => $placeholder];
-
-        foreach ($accounts as $account) {
-            $label = $account->accountnumber . ' - ' . $account->accountname;
-            $options[$account->accountnumber] = $label;
-        }
-
-        return html_writer::select($options, $name, $selected, null, [
-            'id' => $name,
-            'class' => 'form-control buchungssatz-account-select',
-            'aria-label' => get_string('account', 'qtype_buchungssatz'),
-        ]);
+        $optionshtml = \qtype_buchungssatz\entry_helper::build_account_options($accounts, $selected, $placeholder);
+        return '<select name="' . $name . '" id="' . $name . '" ' .
+            'class="form-control buchungssatz-account-select" ' .
+            'aria-label="' . get_string('account', 'qtype_buchungssatz') . '">' .
+            $optionshtml . '</select>';
     }
 
     /**
@@ -638,15 +608,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      * @return string The formatted account display string.
      */
     protected function get_account_display(string $accountnumber, array $accounts): string {
-        if (empty($accountnumber)) {
-            return '';
-        }
-        foreach ($accounts as $account) {
-            if ($account->accountnumber === $accountnumber) {
-                return $accountnumber . ' - ' . $account->accountname;
-            }
-        }
-        return $accountnumber;
+        return \qtype_buchungssatz\entry_helper::format_account_display($accountnumber, $accounts);
     }
 
     /**
