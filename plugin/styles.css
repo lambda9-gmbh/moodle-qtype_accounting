@@ -583,9 +583,9 @@
 }
 
 /* Student view table styles */
-.buchungssatz-student-table {
+table.buchungssatz-student-table {
     table-layout: fixed;
-    width: 100%;
+    width: 1000px;
     margin-bottom: 0;
     border-collapse: collapse;
 }
