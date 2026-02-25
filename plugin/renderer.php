@@ -281,6 +281,24 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         $readonly = $options->readonly;
 
+        // Determine entry type based on which fields are filled.
+        $hassoll = !empty($sollkontoval);
+        $hashaben = !empty($habenkontoval);
+        if ($hassoll && $hashaben) {
+            $entrytype = 'both';
+        } else if ($hassoll) {
+            $entrytype = 'debit';
+        } else if ($hashaben) {
+            $entrytype = 'credit';
+        } else {
+            $entrytype = 'both';
+        }
+
+        // CSS class for hidden cells based on entry type.
+        $hiddenclass = 'buchungssatz-hidden-cell';
+        $debithidden = ($entrytype === 'credit') ? ' ' . $hiddenclass : '';
+        $credithidden = ($entrytype === 'debit') ? ' ' . $hiddenclass : '';
+
         // Get Per/an labels.
         $perstr = get_string('per', 'qtype_buchungssatz');
         $anstr = get_string('an', 'qtype_buchungssatz');
@@ -290,13 +308,13 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         // Build table row.
         $rowstyle = $hidden ? 'display: none;' : '';
-        $html = '<tr class="buchungssatz-entry-row" data-entry="' . $index . '" data-entry-type="both" style="' . $rowstyle . '">';
+        $html = '<tr class="buchungssatz-entry-row" data-entry="' . $index . '" data-entry-type="' . $entrytype . '" style="' . $rowstyle . '">';
 
         // Per label cell (only show text on first row) - add data-section for mobile header.
-        $html .= '<td class="buchungssatz-label-cell" data-section="soll">' . ($isfirst ? $perstr : '') . '</td>';
+        $html .= '<td class="buchungssatz-label-cell' . $debithidden . '" data-section="soll">' . ($isfirst ? $perstr : '') . '</td>';
 
         // Soll (Debit) account cell - add data-label for mobile.
-        $html .= '<td class="buchungssatz-data-cell" data-label="' . get_string('account', 'qtype_buchungssatz') . '">';
+        $html .= '<td class="buchungssatz-data-cell' . $debithidden . '" data-label="' . get_string('account', 'qtype_buchungssatz') . '">';
         $html .= $this->render_account_field($readonly, $sollkontoval, $sollkontoname, $sollaccounts, $feedbackclass);
         $html .= '</td>';
 
@@ -305,12 +323,12 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $decimalplaces = $question->decimalplaces ?? 2;
 
         // Soll (Debit) amount cell - add data-label for mobile.
-        $html .= '<td class="buchungssatz-data-cell" data-label="' . get_string('amount', 'qtype_buchungssatz') . '">';
+        $html .= '<td class="buchungssatz-data-cell' . $debithidden . '" data-label="' . get_string('amount', 'qtype_buchungssatz') . '">';
         $html .= $this->render_amount_field($readonly, $sollbetragval, $sollbetragname, $feedbackclass, $numberformat, $decimalplaces);
         $html .= '</td>';
 
         // "an" label cell - contains debit delete button if editable.
-        $html .= '<td class="buchungssatz-label-cell" data-section="haben">';
+        $html .= '<td class="buchungssatz-label-cell' . $debithidden . '" data-section="haben">';
         if ($showdelete) {
             $html .= '<button type="button" class="btn btn-outline-danger btn-sm buchungssatz-delete-debit" ';
             $html .= 'data-entry="' . $index . '" title="' . get_string('soll', 'qtype_buchungssatz') . '">';
@@ -322,18 +340,18 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $html .= '</td>';
 
         // Haben (Credit) account cell - add data-label for mobile.
-        $html .= '<td class="buchungssatz-data-cell" data-label="' . get_string('account', 'qtype_buchungssatz') . '">';
+        $html .= '<td class="buchungssatz-data-cell' . $credithidden . '" data-label="' . get_string('account', 'qtype_buchungssatz') . '">';
         $html .= $this->render_account_field($readonly, $habenkontoval, $habenkontoname, $habenaccounts, $feedbackclass);
         $html .= '</td>';
 
         // Haben (Credit) amount cell - add data-label for mobile.
-        $html .= '<td class="buchungssatz-data-cell" data-label="' . get_string('amount', 'qtype_buchungssatz') . '">';
+        $html .= '<td class="buchungssatz-data-cell' . $credithidden . '" data-label="' . get_string('amount', 'qtype_buchungssatz') . '">';
         $html .= $this->render_amount_field($readonly, $habenbetragval, $habenbetragname, $feedbackclass, $numberformat, $decimalplaces);
         $html .= '</td>';
 
         // Delete button cell (credit delete only - debit delete is in the "an" cell).
         if ($showdelete) {
-            $html .= '<td class="buchungssatz-actions-cell">';
+            $html .= '<td class="buchungssatz-actions-cell' . $credithidden . '">';
             $html .= '<button type="button" class="btn btn-outline-danger btn-sm buchungssatz-delete-credit" ';
             $html .= 'data-entry="' . $index . '" title="' . get_string('haben', 'qtype_buchungssatz') . '">';
             $html .= '<i class="fa fa-trash"></i>';

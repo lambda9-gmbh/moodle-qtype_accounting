@@ -96,10 +96,55 @@ define(['jquery', 'core/str'], function($, Str) {
                 deleteEntrySide(container, entryIndex, 'credit');
             });
 
+            // Restore entry types from field values (handles page reload with saved responses).
+            restoreEntryTypes(container);
+
             // Update delete button visibility.
             updateDeleteButtons(container);
             updateAddButtons(container, maxEntries);
         }
+    }
+
+    /**
+     * Restore entry types from field values on visible rows.
+     *
+     * When a page is reloaded with saved responses, the server renders the correct
+     * data-entry-type and hidden-cell classes. This function provides a JS-side safety
+     * net: it scans visible rows, detects the entry type from field values, and applies
+     * the correct visibility if there is any mismatch.
+     *
+     * @param {jQuery} container The question container.
+     */
+    function restoreEntryTypes(container) {
+        container.find('.buchungssatz-entry-row').each(function() {
+            if ($(this).css('display') === 'none') {
+                return; // Skip hidden rows.
+            }
+
+            const allCells = $(this).find('td');
+            // Detect from field values: check selects and text inputs in soll (cell 1) and haben (cell 4).
+            const sollVal = allCells.eq(1).find('select, input').val() || '';
+            const habenVal = allCells.eq(4).find('select, input').val() || '';
+
+            let detectedType;
+            if (sollVal && habenVal) {
+                detectedType = 'both';
+            } else if (sollVal) {
+                detectedType = 'debit';
+            } else if (habenVal) {
+                detectedType = 'credit';
+            } else {
+                detectedType = 'both';
+            }
+
+            const currentType = $(this).attr('data-entry-type') || 'both';
+            if (currentType !== detectedType) {
+                $(this).attr('data-entry-type', detectedType);
+                applyEntryTypeVisibility($(this), detectedType);
+            }
+        });
+
+        updatePerAnLabels(container);
     }
 
     /**
