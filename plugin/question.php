@@ -63,20 +63,47 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /** @var bool If true, only full or zero marks (no partial credit). */
     public $allornothinggrading;
 
-    /** @var int Maximum entries allowed for student responses. */
-    const MAX_STUDENT_ENTRIES = 20;
+    /**
+     * Find the highest entry index present across one or more response arrays.
+     *
+     * Scans array keys for patterns like sollkonto_N or habenkonto_N and returns
+     * the highest N found, or -1 if no matching keys exist.
+     *
+     * @param array ...$responses One or more response arrays to scan.
+     * @return int The highest entry index found, or -1 if none.
+     */
+    protected static function get_max_entry_index(array ...$responses): int {
+        $maxindex = -1;
+        foreach ($responses as $response) {
+            foreach (array_keys($response) as $key) {
+                if (preg_match('/^(?:sollkonto|habenkonto)_(\d+)$/', $key, $matches)) {
+                    $maxindex = max($maxindex, (int)$matches[1]);
+                }
+            }
+        }
+        return $maxindex;
+    }
 
     /**
      * Get the expected data keys for the question.
+     *
+     * Scans $_POST to discover the highest entry index submitted, then declares
+     * fields for indices 0 through that maximum. This removes the former hard cap.
      *
      * @return array The expected data keys and their types.
      */
     public function get_expected_data(): array {
         $expected = [];
 
-        // Always allow up to MAX_STUDENT_ENTRIES for student responses.
+        // Scan POST data to find the highest entry index submitted.
         // Use PARAM_RAW for amounts to preserve empty strings (PARAM_FLOAT converts them to 0).
-        for ($i = 0; $i < self::MAX_STUDENT_ENTRIES; $i++) {
+        $maxindex = 0; // At least declare index 0.
+        foreach (array_keys($_POST) as $key) {
+            if (preg_match('/(?:sollkonto|habenkonto)_(\d+)$/', $key, $matches)) {
+                $maxindex = max($maxindex, (int)$matches[1]);
+            }
+        }
+        for ($i = 0; $i <= $maxindex; $i++) {
             $expected["sollkonto_{$i}"] = PARAM_TEXT;
             $expected["sollbetrag_{$i}"] = PARAM_RAW;
             $expected["habenkonto_{$i}"] = PARAM_TEXT;
@@ -112,8 +139,9 @@ class qtype_buchungssatz_question extends question_graded_automatically {
      */
     public function summarise_response(array $response): ?string {
         $parts = [];
+        $max = self::get_max_entry_index($response);
 
-        for ($i = 0; $i < self::MAX_STUDENT_ENTRIES; $i++) {
+        for ($i = 0; $i <= $max; $i++) {
             $sollkonto = $response["sollkonto_{$i}"] ?? '';
             $sollbetrag = $response["sollbetrag_{$i}"] ?? '';
             $habenkonto = $response["habenkonto_{$i}"] ?? '';
@@ -141,7 +169,8 @@ class qtype_buchungssatz_question extends question_graded_automatically {
      */
     public function is_complete_response(array $response): bool {
         // Response is complete if any entry has an account filled in.
-        for ($i = 0; $i < self::MAX_STUDENT_ENTRIES; $i++) {
+        $max = self::get_max_entry_index($response);
+        for ($i = 0; $i <= $max; $i++) {
             $sollkonto = trim($response["sollkonto_{$i}"] ?? '');
             $habenkonto = trim($response["habenkonto_{$i}"] ?? '');
 
@@ -183,7 +212,8 @@ class qtype_buchungssatz_question extends question_graded_automatically {
      * @return bool True if the responses are the same.
      */
     public function is_same_response(array $prevresponse, array $newresponse): bool {
-        for ($i = 0; $i < self::MAX_STUDENT_ENTRIES; $i++) {
+        $max = self::get_max_entry_index($prevresponse, $newresponse);
+        for ($i = 0; $i <= $max; $i++) {
             $fields = ["sollkonto_{$i}", "sollbetrag_{$i}", "habenkonto_{$i}", "habenbetrag_{$i}"];
             foreach ($fields as $field) {
                 $prev = $prevresponse[$field] ?? '';
@@ -378,8 +408,9 @@ class qtype_buchungssatz_question extends question_graded_automatically {
      */
     protected function parse_response(array $response): array {
         $entries = [];
+        $max = self::get_max_entry_index($response);
 
-        for ($i = 0; $i < self::MAX_STUDENT_ENTRIES; $i++) {
+        for ($i = 0; $i <= $max; $i++) {
             $sollkonto = trim($response["sollkonto_{$i}"] ?? '');
             $habenkonto = trim($response["habenkonto_{$i}"] ?? '');
 

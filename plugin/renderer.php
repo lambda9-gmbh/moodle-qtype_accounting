@@ -52,24 +52,34 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         // Load available accounts for dropdowns.
         $accounts = $this->get_accounts($question->chartofaccountsid);
 
-        // Render entry fields - always allow up to 20 entries for students.
-        $maxentries = 20;
-
         // Create a unique container ID for this question.
         $containerid = 'buchungssatz-container-' . $qa->get_slot();
+        $templateid = 'buchungssatz-entry-template-' . $qa->get_slot();
 
         // Get number format settings for data attributes.
         $numberformat = $question->numberformat ?? 'de';
         $decimalplaces = $question->decimalplaces ?? 2;
 
+        // Determine how many rows to render (all visible — no hidden pre-rendered rows).
+        $visiblerows = 1; // At least one row visible.
+        foreach (array_keys($response) as $key) {
+            if (preg_match('/^(?:sollkonto|habenkonto)_(\d+)$/', $key, $matches)) {
+                $idx = (int)$matches[1];
+                if (!empty($response[$key]) && $idx >= $visiblerows) {
+                    $visiblerows = $idx + 1;
+                }
+            }
+        }
+
         // Wrap everything in our own container with data attributes for JS.
         $containerattrs = [
             'id' => $containerid,
             'data-accounts' => json_encode(array_values($accounts)),
-            'data-maxentries' => $maxentries,
             'data-allowedit' => !$options->readonly ? '1' : '0',
             'data-numberformat' => $numberformat,
             'data-decimalplaces' => $decimalplaces,
+            'data-nextindex' => $visiblerows,
+            'data-templateid' => $templateid,
         ];
         $result .= html_writer::start_div('buchungssatz-question-container', $containerattrs);
 
@@ -84,27 +94,11 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         $result .= '<tbody class="buchungssatz-entries">';
 
-        // Determine which rows should be visible initially.
-        $visiblerows = 1; // At least one row visible.
-        for ($i = 0; $i < $maxentries; $i++) {
-            $hasdata = !empty($response["sollkonto_{$i}"]) || !empty($response["habenkonto_{$i}"]);
-            if ($hasdata && $i >= $visiblerows) {
-                $visiblerows = $i + 1;
-            }
-        }
-
-        // In readonly mode (reviewing), ensure we show enough rows for all student entries.
-        // We no longer need to show correct entry count since order doesn't matter.
-        if ($options->readonly) {
-            // Just ensure we show all rows that have data.
-            $visiblerows = max($visiblerows, 1);
-        }
-
         // Get the accountsindropdown limit.
         $accountslimit = $question->accountsindropdown ?? 0;
 
-        for ($i = 0; $i < $maxentries; $i++) {
-            $hidden = ($i >= $visiblerows);
+        // Render only the needed rows — all visible (no hidden pre-rendered rows).
+        for ($i = 0; $i < $visiblerows; $i++) {
             $showdelete = !$options->readonly;
 
             // Filter accounts for this entry based on accountsindropdown setting.
@@ -122,10 +116,18 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
                 $habenaccounts = $accounts;
             }
 
-            $result .= $this->render_entry_row($qa, $options, $i, $response, $sollaccounts, $habenaccounts, $question, $hidden, $showdelete, $i === 0);
+            $result .= $this->render_entry_row(
+                $qa, $options, $i, $response, $sollaccounts, $habenaccounts,
+                $question, false, $showdelete, $i === 0
+            );
         }
 
         $result .= '</tbody>';
+
+        // Add a <template> element for JS to clone new rows (only in edit mode).
+        if (!$options->readonly) {
+            $result .= $this->render_template_row($qa, $question, $accounts, $templateid);
+        }
 
         // Add buttons as a table footer row, positioned below the account columns.
         if (!$options->readonly) {
@@ -342,6 +344,92 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         }
 
         $html .= '</tr>';
+
+        return $html;
+    }
+
+    /**
+     * Render a <template> element for JS to clone new entry rows.
+     *
+     * Produces a row identical in structure to render_entry_row() output but
+     * with __INDEX__ as a placeholder. JS replaces __INDEX__ with the real
+     * index when cloning. Uses all accounts (unfiltered) since we can't know
+     * the correct entry for dynamically added rows.
+     *
+     * @param question_attempt $qa The question attempt object.
+     * @param object $question The question object.
+     * @param array $accounts All available accounts.
+     * @param string $templateid The HTML id for the template element.
+     * @return string The HTML <template> element.
+     */
+    protected function render_template_row(
+        question_attempt $qa,
+        object $question,
+        array $accounts,
+        string $templateid
+    ): string {
+        $placeholder = '__INDEX__';
+
+        $sollkontoname = $qa->get_qt_field_name("sollkonto_{$placeholder}");
+        $sollbetragname = $qa->get_qt_field_name("sollbetrag_{$placeholder}");
+        $habenkontoname = $qa->get_qt_field_name("habenkonto_{$placeholder}");
+        $habenbetragname = $qa->get_qt_field_name("habenbetrag_{$placeholder}");
+
+        $numberformat = $question->numberformat ?? 'de';
+        $amountplaceholder = ($numberformat === 'us') ? '0.00' : '0,00';
+        $accountlabel = get_string('account', 'qtype_buchungssatz');
+        $amountlabel = get_string('amount', 'qtype_buchungssatz');
+        $selectplaceholder = get_string('selectaccount', 'qtype_buchungssatz');
+
+        // Build account options HTML.
+        $optionshtml = \qtype_buchungssatz\entry_helper::build_account_options($accounts, '', $selectplaceholder);
+
+        $html = '<template id="' . $templateid . '">';
+        $html .= '<tr class="buchungssatz-entry-row" data-entry="' . $placeholder . '" data-entry-type="both" style="">';
+
+        // Per label cell.
+        $html .= '<td class="buchungssatz-label-cell" data-section="soll"></td>';
+
+        // Soll (Debit) account cell.
+        $html .= '<td class="buchungssatz-data-cell" data-label="' . $accountlabel . '">';
+        $html .= '<select name="' . $sollkontoname . '" id="' . $sollkontoname . '" ' .
+            'class="form-control buchungssatz-account-select" ' .
+            'aria-label="' . $accountlabel . '">' . $optionshtml . '</select>';
+        $html .= '</td>';
+
+        // Soll (Debit) amount cell.
+        $html .= '<td class="buchungssatz-data-cell" data-label="' . $amountlabel . '">';
+        $html .= '<input type="text" name="' . $sollbetragname . '" id="' . $sollbetragname . '" value="" ' .
+            'class="form-control buchungssatz-amount-input" placeholder="' . $amountplaceholder . '" ' .
+            'inputmode="decimal" aria-label="' . $amountlabel . '">';
+        $html .= '</td>';
+
+        // "an" label cell — contains debit delete button.
+        $html .= '<td class="buchungssatz-label-cell" data-section="haben">';
+        $html .= \qtype_buchungssatz\entry_helper::render_delete_button('debit', $placeholder, 'data-entry');
+        $html .= '</td>';
+
+        // Haben (Credit) account cell.
+        $html .= '<td class="buchungssatz-data-cell" data-label="' . $accountlabel . '">';
+        $html .= '<select name="' . $habenkontoname . '" id="' . $habenkontoname . '" ' .
+            'class="form-control buchungssatz-account-select" ' .
+            'aria-label="' . $accountlabel . '">' . $optionshtml . '</select>';
+        $html .= '</td>';
+
+        // Haben (Credit) amount cell.
+        $html .= '<td class="buchungssatz-data-cell" data-label="' . $amountlabel . '">';
+        $html .= '<input type="text" name="' . $habenbetragname . '" id="' . $habenbetragname . '" value="" ' .
+            'class="form-control buchungssatz-amount-input" placeholder="' . $amountplaceholder . '" ' .
+            'inputmode="decimal" aria-label="' . $amountlabel . '">';
+        $html .= '</td>';
+
+        // Credit delete button cell.
+        $html .= '<td class="buchungssatz-actions-cell">';
+        $html .= \qtype_buchungssatz\entry_helper::render_delete_button('credit', $placeholder, 'data-entry');
+        $html .= '</td>';
+
+        $html .= '</tr>';
+        $html .= '</template>';
 
         return $html;
     }
@@ -828,9 +916,16 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      */
     protected function parse_student_response(array $response, string $numberformat = 'de'): array {
         $entries = [];
-        $maxentries = 20;
 
-        for ($i = 0; $i < $maxentries; $i++) {
+        // Dynamically find the highest entry index in the response.
+        $maxindex = -1;
+        foreach (array_keys($response) as $key) {
+            if (preg_match('/^(?:sollkonto|habenkonto)_(\d+)$/', $key, $matches)) {
+                $maxindex = max($maxindex, (int)$matches[1]);
+            }
+        }
+
+        for ($i = 0; $i <= $maxindex; $i++) {
             $sollkonto = trim($response["sollkonto_{$i}"] ?? '');
             $habenkonto = trim($response["habenkonto_{$i}"] ?? '');
 

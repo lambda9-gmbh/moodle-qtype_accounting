@@ -57,10 +57,15 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
         }
 
         // Read configuration from data attributes (avoids Moodle 3.10 js_call_amd size limits).
-        const maxEntries = parseInt(container.data('maxentries'), 10) || 20;
         const allowEdit = container.data('allowedit') === 1 || container.data('allowedit') === '1';
         numberFormat = container.data('numberformat') || 'de';
         decimalPlaces = parseInt(container.data('decimalplaces'), 10) || 2;
+
+        // Template-based row cloning: read the next index and locate the template element.
+        let nextEntryIndex = parseInt(container.data('nextindex'), 10) || 1;
+        const templateId = container.data('templateid');
+        const template = templateId ? document.getElementById(templateId) : null;
+        const tbody = container.find('.buchungssatz-entries')[0];
 
         // Enable searchable dropdowns if Select2 is available (desktop only).
         // On mobile, native selects provide better UX.
@@ -74,8 +79,8 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
             });
         }
 
-        // Auto-copy amount from Soll to Haben for convenience.
-        container.find('input[name*="sollbetrag"]').on('change', function() {
+        // Auto-copy amount from Soll to Haben for convenience (delegated for cloned rows).
+        container.on('change', 'input[name*="sollbetrag"]', function() {
             const index = $(this).attr('name').match(/\d+/)[0];
             const habenInput = container.find('input[name*="habenbetrag_' + index + '"]');
 
@@ -85,8 +90,8 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
             }
         });
 
-        // Format amount fields on blur.
-        container.find('.buchungssatz-amount-input').on('blur', function() {
+        // Format amount fields on blur (delegated for cloned rows).
+        container.on('blur', '.buchungssatz-amount-input', function() {
             const formatted = EntryUtils.formatNumber($(this).val(), numberFormat, decimalPlaces);
             $(this).val(formatted);
         });
@@ -103,22 +108,22 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
 
 
         // Add entry button handlers.
-        if (allowEdit && maxEntries > 1) {
+        if (allowEdit) {
             container.find('.buchungssatz-add-debit-entry').on('click', function() {
-                addEntry(container, maxEntries, 'debit');
+                nextEntryIndex = addEntry(container, template, tbody, nextEntryIndex, 'debit');
             });
 
             container.find('.buchungssatz-add-credit-entry').on('click', function() {
-                addEntry(container, maxEntries, 'credit');
+                nextEntryIndex = addEntry(container, template, tbody, nextEntryIndex, 'credit');
             });
 
-            // Delete debit button handler (using delegation for dynamically shown rows).
+            // Delete debit button handler (using delegation for cloned rows).
             container.on('click', '.buchungssatz-delete-debit', function() {
                 const entryIndex = $(this).data('entry');
                 deleteEntrySide(container, entryIndex, 'debit');
             });
 
-            // Delete credit button handler (using delegation for dynamically shown rows).
+            // Delete credit button handler (using delegation for cloned rows).
             container.on('click', '.buchungssatz-delete-credit', function() {
                 const entryIndex = $(this).data('entry');
                 deleteEntrySide(container, entryIndex, 'credit');
@@ -129,7 +134,6 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
 
             // Update delete button visibility.
             updateDeleteButtons(container);
-            updateAddButtons(container, maxEntries);
         }
     }
 
@@ -162,13 +166,40 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
     }
 
     /**
-     * Add a new entry row (show the next hidden row).
+     * Initialize Select2 on account selects within a row (desktop only).
+     *
+     * @param {jQuery} row The row jQuery element.
+     */
+    function initSelect2OnRow(row) {
+        const isMobile = window.innerWidth <= 768;
+        if (typeof $.fn.select2 !== 'undefined' && !isMobile) {
+            row.find('.buchungssatz-account-select').each(function() {
+                if (!$(this).closest('td').hasClass('buchungssatz-hidden-cell') && !$(this).data('select2')) {
+                    $(this).select2({
+                        placeholder: M.util.get_string('selectaccount', 'qtype_buchungssatz'),
+                        allowClear: true,
+                        width: '100%',
+                        dropdownAutoWidth: true
+                    });
+                }
+            });
+        }
+    }
+
+    /**
+     * Add a new entry row by cloning the template element.
+     *
+     * First tries to complete an existing incomplete row (e.g., a debit-only row
+     * when adding credit). If no incomplete row exists, clones the template.
      *
      * @param {jQuery} container The question container.
-     * @param {number} maxEntries Maximum number of entries.
+     * @param {HTMLTemplateElement} template The template element to clone.
+     * @param {HTMLElement} tbody The tbody element to append to.
+     * @param {number} nextIndex The next entry index to use for the cloned row.
      * @param {string} entryType The type of entry: 'debit', 'credit', or 'both'.
+     * @return {number} The (possibly incremented) next entry index.
      */
-    function addEntry(container, maxEntries, entryType) {
+    function addEntry(container, template, tbody, nextIndex, entryType) {
         entryType = entryType || 'both';
 
         // First, check if we can complete an existing incomplete row.
@@ -178,62 +209,58 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
             incompleteRow.setAttribute('data-entry-type', 'both');
             EntryUtils.applyEntryTypeVisibility(incompleteRow, 'both');
 
-            // Re-initialize Select2 on the newly visible selects.
-            const isMobile = window.innerWidth <= 768;
-            if (typeof $.fn.select2 !== 'undefined' && !isMobile) {
-                $(incompleteRow).find('.buchungssatz-account-select').each(function() {
-                    if (!$(this).closest('td').hasClass('buchungssatz-hidden-cell') && !$(this).data('select2')) {
-                        $(this).select2({
-                            placeholder: M.util.get_string('selectaccount', 'qtype_buchungssatz'),
-                            allowClear: true,
-                            width: '100%',
-                            dropdownAutoWidth: true
-                        });
-                    }
-                });
-            }
-
+            initSelect2OnRow($(incompleteRow));
             EntryUtils.updatePerLabels(container, ROW_SELECTOR);
-            return;
+            return nextIndex;
         }
 
-        // No incomplete row to complete, so add a new row.
-        const entryRows = container.find(ROW_SELECTOR);
-        const hiddenRows = entryRows.filter(function() {
-            return $(this).css('display') === 'none';
-        });
-
-        if (hiddenRows.length > 0) {
-            const firstHidden = hiddenRows.first();
-            firstHidden.css('display', '');
-
-            // Set the entry type attribute.
-            firstHidden.attr('data-entry-type', entryType);
-
-            // Apply hidden-cell class based on entry type.
-            EntryUtils.applyEntryTypeVisibility(firstHidden[0], entryType);
-
-            // Re-initialize Select2 if available (desktop only).
-            // Only for visible selects.
-            const isMobile = window.innerWidth <= 768;
-            if (typeof $.fn.select2 !== 'undefined' && !isMobile) {
-                firstHidden.find('.buchungssatz-account-select').each(function() {
-                    // Check if the parent cell is visible.
-                    if (!$(this).closest('td').hasClass('buchungssatz-hidden-cell')) {
-                        $(this).select2({
-                            placeholder: M.util.get_string('selectaccount', 'qtype_buchungssatz'),
-                            allowClear: true,
-                            width: '100%',
-                            dropdownAutoWidth: true
-                        });
-                    }
-                });
-            }
-
-            updateDeleteButtons(container);
-            updateAddButtons(container, maxEntries);
-            EntryUtils.updatePerLabels(container, ROW_SELECTOR);
+        // No incomplete row to complete — clone a new row from the template.
+        if (!template) {
+            return nextIndex;
         }
+
+        const clone = template.content.cloneNode(true);
+        const index = nextIndex;
+
+        // Replace __INDEX__ placeholder in all relevant attributes and content.
+        const tr = clone.querySelector('tr');
+        if (!tr) {
+            return nextIndex;
+        }
+
+        // Update the row's data-entry attribute.
+        tr.setAttribute('data-entry', index);
+        tr.setAttribute('data-entry-type', entryType);
+
+        // Replace __INDEX__ in name, id, and data-entry attributes of all children.
+        var elements = tr.querySelectorAll('[name], [id], [data-entry]');
+        for (var i = 0; i < elements.length; i++) {
+            var el = elements[i];
+            if (el.name) {
+                el.name = el.name.replace(/__INDEX__/g, index);
+            }
+            if (el.id) {
+                el.id = el.id.replace(/__INDEX__/g, index);
+            }
+            if (el.hasAttribute('data-entry')) {
+                el.setAttribute('data-entry', el.getAttribute('data-entry').replace(/__INDEX__/g, index));
+            }
+        }
+
+        // Apply entry type visibility.
+        EntryUtils.applyEntryTypeVisibility(tr, entryType);
+
+        // Append to tbody.
+        tbody.appendChild(clone);
+
+        // Initialize Select2 on the new row's selects.
+        const $newRow = container.find(ROW_SELECTOR + '[data-entry="' + index + '"]');
+        initSelect2OnRow($newRow);
+
+        updateDeleteButtons(container);
+        EntryUtils.updatePerLabels(container, ROW_SELECTOR);
+
+        return nextIndex + 1;
     }
 
     /**
@@ -278,7 +305,6 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
             entryRow.next('.buchungssatz-explanation-row').css('display', 'none');
 
             updateDeleteButtons(container);
-            updateAddButtons(container, 50); // Use high number, actual max from init.
             EntryUtils.updatePerLabels(container, ROW_SELECTOR);
         }
     }
@@ -338,31 +364,6 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
                     $(this).find('.buchungssatz-delete-debit, .buchungssatz-delete-credit').css('visibility', 'visible');
                 }
             });
-        }
-    }
-
-    /**
-     * Update add buttons visibility.
-     *
-     * @param {jQuery} container The question container.
-     * @param {number} maxEntries Maximum entries allowed.
-     */
-    function updateAddButtons(container, maxEntries) {
-        const hiddenRows = container.find(ROW_SELECTOR).filter(function() {
-            return $(this).css('display') === 'none';
-        });
-
-        const hasHiddenRows = hiddenRows.length > 0;
-
-        const addDebitButton = container.find('.buchungssatz-add-debit-entry');
-        const addCreditButton = container.find('.buchungssatz-add-credit-entry');
-
-        if (hasHiddenRows) {
-            addDebitButton.css('display', 'inline-block');
-            addCreditButton.css('display', 'inline-block');
-        } else {
-            addDebitButton.css('display', 'none');
-            addCreditButton.css('display', 'none');
         }
     }
 
