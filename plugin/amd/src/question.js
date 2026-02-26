@@ -31,6 +31,20 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
     var ROW_SELECTOR = '.buchungssatz-entry-row';
 
     /**
+     * Format all non-empty amount fields in a container.
+     *
+     * @param {jQuery} container The question container.
+     */
+    function formatAllAmountFields(container) {
+        container.find('.buchungssatz-amount-input').each(function() {
+            var val = $(this).val();
+            if (val !== '') {
+                $(this).val(EntryUtils.formatNumber(val, numberFormat, decimalPlaces));
+            }
+        });
+    }
+
+    /**
      * Initialize the question interface.
      *
      * @param {string} containerId The ID of the question container.
@@ -76,6 +90,17 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
             const formatted = EntryUtils.formatNumber($(this).val(), numberFormat, decimalPlaces);
             $(this).val(formatted);
         });
+
+        // Format any pre-existing values (e.g., after "Fill correct answers" page reload).
+        formatAllAmountFields(container);
+
+        // Format amount fields after "Fill correct answers" button is clicked (AJAX case).
+        $('input.btn[name="fill"]').on('click', function() {
+            setTimeout(function() {
+                formatAllAmountFields(container);
+            }, 500);
+        });
+
 
         // Add entry button handlers.
         if (allowEdit && maxEntries > 1) {
