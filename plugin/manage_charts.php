@@ -56,6 +56,7 @@ $action = optional_param('action', '', PARAM_ALPHA);
 $chartid = optional_param('chartid', 0, PARAM_INT);
 $sort = optional_param('sort', 'name', PARAM_ALPHA);
 $dir = optional_param('dir', 'ASC', PARAM_ALPHA);
+$returnurl = optional_param('returnurl', '', PARAM_LOCALURL);
 
 $course = get_course($courseid);
 require_login($course);
@@ -63,6 +64,9 @@ $context = context_course::instance($course->id);
 require_capability('qtype/buchungssatz:managecharts', $context);
 
 $baseurl = new moodle_url('/question/type/buchungssatz/manage_charts.php', ['courseid' => $courseid]);
+if ($returnurl !== '') {
+    $baseurl->param('returnurl', $returnurl);
+}
 $PAGE->set_url($baseurl);
 $PAGE->set_context($context);
 $PAGE->set_pagelayout('incourse');
@@ -189,6 +193,9 @@ if (empty($charts)) {
             'courseid' => $courseid,
             'chartid' => $chart->id,
         ]);
+        if ($returnurl !== '') {
+            $editurl->param('returnurl', $returnurl);
+        }
         $exporturl = new moodle_url($baseurl, ['action' => 'export', 'chartid' => $chart->id]);
         $deleteurl = new moodle_url($baseurl, ['action' => 'delete', 'chartid' => $chart->id]);
 
@@ -207,6 +214,14 @@ if (empty($charts)) {
     }
 
     echo html_writer::table($table);
+}
+
+if ($returnurl !== '') {
+    echo html_writer::div(
+        html_writer::link($returnurl, get_string('saveandcontinue', 'qtype_buchungssatz'),
+            ['class' => 'btn btn-primary']),
+        'text-right mt-3'
+    );
 }
 
 echo $OUTPUT->footer();

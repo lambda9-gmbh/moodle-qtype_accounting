@@ -22,23 +22,3 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-/**
- * Extend course navigation with a "Manage Charts of Accounts" link.
- *
- * @param navigation_node $parentnode The course navigation node.
- * @param stdClass $course The course object.
- * @param context_course $context The course context.
- */
-function qtype_buchungssatz_extend_navigation_course(navigation_node $parentnode, stdClass $course, context_course $context) {
-    if (has_capability('qtype/buchungssatz:managecharts', $context)) {
-        $url = new moodle_url('/question/type/buchungssatz/manage_charts.php', ['courseid' => $course->id]);
-        $parentnode->add(
-            get_string('managecharts', 'qtype_buchungssatz'),
-            $url,
-            navigation_node::TYPE_CUSTOM,
-            null,
-            'qtype_buchungssatz_managecharts',
-            new pix_icon('icon', '', 'qtype_buchungssatz')
-        );
-    }
-}

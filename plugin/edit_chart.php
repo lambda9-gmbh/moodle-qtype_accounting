@@ -31,6 +31,7 @@ $chartid = required_param('chartid', PARAM_INT);
 $action = optional_param('action', '', PARAM_ALPHA);
 $accountid = optional_param('accountid', 0, PARAM_INT);
 $editaccount = optional_param('editaccount', 0, PARAM_INT);
+$returnurl = optional_param('returnurl', '', PARAM_LOCALURL);
 
 $course = get_course($courseid);
 require_login($course);
@@ -44,10 +45,16 @@ if (!$chart || (int)$chart->contextid !== (int)$context->id) {
 }
 
 $manageurl = new moodle_url('/question/type/buchungssatz/manage_charts.php', ['courseid' => $courseid]);
+if ($returnurl !== '') {
+    $manageurl->param('returnurl', $returnurl);
+}
 $baseurl = new moodle_url('/question/type/buchungssatz/edit_chart.php', [
     'courseid' => $courseid,
     'chartid' => $chartid,
 ]);
+if ($returnurl !== '') {
+    $baseurl->param('returnurl', $returnurl);
+}
 
 $PAGE->set_url($baseurl);
 $PAGE->set_context($context);

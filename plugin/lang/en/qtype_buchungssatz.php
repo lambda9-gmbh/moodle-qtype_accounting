@@ -199,3 +199,4 @@ $string['importdate'] = 'Import date';
 $string['uploadchartcsv'] = 'Upload Chart of Accounts (CSV)';
 $string['uploadchartcsv_btn'] = 'Upload';
 $string['uploadchartcsv_help'] = 'Upload a text file to create a new chart of accounts for this course. The chart will appear in the dropdown immediately after upload. Format: one account name per line.';
+$string['saveandcontinue'] = 'Save and continue';
