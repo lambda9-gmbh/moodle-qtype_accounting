@@ -243,20 +243,32 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         }
 
         $html .= '</tbody>';
-        $html .= '</table>';
 
-        // Add entry buttons.
+        // Add entry buttons as a table footer row, positioned below the account columns.
         $adddebitentrystr = get_string('adddebitentry', 'qtype_buchungssatz');
         $addcreditentrystr = get_string('addcreditentry', 'qtype_buchungssatz');
 
-        $html .= '<div class="buchungssatz-controls mt-2">';
-        $html .= '<button type="button" class="btn btn-secondary btn-sm buchungssatz-add-debit-entry mr-2" id="buchungssatz-add-debit-entry">';
+        $html .= '<tfoot class="buchungssatz-controls-footer">';
+        $html .= '<tr>';
+        $html .= '<td></td>'; // Per label column.
+        $html .= '<td>';
+        $html .= '<button type="button" class="btn btn-secondary btn-sm buchungssatz-add-debit-entry" id="buchungssatz-add-debit-entry">';
         $html .= '+ ' . $adddebitentrystr;
         $html .= '</button>';
+        $html .= '</td>';
+        $html .= '<td></td>'; // Soll Amount column.
+        $html .= '<td></td>'; // an label column.
+        $html .= '<td>';
         $html .= '<button type="button" class="btn btn-secondary btn-sm buchungssatz-add-credit-entry" id="buchungssatz-add-credit-entry">';
         $html .= '+ ' . $addcreditentrystr;
         $html .= '</button>';
-        $html .= '</div>';
+        $html .= '</td>';
+        $html .= '<td></td>'; // Haben Amount column.
+        $html .= '<td></td>'; // Actions column.
+        $html .= '</tr>';
+        $html .= '</tfoot>';
+
+        $html .= '</table>';
 
         // Template for new rows (hidden, used by JavaScript).
         $html .= '<template id="buchungssatz-entry-template">';
