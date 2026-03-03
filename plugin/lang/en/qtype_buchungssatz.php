@@ -69,7 +69,7 @@ $string['habenkonto'] = 'Credit Account';
 $string['habenbetrag'] = 'Credit Amount';
 $string['weight'] = 'Weight';
 $string['weight_help'] = 'Weight for this field in grading (1, 2, or 3). Higher values mean more points. For example, if an account has weight 3 and its amount has weight 1, the account is three times as important as the amount for scoring.';
-$string['accountnumber'] = 'Account number';
+$string['accountnumber'] = 'Account name';
 $string['amount'] = 'Amount';
 $string['selectaccount'] = '-- Select account --';
 $string['enteraccount'] = 'Enter account number';
@@ -116,13 +116,6 @@ $string['chartname'] = 'Chart name';
 $string['chartdescription'] = 'Description';
 $string['importaccounts'] = 'Import accounts from CSV';
 $string['exportaccounts'] = 'Export accounts to CSV';
-$string['accountclass'] = 'Account class';
-$string['accountclass_0'] = 'Fixed assets';
-$string['accountclass_1'] = 'Financial accounts';
-$string['accountclass_2'] = 'Equity';
-$string['accountclass_3'] = 'Liabilities';
-$string['accountclass_4'] = 'Expenses';
-$string['accountclass_5'] = 'Revenue';
 
 // Privacy.
 $string['privacy:metadata:qtype_buchungssatz_charts'] = 'The charts of accounts table stores who last modified each chart.';
@@ -142,7 +135,6 @@ $string['accounts'] = 'Accounts';
 $string['chartcreated'] = 'Chart of accounts created successfully.';
 $string['chartdeleted'] = 'Chart of accounts deleted successfully.';
 $string['chartrenamed'] = 'Chart of accounts renamed successfully.';
-$string['defaultchartcreated'] = 'Default SKR03 chart created successfully.';
 $string['imported'] = '{$a} accounts imported successfully.';
 $string['confirmdelete'] = 'Are you sure you want to delete this chart of accounts?';
 $string['balanced'] = 'Balanced';
@@ -173,8 +165,8 @@ $string['importsuccess'] = 'Import successful! ';
 $string['entriesimported'] = 'entries imported.';
 $string['importerror'] = 'Import error: ';
 $string['csvempty'] = 'CSV data is empty.';
-$string['csvnodata'] = 'CSV must contain at least two rows (header and data) for multi-column format, or at least one account line for simple format.';
-$string['csvinvalidformat'] = 'Could not detect debit and credit account columns. Please check the CSV format.';
+$string['csvnodata'] = 'No account names found. Each non-empty line is treated as one account name.';
+$string['csvinvalidformat'] = 'Could not parse the account data. Each line should be one account name.';
 $string['csvnoentries'] = 'No valid entries found in CSV data.';
 $string['importedchart'] = 'Imported Chart';
 $string['importedchartdesc'] = 'Chart of accounts imported from CSV data.';
@@ -186,20 +178,14 @@ $string['distributegradesequally'] = 'Distribute equally';
 $string['importchartfromcsv'] = 'Import Chart of Accounts from CSV';
 $string['importchart'] = 'Import Chart';
 $string['csvfilerequired'] = 'A CSV file is required to create a chart of accounts.';
-$string['csvfilehelp'] = 'Upload a CSV file to import accounts. Supported formats: Multi-column (Liste;Kontokl;Kontonr;Name) or simple (one account per line: account number followed by account name). The chart name is extracted from the Liste column or auto-generated.';
-$string['csvfile_help'] = 'Upload a CSV file containing chart of accounts data.<br><br>
-<strong>Multi-column format:</strong> Liste;Kontokl;Kontonr;Name<br>
-Column meanings:
-<ul>
-<li>Liste: Chart of accounts name</li>
-<li>Kontokl: Account class</li>
-<li>Kontonr: Account number</li>
-<li>Name: Account name</li>
-</ul>
-Delimiter: Semicolon (;), tab, or comma (,)<br><br>
-<strong>Simple format:</strong> One account per line<br>
-Each line: account number followed by account name, separated by space.<br>
-Example: <code>0110 Immaterielle Vermögensgegenstände</code><br><br>
+$string['csvfilehelp'] = 'Upload a text file with one account name per line. The chart name is derived from the filename or auto-generated.';
+$string['csvfile_help'] = 'Upload a text file containing account names.<br><br>
+<strong>Format:</strong> One account name per line.<br>
+Empty lines are ignored. Duplicate names are skipped.<br><br>
+Example:<br>
+<code>1200 Bank</code><br>
+<code>8400 Erlöse 19% USt</code><br>
+<code>1000 Kasse</code><br><br>
 Maximum file size: 2MB';
 $string['overrideexisting'] = 'Override existing chart';
 $string['overrideexistingdesc'] = 'Replace existing chart with the same name';
@@ -209,8 +195,7 @@ $string['chartimportsuccess'] = '{$a} accounts imported successfully';
 $string['witherrors'] = 'with errors';
 $string['chartimportfailed'] = 'Chart import failed';
 $string['importlineerror'] = 'Error on line {$a}';
-$string['createdefaultskr03'] = 'Create Default SKR03 Chart';
 $string['importdate'] = 'Import date';
 $string['uploadchartcsv'] = 'Upload Chart of Accounts (CSV)';
 $string['uploadchartcsv_btn'] = 'Upload';
-$string['uploadchartcsv_help'] = 'Upload a CSV file to create a new chart of accounts for this course. The chart will appear in the dropdown immediately after upload. Supported formats: multi-column (Liste;Kontokl;Kontonr;Name) or simple (one account per line: account number followed by account name).';
+$string['uploadchartcsv_help'] = 'Upload a text file to create a new chart of accounts for this course. The chart will appear in the dropdown immediately after upload. Format: one account name per line.';

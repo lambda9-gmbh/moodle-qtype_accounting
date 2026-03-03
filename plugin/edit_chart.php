@@ -75,14 +75,10 @@ if ($action === 'rename' && confirm_sesskey()) {
 
 // Handle add account.
 if ($action === 'addaccount' && confirm_sesskey()) {
-    $accountnumber = required_param('accountnumber', PARAM_TEXT);
     $accountname = required_param('accountname', PARAM_TEXT);
-    $accountclass = required_param('accountclass', PARAM_INT);
-
-    $accountnumber = trim($accountnumber);
     $accountname = trim($accountname);
 
-    if (!empty($accountnumber) && !empty($accountname)) {
+    if (!empty($accountname)) {
         // Determine sort order (append at end).
         $accounts = chart_manager::get_accounts($chartid);
         $maxsort = 0;
@@ -91,7 +87,7 @@ if ($action === 'addaccount' && confirm_sesskey()) {
                 $maxsort = $acc->sortorder;
             }
         }
-        chart_manager::add_account($chartid, $accountnumber, $accountname, $accountclass, $maxsort + 1);
+        chart_manager::add_account($chartid, $accountname, $maxsort + 1);
         redirect($baseurl, get_string('accountadded', 'qtype_buchungssatz'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
     redirect($baseurl);
@@ -103,10 +99,8 @@ if ($action === 'updateaccount' && $accountid && confirm_sesskey()) {
     // Verify account belongs to this chart.
     $account = $DB->get_record('qtype_buchungssatz_accounts', ['id' => $accountid, 'chartid' => $chartid]);
     if ($account) {
-        $accountnumber = required_param('accountnumber', PARAM_TEXT);
         $accountname = required_param('accountname', PARAM_TEXT);
-        $accountclass = required_param('accountclass', PARAM_INT);
-        chart_manager::update_account($accountid, trim($accountnumber), trim($accountname), $accountclass);
+        chart_manager::update_account($accountid, trim($accountname));
         redirect($baseurl, get_string('accountupdated', 'qtype_buchungssatz'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
     redirect($baseurl);
@@ -131,7 +125,7 @@ if ($action === 'deleteaccount' && $accountid) {
     echo $OUTPUT->header();
     echo $OUTPUT->confirm(
         get_string('confirmdeleteaccount', 'qtype_buchungssatz') . ' <strong>'
-            . format_string($account->accountnumber . ' - ' . $account->accountname) . '</strong>',
+            . format_string($account->accountname) . '</strong>',
         new moodle_url($baseurl, ['action' => 'deleteaccount', 'accountid' => $accountid, 'confirm' => 1]),
         $baseurl
     );
@@ -230,9 +224,7 @@ if (!empty($accounts)) {
 
     $table = new html_table();
     $table->head = [
-        get_string('accountnumber', 'qtype_buchungssatz'),
         get_string('accountname', 'qtype_buchungssatz'),
-        get_string('accountclass', 'qtype_buchungssatz'),
         get_string('actions'),
     ];
     $table->attributes['class'] = 'generaltable';
@@ -244,30 +236,13 @@ if (!empty($accounts)) {
         if ($isediting) {
             $formid = 'form_account_' . $account->id;
 
-            // Editable inputs with form attribute.
-            $numbercell = html_writer::empty_tag('input', [
-                'type' => 'text',
-                'name' => 'accountnumber',
-                'value' => $account->accountnumber,
-                'class' => 'form-control',
-                'size' => 10,
-                'form' => $formid,
-            ]);
+            // Editable input with form attribute.
             $namecell = html_writer::empty_tag('input', [
                 'type' => 'text',
                 'name' => 'accountname',
                 'value' => $account->accountname,
                 'class' => 'form-control',
-                'size' => 30,
-                'form' => $formid,
-            ]);
-            $classcell = html_writer::empty_tag('input', [
-                'type' => 'number',
-                'name' => 'accountclass',
-                'value' => $account->accountclass,
-                'class' => 'form-control',
-                'size' => 5,
-                'min' => 0,
+                'size' => 40,
                 'form' => $formid,
             ]);
 
@@ -282,9 +257,7 @@ if (!empty($accounts)) {
             $actions = $savebtn . ' ' . $cancelbtn;
         } else {
             // Read-only display.
-            $numbercell = format_string($account->accountnumber);
             $namecell = format_string($account->accountname);
-            $classcell = (string)$account->accountclass;
 
             // Edit + Delete buttons.
             $editurl = new moodle_url($baseurl, ['editaccount' => $account->id]);
@@ -294,7 +267,7 @@ if (!empty($accounts)) {
             $actions = $editbtn . ' ' . $deletebtn;
         }
 
-        $row->cells = [$numbercell, $namecell, $classcell, $actions];
+        $row->cells = [$namecell, $actions];
         $table->data[] = $row;
     }
 
@@ -315,28 +288,11 @@ echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', '
 
 echo html_writer::empty_tag('input', [
     'type' => 'text',
-    'name' => 'accountnumber',
-    'placeholder' => get_string('accountnumber', 'qtype_buchungssatz'),
-    'class' => 'form-control mr-2',
-    'size' => 10,
-    'required' => 'required',
-]);
-echo html_writer::empty_tag('input', [
-    'type' => 'text',
     'name' => 'accountname',
     'placeholder' => get_string('accountname', 'qtype_buchungssatz'),
     'class' => 'form-control mr-2',
-    'size' => 30,
+    'size' => 40,
     'required' => 'required',
-]);
-echo html_writer::empty_tag('input', [
-    'type' => 'number',
-    'name' => 'accountclass',
-    'placeholder' => get_string('accountclass', 'qtype_buchungssatz'),
-    'class' => 'form-control mr-2',
-    'size' => 5,
-    'min' => 0,
-    'value' => 0,
 ]);
 echo html_writer::empty_tag('input', [
     'type' => 'submit',

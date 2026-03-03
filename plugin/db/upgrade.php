@@ -214,5 +214,55 @@ function xmldb_qtype_buchungssatz_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2024010121, 'qtype', 'buchungssatz');
     }
 
+    if ($oldversion < 2024010126) {
+        // Remove accountnumber and accountclass from accounts table, simplify to name-only.
+
+        $table = new xmldb_table('qtype_buchungssatz_accounts');
+
+        // Step 1: Drop the old unique index on chartid-accountnumber.
+        $index = new xmldb_index('chartid-accountnumber', XMLDB_INDEX_UNIQUE, ['chartid', 'accountnumber']);
+        if ($dbman->index_exists($table, $index)) {
+            $dbman->drop_index($table, $index);
+        }
+
+        // Step 2: Bake accountnumber into accountname for existing data (e.g. "1200" + "Bank" => "1200 Bank").
+        $accounts = $DB->get_records('qtype_buchungssatz_accounts');
+        foreach ($accounts as $account) {
+            if (!empty($account->accountnumber) && $account->accountnumber !== $account->accountname) {
+                $newname = $account->accountnumber . ' ' . $account->accountname;
+                $DB->set_field('qtype_buchungssatz_accounts', 'accountname', $newname, ['id' => $account->id]);
+            }
+        }
+
+        // Step 3: Drop accountnumber column.
+        $field = new xmldb_field('accountnumber');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Step 4: Drop accountclass column.
+        $field = new xmldb_field('accountclass');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        // Step 5: Add unique index on chartid-accountname.
+        $index = new xmldb_index('chartid-accountname', XMLDB_INDEX_UNIQUE, ['chartid', 'accountname']);
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        // Step 6: Widen sollkonto and habenkonto in entries table to char(255).
+        $table = new xmldb_table('qtype_buchungssatz_entries');
+
+        $field = new xmldb_field('sollkonto', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null, 'sortorder');
+        $dbman->change_field_precision($table, $field);
+
+        $field = new xmldb_field('habenkonto', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null, 'sollbetrag');
+        $dbman->change_field_precision($table, $field);
+
+        upgrade_plugin_savepoint(true, 2024010126, 'qtype', 'buchungssatz');
+    }
+
     return true;
 }

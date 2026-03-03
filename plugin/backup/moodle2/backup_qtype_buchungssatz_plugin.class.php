@@ -52,7 +52,7 @@ class backup_qtype_buchungssatz_plugin extends backup_qtype_plugin {
         $chart = new backup_nested_element('buchungssatz_chart', null, ['name']);
         $chartaccounts = new backup_nested_element('chart_accounts');
         $chartaccount = new backup_nested_element('chart_account', null,
-            ['accountnumber', 'accountname', 'accountclass', 'sortorder']);
+            ['accountname', 'sortorder']);
 
         // Options with all current fields.
         $options = new backup_nested_element('buchungssatz_options', null,
@@ -85,12 +85,12 @@ class backup_qtype_buchungssatz_plugin extends backup_qtype_plugin {
         );
 
         $chartaccount->set_source_sql(
-            "SELECT a.accountnumber, a.accountname, a.accountclass, a.sortorder
+            "SELECT a.accountname, a.sortorder
                FROM {qtype_buchungssatz_accounts} a
                JOIN {qtype_buchungssatz_charts} c ON c.id = a.chartid
                JOIN {qtype_buchungssatz_options} o ON o.chartofaccountsid = c.id
               WHERE o.questionid = ?
-           ORDER BY a.sortorder, a.accountnumber",
+           ORDER BY a.sortorder, a.accountname",
             [backup::VAR_PARENTID]
         );
 

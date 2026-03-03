@@ -198,20 +198,18 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
         $coursecontext = context_course::instance($courseid);
         $contextid = $coursecontext->id;
 
-        // Build accounts array keyed by account number for matching.
-        $accountsbynum = [];
+        // Build accounts array keyed by account name for matching.
+        $accountsbyname = [];
         foreach ($this->chartaccounts as $acc) {
-            $accountsbynum[$acc->accountnumber] = [
-                'accountnumber' => $acc->accountnumber,
+            $accountsbyname[$acc->accountname] = [
                 'accountname' => $acc->accountname,
-                'accountclass' => $acc->accountclass ?? 0,
                 'sortorder' => $acc->sortorder ?? 0,
             ];
         }
 
         // Try to find an existing matching chart in the target course context.
         $chartid = \qtype_buchungssatz\chart_manager::find_matching_chart_in_context(
-            $this->chartname, $contextid, $accountsbynum
+            $this->chartname, $contextid, $accountsbyname
         );
 
         if (!$chartid) {
@@ -220,9 +218,7 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
             foreach ($this->chartaccounts as $acc) {
                 \qtype_buchungssatz\chart_manager::add_account(
                     $chartid,
-                    $acc->accountnumber,
                     $acc->accountname,
-                    $acc->accountclass ?? 0,
                     $acc->sortorder ?? 0
                 );
             }

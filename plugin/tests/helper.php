@@ -80,9 +80,9 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
 
         $question->entries = [
             [
-                'sollkonto' => '1200',
+                'sollkonto' => '1200 Bank',
                 'sollbetrag' => 1000.00,
-                'habenkonto' => '8400',
+                'habenkonto' => '8400 Erlöse 19% USt',
                 'habenbetrag' => 1000.00,
                 'weight_sollkonto' => 1,
                 'weight_sollbetrag' => 1,
@@ -121,9 +121,9 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
 
         $question->entries = [
             [
-                'sollkonto' => '1000',
+                'sollkonto' => '1000 Kasse',
                 'sollbetrag' => 500.00,
-                'habenkonto' => '8400',
+                'habenkonto' => '8400 Erlöse 19% USt',
                 'habenbetrag' => 500.00,
                 'weight_sollkonto' => 1,
                 'weight_sollbetrag' => 1,
@@ -132,9 +132,9 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
                 'explanation' => 'Cash payment',
             ],
             [
-                'sollkonto' => '1200',
+                'sollkonto' => '1200 Bank',
                 'sollbetrag' => 500.00,
-                'habenkonto' => '8400',
+                'habenkonto' => '8400 Erlöse 19% USt',
                 'habenbetrag' => 500.00,
                 'weight_sollkonto' => 1,
                 'weight_sollbetrag' => 1,
@@ -173,7 +173,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
             [
                 'sollkonto' => '',
                 'sollbetrag' => 0,
-                'habenkonto' => '4400',
+                'habenkonto' => '4400 Verbindlichkeiten',
                 'habenbetrag' => 250.00,
                 'weight_sollkonto' => 1,
                 'weight_sollbetrag' => 1,
@@ -212,9 +212,9 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         // Custom weights: account has weight 2, amount has weight 1.
         $question->entries = [
             [
-                'sollkonto' => '1200',
+                'sollkonto' => '1200 Bank',
                 'sollbetrag' => 1000.00,
-                'habenkonto' => '8400',
+                'habenkonto' => '8400 Erlöse 19% USt',
                 'habenbetrag' => 1000.00,
                 'weight_sollkonto' => 2,
                 'weight_sollbetrag' => 1,
@@ -252,9 +252,9 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
 
         $question->entries = [
             [
-                'sollkonto' => '1200',
+                'sollkonto' => '1200 Bank',
                 'sollbetrag' => 1000.00,
-                'habenkonto' => '8400',
+                'habenkonto' => '8400 Erlöse 19% USt',
                 'habenbetrag' => 1000.00,
                 'weight_sollkonto' => 1,
                 'weight_sollbetrag' => 1,
@@ -295,9 +295,9 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         // Single entry with total amounts.
         $question->entries = [
             [
-                'sollkonto' => '1200',
+                'sollkonto' => '1200 Bank',
                 'sollbetrag' => 600.00,
-                'habenkonto' => '8400',
+                'habenkonto' => '8400 Erlöse 19% USt',
                 'habenbetrag' => 600.00,
                 'weight_sollkonto' => 1,
                 'weight_sollbetrag' => 1,
@@ -338,9 +338,9 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         // Two entries to the same account.
         $question->entries = [
             [
-                'sollkonto' => '1200',
+                'sollkonto' => '1200 Bank',
                 'sollbetrag' => 300.00,
-                'habenkonto' => '8400',
+                'habenkonto' => '8400 Erlöse 19% USt',
                 'habenbetrag' => 300.00,
                 'weight_sollkonto' => 1,
                 'weight_sollbetrag' => 1,
@@ -349,9 +349,9 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
                 'explanation' => 'First payment',
             ],
             [
-                'sollkonto' => '1200',
+                'sollkonto' => '1200 Bank',
                 'sollbetrag' => 200.00,
-                'habenkonto' => '8400',
+                'habenkonto' => '8400 Erlöse 19% USt',
                 'habenbetrag' => 200.00,
                 'weight_sollkonto' => 1,
                 'weight_sollbetrag' => 1,
@@ -386,9 +386,9 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $fromform->maxentries = 5;
 
         // Default entry with minimal data that will be overwritten.
-        $fromform->sollkonto = ['1200'];
+        $fromform->sollkonto = ['1200 Bank'];
         $fromform->sollbetrag = [1000.00];
-        $fromform->habenkonto = ['8400'];
+        $fromform->habenkonto = ['8400 Erlöse 19% USt'];
         $fromform->habenbetrag = [1000.00];
         $fromform->weight_sollkonto = [1];
         $fromform->weight_sollbetrag = [1];
@@ -419,9 +419,9 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $fromform->allowmultipleentries = 0;
         $fromform->maxentries = 1;
 
-        $fromform->sollkonto = ['1200'];
+        $fromform->sollkonto = ['1200 Bank'];
         $fromform->sollbetrag = [1000.00];
-        $fromform->habenkonto = ['8400'];
+        $fromform->habenkonto = ['8400 Erlöse 19% USt'];
         $fromform->habenbetrag = [1000.00];
         $fromform->weight_sollkonto = [1];
         $fromform->weight_sollbetrag = [1];
@@ -449,9 +449,9 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $fromform->allowmultipleentries = 1;
         $fromform->maxentries = 5;
 
-        $fromform->sollkonto = ['1000', '1200'];
+        $fromform->sollkonto = ['1000 Kasse', '1200 Bank'];
         $fromform->sollbetrag = [500.00, 500.00];
-        $fromform->habenkonto = ['8400', '8400'];
+        $fromform->habenkonto = ['8400 Erlöse 19% USt', '8400 Erlöse 19% USt'];
         $fromform->habenbetrag = [500.00, 500.00];
         $fromform->weight_sollkonto = [1, 1];
         $fromform->weight_sollbetrag = [1, 1];
@@ -481,7 +481,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
 
         $fromform->sollkonto = [''];
         $fromform->sollbetrag = [0];
-        $fromform->habenkonto = ['4400'];
+        $fromform->habenkonto = ['4400 Verbindlichkeiten'];
         $fromform->habenbetrag = [250.00];
         $fromform->weight_sollkonto = [1];
         $fromform->weight_sollbetrag = [1];

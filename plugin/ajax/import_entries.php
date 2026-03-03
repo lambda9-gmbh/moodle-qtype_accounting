@@ -15,10 +15,9 @@
 // along with MoFT BuSa.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * AJAX endpoint to import chart of accounts from CSV.
+ * AJAX endpoint to import chart of accounts from text data.
  *
- * Supports multi-column format (Liste;Kontokl;Kontonr;Name)
- * and simple format (one account per line: "accountnumber accountname").
+ * Each line = one account name.
  *
  * @package    qtype_buchungssatz
  * @copyright  2024 Hochschule Flensburg / lambda9
@@ -89,7 +88,7 @@ function import_chart_from_csv(string $csvdata, int $contextid): array {
         $chartaccounts = chart_manager::get_accounts($chart->id);
         $allaccounts[$chart->id] = [];
         foreach ($chartaccounts as $acc) {
-            $allaccounts[$chart->id][$acc->accountnumber] = $acc->accountnumber . ' - ' . $acc->accountname;
+            $allaccounts[$chart->id][$acc->accountname] = $acc->accountname;
         }
     }
 

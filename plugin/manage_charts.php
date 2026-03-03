@@ -109,12 +109,6 @@ if ($action === 'export' && $chartid) {
     die;
 }
 
-// Handle create default SKR03.
-if ($action === 'createskr' && confirm_sesskey()) {
-    chart_manager::create_default_skr03($context->id);
-    redirect($baseurl, get_string('defaultchartcreated', 'qtype_buchungssatz'), null, \core\output\notification::NOTIFY_SUCCESS);
-}
-
 // Handle CSV upload via Moodle filepicker form.
 $uploadform = new qtype_buchungssatz_chart_upload_form($baseurl);
 if ($data = $uploadform->get_data()) {
@@ -157,13 +151,6 @@ echo $OUTPUT->heading(get_string('managecharts', 'qtype_buchungssatz'));
 // Upload section first.
 echo $OUTPUT->heading(get_string('uploadchartcsv', 'qtype_buchungssatz'), 3);
 $uploadform->display();
-
-// Create default SKR03 button.
-$skr03url = new moodle_url($baseurl, ['action' => 'createskr', 'sesskey' => sesskey()]);
-echo html_writer::tag('div',
-    html_writer::link($skr03url, get_string('createdefaultskr03', 'qtype_buchungssatz'), ['class' => 'btn btn-secondary']),
-    ['class' => 'mb-4']
-);
 
 // Charts table.
 $charts = chart_manager::get_charts_for_context($context->id, $sort, $dir);

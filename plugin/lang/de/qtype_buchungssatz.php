@@ -69,7 +69,7 @@ $string['habenkonto'] = 'Habenkonto';
 $string['habenbetrag'] = 'Habenbetrag';
 $string['weight'] = 'Gewicht';
 $string['weight_help'] = 'Gewichtung für dieses Feld bei der Bewertung (1, 2 oder 3). Höhere Werte bedeuten mehr Punkte. Beispiel: Hat ein Konto das Gewicht 3 und der zugehörige Betrag das Gewicht 1, ist das Konto dreimal so wichtig wie der Betrag für die Bewertung.';
-$string['accountnumber'] = 'Kontonummer';
+$string['accountnumber'] = 'Kontobezeichnung';
 $string['amount'] = 'Betrag';
 $string['selectaccount'] = '-- Konto auswählen --';
 $string['enteraccount'] = 'Kontonummer eingeben';
@@ -116,13 +116,6 @@ $string['chartname'] = 'Name des Kontenplans';
 $string['chartdescription'] = 'Beschreibung';
 $string['importaccounts'] = 'Konten aus CSV importieren';
 $string['exportaccounts'] = 'Konten als CSV exportieren';
-$string['accountclass'] = 'Kontoklasse';
-$string['accountclass_0'] = 'Anlage- und Kapitalkonten';
-$string['accountclass_1'] = 'Finanz- und Privatkonten';
-$string['accountclass_2'] = 'Eigenkapital';
-$string['accountclass_3'] = 'Fremdkapital';
-$string['accountclass_4'] = 'Aufwendungen';
-$string['accountclass_5'] = 'Erträge';
 
 // Datenschutz.
 $string['privacy:metadata:qtype_buchungssatz_charts'] = 'Die Kontenpläne-Tabelle speichert, wer den jeweiligen Kontenplan zuletzt geändert hat.';
@@ -142,7 +135,6 @@ $string['accounts'] = 'Konten';
 $string['chartcreated'] = 'Kontenplan erfolgreich erstellt.';
 $string['chartdeleted'] = 'Kontenplan erfolgreich gelöscht.';
 $string['chartrenamed'] = 'Kontenplan erfolgreich umbenannt.';
-$string['defaultchartcreated'] = 'Standard-SKR03-Kontenplan erfolgreich erstellt.';
 $string['imported'] = '{$a} Konten erfolgreich importiert.';
 $string['confirmdelete'] = 'Sind Sie sicher, dass Sie diesen Kontenplan löschen möchten?';
 $string['balanced'] = 'Ausgeglichen';
@@ -173,8 +165,8 @@ $string['importsuccess'] = 'Import erfolgreich! ';
 $string['entriesimported'] = 'Buchungen importiert.';
 $string['importerror'] = 'Importfehler: ';
 $string['csvempty'] = 'CSV-Daten sind leer.';
-$string['csvnodata'] = 'CSV muss mindestens zwei Zeilen (Kopfzeile und Daten) für das mehrspaltige Format oder mindestens eine Kontozeile für das einfache Format enthalten.';
-$string['csvinvalidformat'] = 'Soll- und Habenkonto-Spalten konnten nicht erkannt werden. Bitte überprüfen Sie das CSV-Format.';
+$string['csvnodata'] = 'Keine Kontobezeichnungen gefunden. Jede nicht-leere Zeile wird als ein Kontoname behandelt.';
+$string['csvinvalidformat'] = 'Die Kontodaten konnten nicht verarbeitet werden. Jede Zeile sollte eine Kontobezeichnung sein.';
 $string['csvnoentries'] = 'Keine gültigen Buchungen in den CSV-Daten gefunden.';
 $string['importedchart'] = 'Importierter Kontenplan';
 $string['importedchartdesc'] = 'Kontenplan aus CSV-Daten importiert.';
@@ -186,20 +178,14 @@ $string['distributegradesequally'] = 'Gleichmäßig verteilen';
 $string['importchartfromcsv'] = 'Kontenplan aus CSV importieren';
 $string['importchart'] = 'Kontenplan importieren';
 $string['csvfilerequired'] = 'Eine CSV-Datei ist erforderlich, um einen Kontenplan zu erstellen.';
-$string['csvfilehelp'] = 'Laden Sie eine CSV-Datei hoch, um Konten zu importieren. Unterstützte Formate: Mehrspaltig (Liste;Kontokl;Kontonr;Name) oder einfach (ein Konto pro Zeile: Kontonummer gefolgt von Kontobezeichnung). Der Kontenplanname wird aus der Liste-Spalte übernommen oder automatisch generiert.';
-$string['csvfile_help'] = 'Laden Sie eine CSV-Datei mit Kontenplan-Daten hoch.<br><br>
-<strong>Mehrspaltiges Format:</strong> Liste;Kontokl;Kontonr;Name<br>
-Bedeutung der Spalten:
-<ul>
-<li>Liste: Name des Kontenplans</li>
-<li>Kontokl: Kontoklasse</li>
-<li>Kontonr: Kontonummer</li>
-<li>Name: Kontobezeichnung</li>
-</ul>
-Trennzeichen: Semikolon (;), Tabulator oder Komma (,)<br><br>
-<strong>Einfaches Format:</strong> Ein Konto pro Zeile<br>
-Jede Zeile: Kontonummer gefolgt von Kontobezeichnung, getrennt durch Leerzeichen.<br>
-Beispiel: <code>0110 Immaterielle Vermögensgegenstände</code><br><br>
+$string['csvfilehelp'] = 'Laden Sie eine Textdatei mit einer Kontobezeichnung pro Zeile hoch. Der Kontenplanname wird aus dem Dateinamen abgeleitet oder automatisch generiert.';
+$string['csvfile_help'] = 'Laden Sie eine Textdatei mit Kontobezeichnungen hoch.<br><br>
+<strong>Format:</strong> Eine Kontobezeichnung pro Zeile.<br>
+Leere Zeilen werden ignoriert. Doppelte Namen werden übersprungen.<br><br>
+Beispiel:<br>
+<code>1200 Bank</code><br>
+<code>8400 Erlöse 19% USt</code><br>
+<code>1000 Kasse</code><br><br>
 Maximale Dateigröße: 2 MB';
 $string['overrideexisting'] = 'Bestehenden Kontenplan überschreiben';
 $string['overrideexistingdesc'] = 'Bestehenden Kontenplan mit gleichem Namen ersetzen';
@@ -209,8 +195,7 @@ $string['chartimportsuccess'] = '{$a} Konten erfolgreich importiert';
 $string['witherrors'] = 'mit Fehlern';
 $string['chartimportfailed'] = 'Kontenplan-Import fehlgeschlagen';
 $string['importlineerror'] = 'Fehler in Zeile {$a}';
-$string['createdefaultskr03'] = 'SKR03 Standardkontenplan erstellen';
 $string['importdate'] = 'Importdatum';
 $string['uploadchartcsv'] = 'Kontenplan hochladen (CSV)';
 $string['uploadchartcsv_btn'] = 'Hochladen';
-$string['uploadchartcsv_help'] = 'Laden Sie eine CSV-Datei hoch, um einen neuen Kontenplan für diesen Kurs zu erstellen. Der Kontenplan erscheint sofort nach dem Hochladen in der Auswahlliste. Unterstützte Formate: Mehrspaltig (Liste;Kontokl;Kontonr;Name) oder einfach (ein Konto pro Zeile: Kontonummer gefolgt von Kontobezeichnung).';
+$string['uploadchartcsv_help'] = 'Laden Sie eine Textdatei hoch, um einen neuen Kontenplan für diesen Kurs zu erstellen. Der Kontenplan erscheint sofort nach dem Hochladen in der Auswahlliste. Format: eine Kontobezeichnung pro Zeile.';

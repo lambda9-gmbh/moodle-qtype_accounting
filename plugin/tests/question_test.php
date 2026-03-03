@@ -60,9 +60,9 @@ class question_test extends \advanced_testcase {
 
         $response = $question->get_correct_response();
 
-        $this->assertEquals('1200', $response['sollkonto_0']);
+        $this->assertEquals('1200 Bank', $response['sollkonto_0']);
         $this->assertEquals(1000.00, $response['sollbetrag_0']);
-        $this->assertEquals('8400', $response['habenkonto_0']);
+        $this->assertEquals('8400 Erlöse 19% USt', $response['habenkonto_0']);
         $this->assertEquals(1000.00, $response['habenbetrag_0']);
     }
 
@@ -72,7 +72,7 @@ class question_test extends \advanced_testcase {
     public function test_is_complete_response_complete(): void {
         $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
 
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '8400', 1000);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 1000, '8400 Erlöse 19% USt', 1000);
 
         $this->assertTrue($question->is_complete_response($response));
     }
@@ -95,7 +95,7 @@ class question_test extends \advanced_testcase {
     public function test_is_complete_response_only_debit(): void {
         $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
 
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '', 0);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 1000, '', 0);
 
         $this->assertTrue($question->is_complete_response($response));
     }
@@ -107,7 +107,7 @@ class question_test extends \advanced_testcase {
     public function test_is_complete_response_only_credit(): void {
         $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
 
-        $response = qtype_buchungssatz_test_helper::make_response('', 0, '8400', 1000);
+        $response = qtype_buchungssatz_test_helper::make_response('', 0, '8400 Erlöse 19% USt', 1000);
 
         $this->assertTrue($question->is_complete_response($response));
     }
@@ -118,8 +118,8 @@ class question_test extends \advanced_testcase {
     public function test_is_same_response_identical(): void {
         $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
 
-        $response1 = qtype_buchungssatz_test_helper::make_response('1200', 1000, '8400', 1000);
-        $response2 = qtype_buchungssatz_test_helper::make_response('1200', 1000, '8400', 1000);
+        $response1 = qtype_buchungssatz_test_helper::make_response('1200 Bank', 1000, '8400 Erlöse 19% USt', 1000);
+        $response2 = qtype_buchungssatz_test_helper::make_response('1200 Bank', 1000, '8400 Erlöse 19% USt', 1000);
 
         $this->assertTrue($question->is_same_response($response1, $response2));
     }
@@ -130,8 +130,8 @@ class question_test extends \advanced_testcase {
     public function test_is_same_response_different(): void {
         $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
 
-        $response1 = qtype_buchungssatz_test_helper::make_response('1200', 1000, '8400', 1000);
-        $response2 = qtype_buchungssatz_test_helper::make_response('1200', 500, '8400', 500);
+        $response1 = qtype_buchungssatz_test_helper::make_response('1200 Bank', 1000, '8400 Erlöse 19% USt', 1000);
+        $response2 = qtype_buchungssatz_test_helper::make_response('1200 Bank', 500, '8400 Erlöse 19% USt', 500);
 
         $this->assertFalse($question->is_same_response($response1, $response2));
     }
@@ -142,7 +142,7 @@ class question_test extends \advanced_testcase {
     public function test_grade_response_correct(): void {
         $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
 
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '8400', 1000);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 1000, '8400 Erlöse 19% USt', 1000);
         [$fraction, $state] = $question->grade_response($response);
 
         $this->assertEquals(1.0, $fraction);
@@ -172,7 +172,7 @@ class question_test extends \advanced_testcase {
         $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
 
         // Correct accounts but wrong amounts.
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 500, '8400', 500);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 500, '8400 Erlöse 19% USt', 500);
         [$fraction, $state] = $question->grade_response($response);
 
         // Accounts correct (weight 1+1=2), amounts wrong (0).
@@ -216,7 +216,7 @@ class question_test extends \advanced_testcase {
         $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
 
         // Response with tiny floating point difference.
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000.005, '8400', 1000.005);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 1000.005, '8400 Erlöse 19% USt', 1000.005);
         [$fraction, $state] = $question->grade_response($response);
 
         $this->assertEquals(1.0, $fraction);
@@ -230,8 +230,8 @@ class question_test extends \advanced_testcase {
         $question = \test_question_maker::make_question('buchungssatz', 'multiple_entries');
 
         $response = qtype_buchungssatz_test_helper::make_multi_response([
-            ['sollkonto' => '1000', 'sollbetrag' => 500, 'habenkonto' => '8400', 'habenbetrag' => 500],
-            ['sollkonto' => '1200', 'sollbetrag' => 500, 'habenkonto' => '8400', 'habenbetrag' => 500],
+            ['sollkonto' => '1000 Kasse', 'sollbetrag' => 500, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 500],
+            ['sollkonto' => '1200 Bank', 'sollbetrag' => 500, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 500],
         ]);
         [$fraction, $state] = $question->grade_response($response);
 
@@ -247,7 +247,7 @@ class question_test extends \advanced_testcase {
 
         // Only one of two entries is correct.
         $response = qtype_buchungssatz_test_helper::make_multi_response([
-            ['sollkonto' => '1000', 'sollbetrag' => 500, 'habenkonto' => '8400', 'habenbetrag' => 500],
+            ['sollkonto' => '1000 Kasse', 'sollbetrag' => 500, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 500],
             ['sollkonto' => '9999', 'sollbetrag' => 500, 'habenkonto' => '9998', 'habenbetrag' => 500],
         ]);
         [$fraction, $state] = $question->grade_response($response);
@@ -264,8 +264,8 @@ class question_test extends \advanced_testcase {
 
         // Same entries but in reverse order - should still be correct.
         $response = qtype_buchungssatz_test_helper::make_multi_response([
-            ['sollkonto' => '1200', 'sollbetrag' => 500, 'habenkonto' => '8400', 'habenbetrag' => 500],
-            ['sollkonto' => '1000', 'sollbetrag' => 500, 'habenkonto' => '8400', 'habenbetrag' => 500],
+            ['sollkonto' => '1200 Bank', 'sollbetrag' => 500, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 500],
+            ['sollkonto' => '1000 Kasse', 'sollbetrag' => 500, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 500],
         ]);
         [$fraction, $state] = $question->grade_response($response);
 
@@ -279,11 +279,11 @@ class question_test extends \advanced_testcase {
     public function test_summarise_response(): void {
         $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
 
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '8400', 1000);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 1000, '8400 Erlöse 19% USt', 1000);
         $summary = $question->summarise_response($response);
 
-        $this->assertStringContainsString('1200', $summary);
-        $this->assertStringContainsString('8400', $summary);
+        $this->assertStringContainsString('1200 Bank', $summary);
+        $this->assertStringContainsString('8400 Erlöse 19% USt', $summary);
         $this->assertStringContainsString('1000.00', $summary);
     }
 
@@ -294,7 +294,7 @@ class question_test extends \advanced_testcase {
         $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
         $question->entries = [];
 
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '8400', 1000);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 1000, '8400 Erlöse 19% USt', 1000);
         [$fraction, $state] = $question->grade_response($response);
 
         $this->assertEquals(0.0, $fraction);
@@ -318,7 +318,7 @@ class question_test extends \advanced_testcase {
     public function test_get_validation_error_complete(): void {
         $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
 
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '8400', 1000);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 1000, '8400 Erlöse 19% USt', 1000);
         $error = $question->get_validation_error($response);
 
         $this->assertEmpty($error);
@@ -340,8 +340,8 @@ class question_test extends \advanced_testcase {
 
         // Student splits the amount into two entries.
         $response = qtype_buchungssatz_test_helper::make_multi_response([
-            ['sollkonto' => '1200', 'sollbetrag' => 300, 'habenkonto' => '8400', 'habenbetrag' => 300],
-            ['sollkonto' => '1200', 'sollbetrag' => 300, 'habenkonto' => '8400', 'habenbetrag' => 300],
+            ['sollkonto' => '1200 Bank', 'sollbetrag' => 300, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 300],
+            ['sollkonto' => '1200 Bank', 'sollbetrag' => 300, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 300],
         ]);
         [$fraction, $state] = $question->grade_response($response);
 
@@ -360,8 +360,8 @@ class question_test extends \advanced_testcase {
         $question = \test_question_maker::make_question('buchungssatz', 'split_amounts');
 
         $response = qtype_buchungssatz_test_helper::make_multi_response([
-            ['sollkonto' => '1200', 'sollbetrag' => 400, 'habenkonto' => '8400', 'habenbetrag' => 100],
-            ['sollkonto' => '1200', 'sollbetrag' => 200, 'habenkonto' => '8400', 'habenbetrag' => 500],
+            ['sollkonto' => '1200 Bank', 'sollbetrag' => 400, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 100],
+            ['sollkonto' => '1200 Bank', 'sollbetrag' => 200, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 500],
         ]);
         [$fraction, $state] = $question->grade_response($response);
 
@@ -379,8 +379,8 @@ class question_test extends \advanced_testcase {
         $question = \test_question_maker::make_question('buchungssatz', 'split_amounts');
 
         $response = qtype_buchungssatz_test_helper::make_multi_response([
-            ['sollkonto' => '1200', 'sollbetrag' => 300, 'habenkonto' => '8400', 'habenbetrag' => 300],
-            ['sollkonto' => '1200', 'sollbetrag' => 200, 'habenkonto' => '8400', 'habenbetrag' => 200],
+            ['sollkonto' => '1200 Bank', 'sollbetrag' => 300, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 300],
+            ['sollkonto' => '1200 Bank', 'sollbetrag' => 200, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 200],
         ]);
         [$fraction, $state] = $question->grade_response($response);
 
@@ -400,7 +400,7 @@ class question_test extends \advanced_testcase {
         $question = \test_question_maker::make_question('buchungssatz', 'multiple_same_account');
 
         // Student enters single entry with total.
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 500, '8400', 500);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 500, '8400 Erlöse 19% USt', 500);
         [$fraction, $state] = $question->grade_response($response);
 
         $this->assertEquals(1.0, $fraction);
@@ -417,7 +417,7 @@ class question_test extends \advanced_testcase {
     public function test_all_or_nothing_correct(): void {
         $question = \test_question_maker::make_question('buchungssatz', 'all_or_nothing');
 
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '8400', 1000);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 1000, '8400 Erlöse 19% USt', 1000);
         [$fraction, $state] = $question->grade_response($response);
 
         $this->assertEquals(1.0, $fraction);
@@ -432,7 +432,7 @@ class question_test extends \advanced_testcase {
         $question = \test_question_maker::make_question('buchungssatz', 'all_or_nothing');
 
         // Correct accounts but wrong amounts.
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 500, '8400', 500);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 500, '8400 Erlöse 19% USt', 500);
         [$fraction, $state] = $question->grade_response($response);
 
         $this->assertEquals(0.0, $fraction);
@@ -447,7 +447,7 @@ class question_test extends \advanced_testcase {
         $question = \test_question_maker::make_question('buchungssatz', 'all_or_nothing');
 
         // Only debit correct.
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '9999', 1000);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 1000, '9999', 1000);
         [$fraction, $state] = $question->grade_response($response);
 
         $this->assertEquals(0.0, $fraction);
@@ -462,7 +462,7 @@ class question_test extends \advanced_testcase {
         $question->allornothinggrading = 0;
 
         // Correct accounts but wrong amounts = 50% (accounts correct, amounts wrong).
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 500, '8400', 500);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 500, '8400 Erlöse 19% USt', 500);
         [$fraction, $state] = $question->grade_response($response);
 
         $this->assertEquals(0.5, $fraction);
@@ -479,7 +479,7 @@ class question_test extends \advanced_testcase {
     public function test_weighted_scoring_correct(): void {
         $question = \test_question_maker::make_question('buchungssatz', 'weighted_entries');
 
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '8400', 1000);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 1000, '8400 Erlöse 19% USt', 1000);
         [$fraction, $state] = $question->grade_response($response);
 
         $this->assertEquals(1.0, $fraction);
@@ -498,7 +498,7 @@ class question_test extends \advanced_testcase {
         $question = \test_question_maker::make_question('buchungssatz', 'weighted_entries');
 
         // Correct accounts but wrong amounts.
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 500, '8400', 500);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 500, '8400 Erlöse 19% USt', 500);
         [$fraction, $state] = $question->grade_response($response);
 
         // Accounts have weight 2 each, amounts weight 1 each.
@@ -521,7 +521,7 @@ class question_test extends \advanced_testcase {
         $question = \test_question_maker::make_question('buchungssatz', 'weighted_entries');
 
         // Only debit side correct.
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '9999', 9999);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 1000, '9999', 9999);
         [$fraction, $state] = $question->grade_response($response);
 
         // Debit = 2+1 = 3, Credit = 0
@@ -537,7 +537,7 @@ class question_test extends \advanced_testcase {
         $question = \test_question_maker::make_question('buchungssatz', 'weighted_entries');
 
         // Only credit side correct.
-        $response = qtype_buchungssatz_test_helper::make_response('9999', 9999, '8400', 1000);
+        $response = qtype_buchungssatz_test_helper::make_response('9999', 9999, '8400 Erlöse 19% USt', 1000);
         [$fraction, $state] = $question->grade_response($response);
 
         // Debit = 0, Credit = 2+1 = 3
@@ -558,8 +558,8 @@ class question_test extends \advanced_testcase {
 
         // Reverse order of entries.
         $response = qtype_buchungssatz_test_helper::make_multi_response([
-            ['sollkonto' => '1200', 'sollbetrag' => 500, 'habenkonto' => '8400', 'habenbetrag' => 500],
-            ['sollkonto' => '1000', 'sollbetrag' => 500, 'habenkonto' => '8400', 'habenbetrag' => 500],
+            ['sollkonto' => '1200 Bank', 'sollbetrag' => 500, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 500],
+            ['sollkonto' => '1000 Kasse', 'sollbetrag' => 500, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 500],
         ]);
         [$fraction, $state] = $question->grade_response($response);
 
@@ -577,9 +577,9 @@ class question_test extends \advanced_testcase {
 
         // Random order and splits.
         $response = qtype_buchungssatz_test_helper::make_multi_response([
-            ['sollkonto' => '1200', 'sollbetrag' => 150, 'habenkonto' => '8400', 'habenbetrag' => 250],
-            ['sollkonto' => '1200', 'sollbetrag' => 200, 'habenkonto' => '8400', 'habenbetrag' => 100],
-            ['sollkonto' => '1200', 'sollbetrag' => 150, 'habenkonto' => '8400', 'habenbetrag' => 150],
+            ['sollkonto' => '1200 Bank', 'sollbetrag' => 150, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 250],
+            ['sollkonto' => '1200 Bank', 'sollbetrag' => 200, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 100],
+            ['sollkonto' => '1200 Bank', 'sollbetrag' => 150, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 150],
         ]);
         [$fraction, $state] = $question->grade_response($response);
 
@@ -598,7 +598,7 @@ class question_test extends \advanced_testcase {
     public function test_partial_credit_correct_accounts_wrong_amounts(): void {
         $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
 
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 500, '8400', 500);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 500, '8400 Erlöse 19% USt', 500);
         [$fraction, $state] = $question->grade_response($response);
 
         // All 4 weights = 1, total = 4
@@ -615,7 +615,7 @@ class question_test extends \advanced_testcase {
         $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
 
         // Debit side correct, credit side completely wrong.
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '9999', 9999);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 1000, '9999', 9999);
         [$fraction, $state] = $question->grade_response($response);
 
         // Debit correct = 2, Credit = 0
@@ -631,7 +631,7 @@ class question_test extends \advanced_testcase {
         $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
 
         // Missing debit account entirely - using different account.
-        $response = qtype_buchungssatz_test_helper::make_response('9999', 1000, '8400', 1000);
+        $response = qtype_buchungssatz_test_helper::make_response('9999', 1000, '8400 Erlöse 19% USt', 1000);
         [$fraction, $state] = $question->grade_response($response);
 
         // Credit side correct = 2, Debit wrong = 0
@@ -664,7 +664,7 @@ class question_test extends \advanced_testcase {
 
         // Correct answer plus extra wrong entry.
         $response = qtype_buchungssatz_test_helper::make_multi_response([
-            ['sollkonto' => '1200', 'sollbetrag' => 1000, 'habenkonto' => '8400', 'habenbetrag' => 1000],
+            ['sollkonto' => '1200 Bank', 'sollbetrag' => 1000, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 1000],
             ['sollkonto' => '9999', 'sollbetrag' => 500, 'habenkonto' => '9998', 'habenbetrag' => 500],
         ]);
         [$fraction, $state] = $question->grade_response($response);
@@ -682,7 +682,7 @@ class question_test extends \advanced_testcase {
         // Modify to have debit-only entry.
         $question->entries = [
             [
-                'sollkonto' => '1200',
+                'sollkonto' => '1200 Bank',
                 'sollbetrag' => 1000.00,
                 'habenkonto' => '',
                 'habenbetrag' => 0,
@@ -694,7 +694,7 @@ class question_test extends \advanced_testcase {
             ],
         ];
 
-        $response = qtype_buchungssatz_test_helper::make_response('1200', 1000, '', 0);
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 1000, '', 0);
         [$fraction, $state] = $question->grade_response($response);
 
         $this->assertEquals(1.0, $fraction);
@@ -707,7 +707,7 @@ class question_test extends \advanced_testcase {
     public function test_credit_only_entry(): void {
         $question = \test_question_maker::make_question('buchungssatz', 'debit_only_optional');
 
-        $response = qtype_buchungssatz_test_helper::make_response('', 0, '4400', 250);
+        $response = qtype_buchungssatz_test_helper::make_response('', 0, '4400 Verbindlichkeiten', 250);
         [$fraction, $state] = $question->grade_response($response);
 
         $this->assertEquals(1.0, $fraction);

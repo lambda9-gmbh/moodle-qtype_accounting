@@ -129,6 +129,35 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
                 deleteEntrySide(container, entryIndex, 'credit');
             });
 
+            // On form submit, disable empty/hidden rows and re-index the remaining
+            // rows so their field names are contiguous (0, 1, 2, …). This prevents
+            // index gaps that would cause the PHP renderer to show empty rows.
+            var form = container.closest('form');
+            if (form.length) {
+                form.on('submit', function() {
+                    var writeIndex = 0;
+                    container.find(ROW_SELECTOR).each(function() {
+                        var $row = $(this);
+                        var isHidden = $row.css('display') === 'none';
+                        var isEmpty = EntryUtils.isRowEmpty(this);
+
+                        if (isHidden || isEmpty) {
+                            // Exclude from form submission.
+                            $row.find('select, input').prop('disabled', true);
+                        } else {
+                            // Re-index fields to ensure contiguous indices.
+                            $row.find('select, input').each(function() {
+                                var name = $(this).attr('name');
+                                if (name) {
+                                    $(this).attr('name', name.replace(/_\d+$/, '_' + writeIndex));
+                                }
+                            });
+                            writeIndex++;
+                        }
+                    });
+                });
+            }
+
             // Restore entry types from field values (handles page reload with saved responses).
             restoreEntryTypes(container);
 

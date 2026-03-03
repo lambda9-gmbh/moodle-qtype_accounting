@@ -331,11 +331,8 @@ class qtype_buchungssatz extends question_type {
                 $expout .= "      <chartname>" . $format->xml_escape($chart->name) . "</chartname>\n";
                 foreach ($accounts as $account) {
                     $expout .= "      <account>\n";
-                    $expout .= "        <accountnumber>" . $format->xml_escape($account->accountnumber)
-                        . "</accountnumber>\n";
                     $expout .= "        <accountname>" . $format->xml_escape($account->accountname)
                         . "</accountname>\n";
-                    $expout .= "        <accountclass>{$account->accountclass}</accountclass>\n";
                     $expout .= "        <sortorder>{$account->sortorder}</sortorder>\n";
                     $expout .= "      </account>\n";
                 }
@@ -410,22 +407,18 @@ class qtype_buchungssatz extends question_type {
             $xmlaccounts = $format->getpath($chartdata, ['#', 'account'], []);
 
             if (!empty($chartname) && !empty($xmlaccounts)) {
-                // Build accounts array keyed by account number.
-                $accountsbynum = [];
+                // Build accounts array keyed by account name.
+                $accountsbyname = [];
                 $accountslist = [];
                 foreach ($xmlaccounts as $accdata) {
-                    $accountnumber = $format->getpath($accdata, ['#', 'accountnumber', 0, '#'], '');
                     $accountname = $format->getpath($accdata, ['#', 'accountname', 0, '#'], '');
-                    $accountclass = (int) $format->getpath($accdata, ['#', 'accountclass', 0, '#'], 0);
                     $sortorder = (int) $format->getpath($accdata, ['#', 'sortorder', 0, '#'], 0);
 
-                    $accountsbynum[$accountnumber] = [
-                        'accountnumber' => $accountnumber,
+                    $accountsbyname[$accountname] = [
                         'accountname' => $accountname,
-                        'accountclass' => $accountclass,
                         'sortorder' => $sortorder,
                     ];
-                    $accountslist[] = $accountsbynum[$accountnumber];
+                    $accountslist[] = $accountsbyname[$accountname];
                 }
 
                 // Determine target course context.
@@ -440,7 +433,7 @@ class qtype_buchungssatz extends question_type {
                 if ($contextid > 0) {
                     // Try to find existing matching chart in target context.
                     $chartid = \qtype_buchungssatz\chart_manager::find_matching_chart_in_context(
-                        $chartname, $contextid, $accountsbynum
+                        $chartname, $contextid, $accountsbyname
                     );
 
                     if (!$chartid) {
@@ -449,9 +442,7 @@ class qtype_buchungssatz extends question_type {
                         foreach ($accountslist as $acc) {
                             \qtype_buchungssatz\chart_manager::add_account(
                                 $chartid,
-                                $acc['accountnumber'],
                                 $acc['accountname'],
-                                $acc['accountclass'],
                                 $acc['sortorder']
                             );
                         }

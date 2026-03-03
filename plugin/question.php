@@ -97,7 +97,7 @@ class qtype_buchungssatz_question extends question_graded_automatically {
 
         // Scan POST data to find the highest entry index submitted.
         // Use PARAM_RAW for amounts to preserve empty strings (PARAM_FLOAT converts them to 0).
-        $maxindex = 0; // At least declare index 0.
+        $maxindex = max(count($this->entries), 1) + 9;
         foreach (array_keys($_POST) as $key) {
             if (preg_match('/(?:sollkonto|habenkonto)_(\d+)$/', $key, $matches)) {
                 $maxindex = max($maxindex, (int)$matches[1]);

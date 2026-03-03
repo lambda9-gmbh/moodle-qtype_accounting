@@ -26,9 +26,9 @@
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
         <FIELD NAME="sortorder" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Order of the entry"/>
-        <FIELD NAME="sollkonto" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false" COMMENT="Debit account name/number"/>
+        <FIELD NAME="sollkonto" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Debit account name"/>
         <FIELD NAME="sollbetrag" TYPE="number" LENGTH="15" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Debit amount"/>
-        <FIELD NAME="habenkonto" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false" COMMENT="Credit account name/number"/>
+        <FIELD NAME="habenkonto" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Credit account name"/>
         <FIELD NAME="habenbetrag" TYPE="number" LENGTH="15" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Credit amount"/>
         <FIELD NAME="weight_sollkonto" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Weight for debit account"/>
         <FIELD NAME="weight_sollbetrag" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Weight for debit amount"/>
@@ -49,16 +49,14 @@
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="chartid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Chart of accounts group ID"/>
-        <FIELD NAME="accountnumber" TYPE="char" LENGTH="20" NOTNULL="true" SEQUENCE="false" COMMENT="Account number (Kontonr)"/>
-        <FIELD NAME="accountname" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Account name (Name)"/>
-        <FIELD NAME="accountclass" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Account class (Kontokl)"/>
+        <FIELD NAME="accountname" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Account name"/>
         <FIELD NAME="sortorder" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Display order"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
       </KEYS>
       <INDEXES>
-        <INDEX NAME="chartid-accountnumber" UNIQUE="true" FIELDS="chartid, accountnumber"/>
+        <INDEX NAME="chartid-accountname" UNIQUE="true" FIELDS="chartid, accountname"/>
         <INDEX NAME="chartid-sortorder" UNIQUE="false" FIELDS="chartid, sortorder"/>
       </INDEXES>
     </TABLE>

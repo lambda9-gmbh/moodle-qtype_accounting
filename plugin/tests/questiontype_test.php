@@ -305,9 +305,7 @@ class questiontype_test extends \advanced_testcase {
             $xmlaccounts = [];
             foreach ($chartdata['accounts'] as $i => $acc) {
                 $xmlaccounts[$i] = ['#' => [
-                    'accountnumber' => [0 => ['#' => $acc['accountnumber']]],
                     'accountname' => [0 => ['#' => $acc['accountname']]],
-                    'accountclass' => [0 => ['#' => (string) $acc['accountclass']]],
                     'sortorder' => [0 => ['#' => (string) $acc['sortorder']]],
                 ]];
             }
@@ -381,8 +379,8 @@ class questiontype_test extends \advanced_testcase {
         // Create a chart with accounts.
         $contextid = \context_system::instance()->id;
         $chartid = chart_manager::create_chart('Test Export Chart', $contextid);
-        chart_manager::add_account($chartid, '1200', 'Bank', 1, 0);
-        chart_manager::add_account($chartid, '8400', 'Erlöse', 5, 1);
+        chart_manager::add_account($chartid, '1200 Bank', 0);
+        chart_manager::add_account($chartid, '8400 Erlöse', 1);
 
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $category = $generator->create_question_category();
@@ -398,9 +396,9 @@ class questiontype_test extends \advanced_testcase {
             'chartofaccountsid' => $chartid,
             'allowmultipleentries' => 0,
             'maxentries' => 1,
-            'sollkonto' => ['1200'],
+            'sollkonto' => ['1200 Bank'],
             'sollbetrag' => [1000.00],
-            'habenkonto' => ['8400'],
+            'habenkonto' => ['8400 Erlöse'],
             'habenbetrag' => [1000.00],
             'weight_sollkonto' => [1],
             'weight_sollbetrag' => [1],
@@ -421,9 +419,8 @@ class questiontype_test extends \advanced_testcase {
         // Verify chart block is present.
         $this->assertStringContainsString('<chartofaccounts>', $xml);
         $this->assertStringContainsString('<chartname>Test Export Chart</chartname>', $xml);
-        $this->assertStringContainsString('<accountnumber>1200</accountnumber>', $xml);
-        $this->assertStringContainsString('<accountname>Bank</accountname>', $xml);
-        $this->assertStringContainsString('<accountnumber>8400</accountnumber>', $xml);
+        $this->assertStringContainsString('<accountname>1200 Bank</accountname>', $xml);
+        $this->assertStringContainsString('<accountname>8400 Erlöse</accountname>', $xml);
     }
 
     /**
@@ -537,8 +534,8 @@ class questiontype_test extends \advanced_testcase {
         $course = $this->getDataGenerator()->create_course();
 
         $chartaccounts = [
-            ['accountnumber' => '1200', 'accountname' => 'Bank', 'accountclass' => 1, 'sortorder' => 0],
-            ['accountnumber' => '8400', 'accountname' => 'Erlöse', 'accountclass' => 5, 'sortorder' => 1],
+            ['accountname' => '1200 Bank', 'sortorder' => 0],
+            ['accountname' => '8400 Erlöse', 'sortorder' => 1],
         ];
 
         $data = $this->build_xml_import_data(
@@ -546,9 +543,9 @@ class questiontype_test extends \advanced_testcase {
             [
                 [
                     'sortorder' => '0',
-                    'sollkonto' => '1200',
+                    'sollkonto' => '1200 Bank',
                     'sollbetrag' => '1000',
-                    'habenkonto' => '8400',
+                    'habenkonto' => '8400 Erlöse',
                     'habenbetrag' => '1000',
                     'weight_sollkonto' => '1',
                     'weight_sollbetrag' => '1',
@@ -590,12 +587,12 @@ class questiontype_test extends \advanced_testcase {
 
         // Pre-create a chart in the course context.
         $existingchartid = chart_manager::create_chart('Reuse Chart', $coursecontext->id);
-        chart_manager::add_account($existingchartid, '1200', 'Bank', 1, 0);
-        chart_manager::add_account($existingchartid, '8400', 'Erlöse', 5, 1);
+        chart_manager::add_account($existingchartid, '1200 Bank', 0);
+        chart_manager::add_account($existingchartid, '8400 Erlöse', 1);
 
         $chartaccounts = [
-            ['accountnumber' => '1200', 'accountname' => 'Bank', 'accountclass' => 1, 'sortorder' => 0],
-            ['accountnumber' => '8400', 'accountname' => 'Erlöse', 'accountclass' => 5, 'sortorder' => 1],
+            ['accountname' => '1200 Bank', 'sortorder' => 0],
+            ['accountname' => '8400 Erlöse', 'sortorder' => 1],
         ];
 
         $data = $this->build_xml_import_data(

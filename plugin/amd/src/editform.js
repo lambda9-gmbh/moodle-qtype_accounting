@@ -598,10 +598,10 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
             while (select.options.length > 1) {
                 select.remove(1);
             }
-            for (const accountNumber in accounts) {
+            for (const accountName in accounts) {
                 const option = document.createElement('option');
-                option.value = accountNumber;
-                option.text = accounts[accountNumber];
+                option.value = accountName;
+                option.text = accounts[accountName];
                 select.add(option);
             }
             if (currentValue) {
@@ -614,10 +614,10 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
             while (select.options.length > 1) {
                 select.remove(1);
             }
-            for (const accountNumber in accounts) {
+            for (const accountName in accounts) {
                 const option = document.createElement('option');
-                option.value = accountNumber;
-                option.text = accounts[accountNumber];
+                option.value = accountName;
+                option.text = accounts[accountName];
                 select.add(option);
             }
             if (currentValue) {

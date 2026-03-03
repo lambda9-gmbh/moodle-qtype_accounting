@@ -83,8 +83,8 @@ class entry_helper {
     /**
      * Build HTML option elements for an account select dropdown.
      *
-     * @param array $accounts Associative array of accountnumber => label, or array of objects with accountnumber/accountname.
-     * @param string $selected The currently selected account number.
+     * @param array $accounts Associative array of accountname => label, or array of objects with accountname.
+     * @param string $selected The currently selected account name.
      * @param string $placeholder The placeholder text for the empty option.
      * @return string The HTML option elements.
      */
@@ -95,34 +95,29 @@ class entry_helper {
         }
         foreach ($accounts as $key => $value) {
             if (is_object($value)) {
-                $accountnumber = $value->accountnumber;
-                $label = $value->accountnumber . ' - ' . $value->accountname;
+                $accountname = $value->accountname;
+                $label = $value->accountname;
             } else {
-                $accountnumber = (string)$key;
+                $accountname = (string)$key;
                 $label = $value;
             }
-            $selectedattr = ((string)$accountnumber === (string)$selected) ? ' selected' : '';
-            $html .= '<option value="' . s($accountnumber) . '"' . $selectedattr . '>' . s($label) . '</option>';
+            $selectedattr = ((string)$accountname === (string)$selected) ? ' selected' : '';
+            $html .= '<option value="' . s($accountname) . '"' . $selectedattr . '>' . s($label) . '</option>';
         }
         return $html;
     }
 
     /**
-     * Format an account number for display by looking up its name.
+     * Format an account name for display.
      *
-     * @param string $accountnumber The account number to look up.
-     * @param array $accounts The available accounts (array of objects with accountnumber/accountname).
-     * @return string The formatted display string (e.g., "1200 - Bank"), or just the number if not found.
+     * @param string $accountname The account name to display.
+     * @param array $accounts The available accounts (unused, kept for API compatibility).
+     * @return string The account name, or empty string if empty.
      */
-    public static function format_account_display(string $accountnumber, array $accounts): string {
-        if (empty($accountnumber)) {
+    public static function format_account_display(string $accountname, array $accounts): string {
+        if (empty($accountname)) {
             return '';
         }
-        foreach ($accounts as $account) {
-            if ($account->accountnumber === $accountnumber) {
-                return $accountnumber . ' - ' . $account->accountname;
-            }
-        }
-        return $accountnumber;
+        return $accountname;
     }
 }

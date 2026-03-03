@@ -299,6 +299,23 @@ define(['core/str'], function(Str) {
     }
 
     /**
+     * Check whether an entry row is empty (both account fields have no value).
+     *
+     * @param {Element|jQuery} row The entry row (tr element).
+     * @return {boolean} True if both soll and haben account fields are empty.
+     */
+    function isRowEmpty(row) {
+        var el = row.jquery ? row[0] : row;
+        if (!el) {
+            return false;
+        }
+        var cells = el.querySelectorAll('td');
+        var sollVal = getFieldValue(cells[COL.SOLL_ACCOUNT]);
+        var habenVal = getFieldValue(cells[COL.HABEN_ACCOUNT]);
+        return !sollVal && !habenVal;
+    }
+
+    /**
      * Parse a formatted number string to a plain number string.
      *
      * Handles both German (1.234,56) and US (1,234.56) formats by detecting
@@ -365,6 +382,7 @@ define(['core/str'], function(Str) {
         updatePerLabels: updatePerLabels,
         clearEntrySideFields: clearEntrySideFields,
         detectEntryType: detectEntryType,
+        isRowEmpty: isRowEmpty,
         parseNumber: parseNumber,
         formatNumber: formatNumber
     };

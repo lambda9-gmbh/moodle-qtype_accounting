@@ -542,7 +542,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         }
 
         return $DB->get_records('qtype_buchungssatz_accounts',
-            ['chartid' => $chartid], 'sortorder, accountnumber');
+            ['chartid' => $chartid], 'sortorder, accountname');
     }
 
     /**
@@ -553,11 +553,11 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      * E.g., if limit = 3, shows 1 correct + 3 random = 4 accounts total.
      *
      * @param array $allaccounts All available accounts from the chart.
-     * @param string $correctaccountnumber The correct account number for this field.
+     * @param string $correctaccountname The correct account name for this field.
      * @param int $limit The number of random accounts to add (0 = show all).
-     * @return array The filtered list of account records, sorted by account number.
+     * @return array The filtered list of account records, sorted by account name.
      */
-    protected function filter_accounts_for_dropdown(array $allaccounts, string $correctaccountnumber, int $limit): array {
+    protected function filter_accounts_for_dropdown(array $allaccounts, string $correctaccountname, int $limit): array {
         // If limit is 0 or no accounts, return all.
         if ($limit <= 0 || empty($allaccounts)) {
             return $allaccounts;
@@ -568,7 +568,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         // Separate the correct account from others.
         foreach ($allaccounts as $account) {
-            if ($account->accountnumber === $correctaccountnumber) {
+            if ($account->accountname === $correctaccountname) {
                 $result[$account->id] = $account;
             } else {
                 $otheraccounts[$account->id] = $account;
@@ -591,9 +591,9 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             }
         }
 
-        // Sort by account number for consistent display.
+        // Sort by account name for consistent display.
         uasort($result, function($a, $b) {
-            return strcmp($a->accountnumber, $b->accountnumber);
+            return strcmp($a->accountname, $b->accountname);
         });
 
         return $result;
@@ -689,14 +689,14 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
     }
 
     /**
-     * Get display string for an account (number + name).
+     * Get display string for an account.
      *
-     * @param string $accountnumber The account number to look up.
-     * @param array $accounts The available accounts.
-     * @return string The formatted account display string.
+     * @param string $accountname The account name to display.
+     * @param array $accounts The available accounts (unused, kept for API compatibility).
+     * @return string The account name for display.
      */
-    protected function get_account_display(string $accountnumber, array $accounts): string {
-        return \qtype_buchungssatz\entry_helper::format_account_display($accountnumber, $accounts);
+    protected function get_account_display(string $accountname, array $accounts): string {
+        return \qtype_buchungssatz\entry_helper::format_account_display($accountname, $accounts);
     }
 
     /**

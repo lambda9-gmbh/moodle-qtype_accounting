@@ -393,10 +393,10 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
                 continue;
             }
             $accounts = $DB->get_records('qtype_buchungssatz_accounts',
-                ['chartid' => $chartid], 'sortorder, accountnumber');
+                ['chartid' => $chartid], 'sortorder, accountname');
             $result[$chartid] = [];
             foreach ($accounts as $account) {
-                $result[$chartid][$account->accountnumber] = $account->accountnumber . ' - ' . $account->accountname;
+                $result[$chartid][$account->accountname] = $account->accountname;
             }
         }
 
