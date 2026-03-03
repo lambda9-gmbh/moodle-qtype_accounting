@@ -713,4 +713,87 @@ class question_test extends \advanced_testcase {
         $this->assertEquals(1.0, $fraction);
         $this->assertEquals(question_state::$gradedright, $state);
     }
+
+    // ========================================
+    // Extra entry deduction tests
+    // ========================================
+
+    /**
+     * Test extra entry deduction with no extra accounts.
+     *
+     * Correct answer only, no extras. Fraction should be 1.0.
+     */
+    public function test_extra_entry_deduction_no_extras(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'extra_entry_deduction');
+
+        $response = qtype_buchungssatz_test_helper::make_response('1200 Bank', 1000, '8400 Erlöse 19% USt', 1000);
+        [$fraction, $state] = $question->grade_response($response);
+
+        $this->assertEquals(1.0, $fraction);
+        $this->assertEquals(question_state::$gradedright, $state);
+    }
+
+    /**
+     * Test extra entry deduction with extra accounts.
+     *
+     * Correct answer plus one extra debit account and one extra credit account.
+     * Deduction = 2 * 5% = 10%. Fraction = 1.0 - 0.10 = 0.90.
+     */
+    public function test_extra_entry_deduction_with_extras(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'extra_entry_deduction');
+
+        $response = qtype_buchungssatz_test_helper::make_multi_response([
+            ['sollkonto' => '1200 Bank', 'sollbetrag' => 1000, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 1000],
+            ['sollkonto' => '1000 Kasse', 'sollbetrag' => 100, 'habenkonto' => '4400 Verbindlichkeiten', 'habenbetrag' => 100],
+        ]);
+        [$fraction, $state] = $question->grade_response($response);
+
+        // 2 extra accounts (1 debit + 1 credit) * 5% = 10% deduction.
+        $this->assertEqualsWithDelta(0.9, $fraction, 0.001);
+        $this->assertEquals(question_state::$gradedpartial, $state);
+    }
+
+    /**
+     * Test extra entry deduction caps at zero.
+     *
+     * Many extra accounts so deduction exceeds earned fraction.
+     * Fraction should be 0, not negative.
+     */
+    public function test_extra_entry_deduction_caps_at_zero(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'extra_entry_deduction');
+        // Set high deduction so it exceeds possible score.
+        $question->extraentrydeduction = 50;
+
+        $response = qtype_buchungssatz_test_helper::make_multi_response([
+            ['sollkonto' => '1200 Bank', 'sollbetrag' => 1000, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 1000],
+            ['sollkonto' => '1000 Kasse', 'sollbetrag' => 100, 'habenkonto' => '4400 Verbindlichkeiten', 'habenbetrag' => 100],
+            ['sollkonto' => '2000 Forderungen', 'sollbetrag' => 50, 'habenkonto' => '3000 Rückstellungen', 'habenbetrag' => 50],
+        ]);
+        [$fraction, $state] = $question->grade_response($response);
+
+        // 4 extra accounts * 50% = 200% deduction, but capped at 0.
+        $this->assertEquals(0.0, $fraction);
+        $this->assertEquals(question_state::$gradedwrong, $state);
+    }
+
+    /**
+     * Test that extra entry deduction is disabled when set to 0.
+     *
+     * This verifies backward compatibility: extraentrydeduction = 0 means
+     * extra entries are ignored as before.
+     */
+    public function test_extra_entry_deduction_disabled(): void {
+        $question = \test_question_maker::make_question('buchungssatz', 'extra_entry_deduction');
+        $question->extraentrydeduction = 0;
+
+        $response = qtype_buchungssatz_test_helper::make_multi_response([
+            ['sollkonto' => '1200 Bank', 'sollbetrag' => 1000, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 1000],
+            ['sollkonto' => '1000 Kasse', 'sollbetrag' => 100, 'habenkonto' => '4400 Verbindlichkeiten', 'habenbetrag' => 100],
+        ]);
+        [$fraction, $state] = $question->grade_response($response);
+
+        // No deduction when extraentrydeduction is 0.
+        $this->assertEquals(1.0, $fraction);
+        $this->assertEquals(question_state::$gradedright, $state);
+    }
 }

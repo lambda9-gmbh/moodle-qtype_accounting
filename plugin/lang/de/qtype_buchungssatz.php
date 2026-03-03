@@ -40,7 +40,7 @@ $string['currency_symbol'] = 'Währungssymbol';
 $string['decimalplaces'] = 'Anzahl Nachkommastellen';
 $string['decimalplaces_help'] = 'Die Anzahl der Nachkommastellen, die bei Beträgen in der Dozenten- und Studierendenansicht angezeigt werden sollen.';
 $string['extraentrydeduction'] = 'Abzug für überflüssige Konten und Werte';
-$string['extraentrydeduction_help'] = 'Punktabzug für jeden zusätzlichen Eintrag, den der Studierende über die korrekte Antwort hinaus angibt. Eine zusätzliche Zeile mit ausgefülltem Soll- und Habenkonto zählt als 2 zusätzliche Einträge. Leer lassen für keinen Abzug. Die Punktzahl kann nicht unter 0 fallen. (Funktion noch nicht implementiert)';
+$string['extraentrydeduction_help'] = 'Prozentpunkte Abzug pro zusätzlichem Konto, das der Studierende verwendet und nicht in der Musterlösung vorkommt (0-100). Jede Seite (Soll/Haben) wird unabhängig gezählt. Leer lassen oder auf 0 setzen für keinen Abzug. Die Punktzahl kann nicht unter 0 fallen.';
 $string['allornothinggrading'] = 'Nur Positiv bewerten, wenn alle Eingaben korrekt sind';
 $string['allornothinggrading_help'] = 'Wenn aktiviert, erhält der Studierende nur dann Punkte, wenn alle Buchungseinträge vollständig korrekt sind. Bei einem Fehler (auch nur bei einem Betrag) wird die gesamte Frage mit 0 Punkten bewertet.';
 $string['numberformat_help'] = 'Wählen Sie das Zahlenformat für die Anzeige von Beträgen. Deutsches/EU-Format verwendet Punkt als Tausendertrennzeichen und Komma als Dezimaltrennzeichen (1.234,56). US-Format verwendet Komma als Tausendertrennzeichen und Punkt als Dezimaltrennzeichen (1,234.56).';
@@ -106,6 +106,7 @@ $string['err_gradeinvalid'] = 'Die Bewertung muss zwischen 0 und 100 liegen.';
 $string['err_gradesumnotcomplete'] = 'Die Summe aller Bewertungen muss genau 100% betragen. Aktuelle Summe: {$a}%';
 $string['err_chartrequired'] = 'Bitte wählen Sie einen Kontenplan aus.';
 $string['err_accountsindropdown_negative'] = 'Die Anzahl der Konten in der Auswahlliste darf nicht negativ sein.';
+$string['err_extraentrydeduction_range'] = 'Der Abzug muss zwischen 0 und 100 liegen.';
 
 // Kontenplanverwaltung.
 $string['managecharts'] = 'Kontenpläne verwalten';

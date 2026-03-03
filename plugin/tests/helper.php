@@ -51,6 +51,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
             'all_or_nothing',
             'split_amounts',
             'multiple_same_account',
+            'extra_entry_deduction',
         ];
     }
 
@@ -358,6 +359,49 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
                 'weight_habenkonto' => 1,
                 'weight_habenbetrag' => 1,
                 'explanation' => 'Second payment',
+            ],
+        ];
+
+        return $question;
+    }
+
+    /**
+     * Create a question with extra entry deduction enabled.
+     *
+     * Simple debit/credit entry with extraentrydeduction = 5 (5% per extra account).
+     *
+     * @return qtype_buchungssatz_question The test question.
+     */
+    public function make_buchungssatz_question_extra_entry_deduction(): qtype_buchungssatz_question {
+        $question = new qtype_buchungssatz_question();
+
+        $question->id = 8;
+        $question->name = 'Extra entry deduction question';
+        $question->questiontext = 'Record the transaction. Extra accounts will be penalised.';
+        $question->questiontextformat = FORMAT_HTML;
+        $question->generalfeedback = 'Bank 1000 / Revenue 1000';
+        $question->generalfeedbackformat = FORMAT_HTML;
+        $question->defaultmark = 1;
+        $question->penalty = 0.3333333;
+        $question->qtype = question_bank::get_qtype('buchungssatz');
+
+        $question->chartofaccountsid = 0;
+        $question->allowmultipleentries = 1;
+        $question->maxentries = 5;
+        $question->allornothinggrading = 0;
+        $question->extraentrydeduction = 5;
+
+        $question->entries = [
+            [
+                'sollkonto' => '1200 Bank',
+                'sollbetrag' => 1000.00,
+                'habenkonto' => '8400 Erlöse 19% USt',
+                'habenbetrag' => 1000.00,
+                'weight_sollkonto' => 1,
+                'weight_sollbetrag' => 1,
+                'weight_habenkonto' => 1,
+                'weight_habenbetrag' => 1,
+                'explanation' => '',
             ],
         ];
 

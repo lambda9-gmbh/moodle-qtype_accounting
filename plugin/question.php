@@ -318,8 +318,22 @@ class qtype_buchungssatz_question extends question_graded_automatically {
 
         $fraction = $earnedweight / $totalweight;
 
-        // Extra entries are ignored - as long as the student provides all correct
-        // accounts/amounts, they receive full marks regardless of additional entries.
+        // Count extra accounts (student accounts not in the correct answer).
+        if (!empty($this->extraentrydeduction)) {
+            $extracount = 0;
+            foreach (array_keys($studentaggregated['debit']) as $account) {
+                if (!isset($correctaggregated['debit'][$account])) {
+                    $extracount++;
+                }
+            }
+            foreach (array_keys($studentaggregated['credit']) as $account) {
+                if (!isset($correctaggregated['credit'][$account])) {
+                    $extracount++;
+                }
+            }
+            $fraction -= $extracount * ($this->extraentrydeduction / 100);
+            $fraction = max(0, $fraction);
+        }
 
         // Apply all-or-nothing grading if enabled.
         if (!empty($this->allornothinggrading) && $fraction < 1) {

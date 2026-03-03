@@ -40,7 +40,7 @@ $string['currency_symbol'] = 'Currency Symbol';
 $string['decimalplaces'] = 'Decimal places';
 $string['decimalplaces_help'] = 'The number of decimal places to display for amounts in both the teacher and student view.';
 $string['extraentrydeduction'] = 'Deduction for extra entries';
-$string['extraentrydeduction_help'] = 'Points deducted for each extra entry the student provides beyond the correct answer. An extra line with both debit and credit filled counts as 2 extra entries. Leave empty for no deduction. The score cannot go below 0. (Feature not yet implemented)';
+$string['extraentrydeduction_help'] = 'Percentage points deducted per extra account the student uses that is not part of the correct answer (0-100). Each side (debit/credit) is counted independently. Leave empty or set to 0 for no deduction. The score cannot go below 0.';
 $string['allornothinggrading'] = 'Only award marks if all entries are correct';
 $string['allornothinggrading_help'] = 'If enabled, the student only receives marks if all booking entries are completely correct. If there is any error (even just one amount), the entire question is graded as 0 points.';
 $string['numberformat_help'] = 'Select the number format for displaying amounts. German/EU format uses dot as thousands separator and comma as decimal separator (1.234,56). US format uses comma as thousands separator and dot as decimal separator (1,234.56).';
@@ -106,6 +106,7 @@ $string['err_gradeinvalid'] = 'Grade must be between 0 and 100.';
 $string['err_gradesumnotcomplete'] = 'The sum of all grades must equal exactly 100%. Current sum: {$a}%';
 $string['err_chartrequired'] = 'Please select a chart of accounts.';
 $string['err_accountsindropdown_negative'] = 'The number of accounts in selection list cannot be negative.';
+$string['err_extraentrydeduction_range'] = 'The deduction must be between 0 and 100.';
 
 // Chart of accounts management.
 $string['managecharts'] = 'Manage Charts of Accounts';
