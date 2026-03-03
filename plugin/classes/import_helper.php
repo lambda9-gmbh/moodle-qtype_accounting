@@ -29,11 +29,23 @@ defined('MOODLE_INTERNAL') || die();
  */
 class import_helper {
 
+    /** @var array Known header keywords to skip (lowercase). */
+    const HEADER_KEYWORDS = [
+        'kontoname',
+        'kontenname',
+        'name',
+        'bezeichnung',
+        'konto',
+        'account',
+        'account name',
+    ];
+
     /**
      * Parse text data into chart information.
      *
      * Each non-empty line = one account name (verbatim).
      * Duplicate names are skipped (first occurrence kept).
+     * If the first non-empty line matches a known header keyword, it is skipped.
      *
      * @param string $data Raw text data.
      * @param string $filename Optional original filename (used as chart name, without extension).
@@ -55,11 +67,20 @@ class import_helper {
 
         $accounts = [];
         $sortorder = 0;
+        $firstnonemptyseen = false;
 
         foreach ($lines as $line) {
             $line = trim($line);
             if ($line === '') {
                 continue;
+            }
+
+            // Skip the first non-empty line if it matches a known header keyword.
+            if (!$firstnonemptyseen) {
+                $firstnonemptyseen = true;
+                if (in_array(strtolower($line), self::HEADER_KEYWORDS)) {
+                    continue;
+                }
             }
 
             // Skip duplicates (keep first occurrence).

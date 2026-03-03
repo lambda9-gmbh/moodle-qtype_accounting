@@ -120,6 +120,44 @@ class import_helper_test extends \advanced_testcase {
     }
 
     /**
+     * Test that a known header line is skipped.
+     */
+    public function test_parse_csv_skips_header(): void {
+        $data = "Kontoname\n1200 Bank\n8400 Erlöse";
+
+        $result = import_helper::parse_csv($data);
+
+        $this->assertCount(2, $result['accounts']);
+        $this->assertArrayNotHasKey('Kontoname', $result['accounts']);
+        $this->assertArrayHasKey('1200 Bank', $result['accounts']);
+        $this->assertArrayHasKey('8400 Erlöse', $result['accounts']);
+    }
+
+    /**
+     * Test that header detection is case-insensitive.
+     */
+    public function test_parse_csv_skips_header_case_insensitive(): void {
+        $data = "KONTONAME\n1200 Bank\n8400 Erlöse";
+
+        $result = import_helper::parse_csv($data);
+
+        $this->assertCount(2, $result['accounts']);
+        $this->assertArrayNotHasKey('KONTONAME', $result['accounts']);
+    }
+
+    /**
+     * Test that a non-header first line is kept.
+     */
+    public function test_parse_csv_keeps_non_header_first_line(): void {
+        $data = "1200 Bank\n8400 Erlöse\n1000 Kasse";
+
+        $result = import_helper::parse_csv($data);
+
+        $this->assertCount(3, $result['accounts']);
+        $this->assertArrayHasKey('1200 Bank', $result['accounts']);
+    }
+
+    /**
      * Test sortorder is assigned sequentially.
      */
     public function test_parse_csv_sortorder(): void {
