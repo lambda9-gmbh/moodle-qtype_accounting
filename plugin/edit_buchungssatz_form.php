@@ -80,11 +80,14 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $mform->addRule('decimalplaces', get_string('err_numeric', 'form'), 'numeric', null, 'client');
 
         // Extra entry deduction.
-        $mform->addElement('text', 'extraentrydeduction',
-            get_string('extraentrydeduction', 'qtype_buchungssatz'), ['size' => 5]);
-        $mform->setType('extraentrydeduction', PARAM_FLOAT);
+        $deductionoptions = [];
+        for ($i = 0; $i <= 100; $i += 5) {
+            $deductionoptions[$i] = $i . '%';
+        }
+        $mform->addElement('select', 'extraentrydeduction',
+            get_string('extraentrydeduction', 'qtype_buchungssatz'), $deductionoptions);
+        $mform->setDefault('extraentrydeduction', 0);
         $mform->addHelpButton('extraentrydeduction', 'extraentrydeduction', 'qtype_buchungssatz');
-        $mform->addRule('extraentrydeduction', get_string('err_numeric', 'form'), 'numeric', null, 'client');
 
         // All-or-nothing grading checkbox.
         $mform->addElement('advcheckbox', 'allornothinggrading',
@@ -537,15 +540,6 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $accountsindropdown = (int) ($data['accountsindropdown'] ?? 0);
         if ($accountsindropdown < 0) {
             $errors['accountsindropdown'] = get_string('err_accountsindropdown_negative', 'qtype_buchungssatz');
-        }
-
-        // Validate extraentrydeduction is between 0 and 100.
-        $extraentrydeduction = $data['extraentrydeduction'] ?? '';
-        if ($extraentrydeduction !== '' && $extraentrydeduction !== null) {
-            $val = (float) $extraentrydeduction;
-            if ($val < 0 || $val > 100) {
-                $errors['extraentrydeduction'] = get_string('err_extraentrydeduction_range', 'qtype_buchungssatz');
-            }
         }
 
         $hasentries = false;
