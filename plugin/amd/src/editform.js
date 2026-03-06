@@ -30,6 +30,7 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
 
     // DOM element references
     let chartSelect = null;
+    let numberFormatSelect = null;
     let initialChartId = '0';
 
     /** CSS selector for entry rows in the edit form. */
@@ -64,6 +65,12 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
             chartSelect = document.querySelector('select[name="chartofaccountsid"]');
         }
 
+        // Find number format select.
+        numberFormatSelect = document.getElementById('id_numberformat');
+        if (!numberFormatSelect) {
+            numberFormatSelect = document.querySelector('select[name="numberformat"]');
+        }
+
         // Debug logging to help identify issues.
         console.log('Buchungssatz: Init started');
         console.log('Buchungssatz: dataElement found =', !!dataElement);
@@ -92,6 +99,7 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
 
         // Setup event handlers.
         setupChartChangeHandler();
+        setupNumberFormatChangeHandler();
         setupSollkontoChangeHandler();
         setupAddEntryHandler();
         setupDeleteEntryHandler();
@@ -138,6 +146,36 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
             });
         } else {
             console.warn('Buchungssatz: Cannot setup chart change handler - chartSelect is null');
+        }
+    }
+
+    /**
+     * Setup number format change handler.
+     *
+     * When the teacher changes the number format, reformat all amount fields
+     * and update placeholders to match.
+     */
+    function setupNumberFormatChangeHandler() {
+        if (numberFormatSelect) {
+            numberFormatSelect.addEventListener('change', function() {
+                var fmt = numberFormatSelect.value || 'de';
+                var placeholder = (fmt === 'us') ? '0.00' : '0,00';
+
+                // Reformat all amount fields.
+                var amountFields = document.querySelectorAll('.buchungssatz-sollbetrag, .buchungssatz-habenbetrag');
+                amountFields.forEach(function(field) {
+                    // Update placeholder.
+                    field.placeholder = placeholder;
+                    // Reformat current value if present.
+                    if (field.value) {
+                        var formatted = EntryUtils.formatNumber(field.value, fmt, 2);
+                        field.value = formatted;
+                    }
+                });
+
+                // Sync to hidden fields after reformatting.
+                syncAllDisplayToHidden();
+            });
         }
     }
 
@@ -191,8 +229,9 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
             }
             if (e.target.classList.contains('buchungssatz-sollbetrag') ||
                 e.target.classList.contains('buchungssatz-habenbetrag')) {
-                // Format the display value in German format.
-                const formatted = EntryUtils.formatNumber(e.target.value, 'de', 2);
+                // Format the display value using the selected number format.
+                const fmt = getNumberFormat();
+                const formatted = EntryUtils.formatNumber(e.target.value, fmt, 2);
                 e.target.value = formatted;
                 // Also sync to hidden field (with plain number).
                 const index = e.target.getAttribute('data-index');
@@ -509,6 +548,18 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
         // Use getElementsByName which handles brackets properly.
         const fields = document.getElementsByName(name);
         return fields.length > 0 ? fields[0] : null;
+    }
+
+    /**
+     * Get the currently selected number format from the form.
+     *
+     * @return {string} The number format: 'de' or 'us'.
+     */
+    function getNumberFormat() {
+        if (numberFormatSelect) {
+            return numberFormatSelect.value || 'de';
+        }
+        return 'de';
     }
 
     /**

@@ -56,8 +56,15 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         ];
         $mform->addElement('select', 'numberformat',
             get_string('numberformat', 'qtype_buchungssatz'), $numberformatoptions);
-        $mform->setDefault('numberformat', 'de');
+        $decsep = get_string('decsep', 'langconfig');
+        $defaultformat = ($decsep === ',') ? 'de' : 'us';
+        $mform->setDefault('numberformat', $defaultformat);
         $mform->addHelpButton('numberformat', 'numberformat', 'qtype_buchungssatz');
+
+        // Determine the effective number format for rendering existing entries.
+        $effectiveformat = !empty($this->question->options->numberformat)
+            ? $this->question->options->numberformat
+            : $defaultformat;
 
         $mform->addElement('text', 'currency_symbol',
             get_string('currency_symbol', 'qtype_buchungssatz'), ['size' => 5]);
@@ -143,7 +150,8 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $entrycount = count($existingentries) > 0 ? count($existingentries) : 2;
 
         // Build the table HTML with form elements.
-        $tablehtml = $this->build_entries_table($sollaccountoptions, $habenaccountoptions, $entrycount, $existingentries);
+        $tablehtml = $this->build_entries_table($sollaccountoptions, $habenaccountoptions,
+            $entrycount, $existingentries, $effectiveformat);
         $mform->addElement('html', $tablehtml);
 
         // Hidden fields for form element registration.
@@ -178,6 +186,7 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
             'chartId' => $currentchartid,
             'entries' => $existingentries,
             'courseId' => $coursecontextid,
+            'numberFormat' => $effectiveformat,
         ];
         $mform->addElement('html', '<script type="application/json" id="buchungssatz-editform-data">' .
             json_encode($jsdata, JSON_HEX_TAG | JSON_HEX_AMP) . '</script>');
@@ -195,10 +204,11 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
      * @param array $habenaccountoptions Options for credit account select.
      * @param int $entrycount Number of entries to show.
      * @param array $existingentries Existing entry data.
+     * @param string $numberformat The number format ('de' or 'us').
      * @return string The HTML for the entries table.
      */
     protected function build_entries_table(array $sollaccountoptions, array $habenaccountoptions,
-            int $entrycount, array $existingentries): string {
+            int $entrycount, array $existingentries, string $numberformat = 'de'): string {
 
         $perstr = get_string('per', 'qtype_buchungssatz');
         $anstr = get_string('an', 'qtype_buchungssatz');
@@ -239,7 +249,7 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         // Generate rows for each entry.
         for ($i = 0; $i < $entrycount; $i++) {
             $entry = $existingentries[$i] ?? null;
-            $html .= $this->build_entry_rows($i, $sollaccountoptions, $habenaccountoptions, $entry, $i === 0);
+            $html .= $this->build_entry_rows($i, $sollaccountoptions, $habenaccountoptions, $entry, $i === 0, $numberformat);
         }
 
         $html .= '</tbody>';
@@ -272,7 +282,7 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
 
         // Template for new rows (hidden, used by JavaScript).
         $html .= '<template id="buchungssatz-entry-template">';
-        $html .= $this->build_entry_rows('__INDEX__', $sollaccountoptions, $habenaccountoptions, null, false);
+        $html .= $this->build_entry_rows('__INDEX__', $sollaccountoptions, $habenaccountoptions, null, false, $numberformat);
         $html .= '</template>';
 
         return $html;
@@ -286,10 +296,11 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
      * @param array $habenaccountoptions Options for credit account select.
      * @param object|null $entry Existing entry data.
      * @param bool $isfirst Whether this is the first entry.
+     * @param string $numberformat The number format ('de' or 'us').
      * @return string The HTML for the entry rows.
      */
     protected function build_entry_rows($index, array $sollaccountoptions, array $habenaccountoptions,
-            $entry, bool $isfirst): string {
+            $entry, bool $isfirst, string $numberformat = 'de'): string {
 
         $perstr = get_string('per', 'qtype_buchungssatz');
         $anstr = get_string('an', 'qtype_buchungssatz');
@@ -311,10 +322,9 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $debithidden = $hidden_classes['debit'];
         $credithidden = $hidden_classes['credit'];
 
-        // Format amounts in German format with 2 decimal places for display.
-        // Teacher view always uses German format.
-        $sollbetrag = $this->format_amount_for_edit((float)$sollbetragraw);
-        $habenbetrag = $this->format_amount_for_edit((float)$habenbetragraw);
+        // Format amounts with 2 decimal places for display using the question's number format.
+        $sollbetrag = $this->format_amount_for_edit((float)$sollbetragraw, $numberformat);
+        $habenbetrag = $this->format_amount_for_edit((float)$habenbetragraw, $numberformat);
 
         // Build select options HTML for sollkonto.
         $sollselecthtml = '<select name="sollkonto_display[' . $index . ']" class="form-control buchungssatz-sollkonto" data-index="' . $index . '">';
@@ -333,8 +343,9 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $html .= '<td class="buchungssatz-edit-label' . $debithidden . '">' . ($isfirst ? $perstr : '') . '</td>';
         $html .= '<td class="buchungssatz-edit-data' . $debithidden . '">' . $sollselecthtml . '</td>';
         $html .= '<td class="buchungssatz-edit-data' . $debithidden . '">';
+        $placeholder = ($numberformat === 'us') ? '0.00' : '0,00';
         $html .= '<input type="text" name="sollbetrag_display[' . $index . ']" value="' . s($sollbetrag) . '" ';
-        $html .= 'class="form-control buchungssatz-sollbetrag" data-index="' . $index . '" placeholder="0,00">';
+        $html .= 'class="form-control buchungssatz-sollbetrag" data-index="' . $index . '" placeholder="' . $placeholder . '">';
         $html .= '</td>';
         $html .= '<td class="buchungssatz-edit-label' . $debithidden . '">';
         $html .= \qtype_buchungssatz\entry_helper::render_delete_button('debit', $index, 'data-index');
@@ -342,7 +353,7 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $html .= '<td class="buchungssatz-edit-data' . $credithidden . '">' . $habenselecthtml . '</td>';
         $html .= '<td class="buchungssatz-edit-data' . $credithidden . '">';
         $html .= '<input type="text" name="habenbetrag_display[' . $index . ']" value="' . s($habenbetrag) . '" ';
-        $html .= 'class="form-control buchungssatz-habenbetrag" data-index="' . $index . '" placeholder="0,00">';
+        $html .= 'class="form-control buchungssatz-habenbetrag" data-index="' . $index . '" placeholder="' . $placeholder . '">';
         $html .= '</td>';
         $html .= '<td class="buchungssatz-edit-actions' . $credithidden . '">';
         $html .= \qtype_buchungssatz\entry_helper::render_delete_button('credit', $index, 'data-index');
@@ -450,17 +461,20 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
     /**
      * Format an amount for display in the edit form.
      *
-     * Teacher view always uses German format with 2 decimal places and thousand separators.
+     * Uses the question's number format with 2 decimal places and thousand separators.
      * Returns empty string for zero/empty values.
      *
      * @param float $amount The amount to format.
+     * @param string $numberformat The number format ('de' or 'us').
      * @return string The formatted amount or empty string.
      */
-    protected function format_amount_for_edit(float $amount): string {
+    protected function format_amount_for_edit(float $amount, string $numberformat = 'de'): string {
         if (abs($amount) < 0.001) {
             return '';
         }
-        // German format: dot as thousand separator, comma as decimal separator.
+        if ($numberformat === 'us') {
+            return number_format($amount, 2, '.', ',');
+        }
         return number_format($amount, 2, ',', '.');
     }
 
