@@ -274,7 +274,6 @@ class questiontype_test extends \advanced_testcase {
             'accountsindropdown' => '0',
             'numberformat' => 'de',
             'currency_symbol' => '€',
-            'decimalplaces' => '2',
             'extraentrydeduction' => '0.0',
             'allornothinggrading' => '0',
             'allowmultipleentries' => '1',

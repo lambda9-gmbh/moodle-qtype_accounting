@@ -272,10 +272,21 @@ function xmldb_qtype_buchungssatz_upgrade($oldversion) {
 
         // Increase precision to support fractional values like 0.1666667.
         $table = new xmldb_table('qtype_buchungssatz_options');
-        $field = new xmldb_field('extraentrydeduction', XMLDB_TYPE_NUMBER, '10, 7', null, null, null, null, 'decimalplaces');
+        $field = new xmldb_field('extraentrydeduction', XMLDB_TYPE_NUMBER, '10, 7', null, null, null, null, 'currency_symbol');
         $dbman->change_field_precision($table, $field);
 
         upgrade_plugin_savepoint(true, 2024010127, 'qtype', 'buchungssatz');
+    }
+
+    if ($oldversion < 2024010128) {
+        // Remove decimalplaces field - always use 2 decimal places.
+        $table = new xmldb_table('qtype_buchungssatz_options');
+        $field = new xmldb_field('decimalplaces');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2024010128, 'qtype', 'buchungssatz');
     }
 
     return true;

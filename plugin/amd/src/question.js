@@ -25,7 +25,7 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
 
     // Module-level settings for number formatting.
     let numberFormat = 'de';
-    let decimalPlaces = 2;
+    const decimalPlaces = 2;
 
     /** CSS selector for entry rows in the student view. */
     var ROW_SELECTOR = '.buchungssatz-entry-row';
@@ -123,7 +123,6 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
         // Read configuration from data attributes (avoids Moodle 3.10 js_call_amd size limits).
         const allowEdit = container.data('allowedit') === 1 || container.data('allowedit') === '1';
         numberFormat = container.data('numberformat') || 'de';
-        decimalPlaces = parseInt(container.data('decimalplaces'), 10) || 2;
 
         // Template-based row cloning: read the next index and locate the template element.
         let nextEntryIndex = parseInt(container.data('nextindex'), 10) || 1;

@@ -45,9 +45,6 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /** @var string Currency symbol to display. */
     public $currency_symbol;
 
-    /** @var int Number of decimal places for amounts. */
-    public $decimalplaces;
-
     /** @var float|null Points deducted per extra entry. */
     public $extraentrydeduction;
 

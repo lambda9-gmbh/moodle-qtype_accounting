@@ -90,7 +90,6 @@ class qtype_buchungssatz extends question_type {
         $options->accountsindropdown = $question->accountsindropdown ?? 0;
         $options->numberformat = $question->numberformat ?? 'de';
         $options->currency_symbol = $question->currency_symbol ?? '€';
-        $options->decimalplaces = $question->decimalplaces ?? 2;
         $options->extraentrydeduction = $question->extraentrydeduction ?? null;
         $options->allornothinggrading = $question->allornothinggrading ?? 0;
         $options->allowmultipleentries = $question->allowmultipleentries ?? 1;
@@ -189,7 +188,6 @@ class qtype_buchungssatz extends question_type {
             $question->options->accountsindropdown = 0;
             $question->options->numberformat = 'de';
             $question->options->currency_symbol = '€';
-            $question->options->decimalplaces = 2;
             $question->options->extraentrydeduction = null;
             $question->options->allornothinggrading = 0;
             $question->options->allowmultipleentries = 1;
@@ -216,7 +214,6 @@ class qtype_buchungssatz extends question_type {
         $question->accountsindropdown = $questiondata->options->accountsindropdown ?? 0;
         $question->numberformat = $questiondata->options->numberformat ?? 'de';
         $question->currency_symbol = $questiondata->options->currency_symbol ?? '€';
-        $question->decimalplaces = $questiondata->options->decimalplaces ?? 2;
         $question->extraentrydeduction = $questiondata->options->extraentrydeduction ?? null;
         $question->allornothinggrading = $questiondata->options->allornothinggrading ?? 0;
         $question->allowmultipleentries = $questiondata->options->allowmultipleentries ?? 1;
@@ -282,7 +279,7 @@ class qtype_buchungssatz extends question_type {
      */
     public function extra_question_fields(): array {
         return ['qtype_buchungssatz_options', 'chartofaccountsid', 'accountsindropdown', 'numberformat',
-            'currency_symbol', 'decimalplaces', 'extraentrydeduction', 'allornothinggrading',
+            'currency_symbol', 'extraentrydeduction', 'allornothinggrading',
             'allowmultipleentries', 'maxentries'];
     }
 

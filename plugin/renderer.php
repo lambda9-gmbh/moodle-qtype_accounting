@@ -58,8 +58,6 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         // Get number format settings for data attributes.
         $numberformat = $question->numberformat ?? 'de';
-        $decimalplaces = $question->decimalplaces ?? 2;
-
         // Determine how many rows to render (all visible — no hidden pre-rendered rows).
         $visiblerows = 1; // At least one row visible.
         foreach (array_keys($response) as $key) {
@@ -77,7 +75,6 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             'data-accounts' => json_encode(array_values($accounts)),
             'data-allowedit' => !$options->readonly ? '1' : '0',
             'data-numberformat' => $numberformat,
-            'data-decimalplaces' => $decimalplaces,
             'data-nextindex' => $visiblerows,
             'data-templateid' => $templateid,
         ];
@@ -310,11 +307,10 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         // Get number format settings from question.
         $numberformat = $question->numberformat ?? 'de';
-        $decimalplaces = $question->decimalplaces ?? 2;
 
         // Soll (Debit) amount cell - add data-label for mobile.
         $html .= '<td class="buchungssatz-data-cell' . $debithidden . '" data-label="' . get_string('amount', 'qtype_buchungssatz') . '">';
-        $html .= $this->render_amount_field($readonly, $sollbetragval, $sollbetragname, $feedbackclass, $numberformat, $decimalplaces);
+        $html .= $this->render_amount_field($readonly, $sollbetragval, $sollbetragname, $feedbackclass, $numberformat);
         $html .= '</td>';
 
         // "an" label cell - contains debit delete button if editable.
@@ -333,7 +329,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         // Haben (Credit) amount cell - add data-label for mobile.
         $html .= '<td class="buchungssatz-data-cell' . $credithidden . '" data-label="' . get_string('amount', 'qtype_buchungssatz') . '">';
-        $html .= $this->render_amount_field($readonly, $habenbetragval, $habenbetragname, $feedbackclass, $numberformat, $decimalplaces);
+        $html .= $this->render_amount_field($readonly, $habenbetragval, $habenbetragname, $feedbackclass, $numberformat);
         $html .= '</td>';
 
         // Delete button cell (credit delete only - debit delete is in the "an" cell).
@@ -479,7 +475,6 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      * @param string $name The field name.
      * @param string $feedbackclass CSS class for feedback styling.
      * @param string $numberformat The number format ('de' or 'us').
-     * @param int $decimalplaces The number of decimal places.
      * @return string The HTML output.
      */
     protected function render_amount_field(
@@ -487,8 +482,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         string $value,
         string $name,
         string $feedbackclass = '',
-        string $numberformat = 'de',
-        int $decimalplaces = 2
+        string $numberformat = 'de'
     ): string {
         if ($readonly) {
             $spanclass = 'buchungssatz-readonly';
@@ -497,7 +491,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             }
             // Parse the amount (handles both German and US formats) then format for display.
             $parsedvalue = \qtype_buchungssatz\amount_helper::parse_amount($value, $numberformat);
-            $displayval = $this->format_amount_display($parsedvalue, $numberformat, $decimalplaces);
+            $displayval = $this->format_amount_display($parsedvalue, $numberformat);
             $html = '<span class="' . $spanclass . '" style="text-align: end;">' . s($displayval) . '</span>';
             $html .= '<input type="hidden" name="' . $name . '" value="' . s($value) . '">';
             return $html;
@@ -651,8 +645,6 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $html .= html_writer::end_tag('thead');
 
         $numberformat = $question->numberformat ?? 'de';
-        $decimalplaces = $question->decimalplaces ?? 2;
-
         $sollkontostr = get_string('sollkonto', 'qtype_buchungssatz');
         $sollbetragstr = get_string('sollbetrag', 'qtype_buchungssatz');
         $habenkontostr = get_string('habenkonto', 'qtype_buchungssatz');
@@ -663,11 +655,11 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             $html .= html_writer::start_tag('tr');
             $html .= html_writer::tag('td', s($this->get_account_display($entry['sollkonto'], $accounts)),
                 ['data-label' => $sollkontostr, 'style' => 'text-align: start;' ]);
-            $html .= html_writer::tag('td', $this->format_amount_display($entry['sollbetrag'], $numberformat, $decimalplaces),
+            $html .= html_writer::tag('td', $this->format_amount_display($entry['sollbetrag'], $numberformat),
                 ['data-label' => $sollbetragstr, 'style' => 'text-align: end;' ]);
             $html .= html_writer::tag('td', s($this->get_account_display($entry['habenkonto'], $accounts)),
                 ['data-label' => $habenkontostr, 'style' => 'text-align: start;' ]);
-            $html .= html_writer::tag('td', $this->format_amount_display($entry['habenbetrag'], $numberformat, $decimalplaces),
+            $html .= html_writer::tag('td', $this->format_amount_display($entry['habenbetrag'], $numberformat),
                 ['data-label' => $habenbetragstr, 'style' => 'text-align: end;' ]);
             $html .= html_writer::end_tag('tr');
             // Show explanation as separate row if present.
@@ -704,18 +696,17 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      *
      * @param float $amount The amount value.
      * @param string $format The number format: 'de' for German (1.234,56) or 'us' for US (1,234.56).
-     * @param int $decimalplaces The number of decimal places to display.
      * @return string The formatted amount or empty string if zero.
      */
-    protected function format_amount_display(float $amount, string $format = 'de', int $decimalplaces = 2): string {
+    protected function format_amount_display(float $amount, string $format = 'de'): string {
         if (abs($amount) < 0.01) {
             return '';
         }
         if ($format === 'us') {
-            return number_format($amount, $decimalplaces, '.', ',');
+            return number_format($amount, 2, '.', ',');
         }
         // Default: German/EU format.
-        return number_format($amount, $decimalplaces, ',', '.');
+        return number_format($amount, 2, ',', '.');
     }
 
     /**

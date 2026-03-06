@@ -71,14 +71,6 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $mform->setType('currency_symbol', PARAM_TEXT);
         $mform->setDefault('currency_symbol', '€');
 
-        // Decimal places.
-        $mform->addElement('text', 'decimalplaces',
-            get_string('decimalplaces', 'qtype_buchungssatz'), ['size' => 3]);
-        $mform->setType('decimalplaces', PARAM_INT);
-        $mform->setDefault('decimalplaces', 2);
-        $mform->addHelpButton('decimalplaces', 'decimalplaces', 'qtype_buchungssatz');
-        $mform->addRule('decimalplaces', get_string('err_numeric', 'form'), 'numeric', null, 'client');
-
         // Extra entry deduction.
         $deductionoptions = [
             '0.0' => get_string('none'),
@@ -515,7 +507,6 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
             $question->accountsindropdown = $question->options->accountsindropdown ?? 0;
             $question->numberformat = $question->options->numberformat ?? 'de';
             $question->currency_symbol = $question->options->currency_symbol ?? '€';
-            $question->decimalplaces = $question->options->decimalplaces ?? 2;
             $question->extraentrydeduction = $question->options->extraentrydeduction ?? '0.0';
             // Match DB value to closest select option key.
             $deductionkeys = ['0.0', '1.0', '0.9', '0.8333333', '0.8', '0.75', '0.7', '0.6666667',
