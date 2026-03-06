@@ -762,7 +762,7 @@ class question_test extends \advanced_testcase {
     public function test_extra_entry_deduction_caps_at_zero(): void {
         $question = \test_question_maker::make_question('buchungssatz', 'extra_entry_deduction');
         // Set high deduction so it exceeds possible score.
-        $question->extraentrydeduction = 50;
+        $question->extraentrydeduction = 0.5;
 
         $response = qtype_buchungssatz_test_helper::make_multi_response([
             ['sollkonto' => '1200 Bank', 'sollbetrag' => 1000, 'habenkonto' => '8400 Erlöse 19% USt', 'habenbetrag' => 1000],

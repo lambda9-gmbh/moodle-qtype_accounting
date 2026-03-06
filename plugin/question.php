@@ -331,7 +331,7 @@ class qtype_buchungssatz_question extends question_graded_automatically {
                     $extracount++;
                 }
             }
-            $fraction -= $extracount * ($this->extraentrydeduction / 100);
+            $fraction -= $extracount * (float)$this->extraentrydeduction;
             $fraction = max(0, $fraction);
         }
 

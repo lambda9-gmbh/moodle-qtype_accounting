@@ -80,13 +80,32 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $mform->addRule('decimalplaces', get_string('err_numeric', 'form'), 'numeric', null, 'client');
 
         // Extra entry deduction.
-        $deductionoptions = [];
-        for ($i = 0; $i <= 100; $i += 5) {
-            $deductionoptions[$i] = $i . '%';
-        }
+        $deductionoptions = [
+            '0.0' => get_string('none'),
+            '1.0' => '100%',
+            '0.9' => '90%',
+            '0.8333333' => '83.33333%',
+            '0.8' => '80%',
+            '0.75' => '75%',
+            '0.7' => '70%',
+            '0.6666667' => '66.66667%',
+            '0.6' => '60%',
+            '0.5' => '50%',
+            '0.4' => '40%',
+            '0.3333333' => '33.33333%',
+            '0.3' => '30%',
+            '0.25' => '25%',
+            '0.2' => '20%',
+            '0.1666667' => '16.66667%',
+            '0.1428571' => '14.28571%',
+            '0.125' => '12.5%',
+            '0.1111111' => '11.11111%',
+            '0.1' => '10%',
+            '0.05' => '5%',
+        ];
         $mform->addElement('select', 'extraentrydeduction',
             get_string('extraentrydeduction', 'qtype_buchungssatz'), $deductionoptions);
-        $mform->setDefault('extraentrydeduction', 0);
+        $mform->setDefault('extraentrydeduction', '0.0');
         $mform->addHelpButton('extraentrydeduction', 'extraentrydeduction', 'qtype_buchungssatz');
 
         // All-or-nothing grading checkbox.
@@ -497,7 +516,22 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
             $question->numberformat = $question->options->numberformat ?? 'de';
             $question->currency_symbol = $question->options->currency_symbol ?? '€';
             $question->decimalplaces = $question->options->decimalplaces ?? 2;
-            $question->extraentrydeduction = $question->options->extraentrydeduction ?? null;
+            $question->extraentrydeduction = $question->options->extraentrydeduction ?? '0.0';
+            // Match DB value to closest select option key.
+            $deductionkeys = ['0.0', '1.0', '0.9', '0.8333333', '0.8', '0.75', '0.7', '0.6666667',
+                '0.6', '0.5', '0.4', '0.3333333', '0.3', '0.25', '0.2', '0.1666667',
+                '0.1428571', '0.125', '0.1111111', '0.1', '0.05'];
+            $bestkey = '0.0';
+            $bestdiff = PHP_FLOAT_MAX;
+            $dbval = (float)$question->extraentrydeduction;
+            foreach ($deductionkeys as $key) {
+                $diff = abs($dbval - (float)$key);
+                if ($diff < $bestdiff) {
+                    $bestdiff = $diff;
+                    $bestkey = $key;
+                }
+            }
+            $question->extraentrydeduction = $bestkey;
             $question->allornothinggrading = $question->options->allornothinggrading ?? 0;
 
             // Load entries into array form fields.

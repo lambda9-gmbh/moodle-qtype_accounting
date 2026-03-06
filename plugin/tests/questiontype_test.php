@@ -275,7 +275,7 @@ class questiontype_test extends \advanced_testcase {
             'numberformat' => 'de',
             'currency_symbol' => '€',
             'decimalplaces' => '2',
-            'extraentrydeduction' => '',
+            'extraentrydeduction' => '0.0',
             'allornothinggrading' => '0',
             'allowmultipleentries' => '1',
             'maxentries' => '5',

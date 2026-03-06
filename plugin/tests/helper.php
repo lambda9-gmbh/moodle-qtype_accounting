@@ -368,7 +368,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
     /**
      * Create a question with extra entry deduction enabled.
      *
-     * Simple debit/credit entry with extraentrydeduction = 5 (5% per extra account).
+     * Simple debit/credit entry with extraentrydeduction = 0.05 (5% per extra account).
      *
      * @return qtype_buchungssatz_question The test question.
      */
@@ -389,7 +389,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->allowmultipleentries = 1;
         $question->maxentries = 5;
         $question->allornothinggrading = 0;
-        $question->extraentrydeduction = 5;
+        $question->extraentrydeduction = 0.05;
 
         $question->entries = [
             [

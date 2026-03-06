@@ -264,5 +264,19 @@ function xmldb_qtype_buchungssatz_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2024010126, 'qtype', 'buchungssatz');
     }
 
+    if ($oldversion < 2024010127) {
+        // Convert extraentrydeduction from percentage (0-100) to fraction (0.0-1.0).
+        $DB->execute(
+            "UPDATE {qtype_buchungssatz_options} SET extraentrydeduction = extraentrydeduction / 100 WHERE extraentrydeduction > 1"
+        );
+
+        // Increase precision to support fractional values like 0.1666667.
+        $table = new xmldb_table('qtype_buchungssatz_options');
+        $field = new xmldb_field('extraentrydeduction', XMLDB_TYPE_NUMBER, '10, 7', null, null, null, null, 'decimalplaces');
+        $dbman->change_field_precision($table, $field);
+
+        upgrade_plugin_savepoint(true, 2024010127, 'qtype', 'buchungssatz');
+    }
+
     return true;
 }
