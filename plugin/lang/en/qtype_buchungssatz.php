@@ -36,7 +36,6 @@ $string['chartofaccounts_section'] = 'Chart of Accounts';
 $string['accountsindropdown'] = 'Number of additional accounts in selection list';
 $string['accountsindropdown_help'] = 'The number of random additional accounts to show in the dropdown selection list alongside the correct account. Set to 0 to show all accounts from the selected chart. For example, entering 3 will show the correct account plus 3 random accounts (4 total).';
 $string['numberformat'] = 'Number format';
-$string['currency_symbol'] = 'Currency Symbol';
 $string['extraentrydeduction'] = 'Deduction for extra entries';
 $string['extraentrydeduction_help'] = 'Percentage deducted per extra account the student uses that is not part of the correct answer. Each side (debit/credit) is counted independently. Set to "None" for no deduction. The score cannot go below 0.';
 $string['allornothinggrading'] = 'Only award marks if all entries are correct';

@@ -36,7 +36,6 @@ $string['chartofaccounts_section'] = 'Kontenplan';
 $string['accountsindropdown'] = 'Anzahl zusätzlicher Konten in der Auswahlliste';
 $string['accountsindropdown_help'] = 'Die Anzahl der zufälligen zusätzlichen Konten, die neben dem richtigen Konto in der Auswahlliste angezeigt werden sollen. Setzen Sie den Wert auf 0, um alle Konten des ausgewählten Kontenplans anzuzeigen. Beispiel: Bei Eingabe von 3 wird das richtige Konto plus 3 zufällige Konten angezeigt (4 insgesamt).';
 $string['numberformat'] = 'Zahlenformat';
-$string['currency_symbol'] = 'Währungssymbol';
 $string['extraentrydeduction'] = 'Abzug für überflüssige Konten und Werte';
 $string['extraentrydeduction_help'] = 'Prozentualer Abzug pro zusätzlichem Konto, das der Studierende verwendet und nicht in der Musterlösung vorkommt. Jede Seite (Soll/Haben) wird unabhängig gezählt. Auf "Keine" setzen für keinen Abzug. Die Punktzahl kann nicht unter 0 fallen.';
 $string['allornothinggrading'] = 'Nur Positiv bewerten, wenn alle Eingaben korrekt sind';

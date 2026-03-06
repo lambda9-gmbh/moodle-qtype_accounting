@@ -66,11 +66,6 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
             ? $this->question->options->numberformat
             : $defaultformat;
 
-        $mform->addElement('text', 'currency_symbol',
-            get_string('currency_symbol', 'qtype_buchungssatz'), ['size' => 5]);
-        $mform->setType('currency_symbol', PARAM_TEXT);
-        $mform->setDefault('currency_symbol', '€');
-
         // Extra entry deduction.
         $deductionoptions = [
             '0.0' => get_string('none'),
@@ -506,7 +501,6 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
             $question->chartofaccountsid = $question->options->chartofaccountsid ?? 0;
             $question->accountsindropdown = $question->options->accountsindropdown ?? 0;
             $question->numberformat = $question->options->numberformat ?? 'de';
-            $question->currency_symbol = $question->options->currency_symbol ?? '€';
             $question->extraentrydeduction = $question->options->extraentrydeduction ?? '0.0';
             // Match DB value to closest select option key.
             $deductionkeys = ['0.0', '1.0', '0.9', '0.8333333', '0.8', '0.75', '0.7', '0.6666667',

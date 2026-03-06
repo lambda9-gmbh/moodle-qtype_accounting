@@ -42,9 +42,6 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /** @var string Number format: 'de' or 'us'. */
     public $numberformat;
 
-    /** @var string Currency symbol to display. */
-    public $currency_symbol;
-
     /** @var float|null Points deducted per extra entry. */
     public $extraentrydeduction;
 

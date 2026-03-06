@@ -89,7 +89,6 @@ class qtype_buchungssatz extends question_type {
         $options->chartofaccountsid = $question->chartofaccountsid ?? 0;
         $options->accountsindropdown = $question->accountsindropdown ?? 0;
         $options->numberformat = $question->numberformat ?? 'de';
-        $options->currency_symbol = $question->currency_symbol ?? '€';
         $options->extraentrydeduction = $question->extraentrydeduction ?? null;
         $options->allornothinggrading = $question->allornothinggrading ?? 0;
         $options->allowmultipleentries = $question->allowmultipleentries ?? 1;
@@ -187,7 +186,6 @@ class qtype_buchungssatz extends question_type {
             $question->options->chartofaccountsid = 0;
             $question->options->accountsindropdown = 0;
             $question->options->numberformat = 'de';
-            $question->options->currency_symbol = '€';
             $question->options->extraentrydeduction = null;
             $question->options->allornothinggrading = 0;
             $question->options->allowmultipleentries = 1;
@@ -213,7 +211,6 @@ class qtype_buchungssatz extends question_type {
         $question->chartofaccountsid = $questiondata->options->chartofaccountsid ?? 0;
         $question->accountsindropdown = $questiondata->options->accountsindropdown ?? 0;
         $question->numberformat = $questiondata->options->numberformat ?? 'de';
-        $question->currency_symbol = $questiondata->options->currency_symbol ?? '€';
         $question->extraentrydeduction = $questiondata->options->extraentrydeduction ?? null;
         $question->allornothinggrading = $questiondata->options->allornothinggrading ?? 0;
         $question->allowmultipleentries = $questiondata->options->allowmultipleentries ?? 1;
@@ -279,7 +276,7 @@ class qtype_buchungssatz extends question_type {
      */
     public function extra_question_fields(): array {
         return ['qtype_buchungssatz_options', 'chartofaccountsid', 'accountsindropdown', 'numberformat',
-            'currency_symbol', 'extraentrydeduction', 'allornothinggrading',
+            'extraentrydeduction', 'allornothinggrading',
             'allowmultipleentries', 'maxentries'];
     }
 

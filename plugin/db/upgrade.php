@@ -289,5 +289,16 @@ function xmldb_qtype_buchungssatz_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2024010128, 'qtype', 'buchungssatz');
     }
 
+    if ($oldversion < 2024010129) {
+        // Remove currency_symbol field.
+        $table = new xmldb_table('qtype_buchungssatz_options');
+        $field = new xmldb_field('currency_symbol');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2024010129, 'qtype', 'buchungssatz');
+    }
+
     return true;
 }

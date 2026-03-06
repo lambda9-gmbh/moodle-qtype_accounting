@@ -8,7 +8,6 @@
         <FIELD NAME="chartofaccountsid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Reference to chart of accounts"/>
         <FIELD NAME="accountsindropdown" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Number of accounts to show in dropdown (0 = all)"/>
         <FIELD NAME="numberformat" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="de" SEQUENCE="false" COMMENT="Number format: de (1.234,56) or us (1,234.56)"/>
-        <FIELD NAME="currency_symbol" TYPE="char" LENGTH="5" NOTNULL="false" DEFAULT="€" SEQUENCE="false" COMMENT="Currency Symbol to use"/>
         <FIELD NAME="extraentrydeduction" TYPE="number" LENGTH="10" DECIMALS="7" NOTNULL="false" SEQUENCE="false" COMMENT="Fraction deducted per extra entry (0.0 to 1.0)"/>
         <FIELD NAME="allornothinggrading" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="If 1, only full or zero marks (no partial credit)"/>
         <FIELD NAME="allowmultipleentries" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Allow multiple booking entries"/>

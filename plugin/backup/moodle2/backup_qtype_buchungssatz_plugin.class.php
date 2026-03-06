@@ -56,7 +56,7 @@ class backup_qtype_buchungssatz_plugin extends backup_qtype_plugin {
 
         // Options with all current fields.
         $options = new backup_nested_element('buchungssatz_options', null,
-            ['chartofaccountsid', 'accountsindropdown', 'numberformat', 'currency_symbol',
+            ['chartofaccountsid', 'accountsindropdown', 'numberformat',
              'extraentrydeduction', 'allornothinggrading',
              'allowmultipleentries', 'maxentries']);
 
