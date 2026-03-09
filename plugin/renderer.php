@@ -532,7 +532,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         }
 
         return $DB->get_records('qtype_buchungssatz_accounts',
-            ['chartid' => $chartid], 'sortorder, accountname');
+            ['chartid' => $chartid], 'accountname');
     }
 
     /**
