@@ -183,28 +183,14 @@ define(['core/str'], function(Str) {
         }
         var rows = el.querySelectorAll(rowSelector);
 
-        Str.get_string('per', 'qtype_buchungssatz').then(function(perStr) {
-            var firstDebitFound = false;
-
-            for (var i = 0; i < rows.length; i++) {
-                var row = rows[i];
-                // Skip hidden rows.
-                if (row.style.display === 'none') {
-                    continue;
-                }
-                var entryType = row.getAttribute('data-entry-type') || 'both';
-                var perCell = row.querySelector('td:first-child');
-
-                if ((entryType === 'debit' || entryType === 'both') && perCell) {
-                    if (!firstDebitFound) {
-                        perCell.textContent = perStr;
-                        firstDebitFound = true;
-                    } else {
-                        perCell.textContent = '';
-                    }
-                }
+        // "Per" is only shown in the header row, not in data rows.
+        for (var i = 0; i < rows.length; i++) {
+            var row = rows[i];
+            var perCell = row.querySelector('td:first-child');
+            if (perCell) {
+                perCell.textContent = '';
             }
-        });
+        }
     }
 
     /**

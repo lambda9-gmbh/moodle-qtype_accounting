@@ -311,8 +311,6 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
     protected function build_entry_rows($index, array $sollaccountoptions, array $habenaccountoptions,
             $entry, bool $isfirst, string $numberformat = 'de'): string {
 
-        $perstr = get_string('per', 'qtype_buchungssatz');
-        $anstr = get_string('an', 'qtype_buchungssatz');
         $weightstr = get_string('weight', 'qtype_buchungssatz');
 
         // Get existing values.
@@ -349,7 +347,7 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
 
         // Data row.
         $html .= '<tr class="buchungssatz-entry-row" data-entry-index="' . $index . '" data-entry-type="' . $entrytype . '">';
-        $html .= '<td class="buchungssatz-edit-label' . $debithidden . '">' . ($isfirst ? $perstr : '') . '</td>';
+        $html .= '<td class="buchungssatz-edit-label' . $debithidden . '"></td>';
         $html .= '<td class="buchungssatz-edit-data' . $debithidden . '">' . $sollselecthtml . '</td>';
         $html .= '<td class="buchungssatz-edit-data' . $debithidden . '">';
         $placeholder = ($numberformat === 'us') ? '0.00' : '0,00';

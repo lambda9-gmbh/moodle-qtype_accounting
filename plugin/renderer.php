@@ -286,10 +286,6 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $debithidden = $hidden_classes['debit'];
         $credithidden = $hidden_classes['credit'];
 
-        // Get Per/an labels.
-        $perstr = get_string('per', 'qtype_buchungssatz');
-        $anstr = get_string('an', 'qtype_buchungssatz');
-
         // No per-field highlighting - we show overall feedback summary instead.
         $feedbackclass = '';
 
@@ -297,8 +293,8 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $rowstyle = $hidden ? 'display: none;' : '';
         $html = '<tr class="buchungssatz-entry-row" data-entry="' . $index . '" data-entry-type="' . $entrytype . '" style="' . $rowstyle . '">';
 
-        // Per label cell (only show text on first row) - add data-section for mobile header.
-        $html .= '<td class="buchungssatz-label-cell' . $debithidden . '" data-section="soll">' . ($isfirst ? $perstr : '') . '</td>';
+        // Per label cell - add data-section for mobile header.
+        $html .= '<td class="buchungssatz-label-cell' . $debithidden . '" data-section="soll"></td>';
 
         // Soll (Debit) account cell - add data-label for mobile.
         $html .= '<td class="buchungssatz-data-cell' . $debithidden . '" data-label="' . get_string('account', 'qtype_buchungssatz') . '">';
@@ -318,7 +314,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         if ($showdelete) {
             $html .= \qtype_buchungssatz\entry_helper::render_delete_button('debit', $index, 'data-entry');
         } else {
-            $html .= ($isfirst ? $anstr : '');
+            $html .= '';
         }
         $html .= '</td>';
 
