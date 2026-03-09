@@ -182,6 +182,48 @@ class import_helper_test extends \advanced_testcase {
     }
 
     /**
+     * Test that UTF-8 BOM is stripped from the beginning of data.
+     */
+    public function test_parse_csv_strips_utf8_bom(): void {
+        $bom = "\xEF\xBB\xBF";
+        $data = $bom . "1200 Bank\n8400 Erlöse";
+
+        $result = import_helper::parse_csv($data);
+
+        $this->assertCount(2, $result['accounts']);
+        $this->assertArrayHasKey('1200 Bank', $result['accounts']);
+        $this->assertArrayHasKey('8400 Erlöse', $result['accounts']);
+    }
+
+    /**
+     * Test that Windows-1252 encoded data (German umlauts) is converted to UTF-8.
+     */
+    public function test_parse_csv_converts_windows1252(): void {
+        // "Erlöse" and "Büro" in Windows-1252 encoding.
+        $data = mb_convert_encoding("1200 Erlöse\n1400 Büro", 'Windows-1252', 'UTF-8');
+
+        $result = import_helper::parse_csv($data);
+
+        $this->assertCount(2, $result['accounts']);
+        $this->assertArrayHasKey('1200 Erlöse', $result['accounts']);
+        $this->assertArrayHasKey('1400 Büro', $result['accounts']);
+    }
+
+    /**
+     * Test that valid UTF-8 data passes through unchanged.
+     */
+    public function test_parse_csv_valid_utf8_unchanged(): void {
+        $data = "1200 Erlöse\n1400 Büromöbel\n8400 Übrige";
+
+        $result = import_helper::parse_csv($data);
+
+        $this->assertCount(3, $result['accounts']);
+        $this->assertArrayHasKey('1200 Erlöse', $result['accounts']);
+        $this->assertArrayHasKey('1400 Büromöbel', $result['accounts']);
+        $this->assertArrayHasKey('8400 Übrige', $result['accounts']);
+    }
+
+    /**
      * Test finding matching chart by account names.
      */
     public function test_find_matching_chart(): void {

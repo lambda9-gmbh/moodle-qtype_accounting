@@ -162,12 +162,13 @@ class chart_manager {
      * Get accounts for a chart.
      *
      * @param int $chartid Chart ID.
+     * @param string $sort SQL ORDER BY clause. Defaults to 'sortorder, accountname'.
      * @return array The account records.
      */
-    public static function get_accounts(int $chartid): array {
+    public static function get_accounts(int $chartid, string $sort = 'sortorder, accountname'): array {
         global $DB;
         return $DB->get_records('qtype_buchungssatz_accounts',
-            ['chartid' => $chartid], 'sortorder, accountname');
+            ['chartid' => $chartid], $sort);
     }
 
     /**

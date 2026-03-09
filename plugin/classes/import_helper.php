@@ -53,6 +53,7 @@ class import_helper {
      * @throws \Exception If data is empty or has no valid accounts.
      */
     public static function parse_csv(string $data, string $filename = ''): array {
+        $data = self::normalize_encoding($data);
         $lines = preg_split('/\r\n|\r|\n/', trim($data));
         if (empty($lines)) {
             throw new \Exception(get_string('csvempty', 'qtype_buchungssatz'));
@@ -102,6 +103,29 @@ class import_helper {
             'chartname' => $chartname,
             'accounts' => $accounts,
         ];
+    }
+
+    /**
+     * Normalize encoding of input data to UTF-8.
+     *
+     * Strips UTF-8 BOM if present and converts Windows-1252 encoded data to UTF-8.
+     * This ensures compatibility with CSV files exported from Excel.
+     *
+     * @param string $data Raw input data.
+     * @return string UTF-8 encoded data.
+     */
+    private static function normalize_encoding(string $data): string {
+        // Strip UTF-8 BOM if present.
+        if (substr($data, 0, 3) === "\xEF\xBB\xBF") {
+            $data = substr($data, 3);
+        }
+
+        // If not valid UTF-8, assume Windows-1252 (common Excel export encoding).
+        if (!mb_check_encoding($data, 'UTF-8')) {
+            $data = mb_convert_encoding($data, 'UTF-8', 'Windows-1252');
+        }
+
+        return $data;
     }
 
     /**

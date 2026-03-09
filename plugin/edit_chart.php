@@ -212,7 +212,17 @@ echo html_writer::empty_tag('input', [
 echo html_writer::end_tag('form');
 
 // Accounts table.
-$accounts = chart_manager::get_accounts($chartid);
+$tsort = optional_param('tsort', '', PARAM_ALPHA);
+$tdir = optional_param('tdir', 'asc', PARAM_ALPHA);
+$tdir = ($tdir === 'desc') ? 'desc' : 'asc';
+
+if ($tsort === 'accountname') {
+    $sortorder = ($tdir === 'asc') ? 'accountname ASC' : 'accountname DESC';
+} else {
+    $sortorder = 'sortorder, accountname';
+}
+
+$accounts = chart_manager::get_accounts($chartid, $sortorder);
 
 echo $OUTPUT->heading(get_string('editaccounts', 'qtype_buchungssatz') . ' (' . count($accounts) . ')', 3);
 
@@ -229,9 +239,15 @@ if (!empty($accounts)) {
         echo html_writer::end_tag('form');
     }
 
+    // Build sortable header for account name column.
+    $newdir = ($tsort === 'accountname' && $tdir === 'asc') ? 'desc' : 'asc';
+    $sorturl = new moodle_url($baseurl, ['tsort' => 'accountname', 'tdir' => $newdir]);
+    $arrow = ($tsort === 'accountname') ? ($tdir === 'asc' ? ' ▲' : ' ▼') : '';
+    $accountnameheader = html_writer::link($sorturl, get_string('accountname', 'qtype_buchungssatz') . $arrow);
+
     $table = new html_table();
     $table->head = [
-        get_string('accountname', 'qtype_buchungssatz'),
+        $accountnameheader,
         get_string('actions'),
     ];
     $table->attributes['class'] = 'generaltable';
