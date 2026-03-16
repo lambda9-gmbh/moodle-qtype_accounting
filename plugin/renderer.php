@@ -94,6 +94,12 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         // Get the accountsindropdown limit.
         $accountslimit = $question->accountsindropdown ?? 0;
 
+        // Build per-cell feedback map when in readonly (review) mode.
+        $feedbackmap = [];
+        if ($options->readonly) {
+            $feedbackmap = $this->build_cell_feedback_map($question, $response);
+        }
+
         // Render only the needed rows — all visible (no hidden pre-rendered rows).
         for ($i = 0; $i < $visiblerows; $i++) {
             $showdelete = !$options->readonly;
@@ -115,7 +121,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
             $result .= $this->render_entry_row(
                 $qa, $options, $i, $response, $sollaccounts, $habenaccounts,
-                $question, false, $showdelete, $i === 0
+                $question, false, $showdelete, $i === 0, $feedbackmap[$i] ?? []
             );
         }
 
@@ -254,6 +260,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      * @param bool $hidden Whether the row should be hidden initially.
      * @param bool $showdelete Whether to show the delete button.
      * @param bool $isfirst Whether this is the first entry row.
+     * @param array $feedbackclasses Per-cell feedback CSS classes keyed by field name.
      * @return string The HTML output.
      */
     protected function render_entry_row(
@@ -266,7 +273,8 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         object $question,
         bool $hidden = false,
         bool $showdelete = false,
-        bool $isfirst = false
+        bool $isfirst = false,
+        array $feedbackclasses = []
     ): string {
         $sollkontoname = $qa->get_qt_field_name("sollkonto_{$index}");
         $sollbetragname = $qa->get_qt_field_name("sollbetrag_{$index}");
@@ -286,9 +294,6 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $debithidden = $hidden_classes['debit'];
         $credithidden = $hidden_classes['credit'];
 
-        // No per-field highlighting - we show overall feedback summary instead.
-        $feedbackclass = '';
-
         // Build table row.
         $rowstyle = $hidden ? 'display: none;' : '';
         $html = '<tr class="buchungssatz-entry-row" data-entry="' . $index . '" data-entry-type="' . $entrytype . '" style="' . $rowstyle . '">';
@@ -298,7 +303,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         // Soll (Debit) account cell - add data-label for mobile.
         $html .= '<td class="buchungssatz-data-cell' . $debithidden . '" data-label="' . get_string('account', 'qtype_buchungssatz') . '">';
-        $html .= $this->render_account_field($readonly, $sollkontoval, $sollkontoname, $sollaccounts, $feedbackclass);
+        $html .= $this->render_account_field($readonly, $sollkontoval, $sollkontoname, $sollaccounts, $feedbackclasses['sollkonto'] ?? '');
         $html .= '</td>';
 
         // Get number format settings from question.
@@ -306,7 +311,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         // Soll (Debit) amount cell - add data-label for mobile.
         $html .= '<td class="buchungssatz-data-cell' . $debithidden . '" data-label="' . get_string('amount', 'qtype_buchungssatz') . '">';
-        $html .= $this->render_amount_field($readonly, $sollbetragval, $sollbetragname, $feedbackclass, $numberformat);
+        $html .= $this->render_amount_field($readonly, $sollbetragval, $sollbetragname, $feedbackclasses['sollbetrag'] ?? '', $numberformat);
         $html .= '</td>';
 
         // "an" label cell - contains debit delete button if editable.
@@ -320,12 +325,12 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         // Haben (Credit) account cell - add data-label for mobile.
         $html .= '<td class="buchungssatz-data-cell' . $credithidden . '" data-label="' . get_string('account', 'qtype_buchungssatz') . '">';
-        $html .= $this->render_account_field($readonly, $habenkontoval, $habenkontoname, $habenaccounts, $feedbackclass);
+        $html .= $this->render_account_field($readonly, $habenkontoval, $habenkontoname, $habenaccounts, $feedbackclasses['habenkonto'] ?? '');
         $html .= '</td>';
 
         // Haben (Credit) amount cell - add data-label for mobile.
         $html .= '<td class="buchungssatz-data-cell' . $credithidden . '" data-label="' . get_string('amount', 'qtype_buchungssatz') . '">';
-        $html .= $this->render_amount_field($readonly, $habenbetragval, $habenbetragname, $feedbackclass, $numberformat);
+        $html .= $this->render_amount_field($readonly, $habenbetragval, $habenbetragname, $feedbackclasses['habenbetrag'] ?? '', $numberformat);
         $html .= '</td>';
 
         // Delete button cell (credit delete only - debit delete is in the "an" cell).
@@ -703,6 +708,104 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         }
         // Default: German/EU format.
         return number_format($amount, 2, ',', '.');
+    }
+
+    /**
+     * Build per-cell feedback classes for each student entry row.
+     *
+     * Uses aggregation logic: entries with the same account are summed, then compared
+     * against the correct totals. All rows sharing an account get the same feedback.
+     *
+     * @param object $question The question object with correct entries.
+     * @param array $response The student response data.
+     * @return array Map of row index => ['sollkonto' => class, 'sollbetrag' => class, 'habenkonto' => class, 'habenbetrag' => class].
+     */
+    protected function build_cell_feedback_map(object $question, array $response): array {
+        $feedbackmap = [];
+
+        if (empty($question->entries)) {
+            return $feedbackmap;
+        }
+
+        $numberformat = $question->numberformat ?? 'de';
+
+        // Aggregate correct entries.
+        $correctaggregated = $this->aggregate_entries_for_feedback($question->entries);
+
+        // Find the highest entry index in the response.
+        $maxindex = -1;
+        foreach (array_keys($response) as $key) {
+            if (preg_match('/^(?:sollkonto|habenkonto)_(\d+)$/', $key, $matches)) {
+                $maxindex = max($maxindex, (int)$matches[1]);
+            }
+        }
+
+        // Aggregate student entries per account per side.
+        $studentaggregated = ['debit' => [], 'credit' => []];
+        for ($i = 0; $i <= $maxindex; $i++) {
+            $sollkonto = trim($response["sollkonto_{$i}"] ?? '');
+            $habenkonto = trim($response["habenkonto_{$i}"] ?? '');
+
+            if (!empty($sollkonto)) {
+                $amount = \qtype_buchungssatz\amount_helper::parse_amount($response["sollbetrag_{$i}"] ?? '', $numberformat);
+                if (!isset($studentaggregated['debit'][$sollkonto])) {
+                    $studentaggregated['debit'][$sollkonto] = 0;
+                }
+                $studentaggregated['debit'][$sollkonto] += $amount;
+            }
+
+            if (!empty($habenkonto)) {
+                $amount = \qtype_buchungssatz\amount_helper::parse_amount($response["habenbetrag_{$i}"] ?? '', $numberformat);
+                if (!isset($studentaggregated['credit'][$habenkonto])) {
+                    $studentaggregated['credit'][$habenkonto] = 0;
+                }
+                $studentaggregated['credit'][$habenkonto] += $amount;
+            }
+        }
+
+        // Determine per-account correctness for each side.
+        $accountstatus = ['debit' => [], 'credit' => []];
+        foreach (['debit', 'credit'] as $side) {
+            foreach ($studentaggregated[$side] as $account => $studentamount) {
+                if (!isset($correctaggregated[$side][$account])) {
+                    // Extra account not in the correct answer.
+                    $accountstatus[$side][$account] = ['account' => 'incorrect', 'amount' => 'incorrect'];
+                } else {
+                    $correctamount = $correctaggregated[$side][$account];
+                    $amountstatus = (abs($studentamount - $correctamount) < 0.01) ? 'correct' : 'incorrect';
+                    $accountstatus[$side][$account] = ['account' => 'correct', 'amount' => $amountstatus];
+                }
+            }
+        }
+
+        // Map back to individual rows.
+        for ($i = 0; $i <= $maxindex; $i++) {
+            $sollkonto = trim($response["sollkonto_{$i}"] ?? '');
+            $habenkonto = trim($response["habenkonto_{$i}"] ?? '');
+
+            $row = [
+                'sollkonto' => '',
+                'sollbetrag' => '',
+                'habenkonto' => '',
+                'habenbetrag' => '',
+            ];
+
+            if (!empty($sollkonto) && isset($accountstatus['debit'][$sollkonto])) {
+                $status = $accountstatus['debit'][$sollkonto];
+                $row['sollkonto'] = 'buchungssatz-' . $status['account'];
+                $row['sollbetrag'] = 'buchungssatz-' . $status['amount'];
+            }
+
+            if (!empty($habenkonto) && isset($accountstatus['credit'][$habenkonto])) {
+                $status = $accountstatus['credit'][$habenkonto];
+                $row['habenkonto'] = 'buchungssatz-' . $status['account'];
+                $row['habenbetrag'] = 'buchungssatz-' . $status['amount'];
+            }
+
+            $feedbackmap[$i] = $row;
+        }
+
+        return $feedbackmap;
     }
 
     /**

@@ -107,8 +107,6 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
             get_string('chartofaccounts', 'qtype_buchungssatz'), $charts);
         $mform->setType('chartofaccountsid', PARAM_INT);
         $mform->addHelpButton('chartofaccountsid', 'chartofaccounts', 'qtype_buchungssatz');
-        $mform->addRule('chartofaccountsid', get_string('err_chartrequired', 'qtype_buchungssatz'),
-            'nonzero', null, 'client');
 
         // Link to manage charts of accounts.
         $coursecontext = $this->context->get_course_context(false);
@@ -547,19 +545,11 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
     public function validation($data, $files): array {
         $errors = parent::validation($data, $files);
 
-        // Validate chart of accounts is selected.
-        $chartofaccountsid = (int) ($data['chartofaccountsid'] ?? 0);
-        if ($chartofaccountsid === 0) {
-            $errors['chartofaccountsid'] = get_string('err_chartrequired', 'qtype_buchungssatz');
-        }
-
         // Validate accountsindropdown is not negative.
         $accountsindropdown = (int) ($data['accountsindropdown'] ?? 0);
         if ($accountsindropdown < 0) {
             $errors['accountsindropdown'] = get_string('err_accountsindropdown_negative', 'qtype_buchungssatz');
         }
-
-        $hasentries = false;
 
         // Get all unique indices from both sollkonto and habenkonto arrays.
         $sollkontoarray = $data['sollkonto'] ?? [];
@@ -576,8 +566,6 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
             if (empty($sollkonto) && $sollbetragraw === '' && empty($habenkonto) && $habenbetragraw === '') {
                 continue;
             }
-
-            $hasentries = true;
 
             // Debit amount is required if debit account is selected.
             if (!empty($sollkonto)) {
@@ -596,10 +584,6 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
                     $errors["habenbetrag[$i]"] = get_string('err_negativeamount', 'qtype_buchungssatz');
                 }
             }
-        }
-
-        if (!$hasentries) {
-            $errors['sollkonto[0]'] = get_string('err_noentries', 'qtype_buchungssatz');
         }
 
         return $errors;

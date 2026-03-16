@@ -55,8 +55,8 @@ $string['addcreditentry'] = 'Add Credit Entry';
 $string['deleteentry'] = 'Delete';
 
 // Account fields.
-$string['per'] = 'Per';
-$string['an'] = 'to';
+$string['per'] = 'Dr.';
+$string['an'] = 'Cr.';
 $string['soll'] = 'Debit';
 $string['haben'] = 'Credit';
 $string['account'] = 'Account';

@@ -541,6 +541,7 @@
 .buchungssatz-edit-actions {
     width: 50px;
     text-align: center;
+    background-color: #f8f9fa;
 }
 
 .buchungssatz-entry-row td {
@@ -659,7 +660,7 @@ table.buchungssatz-student-table {
 .buchungssatz-actions-cell {
     text-align: center;
     vertical-align: middle;
-    background-color: #fff;
+    background-color: #f8f9fa;
 }
 
 .buchungssatz-student-table .buchungssatz-entry-row td {
