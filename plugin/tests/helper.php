@@ -31,11 +31,45 @@ require_once($CFG->dirroot . '/question/type/buchungssatz/question.php');
 /**
  * Test helper class for creating Buchungssatz questions.
  *
+ * Account ID constants used throughout tests:
+ *   101 = '1200 Bank'
+ *   102 = '1000 Kasse'
+ *   201 = '8400 Erloese 19% USt'
+ *   301 = '4400 Verbindlichkeiten'
+ *
  * @package    qtype_buchungssatz
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_buchungssatz_test_helper extends question_test_helper {
+
+    /** @var int Account ID for 1200 Bank. */
+    const ACCOUNT_BANK = 101;
+
+    /** @var int Account ID for 1000 Kasse. */
+    const ACCOUNT_KASSE = 102;
+
+    /** @var int Account ID for 8400 Erloese 19% USt. */
+    const ACCOUNT_ERLOESE = 201;
+
+    /** @var int Account ID for 4400 Verbindlichkeiten. */
+    const ACCOUNT_VERBINDLICHKEITEN = 301;
+
+    /**
+     * Get the standard accounts map used in tests.
+     *
+     * Maps account IDs to their display names.
+     *
+     * @return array The accounts map (ID => name).
+     */
+    public static function get_test_accounts_map(): array {
+        return [
+            self::ACCOUNT_BANK => '1200 Bank',
+            self::ACCOUNT_KASSE => '1000 Kasse',
+            self::ACCOUNT_ERLOESE => '8400 Erloese 19% USt',
+            self::ACCOUNT_VERBINDLICHKEITEN => '4400 Verbindlichkeiten',
+        ];
+    }
 
     /**
      * Get the question types that this helper supports.
@@ -79,11 +113,13 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->allowmultipleentries = 0;
         $question->maxentries = 1;
 
+        $question->accountsmap = self::get_test_accounts_map();
+
         $question->entries = [
             [
-                'sollkonto' => '1200 Bank',
+                'sollkontoid' => self::ACCOUNT_BANK,
                 'sollbetrag' => 1000.00,
-                'habenkonto' => '8400 Erlöse 19% USt',
+                'habenkontoid' => self::ACCOUNT_ERLOESE,
                 'habenbetrag' => 1000.00,
                 'weight_sollkonto' => 1,
                 'weight_sollbetrag' => 1,
@@ -120,11 +156,13 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->allowmultipleentries = 1;
         $question->maxentries = 5;
 
+        $question->accountsmap = self::get_test_accounts_map();
+
         $question->entries = [
             [
-                'sollkonto' => '1000 Kasse',
+                'sollkontoid' => self::ACCOUNT_KASSE,
                 'sollbetrag' => 500.00,
-                'habenkonto' => '8400 Erlöse 19% USt',
+                'habenkontoid' => self::ACCOUNT_ERLOESE,
                 'habenbetrag' => 500.00,
                 'weight_sollkonto' => 1,
                 'weight_sollbetrag' => 1,
@@ -133,9 +171,9 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
                 'explanation' => 'Cash payment',
             ],
             [
-                'sollkonto' => '1200 Bank',
+                'sollkontoid' => self::ACCOUNT_BANK,
                 'sollbetrag' => 500.00,
-                'habenkonto' => '8400 Erlöse 19% USt',
+                'habenkontoid' => self::ACCOUNT_ERLOESE,
                 'habenbetrag' => 500.00,
                 'weight_sollkonto' => 1,
                 'weight_sollbetrag' => 1,
@@ -170,11 +208,13 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->allowmultipleentries = 0;
         $question->maxentries = 1;
 
+        $question->accountsmap = self::get_test_accounts_map();
+
         $question->entries = [
             [
-                'sollkonto' => '',
+                'sollkontoid' => null,
                 'sollbetrag' => 0,
-                'habenkonto' => '4400 Verbindlichkeiten',
+                'habenkontoid' => self::ACCOUNT_VERBINDLICHKEITEN,
                 'habenbetrag' => 250.00,
                 'weight_sollkonto' => 1,
                 'weight_sollbetrag' => 1,
@@ -210,12 +250,14 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->maxentries = 1;
         $question->allornothinggrading = 0;
 
+        $question->accountsmap = self::get_test_accounts_map();
+
         // Custom weights: account has weight 2, amount has weight 1.
         $question->entries = [
             [
-                'sollkonto' => '1200 Bank',
+                'sollkontoid' => self::ACCOUNT_BANK,
                 'sollbetrag' => 1000.00,
-                'habenkonto' => '8400 Erlöse 19% USt',
+                'habenkontoid' => self::ACCOUNT_ERLOESE,
                 'habenbetrag' => 1000.00,
                 'weight_sollkonto' => 2,
                 'weight_sollbetrag' => 1,
@@ -251,11 +293,13 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->maxentries = 1;
         $question->allornothinggrading = 1;
 
+        $question->accountsmap = self::get_test_accounts_map();
+
         $question->entries = [
             [
-                'sollkonto' => '1200 Bank',
+                'sollkontoid' => self::ACCOUNT_BANK,
                 'sollbetrag' => 1000.00,
-                'habenkonto' => '8400 Erlöse 19% USt',
+                'habenkontoid' => self::ACCOUNT_ERLOESE,
                 'habenbetrag' => 1000.00,
                 'weight_sollkonto' => 1,
                 'weight_sollbetrag' => 1,
@@ -293,12 +337,14 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->maxentries = 5;
         $question->allornothinggrading = 0;
 
+        $question->accountsmap = self::get_test_accounts_map();
+
         // Single entry with total amounts.
         $question->entries = [
             [
-                'sollkonto' => '1200 Bank',
+                'sollkontoid' => self::ACCOUNT_BANK,
                 'sollbetrag' => 600.00,
-                'habenkonto' => '8400 Erlöse 19% USt',
+                'habenkontoid' => self::ACCOUNT_ERLOESE,
                 'habenbetrag' => 600.00,
                 'weight_sollkonto' => 1,
                 'weight_sollbetrag' => 1,
@@ -336,12 +382,14 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->maxentries = 5;
         $question->allornothinggrading = 0;
 
+        $question->accountsmap = self::get_test_accounts_map();
+
         // Two entries to the same account.
         $question->entries = [
             [
-                'sollkonto' => '1200 Bank',
+                'sollkontoid' => self::ACCOUNT_BANK,
                 'sollbetrag' => 300.00,
-                'habenkonto' => '8400 Erlöse 19% USt',
+                'habenkontoid' => self::ACCOUNT_ERLOESE,
                 'habenbetrag' => 300.00,
                 'weight_sollkonto' => 1,
                 'weight_sollbetrag' => 1,
@@ -350,9 +398,9 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
                 'explanation' => 'First payment',
             ],
             [
-                'sollkonto' => '1200 Bank',
+                'sollkontoid' => self::ACCOUNT_BANK,
                 'sollbetrag' => 200.00,
-                'habenkonto' => '8400 Erlöse 19% USt',
+                'habenkontoid' => self::ACCOUNT_ERLOESE,
                 'habenbetrag' => 200.00,
                 'weight_sollkonto' => 1,
                 'weight_sollbetrag' => 1,
@@ -391,11 +439,13 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->allornothinggrading = 0;
         $question->extraentrydeduction = 0.05;
 
+        $question->accountsmap = self::get_test_accounts_map();
+
         $question->entries = [
             [
-                'sollkonto' => '1200 Bank',
+                'sollkontoid' => self::ACCOUNT_BANK,
                 'sollbetrag' => 1000.00,
-                'habenkonto' => '8400 Erlöse 19% USt',
+                'habenkontoid' => self::ACCOUNT_ERLOESE,
                 'habenbetrag' => 1000.00,
                 'weight_sollkonto' => 1,
                 'weight_sollbetrag' => 1,
@@ -430,9 +480,9 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $fromform->maxentries = 5;
 
         // Default entry with minimal data that will be overwritten.
-        $fromform->sollkonto = ['1200 Bank'];
+        $fromform->sollkonto = [self::ACCOUNT_BANK];
         $fromform->sollbetrag = [1000.00];
-        $fromform->habenkonto = ['8400 Erlöse 19% USt'];
+        $fromform->habenkonto = [self::ACCOUNT_ERLOESE];
         $fromform->habenbetrag = [1000.00];
         $fromform->weight_sollkonto = [1];
         $fromform->weight_sollbetrag = [1];
@@ -463,9 +513,9 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $fromform->allowmultipleentries = 0;
         $fromform->maxentries = 1;
 
-        $fromform->sollkonto = ['1200 Bank'];
+        $fromform->sollkonto = [self::ACCOUNT_BANK];
         $fromform->sollbetrag = [1000.00];
-        $fromform->habenkonto = ['8400 Erlöse 19% USt'];
+        $fromform->habenkonto = [self::ACCOUNT_ERLOESE];
         $fromform->habenbetrag = [1000.00];
         $fromform->weight_sollkonto = [1];
         $fromform->weight_sollbetrag = [1];
@@ -493,9 +543,9 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $fromform->allowmultipleentries = 1;
         $fromform->maxentries = 5;
 
-        $fromform->sollkonto = ['1000 Kasse', '1200 Bank'];
+        $fromform->sollkonto = [self::ACCOUNT_KASSE, self::ACCOUNT_BANK];
         $fromform->sollbetrag = [500.00, 500.00];
-        $fromform->habenkonto = ['8400 Erlöse 19% USt', '8400 Erlöse 19% USt'];
+        $fromform->habenkonto = [self::ACCOUNT_ERLOESE, self::ACCOUNT_ERLOESE];
         $fromform->habenbetrag = [500.00, 500.00];
         $fromform->weight_sollkonto = [1, 1];
         $fromform->weight_sollbetrag = [1, 1];
@@ -523,9 +573,9 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $fromform->allowmultipleentries = 0;
         $fromform->maxentries = 1;
 
-        $fromform->sollkonto = [''];
+        $fromform->sollkonto = [0];
         $fromform->sollbetrag = [0];
-        $fromform->habenkonto = ['4400 Verbindlichkeiten'];
+        $fromform->habenkonto = [self::ACCOUNT_VERBINDLICHKEITEN];
         $fromform->habenbetrag = [250.00];
         $fromform->weight_sollkonto = [1];
         $fromform->weight_sollbetrag = [1];
@@ -538,24 +588,27 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
     /**
      * Create a response array for a simple entry.
      *
-     * @param string $sollkonto Debit account.
+     * Note: The response field names remain as sollkonto_N / habenkonto_N
+     * (Moodle question engine field names), but the values are integer account IDs.
+     *
+     * @param int $sollkontoid Debit account ID (0 for no debit account).
      * @param float $sollbetrag Debit amount.
-     * @param string $habenkonto Credit account.
+     * @param int $habenkontoid Credit account ID.
      * @param float $habenbetrag Credit amount.
      * @param int $index Entry index (default 0).
      * @return array The response array.
      */
     public static function make_response(
-        string $sollkonto,
+        int $sollkontoid,
         float $sollbetrag,
-        string $habenkonto,
+        int $habenkontoid,
         float $habenbetrag,
         int $index = 0
     ): array {
         return [
-            "sollkonto_{$index}" => $sollkonto,
+            "sollkonto_{$index}" => $sollkontoid,
             "sollbetrag_{$index}" => $sollbetrag,
-            "habenkonto_{$index}" => $habenkonto,
+            "habenkonto_{$index}" => $habenkontoid,
             "habenbetrag_{$index}" => $habenbetrag,
         ];
     }
@@ -563,15 +616,17 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
     /**
      * Create a response array with multiple entries.
      *
-     * @param array $entries Array of entries, each with sollkonto, sollbetrag, habenkonto, habenbetrag.
+     * Each entry should use 'sollkontoid' and 'habenkontoid' keys with integer values.
+     *
+     * @param array $entries Array of entries, each with sollkontoid, sollbetrag, habenkontoid, habenbetrag.
      * @return array The response array.
      */
     public static function make_multi_response(array $entries): array {
         $response = [];
         foreach ($entries as $index => $entry) {
-            $response["sollkonto_{$index}"] = $entry['sollkonto'] ?? '';
+            $response["sollkonto_{$index}"] = $entry['sollkontoid'] ?? 0;
             $response["sollbetrag_{$index}"] = $entry['sollbetrag'] ?? 0;
-            $response["habenkonto_{$index}"] = $entry['habenkonto'] ?? '';
+            $response["habenkonto_{$index}"] = $entry['habenkontoid'] ?? 0;
             $response["habenbetrag_{$index}"] = $entry['habenbetrag'] ?? 0;
         }
         return $response;

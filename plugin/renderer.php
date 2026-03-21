@@ -69,10 +69,30 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             }
         }
 
+        // Pre-compute a single shared filtered account list for all dropdowns.
+        $accountslimit = $question->accountsindropdown ?? 0;
+        $filteredaccounts = $accounts;
+        if ($accountslimit > 0 && !$options->readonly) {
+            // Collect student-selected account IDs as safety net.
+            $selectedids = [];
+            foreach ($response as $key => $value) {
+                if (preg_match('/^(?:sollkonto|habenkonto)_\d+$/', $key) && $value !== '' && (int)$value > 0) {
+                    $selectedids[(int)$value] = true;
+                }
+            }
+            $filteredaccounts = $this->filter_accounts_for_dropdown(
+                $accounts,
+                $question->get_all_correct_account_ids(),
+                $accountslimit,
+                array_keys($selectedids),
+                $question->dropdownseed ?? 0
+            );
+        }
+
         // Wrap everything in our own container with data attributes for JS.
         $containerattrs = [
             'id' => $containerid,
-            'data-accounts' => json_encode(array_values($accounts)),
+            'data-accounts' => json_encode(array_values($filteredaccounts)),
             'data-allowedit' => !$options->readonly ? '1' : '0',
             'data-numberformat' => $numberformat,
             'data-nextindex' => $visiblerows,
@@ -91,9 +111,6 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         $result .= '<tbody class="buchungssatz-entries">';
 
-        // Get the accountsindropdown limit.
-        $accountslimit = $question->accountsindropdown ?? 0;
-
         // Build per-cell feedback map when in readonly (review) mode.
         $feedbackmap = [];
         if ($options->readonly) {
@@ -102,26 +119,9 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         // Render only the needed rows — all visible (no hidden pre-rendered rows).
         for ($i = 0; $i < $visiblerows; $i++) {
-            $showdelete = !$options->readonly;
-
-            // Filter accounts for this entry based on accountsindropdown setting.
-            $correctentry = $question->entries[$i] ?? null;
-            $correctsollkonto = $correctentry['sollkonto'] ?? '';
-            $correcthabenkonto = $correctentry['habenkonto'] ?? '';
-
-            // If we have a limit and not in readonly mode, filter the accounts.
-            if ($accountslimit > 0 && !$options->readonly) {
-                $sollaccounts = $this->filter_accounts_for_dropdown($accounts, $correctsollkonto, $accountslimit);
-                $habenaccounts = $this->filter_accounts_for_dropdown($accounts, $correcthabenkonto, $accountslimit);
-            } else {
-                // No limit or readonly mode - show all accounts.
-                $sollaccounts = $accounts;
-                $habenaccounts = $accounts;
-            }
-
             $result .= $this->render_entry_row(
-                $qa, $options, $i, $response, $sollaccounts, $habenaccounts,
-                $question, false, $showdelete, $i === 0, $feedbackmap[$i] ?? []
+                $qa, $options, $i, $response, $filteredaccounts, $filteredaccounts,
+                $question, false, !$options->readonly, $i === 0, $feedbackmap[$i] ?? []
             );
         }
 
@@ -129,7 +129,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         // Add a <template> element for JS to clone new rows (only in edit mode).
         if (!$options->readonly) {
-            $result .= $this->render_template_row($qa, $question, $accounts, $templateid);
+            $result .= $this->render_template_row($qa, $question, $filteredaccounts, $templateid);
         }
 
         // Add buttons as a table footer row, positioned below the account columns.
@@ -443,8 +443,8 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      */
     protected function render_account_field(bool $readonly, string $value, string $name, array $accounts, string $feedbackclass = ''): string {
         if ($readonly) {
-            // Look up account name for display.
-            $displayval = \qtype_buchungssatz\entry_helper::format_account_display($value, $accounts);
+            // Look up account name from ID for display.
+            $displayval = \qtype_buchungssatz\entry_helper::format_account_display_by_id((int)$value, $accounts);
             if (empty($displayval)) {
                 $displayval = $value;
             }
@@ -541,29 +541,42 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
     }
 
     /**
-     * Filter accounts for a dropdown based on the accountsindropdown setting.
+     * Filter accounts for dropdowns based on the accountsindropdown setting.
      *
-     * If limit is 0, returns all accounts.
-     * Otherwise, returns the correct account plus the specified number of random other accounts.
-     * E.g., if limit = 3, shows 1 correct + 3 random = 4 accounts total.
+     * Builds a shared pool for all dropdowns: all correct accounts (from all
+     * entries) + all student-selected accounts + N additional random accounts
+     * chosen via a seeded shuffle for determinism across page reloads.
      *
      * @param array $allaccounts All available accounts from the chart.
-     * @param string $correctaccountname The correct account name for this field.
-     * @param int $limit The number of random accounts to add (0 = show all).
+     * @param array $correctaccountids Array of correct account IDs from all entries.
+     * @param int $limit Number of additional random accounts to include (0 = all).
+     * @param array $selectedaccountids Array of student-selected account IDs.
+     * @param int $seed Random seed for deterministic shuffling.
      * @return array The filtered list of account records, sorted by account name.
      */
-    protected function filter_accounts_for_dropdown(array $allaccounts, string $correctaccountname, int $limit): array {
+    protected function filter_accounts_for_dropdown(
+        array $allaccounts,
+        array $correctaccountids,
+        int $limit,
+        array $selectedaccountids = [],
+        int $seed = 0
+    ): array {
         // If limit is 0 or no accounts, return all.
         if ($limit <= 0 || empty($allaccounts)) {
             return $allaccounts;
         }
 
+        // Build lookup sets for O(1) membership testing.
+        $correctset = array_flip($correctaccountids);
+        $selectedset = array_flip($selectedaccountids);
+
         $result = [];
         $otheraccounts = [];
 
-        // Separate the correct account from others.
+        // Separate must-include accounts (correct + selected) from others.
         foreach ($allaccounts as $account) {
-            if ($account->accountname === $correctaccountname) {
+            if (isset($correctset[$account->id]) ||
+                    isset($selectedset[$account->id])) {
                 $result[$account->id] = $account;
             } else {
                 $otheraccounts[$account->id] = $account;
@@ -575,10 +588,10 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             return $allaccounts;
         }
 
-        // Select 'limit' random accounts from the other accounts.
+        // Select 'limit' random accounts using a seeded shuffle for determinism.
         if (!empty($otheraccounts)) {
-            $otherkeys = array_keys($otheraccounts);
-            shuffle($otherkeys);
+            $otherkeys = array_values(array_keys($otheraccounts));
+            $this->seeded_shuffle($otherkeys, $seed);
             $selectedkeys = array_slice($otherkeys, 0, $limit);
 
             foreach ($selectedkeys as $key) {
@@ -592,6 +605,25 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         });
 
         return $result;
+    }
+
+    /**
+     * Shuffle an array in place using a deterministic seed.
+     *
+     * Uses Fisher-Yates (Knuth) shuffle with mt_rand seeded by the given value.
+     *
+     * @param array $array The array to shuffle (modified in place by reference).
+     * @param int $seed The random seed.
+     */
+    protected function seeded_shuffle(array &$array, int $seed): void {
+        mt_srand($seed);
+        $count = count($array);
+        for ($i = $count - 1; $i > 0; $i--) {
+            $j = mt_rand(0, $i);
+            [$array[$i], $array[$j]] = [$array[$j], $array[$i]];
+        }
+        // Reseed to avoid predictable sequences in subsequent mt_rand calls.
+        mt_srand();
     }
 
     /**
@@ -654,11 +686,15 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $html .= html_writer::start_tag('tbody');
         foreach ($question->entries as $entry) {
             $html .= html_writer::start_tag('tr');
-            $html .= html_writer::tag('td', s($this->get_account_display($entry['sollkonto'], $accounts)),
+            $sollname = \qtype_buchungssatz\entry_helper::format_account_display_by_id(
+                (int)($entry['sollkontoid'] ?? 0), $accounts);
+            $habenname = \qtype_buchungssatz\entry_helper::format_account_display_by_id(
+                (int)($entry['habenkontoid'] ?? 0), $accounts);
+            $html .= html_writer::tag('td', s($sollname),
                 ['data-label' => $sollkontostr, 'style' => 'text-align: start;' ]);
             $html .= html_writer::tag('td', $this->format_amount_display($entry['sollbetrag'], $numberformat),
                 ['data-label' => $sollbetragstr, 'style' => 'text-align: end;' ]);
-            $html .= html_writer::tag('td', s($this->get_account_display($entry['habenkonto'], $accounts)),
+            $html .= html_writer::tag('td', s($habenname),
                 ['data-label' => $habenkontostr, 'style' => 'text-align: start;' ]);
             $html .= html_writer::tag('td', $this->format_amount_display($entry['habenbetrag'], $numberformat),
                 ['data-label' => $habenbetragstr, 'style' => 'text-align: end;' ]);
@@ -679,17 +715,6 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $html .= html_writer::end_div();
 
         return $html;
-    }
-
-    /**
-     * Get display string for an account.
-     *
-     * @param string $accountname The account name to display.
-     * @param array $accounts The available accounts (unused, kept for API compatibility).
-     * @return string The account name for display.
-     */
-    protected function get_account_display(string $accountname, array $accounts): string {
-        return \qtype_buchungssatz\entry_helper::format_account_display($accountname, $accounts);
     }
 
     /**
@@ -740,26 +765,26 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             }
         }
 
-        // Aggregate student entries per account per side.
+        // Aggregate student entries per account ID per side.
         $studentaggregated = ['debit' => [], 'credit' => []];
         for ($i = 0; $i <= $maxindex; $i++) {
-            $sollkonto = trim($response["sollkonto_{$i}"] ?? '');
-            $habenkonto = trim($response["habenkonto_{$i}"] ?? '');
+            $sollkontoid = (int)($response["sollkonto_{$i}"] ?? 0);
+            $habenkontoid = (int)($response["habenkonto_{$i}"] ?? 0);
 
-            if (!empty($sollkonto)) {
+            if ($sollkontoid > 0) {
                 $amount = \qtype_buchungssatz\amount_helper::parse_amount($response["sollbetrag_{$i}"] ?? '', $numberformat);
-                if (!isset($studentaggregated['debit'][$sollkonto])) {
-                    $studentaggregated['debit'][$sollkonto] = 0;
+                if (!isset($studentaggregated['debit'][$sollkontoid])) {
+                    $studentaggregated['debit'][$sollkontoid] = 0;
                 }
-                $studentaggregated['debit'][$sollkonto] += $amount;
+                $studentaggregated['debit'][$sollkontoid] += $amount;
             }
 
-            if (!empty($habenkonto)) {
+            if ($habenkontoid > 0) {
                 $amount = \qtype_buchungssatz\amount_helper::parse_amount($response["habenbetrag_{$i}"] ?? '', $numberformat);
-                if (!isset($studentaggregated['credit'][$habenkonto])) {
-                    $studentaggregated['credit'][$habenkonto] = 0;
+                if (!isset($studentaggregated['credit'][$habenkontoid])) {
+                    $studentaggregated['credit'][$habenkontoid] = 0;
                 }
-                $studentaggregated['credit'][$habenkonto] += $amount;
+                $studentaggregated['credit'][$habenkontoid] += $amount;
             }
         }
 
@@ -780,8 +805,8 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         // Map back to individual rows.
         for ($i = 0; $i <= $maxindex; $i++) {
-            $sollkonto = trim($response["sollkonto_{$i}"] ?? '');
-            $habenkonto = trim($response["habenkonto_{$i}"] ?? '');
+            $sollkontoid = (int)($response["sollkonto_{$i}"] ?? 0);
+            $habenkontoid = (int)($response["habenkonto_{$i}"] ?? 0);
 
             $row = [
                 'sollkonto' => '',
@@ -790,14 +815,14 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
                 'habenbetrag' => '',
             ];
 
-            if (!empty($sollkonto) && isset($accountstatus['debit'][$sollkonto])) {
-                $status = $accountstatus['debit'][$sollkonto];
+            if ($sollkontoid > 0 && isset($accountstatus['debit'][$sollkontoid])) {
+                $status = $accountstatus['debit'][$sollkontoid];
                 $row['sollkonto'] = 'buchungssatz-' . $status['account'];
                 $row['sollbetrag'] = 'buchungssatz-' . $status['amount'];
             }
 
-            if (!empty($habenkonto) && isset($accountstatus['credit'][$habenkonto])) {
-                $status = $accountstatus['credit'][$habenkonto];
+            if ($habenkontoid > 0 && isset($accountstatus['credit'][$habenkontoid])) {
+                $status = $accountstatus['credit'][$habenkontoid];
                 $row['habenkonto'] = 'buchungssatz-' . $status['account'];
                 $row['habenbetrag'] = 'buchungssatz-' . $status['amount'];
             }
@@ -976,21 +1001,21 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         foreach ($entries as $entry) {
             // Aggregate Debit (Soll) side.
-            $sollkonto = $entry['sollkonto'] ?? '';
-            if (!empty($sollkonto)) {
-                if (!isset($aggregated['debit'][$sollkonto])) {
-                    $aggregated['debit'][$sollkonto] = 0;
+            $sollkontoid = (int)($entry['sollkontoid'] ?? 0);
+            if ($sollkontoid > 0) {
+                if (!isset($aggregated['debit'][$sollkontoid])) {
+                    $aggregated['debit'][$sollkontoid] = 0;
                 }
-                $aggregated['debit'][$sollkonto] += (float)($entry['sollbetrag'] ?? 0);
+                $aggregated['debit'][$sollkontoid] += (float)($entry['sollbetrag'] ?? 0);
             }
 
             // Aggregate Credit (Haben) side.
-            $habenkonto = $entry['habenkonto'] ?? '';
-            if (!empty($habenkonto)) {
-                if (!isset($aggregated['credit'][$habenkonto])) {
-                    $aggregated['credit'][$habenkonto] = 0;
+            $habenkontoid = (int)($entry['habenkontoid'] ?? 0);
+            if ($habenkontoid > 0) {
+                if (!isset($aggregated['credit'][$habenkontoid])) {
+                    $aggregated['credit'][$habenkontoid] = 0;
                 }
-                $aggregated['credit'][$habenkonto] += (float)($entry['habenbetrag'] ?? 0);
+                $aggregated['credit'][$habenkontoid] += (float)($entry['habenbetrag'] ?? 0);
             }
         }
 
@@ -1016,14 +1041,14 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         }
 
         for ($i = 0; $i <= $maxindex; $i++) {
-            $sollkonto = trim($response["sollkonto_{$i}"] ?? '');
-            $habenkonto = trim($response["habenkonto_{$i}"] ?? '');
+            $sollkontoid = (int)($response["sollkonto_{$i}"] ?? 0);
+            $habenkontoid = (int)($response["habenkonto_{$i}"] ?? 0);
 
-            if (!empty($sollkonto) || !empty($habenkonto)) {
+            if ($sollkontoid > 0 || $habenkontoid > 0) {
                 $entries[] = [
-                    'sollkonto' => $sollkonto,
+                    'sollkontoid' => $sollkontoid,
                     'sollbetrag' => \qtype_buchungssatz\amount_helper::parse_amount($response["sollbetrag_{$i}"] ?? '', $numberformat),
-                    'habenkonto' => $habenkonto,
+                    'habenkontoid' => $habenkontoid,
                     'habenbetrag' => \qtype_buchungssatz\amount_helper::parse_amount($response["habenbetrag_{$i}"] ?? '', $numberformat),
                 ];
             }

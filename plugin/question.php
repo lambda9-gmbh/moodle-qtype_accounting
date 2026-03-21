@@ -57,6 +57,12 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /** @var bool If true, only full or zero marks (no partial credit). */
     public $allornothinggrading;
 
+    /** @var int|null Random seed for deterministic dropdown filtering. */
+    public $dropdownseed;
+
+    /** @var array Map of account ID => account name for display lookups. */
+    public $accountsmap = [];
+
     /**
      * Find the highest entry index present across one or more response arrays.
      *
@@ -98,9 +104,9 @@ class qtype_buchungssatz_question extends question_graded_automatically {
             }
         }
         for ($i = 0; $i <= $maxindex; $i++) {
-            $expected["sollkonto_{$i}"] = PARAM_TEXT;
+            $expected["sollkonto_{$i}"] = PARAM_RAW;
             $expected["sollbetrag_{$i}"] = PARAM_RAW;
-            $expected["habenkonto_{$i}"] = PARAM_TEXT;
+            $expected["habenkonto_{$i}"] = PARAM_RAW;
             $expected["habenbetrag_{$i}"] = PARAM_RAW;
         }
 
@@ -116,9 +122,9 @@ class qtype_buchungssatz_question extends question_graded_automatically {
         $response = [];
 
         foreach ($this->entries as $i => $entry) {
-            $response["sollkonto_{$i}"] = $entry['sollkonto'];
+            $response["sollkonto_{$i}"] = $entry['sollkontoid'] ?? 0;
             $response["sollbetrag_{$i}"] = $entry['sollbetrag'];
-            $response["habenkonto_{$i}"] = $entry['habenkonto'];
+            $response["habenkonto_{$i}"] = $entry['habenkontoid'] ?? 0;
             $response["habenbetrag_{$i}"] = $entry['habenbetrag'];
         }
 
@@ -136,17 +142,19 @@ class qtype_buchungssatz_question extends question_graded_automatically {
         $max = self::get_max_entry_index($response);
 
         for ($i = 0; $i <= $max; $i++) {
-            $sollkonto = $response["sollkonto_{$i}"] ?? '';
+            $sollkontoid = (int)($response["sollkonto_{$i}"] ?? 0);
             $sollbetrag = $response["sollbetrag_{$i}"] ?? '';
-            $habenkonto = $response["habenkonto_{$i}"] ?? '';
+            $habenkontoid = (int)($response["habenkonto_{$i}"] ?? 0);
             $habenbetrag = $response["habenbetrag_{$i}"] ?? '';
 
-            if (!empty($sollkonto) || !empty($habenkonto)) {
+            if ($sollkontoid > 0 || $habenkontoid > 0) {
+                $sollname = $this->accountsmap[$sollkontoid] ?? '';
+                $habenname = $this->accountsmap[$habenkontoid] ?? '';
                 $parts[] = sprintf(
                     "%s %.2f / %s %.2f",
-                    $sollkonto,
+                    $sollname,
                     (float)$sollbetrag,
-                    $habenkonto,
+                    $habenname,
                     (float)$habenbetrag
                 );
             }
@@ -165,10 +173,10 @@ class qtype_buchungssatz_question extends question_graded_automatically {
         // Response is complete if any entry has an account filled in.
         $max = self::get_max_entry_index($response);
         for ($i = 0; $i <= $max; $i++) {
-            $sollkonto = trim($response["sollkonto_{$i}"] ?? '');
-            $habenkonto = trim($response["habenkonto_{$i}"] ?? '');
+            $sollkontoid = (int)($response["sollkonto_{$i}"] ?? 0);
+            $habenkontoid = (int)($response["habenkonto_{$i}"] ?? 0);
 
-            if (!empty($sollkonto) || !empty($habenkonto)) {
+            if ($sollkontoid > 0 || $habenkontoid > 0) {
                 return true;
             }
         }
@@ -242,7 +250,7 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /**
      * Calculate the fraction of correctness using aggregation-based weighted scoring.
      *
-     * The algorithm aggregates entries by account on each side (Debit/Credit):
+     * The algorithm aggregates entries by account ID on each side (Debit/Credit):
      * 1. Aggregate correct entries: sum amounts and weights for same account on same side
      * 2. Aggregate student entries: sum amounts for same account on same side
      * 3. Compare aggregated answers: for each account in correct answer, check if student
@@ -283,13 +291,13 @@ class qtype_buchungssatz_question extends question_graded_automatically {
         $earnedweight = 0;
 
         // Check Debit (Soll) side.
-        foreach ($correctaggregated['debit'] as $account => $correctdata) {
-            if (isset($studentaggregated['debit'][$account])) {
+        foreach ($correctaggregated['debit'] as $accountid => $correctdata) {
+            if (isset($studentaggregated['debit'][$accountid])) {
                 // Student has this account on debit side - earn account weight.
                 $earnedweight += $correctdata['weight_account'];
 
                 // Check if amount matches (with floating-point tolerance).
-                if ($this->amounts_equal($studentaggregated['debit'][$account]['amount'], $correctdata['amount'])) {
+                if ($this->amounts_equal($studentaggregated['debit'][$accountid]['amount'], $correctdata['amount'])) {
                     $earnedweight += $correctdata['weight_amount'];
                 }
             }
@@ -297,13 +305,13 @@ class qtype_buchungssatz_question extends question_graded_automatically {
         }
 
         // Check Credit (Haben) side.
-        foreach ($correctaggregated['credit'] as $account => $correctdata) {
-            if (isset($studentaggregated['credit'][$account])) {
+        foreach ($correctaggregated['credit'] as $accountid => $correctdata) {
+            if (isset($studentaggregated['credit'][$accountid])) {
                 // Student has this account on credit side - earn account weight.
                 $earnedweight += $correctdata['weight_account'];
 
                 // Check if amount matches (with floating-point tolerance).
-                if ($this->amounts_equal($studentaggregated['credit'][$account]['amount'], $correctdata['amount'])) {
+                if ($this->amounts_equal($studentaggregated['credit'][$accountid]['amount'], $correctdata['amount'])) {
                     $earnedweight += $correctdata['weight_amount'];
                 }
             }
@@ -315,13 +323,13 @@ class qtype_buchungssatz_question extends question_graded_automatically {
         // Count extra accounts (student accounts not in the correct answer).
         if (!empty($this->extraentrydeduction)) {
             $extracount = 0;
-            foreach (array_keys($studentaggregated['debit']) as $account) {
-                if (!isset($correctaggregated['debit'][$account])) {
+            foreach (array_keys($studentaggregated['debit']) as $accountid) {
+                if (!isset($correctaggregated['debit'][$accountid])) {
                     $extracount++;
                 }
             }
-            foreach (array_keys($studentaggregated['credit']) as $account) {
-                if (!isset($correctaggregated['credit'][$account])) {
+            foreach (array_keys($studentaggregated['credit']) as $accountid) {
+                if (!isset($correctaggregated['credit'][$accountid])) {
                     $extracount++;
                 }
             }
@@ -338,16 +346,15 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     }
 
     /**
-     * Aggregate entries by account on each side (Debit/Credit).
+     * Aggregate entries by account ID on each side (Debit/Credit).
      *
      * For each account on each side, sums the amounts.
      * For correct entries, also sums the weights.
-     * Account names are normalized to lowercase for case-insensitive matching.
      *
      * @param array $entries The entries to aggregate.
      * @param bool $includweights Whether to include and aggregate weights (for correct entries).
      * @return array Aggregated data with 'debit' and 'credit' keys, each containing
-     *               account => ['amount' => float, 'weight_account' => int, 'weight_amount' => int].
+     *               accountid => ['amount' => float, 'weight_account' => int, 'weight_amount' => int].
      */
     protected function aggregate_entries(array $entries, bool $includweights): array {
         $aggregated = [
@@ -357,38 +364,36 @@ class qtype_buchungssatz_question extends question_graded_automatically {
 
         foreach ($entries as $entry) {
             // Aggregate Debit (Soll) side.
-            // Normalize account name to lowercase for case-insensitive matching.
-            $sollkonto = strtolower(trim($entry['sollkonto'] ?? ''));
-            if (!empty($sollkonto)) {
-                if (!isset($aggregated['debit'][$sollkonto])) {
-                    $aggregated['debit'][$sollkonto] = [
+            $sollkontoid = (int)($entry['sollkontoid'] ?? 0);
+            if ($sollkontoid > 0) {
+                if (!isset($aggregated['debit'][$sollkontoid])) {
+                    $aggregated['debit'][$sollkontoid] = [
                         'amount' => 0,
                         'weight_account' => 0,
                         'weight_amount' => 0,
                     ];
                 }
-                $aggregated['debit'][$sollkonto]['amount'] += (float)($entry['sollbetrag'] ?? 0);
+                $aggregated['debit'][$sollkontoid]['amount'] += (float)($entry['sollbetrag'] ?? 0);
                 if ($includweights) {
-                    $aggregated['debit'][$sollkonto]['weight_account'] += ($entry['weight_sollkonto'] ?? 1);
-                    $aggregated['debit'][$sollkonto]['weight_amount'] += ($entry['weight_sollbetrag'] ?? 1);
+                    $aggregated['debit'][$sollkontoid]['weight_account'] += ($entry['weight_sollkonto'] ?? 1);
+                    $aggregated['debit'][$sollkontoid]['weight_amount'] += ($entry['weight_sollbetrag'] ?? 1);
                 }
             }
 
             // Aggregate Credit (Haben) side.
-            // Normalize account name to lowercase for case-insensitive matching.
-            $habenkonto = strtolower(trim($entry['habenkonto'] ?? ''));
-            if (!empty($habenkonto)) {
-                if (!isset($aggregated['credit'][$habenkonto])) {
-                    $aggregated['credit'][$habenkonto] = [
+            $habenkontoid = (int)($entry['habenkontoid'] ?? 0);
+            if ($habenkontoid > 0) {
+                if (!isset($aggregated['credit'][$habenkontoid])) {
+                    $aggregated['credit'][$habenkontoid] = [
                         'amount' => 0,
                         'weight_account' => 0,
                         'weight_amount' => 0,
                     ];
                 }
-                $aggregated['credit'][$habenkonto]['amount'] += (float)($entry['habenbetrag'] ?? 0);
+                $aggregated['credit'][$habenkontoid]['amount'] += (float)($entry['habenbetrag'] ?? 0);
                 if ($includweights) {
-                    $aggregated['credit'][$habenkonto]['weight_account'] += ($entry['weight_habenkonto'] ?? 1);
-                    $aggregated['credit'][$habenkonto]['weight_amount'] += ($entry['weight_habenbetrag'] ?? 1);
+                    $aggregated['credit'][$habenkontoid]['weight_account'] += ($entry['weight_habenkonto'] ?? 1);
+                    $aggregated['credit'][$habenkontoid]['weight_amount'] += ($entry['weight_habenbetrag'] ?? 1);
                 }
             }
         }
@@ -419,14 +424,14 @@ class qtype_buchungssatz_question extends question_graded_automatically {
         $max = self::get_max_entry_index($response);
 
         for ($i = 0; $i <= $max; $i++) {
-            $sollkonto = trim($response["sollkonto_{$i}"] ?? '');
-            $habenkonto = trim($response["habenkonto_{$i}"] ?? '');
+            $sollkontoid = (int)($response["sollkonto_{$i}"] ?? 0);
+            $habenkontoid = (int)($response["habenkonto_{$i}"] ?? 0);
 
-            if (!empty($sollkonto) || !empty($habenkonto)) {
+            if ($sollkontoid > 0 || $habenkontoid > 0) {
                 $entries[] = [
-                    'sollkonto' => $sollkonto,
+                    'sollkontoid' => $sollkontoid,
                     'sollbetrag' => \qtype_buchungssatz\amount_helper::parse_amount($response["sollbetrag_{$i}"] ?? '', $this->numberformat),
-                    'habenkonto' => $habenkonto,
+                    'habenkontoid' => $habenkontoid,
                     'habenbetrag' => \qtype_buchungssatz\amount_helper::parse_amount($response["habenbetrag_{$i}"] ?? '', $this->numberformat),
                 ];
             }
@@ -448,5 +453,50 @@ class qtype_buchungssatz_question extends question_graded_automatically {
             $fraction = max($fraction, $this->calculate_fraction($response));
         }
         return $fraction;
+    }
+
+    /**
+     * Set up the random seed for dropdown account filtering when an attempt starts.
+     *
+     * @param question_attempt_step $step The first step of the attempt.
+     * @param int $variant The question variant.
+     */
+    public function start_attempt(question_attempt_step $step, $variant): void {
+        parent::start_attempt($step, $variant);
+        $step->set_qt_var('_dropdownseed', (string) mt_rand());
+    }
+
+    /**
+     * Restore the random seed for dropdown account filtering from a prior attempt step.
+     *
+     * @param question_attempt_step $step The step containing the saved state.
+     */
+    public function apply_attempt_state(question_attempt_step $step): void {
+        parent::apply_attempt_state($step);
+        $seed = $step->get_qt_var('_dropdownseed');
+        if ($seed !== null && $seed !== '') {
+            $this->dropdownseed = (int) $seed;
+        } else {
+            // Fallback for attempts started before this feature.
+            $this->dropdownseed = crc32('buchungssatz_' . $this->id);
+        }
+    }
+
+    /**
+     * Get all unique correct account IDs from all entries (both soll and haben).
+     *
+     * @return array List of unique account ID integers.
+     */
+    public function get_all_correct_account_ids(): array {
+        $ids = [];
+        foreach ($this->entries as $entry) {
+            foreach (['sollkontoid', 'habenkontoid'] as $field) {
+                $val = (int)($entry[$field] ?? 0);
+                if ($val > 0) {
+                    $ids[$val] = true;
+                }
+            }
+        }
+        return array_keys($ids);
     }
 }

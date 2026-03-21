@@ -165,11 +165,11 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         // These fields receive their values from the visible form fields via JavaScript on submit.
         for ($i = 0; $i < 20; $i++) {
             $mform->addElement('hidden', "sollkonto[$i]", '');
-            $mform->setType("sollkonto[$i]", PARAM_TEXT);
+            $mform->setType("sollkonto[$i]", PARAM_RAW);
             $mform->addElement('hidden', "sollbetrag[$i]", '');
             $mform->setType("sollbetrag[$i]", PARAM_RAW);
             $mform->addElement('hidden', "habenkonto[$i]", '');
-            $mform->setType("habenkonto[$i]", PARAM_TEXT);
+            $mform->setType("habenkonto[$i]", PARAM_RAW);
             $mform->addElement('hidden', "habenbetrag[$i]", '');
             $mform->setType("habenbetrag[$i]", PARAM_RAW);
             $mform->addElement('hidden', "weight_sollkonto[$i]", '1');
@@ -312,9 +312,9 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $weightstr = get_string('weight', 'qtype_buchungssatz');
 
         // Get existing values.
-        $sollkonto = $entry->sollkonto ?? '';
+        $sollkonto = $entry->sollkontoid ?? '';
         $sollbetragraw = $entry->sollbetrag ?? '';
-        $habenkonto = $entry->habenkonto ?? '';
+        $habenkonto = $entry->habenkontoid ?? '';
         $habenbetragraw = $entry->habenbetrag ?? '';
         $weightsollkonto = (int)($entry->weight_sollkonto ?? 1);
         $weightsollbetrag = (int)($entry->weight_sollbetrag ?? 1);
@@ -434,7 +434,7 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
                 ['chartid' => $chartid], 'accountname');
             $result[$chartid] = [];
             foreach ($accounts as $account) {
-                $result[$chartid][$account->accountname] = $account->accountname;
+                $result[$chartid][$account->id] = $account->accountname;
             }
         }
 
@@ -519,9 +519,9 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
             if (!empty($question->options->entries)) {
                 $i = 0;
                 foreach ($question->options->entries as $entry) {
-                    $question->sollkonto[$i] = $entry->sollkonto;
+                    $question->sollkonto[$i] = $entry->sollkontoid ?? '';
                     $question->sollbetrag[$i] = $entry->sollbetrag;
-                    $question->habenkonto[$i] = $entry->habenkonto;
+                    $question->habenkonto[$i] = $entry->habenkontoid ?? '';
                     $question->habenbetrag[$i] = $entry->habenbetrag;
                     $question->weight_sollkonto[$i] = $entry->weight_sollkonto ?? 1;
                     $question->weight_sollbetrag[$i] = $entry->weight_sollbetrag ?? 1;
@@ -557,18 +557,18 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $allindices = array_unique(array_merge(array_keys($sollkontoarray), array_keys($habenkontoarray)));
 
         foreach ($allindices as $i) {
-            $sollkonto = trim($data['sollkonto'][$i] ?? '');
-            $habenkonto = trim($data['habenkonto'][$i] ?? '');
+            $sollkontoid = (int)($data['sollkonto'][$i] ?? 0);
+            $habenkontoid = (int)($data['habenkonto'][$i] ?? 0);
             $sollbetragraw = trim($data['sollbetrag'][$i] ?? '');
             $habenbetragraw = trim($data['habenbetrag'][$i] ?? '');
 
             // Skip completely empty entries.
-            if (empty($sollkonto) && $sollbetragraw === '' && empty($habenkonto) && $habenbetragraw === '') {
+            if ($sollkontoid === 0 && $sollbetragraw === '' && $habenkontoid === 0 && $habenbetragraw === '') {
                 continue;
             }
 
             // Debit amount is required if debit account is selected.
-            if (!empty($sollkonto)) {
+            if ($sollkontoid > 0) {
                 if ($sollbetragraw === '') {
                     $errors["sollbetrag[$i]"] = get_string('err_sollbetragrequired', 'qtype_buchungssatz');
                 } else if (floatval($sollbetragraw) < 0) {
@@ -577,7 +577,7 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
             }
 
             // Credit amount is required if credit account is selected.
-            if (!empty($habenkonto)) {
+            if ($habenkontoid > 0) {
                 if ($habenbetragraw === '') {
                     $errors["habenbetrag[$i]"] = get_string('err_habenamountrequired', 'qtype_buchungssatz');
                 } else if (floatval($habenbetragraw) < 0) {

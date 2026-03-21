@@ -34,9 +34,9 @@ class entry_helper {
      * @param string $habenkonto The credit account value.
      * @return string The entry type: 'both', 'debit', or 'credit'.
      */
-    public static function determine_entry_type(string $sollkonto, string $habenkonto): string {
-        $hassoll = !empty($sollkonto);
-        $hashaben = !empty($habenkonto);
+    public static function determine_entry_type($sollkonto, $habenkonto): string {
+        $hassoll = !empty($sollkonto) && (string)$sollkonto !== '0';
+        $hashaben = !empty($habenkonto) && (string)$habenkonto !== '0';
         if ($hassoll && $hashaben) {
             return 'both';
         } else if ($hassoll) {
@@ -95,29 +95,33 @@ class entry_helper {
         }
         foreach ($accounts as $key => $value) {
             if (is_object($value)) {
-                $accountname = $value->accountname;
+                $optionvalue = (string)$value->id;
                 $label = $value->accountname;
             } else {
-                $accountname = (string)$key;
+                // Associative array: key = account ID, value = account name.
+                $optionvalue = (string)$key;
                 $label = $value;
             }
-            $selectedattr = ((string)$accountname === (string)$selected) ? ' selected' : '';
-            $html .= '<option value="' . s($accountname) . '"' . $selectedattr . '>' . s($label) . '</option>';
+            $selectedattr = ($optionvalue === (string)$selected) ? ' selected' : '';
+            $html .= '<option value="' . s($optionvalue) . '"' . $selectedattr . '>' . s($label) . '</option>';
         }
         return $html;
     }
 
     /**
-     * Format an account name for display.
+     * Format an account name for display by looking up from ID.
      *
-     * @param string $accountname The account name to display.
-     * @param array $accounts The available accounts (unused, kept for API compatibility).
-     * @return string The account name, or empty string if empty.
+     * @param int $accountid The account ID.
+     * @param array $accounts Account records keyed by ID (from Moodle's get_records).
+     * @return string The account name, or empty string if not found.
      */
-    public static function format_account_display(string $accountname, array $accounts): string {
-        if (empty($accountname)) {
+    public static function format_account_display_by_id(int $accountid, array $accounts): string {
+        if ($accountid <= 0) {
             return '';
         }
-        return $accountname;
+        if (isset($accounts[$accountid])) {
+            return $accounts[$accountid]->accountname;
+        }
+        return '';
     }
 }

@@ -140,20 +140,20 @@ class qtype_buchungssatz extends question_type {
         sort($allindices);
 
         foreach ($allindices as $i) {
-            $sollkonto = trim($sollkontoarray[$i] ?? '');
-            $habenkonto = trim($habenkontoarray[$i] ?? '');
+            $sollkontoid = intval($sollkontoarray[$i] ?? 0);
+            $habenkontoid = intval($habenkontoarray[$i] ?? 0);
 
             // Save entries that have either a Debit (Soll) or Credit (Haben) account.
-            if (empty($sollkonto) && empty($habenkonto)) {
+            if (empty($sollkontoid) && empty($habenkontoid)) {
                 continue;
             }
 
             $record = new stdClass();
             $record->questionid = $question->id;
             $record->sortorder = $sortorder++;
-            $record->sollkonto = $sollkonto;
+            $record->sollkontoid = $sollkontoid ?: null;
             $record->sollbetrag = floatval($sollbetragarray[$i] ?? 0);
-            $record->habenkonto = $habenkonto;
+            $record->habenkontoid = $habenkontoid ?: null;
             $record->habenbetrag = floatval($habenbetragarray[$i] ?? 0);
             $record->weight_sollkonto = intval($weightsollkontoarray[$i] ?? 1);
             $record->weight_sollbetrag = intval($weightsollbetragarray[$i] ?? 1);
@@ -206,6 +206,7 @@ class qtype_buchungssatz extends question_type {
      * @param object $questiondata The question data from the database.
      */
     protected function initialise_question_instance(question_definition $question, $questiondata): void {
+        global $DB;
         parent::initialise_question_instance($question, $questiondata);
 
         $question->chartofaccountsid = $questiondata->options->chartofaccountsid ?? 0;
@@ -220,9 +221,9 @@ class qtype_buchungssatz extends question_type {
         if (!empty($questiondata->options->entries)) {
             foreach ($questiondata->options->entries as $entry) {
                 $question->entries[] = [
-                    'sollkonto' => $entry->sollkonto,
+                    'sollkontoid' => $entry->sollkontoid ? (int) $entry->sollkontoid : null,
                     'sollbetrag' => $entry->sollbetrag,
-                    'habenkonto' => $entry->habenkonto,
+                    'habenkontoid' => $entry->habenkontoid ? (int) $entry->habenkontoid : null,
                     'habenbetrag' => $entry->habenbetrag,
                     'weight_sollkonto' => $entry->weight_sollkonto ?? 1,
                     'weight_sollbetrag' => $entry->weight_sollbetrag ?? 1,
@@ -230,6 +231,16 @@ class qtype_buchungssatz extends question_type {
                     'weight_habenbetrag' => $entry->weight_habenbetrag ?? 1,
                     'explanation' => $entry->explanation ?? '',
                 ];
+            }
+        }
+
+        // Load account lookup map for display (ID => name).
+        $question->accountsmap = [];
+        if ($question->chartofaccountsid > 0) {
+            $accounts = $DB->get_records('qtype_buchungssatz_accounts',
+                ['chartid' => $question->chartofaccountsid]);
+            foreach ($accounts as $acc) {
+                $question->accountsmap[$acc->id] = $acc->accountname;
             }
         }
     }
@@ -295,15 +306,25 @@ class qtype_buchungssatz extends question_type {
         // Parent exports the extra_question_fields (options table fields).
         $expout = parent::export_to_xml($question, $format, $extra);
 
-        // Export correct answer entries.
+        // Export correct answer entries. Resolve IDs to names for portable XML.
         if (!empty($question->options->entries)) {
             $expout .= "    <entries>\n";
             foreach ($question->options->entries as $entry) {
+                $sollname = '';
+                if (!empty($entry->sollkontoid)) {
+                    $acc = $DB->get_record('qtype_buchungssatz_accounts', ['id' => $entry->sollkontoid]);
+                    $sollname = $acc ? $acc->accountname : '';
+                }
+                $habenname = '';
+                if (!empty($entry->habenkontoid)) {
+                    $acc = $DB->get_record('qtype_buchungssatz_accounts', ['id' => $entry->habenkontoid]);
+                    $habenname = $acc ? $acc->accountname : '';
+                }
                 $expout .= "      <entry>\n";
                 $expout .= "        <sortorder>{$entry->sortorder}</sortorder>\n";
-                $expout .= "        <sollkonto>" . $format->xml_escape($entry->sollkonto) . "</sollkonto>\n";
+                $expout .= "        <sollkonto>" . $format->xml_escape($sollname) . "</sollkonto>\n";
                 $expout .= "        <sollbetrag>{$entry->sollbetrag}</sollbetrag>\n";
-                $expout .= "        <habenkonto>" . $format->xml_escape($entry->habenkonto) . "</habenkonto>\n";
+                $expout .= "        <habenkonto>" . $format->xml_escape($habenname) . "</habenkonto>\n";
                 $expout .= "        <habenbetrag>{$entry->habenbetrag}</habenbetrag>\n";
                 $expout .= "        <weight_sollkonto>" . ($entry->weight_sollkonto ?? 1) . "</weight_sollkonto>\n";
                 $expout .= "        <weight_sollbetrag>" . ($entry->weight_sollbetrag ?? 1) . "</weight_sollbetrag>\n";
@@ -443,6 +464,19 @@ class qtype_buchungssatz extends question_type {
                     }
 
                     $qo->chartofaccountsid = $chartid;
+
+                    // Resolve imported account names to IDs.
+                    $chartaccounts = \qtype_buchungssatz\chart_manager::get_accounts($chartid);
+                    $nametoid = [];
+                    foreach ($chartaccounts as $acc) {
+                        $nametoid[$acc->accountname] = $acc->id;
+                    }
+                    foreach ($qo->sollkonto as $idx => $name) {
+                        $qo->sollkonto[$idx] = $nametoid[$name] ?? 0;
+                    }
+                    foreach ($qo->habenkonto as $idx => $name) {
+                        $qo->habenkonto[$idx] = $nametoid[$name] ?? 0;
+                    }
                 }
             }
         }

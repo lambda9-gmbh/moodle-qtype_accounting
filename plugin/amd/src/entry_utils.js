@@ -23,7 +23,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['core/str'], function(Str) {
+define(['jquery', 'core/str'], function($, Str) {
 
     /** CSS class used to hide cells based on entry type. */
     var HIDDEN_CLASS = 'buchungssatz-hidden-cell';
@@ -232,6 +232,8 @@ define(['core/str'], function(Str) {
         var selects = cell.querySelectorAll('select');
         for (var i = 0; i < selects.length; i++) {
             selects[i].value = '';
+            // Notify Select2 of the change so its display stays in sync.
+            $(selects[i]).trigger('change');
         }
         var inputs = cell.querySelectorAll('input');
         for (var j = 0; j < inputs.length; j++) {
@@ -259,6 +261,9 @@ define(['core/str'], function(Str) {
 
         var sollVal = getFieldValue(sollCell);
         var habenVal = getFieldValue(habenCell);
+        // Treat "0" as empty (account ID 0 = no account selected).
+        if (sollVal === '0') { sollVal = ''; }
+        if (habenVal === '0') { habenVal = ''; }
 
         if (sollVal && habenVal) {
             return 'both';
@@ -298,6 +303,9 @@ define(['core/str'], function(Str) {
         var cells = el.querySelectorAll('td');
         var sollVal = getFieldValue(cells[COL.SOLL_ACCOUNT]);
         var habenVal = getFieldValue(cells[COL.HABEN_ACCOUNT]);
+        // Treat "0" as empty (account ID 0 = no account selected).
+        if (sollVal === '0') { sollVal = ''; }
+        if (habenVal === '0') { habenVal = ''; }
         return !sollVal && !habenVal;
     }
 

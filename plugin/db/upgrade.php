@@ -300,5 +300,62 @@ function xmldb_qtype_buchungssatz_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2024010129, 'qtype', 'buchungssatz');
     }
 
+    if ($oldversion < 2024010130) {
+        // Refactor: Replace name-based account references with ID-based references.
+        $table = new xmldb_table('qtype_buchungssatz_entries');
+
+        // Step 1: Add new integer ID columns.
+        $field = new xmldb_field('sollkontoid', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'sortorder');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('habenkontoid', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'sollbetrag');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Step 2: Migrate existing name-based data to IDs.
+        $entries = $DB->get_records('qtype_buchungssatz_entries');
+        foreach ($entries as $entry) {
+            $options = $DB->get_record('qtype_buchungssatz_options', ['questionid' => $entry->questionid]);
+            if (!$options || !$options->chartofaccountsid) {
+                continue;
+            }
+            $chartid = $options->chartofaccountsid;
+
+            if (!empty($entry->sollkonto)) {
+                $acc = $DB->get_record('qtype_buchungssatz_accounts',
+                    ['chartid' => $chartid, 'accountname' => $entry->sollkonto]);
+                if ($acc) {
+                    $entry->sollkontoid = $acc->id;
+                }
+            }
+
+            if (!empty($entry->habenkonto)) {
+                $acc = $DB->get_record('qtype_buchungssatz_accounts',
+                    ['chartid' => $chartid, 'accountname' => $entry->habenkonto]);
+                if ($acc) {
+                    $entry->habenkontoid = $acc->id;
+                }
+            }
+
+            $DB->update_record('qtype_buchungssatz_entries', $entry);
+        }
+
+        // Step 3: Drop old name-based columns.
+        $field = new xmldb_field('sollkonto');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        $field = new xmldb_field('habenkonto');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2024010130, 'qtype', 'buchungssatz');
+    }
+
     return true;
 }

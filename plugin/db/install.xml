@@ -24,9 +24,9 @@
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
         <FIELD NAME="sortorder" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Order of the entry"/>
-        <FIELD NAME="sollkonto" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Debit account name"/>
+        <FIELD NAME="sollkontoid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Foreign key to accounts.id for debit account"/>
         <FIELD NAME="sollbetrag" TYPE="number" LENGTH="15" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Debit amount"/>
-        <FIELD NAME="habenkonto" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Credit account name"/>
+        <FIELD NAME="habenkontoid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Foreign key to accounts.id for credit account"/>
         <FIELD NAME="habenbetrag" TYPE="number" LENGTH="15" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Credit amount"/>
         <FIELD NAME="weight_sollkonto" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Weight for debit account"/>
         <FIELD NAME="weight_sollbetrag" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Weight for debit amount"/>

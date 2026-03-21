@@ -143,12 +143,20 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
         }
 
         // Auto-copy amount from Soll to Haben for convenience (delegated for cloned rows).
+        // Only copies when the row is a debit-only entry that just got its credit side added,
+        // i.e., when the credit amount is truly empty and the user hasn't interacted with it.
         container.on('change', 'input[name*="sollbetrag"]', function() {
-            const index = $(this).attr('name').match(/\d+/)[0];
-            const habenInput = container.find('input[name*="habenbetrag_' + index + '"]');
+            const match = $(this).attr('name').match(/_(\d+)$/);
+            if (!match) {
+                return;
+            }
+            const index = match[1];
+            const row = $(this).closest('.buchungssatz-entry-row');
+            const entryType = row.attr('data-entry-type');
+            const habenInput = container.find('input[name$="habenbetrag_' + index + '"]');
 
-            // Only auto-fill if Haben is empty.
-            if (habenInput.val() === '' || habenInput.val() === '0') {
+            // Only auto-fill for debit-only entries (not when both sides are visible).
+            if (entryType === 'debit' && (habenInput.val() === '' || habenInput.val() === '0')) {
                 habenInput.val($(this).val());
             }
         });
@@ -200,6 +208,8 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
             var form = container.closest('form');
             if (form.length) {
                 form.on('submit', function() {
+                    // Save original states so we can restore if submission is intercepted.
+                    var savedStates = [];
                     var writeIndex = 0;
                     container.find(ROW_SELECTOR).each(function() {
                         var $row = $(this);
@@ -208,18 +218,35 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
 
                         if (isHidden || isEmpty) {
                             // Exclude from form submission.
-                            $row.find('select, input').prop('disabled', true);
+                            $row.find('select, input').each(function() {
+                                savedStates.push({el: this, disabled: this.disabled, name: $(this).attr('name')});
+                                $(this).prop('disabled', true);
+                            });
                         } else {
                             // Re-index fields to ensure contiguous indices.
                             $row.find('select, input').each(function() {
                                 var name = $(this).attr('name');
                                 if (name) {
+                                    savedStates.push({el: this, disabled: this.disabled, name: name});
                                     $(this).attr('name', name.replace(/_\d+$/, '_' + writeIndex));
                                 }
                             });
                             writeIndex++;
                         }
                     });
+
+                    // Restore original states after the event loop tick. If the page
+                    // reloads (normal POST), this never fires. If submission was
+                    // intercepted (AJAX, validation), this restores the DOM.
+                    setTimeout(function() {
+                        for (var i = 0; i < savedStates.length; i++) {
+                            var s = savedStates[i];
+                            s.el.disabled = s.disabled;
+                            if (s.name) {
+                                $(s.el).attr('name', s.name);
+                            }
+                        }
+                    }, 0);
                 });
             }
 

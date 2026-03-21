@@ -63,7 +63,7 @@ class backup_qtype_buchungssatz_plugin extends backup_qtype_plugin {
         // Entries with current weight fields and explanation.
         $entries = new backup_nested_element('buchungssatz_entries');
         $entry = new backup_nested_element('entry', ['id'],
-            ['sortorder', 'sollkonto', 'sollbetrag', 'habenkonto', 'habenbetrag',
+            ['sortorder', 'sollkontoid', 'sollbetrag', 'habenkontoid', 'habenbetrag',
              'weight_sollkonto', 'weight_sollbetrag', 'weight_habenkonto', 'weight_habenbetrag',
              'explanation']);
 

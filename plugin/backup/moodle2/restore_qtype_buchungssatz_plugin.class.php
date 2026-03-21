@@ -168,6 +168,16 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
         // Remove old fraction field if present (no longer used).
         unset($data->fraction);
 
+        // Backward compatibility: convert old name-based sollkonto/habenkonto to IDs.
+        if (isset($data->sollkonto) && !isset($data->sollkontoid)) {
+            $data->sollkontoid = $this->resolve_account_name_to_id($data->sollkonto, $data->questionid);
+            unset($data->sollkonto);
+        }
+        if (isset($data->habenkonto) && !isset($data->habenkontoid)) {
+            $data->habenkontoid = $this->resolve_account_name_to_id($data->habenkonto, $data->questionid);
+            unset($data->habenkonto);
+        }
+
         $DB->insert_record('qtype_buchungssatz_entries', $data);
     }
 
@@ -228,5 +238,32 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
         self::$chartidcache[$cachekey] = $chartid;
 
         return $chartid;
+    }
+
+    /**
+     * Resolve an account name to its ID within the question's chart.
+     *
+     * Used for backward compatibility when restoring old backups with name-based entries.
+     *
+     * @param string $accountname The account name to resolve.
+     * @param int $questionid The question ID.
+     * @return int|null The account ID, or null if not found.
+     */
+    protected function resolve_account_name_to_id(string $accountname, int $questionid): ?int {
+        global $DB;
+
+        if (empty($accountname)) {
+            return null;
+        }
+
+        $options = $DB->get_record('qtype_buchungssatz_options', ['questionid' => $questionid]);
+        if (!$options || !$options->chartofaccountsid) {
+            return null;
+        }
+
+        $account = $DB->get_record('qtype_buchungssatz_accounts',
+            ['chartid' => $options->chartofaccountsid, 'accountname' => $accountname]);
+
+        return $account ? (int) $account->id : null;
     }
 }

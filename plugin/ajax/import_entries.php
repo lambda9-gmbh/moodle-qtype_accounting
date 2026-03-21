@@ -88,7 +88,7 @@ function import_chart_from_csv(string $csvdata, int $contextid): array {
         $chartaccounts = chart_manager::get_accounts($chart->id);
         $allaccounts[$chart->id] = [];
         foreach ($chartaccounts as $acc) {
-            $allaccounts[$chart->id][$acc->accountname] = $acc->accountname;
+            $allaccounts[$chart->id][$acc->id] = $acc->accountname;
         }
     }
 

@@ -44,7 +44,7 @@ foreach ($charts as $chart) {
     $accounts = chart_manager::get_accounts($chart->id);
     $result[$chart->id] = [];
     foreach ($accounts as $account) {
-        $result[$chart->id][$account->accountname] = $account->accountname;
+        $result[$chart->id][$account->id] = $account->accountname;
     }
 }
 
