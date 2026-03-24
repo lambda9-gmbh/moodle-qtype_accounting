@@ -370,6 +370,16 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $html .= '<td class="' . trim($debithidden) . '"></td>';
         $html .= '<td class="buchungssatz-weight-cell' . $debithidden . '">';
         $html .= $weightstr . ': ' . $this->build_weight_select('weight_sollkonto_display[' . $index . ']', $weightsollkonto, $index, 'sollkonto');
+        if ($isfirst) {
+            $tooltiptext = get_string('weight_tooltip', 'qtype_buchungssatz');
+            // Convert newlines to <br> for popover display.
+            $tooltiphtml = nl2br(s($tooltiptext));
+            $html .= ' <a class="btn btn-link p-0" role="button" data-container="body" ';
+            $html .= 'data-toggle="popover" data-placement="right" data-trigger="click" ';
+            $html .= 'data-html="true" data-content="' . s($tooltiphtml) . '" tabindex="0">';
+            $html .= '<i class="icon fa fa-question-circle text-info fa-fw" ';
+            $html .= 'title="' . s($weightstr) . '"></i></a>';
+        }
         $html .= '</td>';
         $html .= '<td class="buchungssatz-weight-cell' . $debithidden . '">';
         $html .= $weightstr . ': ' . $this->build_weight_select('weight_sollbetrag_display[' . $index . ']', $weightsollbetrag, $index, 'sollbetrag');

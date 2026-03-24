@@ -66,6 +66,9 @@ $string['habenkonto'] = 'Habenkonto';
 $string['habenbetrag'] = 'Habenbetrag';
 $string['weight'] = 'Gewicht';
 $string['weight_help'] = 'Gewichtung für dieses Feld bei der Bewertung (1, 2 oder 3). Höhere Werte bedeuten mehr Punkte. Beispiel: Hat ein Konto das Gewicht 3 und der zugehörige Betrag das Gewicht 1, ist das Konto dreimal so wichtig wie der Betrag für die Bewertung.';
+$string['weight_tooltip'] = 'Die Eingabefelder (Konten, Beträge) können mit einem Gewicht von 1–3 versehen werden. Das Gewicht ist für die Berechnung der Teilpunkte relevant. Der erreichte Prozentsatz wird wie folgt berechnet: (Σ Gewichte richtiger Eingabefelder) ÷ (Σ Gewichte aller Eingabefelder).
+
+Wichtig: Konto und Betrag sind verknüpft – ein richtiger Betrag zählt nur, wenn auch das zugehörige Konto korrekt ausgewählt wurde. Ein richtig eingetragenes Konto ohne korrekten Betrag wird hingegen anteilig gewertet.';
 $string['accountnumber'] = 'Kontobezeichnung';
 $string['amount'] = 'Betrag';
 $string['selectaccount'] = '-- Konto auswählen --';

@@ -116,6 +116,9 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
 
         // Sync display fields to hidden fields for any existing entries.
         syncAllDisplayToHidden();
+
+        // Initialize Bootstrap popovers (for weight tooltip).
+        $('[data-toggle="popover"]').popover();
     }
 
     /**
