@@ -818,6 +818,13 @@ table.buchungssatz-student-table {
     text-decoration: underline;
 }
 
+
+/* CSV import/export section below accounts table */
+.buchungssatz-csv-actions {
+    border-top: 1px solid #dee2e6;
+    padding-top: 1rem;
+}
+
 /* Print styles */
 @media print {
     .buchungssatz-entries {

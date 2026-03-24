@@ -303,6 +303,7 @@ class qtype_buchungssatz extends question_type {
      * @return string The XML fragment for this question type.
      */
     public function export_to_xml($question, qformat_xml $format, $extra = null) {
+        global $DB;
         // Parent exports the extra_question_fields (options table fields).
         $expout = parent::export_to_xml($question, $format, $extra);
 
@@ -389,7 +390,10 @@ class qtype_buchungssatz extends question_type {
             $qo->$field = $format->getpath($data, ['#', $field, 0, '#'], '');
         }
 
-        // Parse correct answer entries.
+        // Clear the source system's chart ID — it will be resolved from the chart data below.
+        $qo->chartofaccountsid = 0;
+
+        // Parse correct answer entries (account names from XML, resolved to IDs below).
         $qo->sollkonto = [];
         $qo->sollbetrag = [];
         $qo->habenkonto = [];
@@ -415,9 +419,24 @@ class qtype_buchungssatz extends question_type {
                 ['#', 'weight_habenbetrag', 0, '#'], 1);
         }
 
+        // Determine target course context for chart resolution.
+        $contextid = 0;
+        if (!empty($format->course->id)) {
+            $coursecontext = \context_course::instance($format->course->id);
+            $contextid = $coursecontext->id;
+        } else if (!empty($format->category->contextid)) {
+            // Category context may be a course context or a system context.
+            // Try to get the course context from it.
+            $catcontext = \context::instance_by_id($format->category->contextid, IGNORE_MISSING);
+            if ($catcontext) {
+                $coursecontext = $catcontext->get_course_context(false);
+                $contextid = $coursecontext ? $coursecontext->id : $catcontext->id;
+            }
+        }
+
         // Parse and resolve chart of accounts.
         $chartdata = $format->getpath($data, ['#', 'chartofaccounts', 0], null);
-        if ($chartdata !== null) {
+        if ($chartdata !== null && $contextid > 0) {
             $chartname = $format->getpath($chartdata, ['#', 'chartname', 0, '#'], '');
             $xmlaccounts = $format->getpath($chartdata, ['#', 'account'], []);
 
@@ -436,47 +455,36 @@ class qtype_buchungssatz extends question_type {
                     $accountslist[] = $accountsbyname[$accountname];
                 }
 
-                // Determine target course context.
-                $contextid = 0;
-                if (!empty($format->course->id)) {
-                    $coursecontext = \context_course::instance($format->course->id);
-                    $contextid = $coursecontext->id;
-                } else if (!empty($format->category->contextid)) {
-                    $contextid = $format->category->contextid;
+                // Try to find existing matching chart in target context.
+                $chartid = \qtype_buchungssatz\chart_manager::find_matching_chart_in_context(
+                    $chartname, $contextid, $accountsbyname
+                );
+
+                if (!$chartid) {
+                    // Create new chart with all accounts.
+                    $chartid = \qtype_buchungssatz\chart_manager::create_chart($chartname, $contextid);
+                    foreach ($accountslist as $acc) {
+                        \qtype_buchungssatz\chart_manager::add_account(
+                            $chartid,
+                            $acc['accountname'],
+                            $acc['sortorder']
+                        );
+                    }
                 }
 
-                if ($contextid > 0) {
-                    // Try to find existing matching chart in target context.
-                    $chartid = \qtype_buchungssatz\chart_manager::find_matching_chart_in_context(
-                        $chartname, $contextid, $accountsbyname
-                    );
+                $qo->chartofaccountsid = $chartid;
 
-                    if (!$chartid) {
-                        // Create new chart with all accounts.
-                        $chartid = \qtype_buchungssatz\chart_manager::create_chart($chartname, $contextid);
-                        foreach ($accountslist as $acc) {
-                            \qtype_buchungssatz\chart_manager::add_account(
-                                $chartid,
-                                $acc['accountname'],
-                                $acc['sortorder']
-                            );
-                        }
-                    }
-
-                    $qo->chartofaccountsid = $chartid;
-
-                    // Resolve imported account names to IDs.
-                    $chartaccounts = \qtype_buchungssatz\chart_manager::get_accounts($chartid);
-                    $nametoid = [];
-                    foreach ($chartaccounts as $acc) {
-                        $nametoid[$acc->accountname] = $acc->id;
-                    }
-                    foreach ($qo->sollkonto as $idx => $name) {
-                        $qo->sollkonto[$idx] = $nametoid[$name] ?? 0;
-                    }
-                    foreach ($qo->habenkonto as $idx => $name) {
-                        $qo->habenkonto[$idx] = $nametoid[$name] ?? 0;
-                    }
+                // Resolve imported account names to IDs.
+                $chartaccounts = \qtype_buchungssatz\chart_manager::get_accounts($chartid);
+                $nametoid = [];
+                foreach ($chartaccounts as $acc) {
+                    $nametoid[$acc->accountname] = $acc->id;
+                }
+                foreach ($qo->sollkonto as $idx => $name) {
+                    $qo->sollkonto[$idx] = $nametoid[$name] ?? 0;
+                }
+                foreach ($qo->habenkonto as $idx => $name) {
+                    $qo->habenkonto[$idx] = $nametoid[$name] ?? 0;
                 }
             }
         }

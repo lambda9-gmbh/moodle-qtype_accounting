@@ -179,9 +179,6 @@ if ($action === 'export') {
 // Display the page.
 echo $OUTPUT->header();
 
-// Back link.
-echo html_writer::link($manageurl, '&laquo; ' . get_string('managecharts', 'qtype_buchungssatz'), ['class' => 'mb-3 d-block']);
-
 echo $OUTPUT->heading(format_string($chart->name));
 
 // Rename form.
@@ -224,7 +221,32 @@ if ($tsort === 'accountname') {
 
 $accounts = chart_manager::get_accounts($chartid, $sortorder);
 
-echo $OUTPUT->heading(get_string('editaccounts', 'qtype_buchungssatz') . ' (' . count($accounts) . ')', 3);
+// Heading row with add-account form on the right.
+echo html_writer::start_div('d-flex justify-content-between align-items-center mb-3');
+echo $OUTPUT->heading(get_string('editaccounts', 'qtype_buchungssatz') . ' (' . count($accounts) . ')', 3, 'mb-0');
+
+$addurl = new moodle_url($baseurl, ['action' => 'addaccount']);
+echo html_writer::start_tag('form', [
+    'method' => 'post',
+    'action' => $addurl->out(false),
+    'class' => 'form-inline',
+]);
+echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+echo html_writer::empty_tag('input', [
+    'type' => 'text',
+    'name' => 'accountname',
+    'placeholder' => get_string('accountname', 'qtype_buchungssatz'),
+    'class' => 'form-control mr-2',
+    'size' => 30,
+    'required' => 'required',
+]);
+echo html_writer::empty_tag('input', [
+    'type' => 'submit',
+    'value' => get_string('addaccount', 'qtype_buchungssatz'),
+    'class' => 'btn btn-success',
+]);
+echo html_writer::end_tag('form');
+echo html_writer::end_div();
 
 if (!empty($accounts)) {
     // Render edit forms outside the table for accounts being edited.
@@ -299,56 +321,48 @@ if (!empty($accounts)) {
     echo html_writer::tag('p', get_string('noaccounts', 'qtype_buchungssatz'), ['class' => 'alert alert-info']);
 }
 
-// Add account form.
-echo $OUTPUT->heading(get_string('addaccount', 'qtype_buchungssatz'), 4);
-$addurl = new moodle_url($baseurl, ['action' => 'addaccount']);
-echo html_writer::start_tag('form', [
-    'method' => 'post',
-    'action' => $addurl->out(false),
-    'class' => 'form-inline mb-4',
-]);
-echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+// Import/Export section below the table.
+echo html_writer::start_div('buchungssatz-csv-actions d-flex flex-wrap align-items-center mt-3 mb-3',
+    ['style' => 'gap: 0.5rem;']);
 
-echo html_writer::empty_tag('input', [
-    'type' => 'text',
-    'name' => 'accountname',
-    'placeholder' => get_string('accountname', 'qtype_buchungssatz'),
-    'class' => 'form-control mr-2',
-    'size' => 40,
-    'required' => 'required',
-]);
-echo html_writer::empty_tag('input', [
-    'type' => 'submit',
-    'value' => get_string('addaccount', 'qtype_buchungssatz'),
-    'class' => 'btn btn-success',
-]);
-echo html_writer::end_tag('form');
-
-// CSV import form.
-echo $OUTPUT->heading(get_string('importaccounts', 'qtype_buchungssatz'), 4);
+// CSV import form (inline).
 $importurl = new moodle_url($baseurl, ['action' => 'import']);
 echo html_writer::start_tag('form', [
     'method' => 'post',
     'action' => $importurl->out(false),
     'enctype' => 'multipart/form-data',
-    'class' => 'form-inline mb-3',
+    'class' => 'd-flex align-items-center',
+    'style' => 'gap: 0.5rem;',
 ]);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
 echo html_writer::empty_tag('input', [
     'type' => 'file',
     'name' => 'csvfile',
     'accept' => '.csv,.txt',
-    'class' => 'form-control mr-2',
+    'class' => 'form-control',
 ]);
 echo html_writer::empty_tag('input', [
     'type' => 'submit',
     'value' => get_string('importchart', 'qtype_buchungssatz'),
-    'class' => 'btn btn-primary',
+    'class' => 'btn btn-secondary',
 ]);
 echo html_writer::end_tag('form');
 
 // Export button.
 $exporturl = new moodle_url($baseurl, ['action' => 'export']);
-echo html_writer::link($exporturl, get_string('exportaccounts', 'qtype_buchungssatz'), ['class' => 'btn btn-secondary mb-3']);
+echo html_writer::link($exporturl, get_string('exportaccounts', 'qtype_buchungssatz'), [
+    'class' => 'btn btn-secondary',
+]);
+
+echo html_writer::end_div();
+
+// Back button — standard Moodle form button alignment.
+echo html_writer::start_div('form-group row mt-4 mb-3');
+echo html_writer::start_div('col-md-9 offset-md-3');
+echo html_writer::link($manageurl, '&laquo; ' . get_string('managecharts', 'qtype_buchungssatz'), [
+    'class' => 'btn btn-primary',
+]);
+echo html_writer::end_div();
+echo html_writer::end_div();
 
 echo $OUTPUT->footer();

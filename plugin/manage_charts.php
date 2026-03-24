@@ -217,11 +217,12 @@ if (empty($charts)) {
 }
 
 if ($returnurl !== '') {
-    echo html_writer::div(
-        html_writer::link($returnurl, get_string('saveandcontinue', 'qtype_buchungssatz'),
-            ['class' => 'btn btn-primary']),
-        'text-right mt-3'
-    );
+    echo html_writer::start_div('form-group row mt-3 mb-3');
+    echo html_writer::start_div('col-md-9 offset-md-3');
+    echo html_writer::link($returnurl, get_string('saveandcontinue', 'qtype_buchungssatz'),
+        ['class' => 'btn btn-primary']);
+    echo html_writer::end_div();
+    echo html_writer::end_div();
 }
 
 echo $OUTPUT->footer();
