@@ -40,6 +40,7 @@ $string['extraentrydeduction'] = 'Deduction for extra entries';
 $string['extraentrydeduction_help'] = 'Percentage deducted per extra account the student uses that is not part of the correct answer. Each side (debit/credit) is counted independently. Set to "None" for no deduction. The score cannot go below 0.';
 $string['allornothinggrading'] = 'Only award marks if all entries are correct';
 $string['allornothinggrading_help'] = 'If enabled, the student only receives marks if all booking entries are completely correct. If there is any error (even just one amount), the entire question is graded as 0 points.';
+$string['allornothinggrading_notice'] = 'Note: No partial credit is awarded for this question. All entries must be completely correct to receive marks.';
 $string['numberformat_help'] = 'Choose the format for decimal and thousand separators. Either #,###.00 or #.###,00';
 $string['numberformat_de'] = '#.###,00';
 $string['numberformat_us'] = '#,###.00';

@@ -40,6 +40,7 @@ $string['extraentrydeduction'] = 'Abzug für überflüssige Konten und Werte';
 $string['extraentrydeduction_help'] = 'Prozentualer Abzug pro zusätzlichem Konto, das der Studierende verwendet und nicht in der Musterlösung vorkommt. Jede Seite (Soll/Haben) wird unabhängig gezählt. Auf "Keine" setzen für keinen Abzug. Die Punktzahl kann nicht unter 0 fallen.';
 $string['allornothinggrading'] = 'Nur Positiv bewerten, wenn alle Eingaben korrekt sind';
 $string['allornothinggrading_help'] = 'Wenn aktiviert, erhält der Studierende nur dann Punkte, wenn alle Buchungseinträge vollständig korrekt sind. Bei einem Fehler (auch nur bei einem Betrag) wird die gesamte Frage mit 0 Punkten bewertet.';
+$string['allornothinggrading_notice'] = 'Hinweis: Für diese Frage werden keine Teilpunkte vergeben. Alle Eingaben müssen vollständig korrekt sein, um Punkte zu erhalten.';
 $string['numberformat_help'] = 'Wähle das Format für das Dezimal- und das Tausendertrennzeichen. Entweder #.###,00 oder #,###.00';
 $string['numberformat_de'] = '#.###,00';
 $string['numberformat_us'] = '#,###.00';

@@ -49,6 +49,13 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $questiontext = $question->format_questiontext($qa);
         $result = html_writer::tag('div', $questiontext, ['class' => 'qtext']);
 
+        // Show notice when all-or-nothing grading is enabled.
+        if (!empty($question->allornothinggrading)) {
+            $result .= html_writer::tag('div',
+                get_string('allornothinggrading_notice', 'qtype_buchungssatz'),
+                ['class' => 'alert alert-warning mt-2 mb-2']);
+        }
+
         // Load available accounts for dropdowns.
         $accounts = $this->get_accounts($question->chartofaccountsid);
 
