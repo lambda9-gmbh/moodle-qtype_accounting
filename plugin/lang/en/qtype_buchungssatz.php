@@ -67,9 +67,11 @@ $string['habenkonto'] = 'Credit Account';
 $string['habenbetrag'] = 'Credit Amount';
 $string['weight'] = 'Weight';
 $string['weight_help'] = 'Weight for this field in grading (1, 2, or 3). Higher values mean more points. For example, if an account has weight 3 and its amount has weight 1, the account is three times as important as the amount for scoring.';
-$string['weight_tooltip'] = 'Input fields (accounts, amounts) can be assigned a weight from 1–3. The weight is used to calculate partial credit as follows: Percentage scored = (Σ weights of correct fields) ÷ (Σ weights of all fields).
+$string['weight_tooltip'] = 'Input fields (accounts, amounts) can be assigned a weight from 1–3. The weight is used to calculate partial credit as follows: (Σ weights of correct fields) ÷ (Σ weights of all fields) × achievable points.
 
-Important: Account and amount are linked – a correct amount only counts if the associated account is also correct. A correctly entered account without the correct amount is still partially credited.';
+Important: Account and amount are linked – a correct amount only counts if the associated account is also correct. A correctly entered account without the correct amount is still partially credited.
+
+The weighting is overridden and has no effect when the option "Only award marks if all entries are correct" is enabled.';
 $string['accountnumber'] = 'Account name';
 $string['amount'] = 'Amount';
 $string['selectaccount'] = '-- Select account --';

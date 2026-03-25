@@ -27,6 +27,7 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
     let accountsByChart = {};
     let lastChartId = null;
     let nextEntryIndex = 0;
+    let allOrNothingEnabled = false;
 
     // DOM element references
     let chartSelect = null;
@@ -108,7 +109,10 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
         // Only update sollbetrag states (disable if no debit account selected).
         updateAllSollbetragStates();
 
-        // Update weight field states (disable if no account selected).
+        // Setup all-or-nothing grading handler (must run before updateAllWeightStates).
+        setupAllOrNothingHandler();
+
+        // Update weight field states (disable if no account selected or all-or-nothing is active).
         updateAllWeightStates();
 
         // Update delete button states (disable if only one entry).
@@ -722,9 +726,30 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
     }
 
     /**
+     * Setup the all-or-nothing grading checkbox handler.
+     *
+     * Reads the initial checkbox state and listens for changes to toggle
+     * weight field disabled state.
+     */
+    function setupAllOrNothingHandler() {
+        var checkbox = document.getElementById('id_allornothinggrading');
+        if (!checkbox) {
+            return;
+        }
+
+        allOrNothingEnabled = checkbox.checked;
+
+        checkbox.addEventListener('change', function() {
+            allOrNothingEnabled = checkbox.checked;
+            updateAllWeightStates();
+        });
+    }
+
+    /**
      * Update the disabled state of weight selectors based on account selection.
      * Disables sollkonto/sollbetrag weights when no debit account is selected.
      * Disables habenkonto/habenbetrag weights when no credit account is selected.
+     * Also disables all weights when all-or-nothing grading is enabled.
      *
      * @param {string|number} index The entry index.
      */
@@ -735,19 +760,23 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
         const hasSollAccount = sollSelect && sollSelect.value !== '' && sollSelect.value !== null;
         const hasHabenAccount = habenSelect && habenSelect.value !== '' && habenSelect.value !== null;
 
+        // When all-or-nothing is enabled, all weights are disabled regardless of account state.
+        var sollEnabled = hasSollAccount && !allOrNothingEnabled;
+        var habenEnabled = hasHabenAccount && !allOrNothingEnabled;
+
         // Update soll (debit) weight fields.
         const weightSollkonto = document.querySelector('.buchungssatz-weight[data-index="' + index + '"][data-field="sollkonto"]');
         const weightSollbetrag = document.querySelector('.buchungssatz-weight[data-index="' + index + '"][data-field="sollbetrag"]');
 
         if (weightSollkonto) {
-            weightSollkonto.disabled = !hasSollAccount;
-            weightSollkonto.style.opacity = hasSollAccount ? '' : '0.5';
-            weightSollkonto.style.cursor = hasSollAccount ? '' : 'not-allowed';
+            weightSollkonto.disabled = !sollEnabled;
+            weightSollkonto.style.opacity = sollEnabled ? '' : '0.5';
+            weightSollkonto.style.cursor = sollEnabled ? '' : 'not-allowed';
         }
         if (weightSollbetrag) {
-            weightSollbetrag.disabled = !hasSollAccount;
-            weightSollbetrag.style.opacity = hasSollAccount ? '' : '0.5';
-            weightSollbetrag.style.cursor = hasSollAccount ? '' : 'not-allowed';
+            weightSollbetrag.disabled = !sollEnabled;
+            weightSollbetrag.style.opacity = sollEnabled ? '' : '0.5';
+            weightSollbetrag.style.cursor = sollEnabled ? '' : 'not-allowed';
         }
 
         // Update haben (credit) weight fields.
@@ -755,14 +784,14 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
         const weightHabenbetrag = document.querySelector('.buchungssatz-weight[data-index="' + index + '"][data-field="habenbetrag"]');
 
         if (weightHabenkonto) {
-            weightHabenkonto.disabled = !hasHabenAccount;
-            weightHabenkonto.style.opacity = hasHabenAccount ? '' : '0.5';
-            weightHabenkonto.style.cursor = hasHabenAccount ? '' : 'not-allowed';
+            weightHabenkonto.disabled = !habenEnabled;
+            weightHabenkonto.style.opacity = habenEnabled ? '' : '0.5';
+            weightHabenkonto.style.cursor = habenEnabled ? '' : 'not-allowed';
         }
         if (weightHabenbetrag) {
-            weightHabenbetrag.disabled = !hasHabenAccount;
-            weightHabenbetrag.style.opacity = hasHabenAccount ? '' : '0.5';
-            weightHabenbetrag.style.cursor = hasHabenAccount ? '' : 'not-allowed';
+            weightHabenbetrag.disabled = !habenEnabled;
+            weightHabenbetrag.style.opacity = habenEnabled ? '' : '0.5';
+            weightHabenbetrag.style.cursor = habenEnabled ? '' : 'not-allowed';
         }
     }
 
