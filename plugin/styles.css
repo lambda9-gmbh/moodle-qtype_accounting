@@ -841,3 +841,142 @@ table.buchungssatz-student-table {
         border: 1px solid #000;
     }
 }
+
+/* ========================================
+   MOBILE CARD VIEW STYLES
+   ======================================== */
+
+/* Hide mobile view on desktop */
+.buchungssatz-mobile-view {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    /* When JS activates mobile view, hide the table */
+    .buchungssatz-question-container.buchungssatz-mobile-active .buchungssatz-student-table {
+        display: none !important;
+    }
+
+    /* Show mobile view when active */
+    .buchungssatz-question-container.buchungssatz-mobile-active .buchungssatz-mobile-view {
+        display: block !important;
+    }
+
+    /* Section styling */
+    .buchungssatz-mobile-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .buchungssatz-mobile-section-header {
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem 0.5rem 0 0;
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .buchungssatz-mobile-debit-header,
+    .buchungssatz-mobile-credit-header {
+        background-color: #e9ecef;
+        color: #495057;
+    }
+
+    .buchungssatz-mobile-section-header h4 {
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    /* Card styling */
+    .buchungssatz-mobile-card {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        margin-bottom: 0.75rem;
+        padding: 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .buchungssatz-mobile-card[data-side="debit"],
+    .buchungssatz-mobile-card[data-side="credit"] {
+        border-left: 4px solid #dee2e6;
+    }
+
+    /* Field layout within card */
+    .buchungssatz-mobile-field {
+        margin-bottom: 0.75rem;
+    }
+
+    .buchungssatz-mobile-field:last-child {
+        margin-bottom: 0;
+    }
+
+    .buchungssatz-mobile-field label {
+        display: block;
+        font-size: 0.75rem;
+        color: #6c757d;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .buchungssatz-mobile-field select,
+    .buchungssatz-mobile-field input {
+        width: 100%;
+        min-height: 44px;
+        font-size: 16px; /* Prevents iOS zoom */
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 0.5rem;
+        background-color: #fff;
+        -webkit-appearance: menulist;
+        appearance: menulist;
+    }
+
+    .buchungssatz-mobile-field input {
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    .buchungssatz-mobile-field .buchungssatz-amount-input {
+        text-align: right;
+    }
+
+    /* Card actions (delete button) */
+    .buchungssatz-mobile-card-actions {
+        display: flex;
+        justify-content: flex-end;
+        padding-top: 0.5rem;
+        border-top: 1px solid #f0f0f0;
+        margin-top: 0.75rem;
+    }
+
+    .buchungssatz-mobile-card-actions .btn {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    /* Section add button */
+    .buchungssatz-mobile-section > .btn {
+        width: 100%;
+        min-height: 44px;
+        font-size: 16px;
+        margin-top: 0.5rem;
+    }
+
+    /* Readonly spans in mobile cards */
+    .buchungssatz-mobile-card .buchungssatz-readonly {
+        display: block;
+        width: 100%;
+        min-height: 44px;
+        padding: 0.75rem;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+    }
+
+    /* Empty section state */
+    .buchungssatz-mobile-cards:empty::after {
+        content: '\2014'; /* em-dash */
+        display: block;
+        text-align: center;
+        color: #adb5bd;
+        padding: 1rem;
+    }
+}

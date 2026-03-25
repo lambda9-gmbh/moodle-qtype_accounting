@@ -21,7 +21,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
+define(['jquery', 'qtype_buchungssatz/entry_utils', 'qtype_buchungssatz/mobile_layout'], function($, EntryUtils, MobileLayout) {
 
     // Module-level settings for number formatting.
     let numberFormat = 'de';
@@ -180,26 +180,30 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
         // Make the table responsive to drawer open/close and window resize.
         setupResponsiveWidth(container);
 
-        // Add entry button handlers.
+        // Add entry button handlers (using delegation so mobile view buttons also work).
         if (allowEdit) {
-            container.find('.buchungssatz-add-debit-entry').on('click', function() {
+            container.on('click', '.buchungssatz-add-debit-entry', function() {
                 nextEntryIndex = addEntry(container, template, tbody, nextEntryIndex, 'debit');
+                MobileLayout.refreshMobileView(container);
             });
 
-            container.find('.buchungssatz-add-credit-entry').on('click', function() {
+            container.on('click', '.buchungssatz-add-credit-entry', function() {
                 nextEntryIndex = addEntry(container, template, tbody, nextEntryIndex, 'credit');
+                MobileLayout.refreshMobileView(container);
             });
 
-            // Delete debit button handler (using delegation for cloned rows).
+            // Delete debit button handler (using delegation for cloned rows and mobile cards).
             container.on('click', '.buchungssatz-delete-debit', function() {
                 const entryIndex = $(this).data('entry');
                 deleteEntrySide(container, entryIndex, 'debit');
+                MobileLayout.refreshMobileView(container);
             });
 
-            // Delete credit button handler (using delegation for cloned rows).
+            // Delete credit button handler (using delegation for cloned rows and mobile cards).
             container.on('click', '.buchungssatz-delete-credit', function() {
                 const entryIndex = $(this).data('entry');
                 deleteEntrySide(container, entryIndex, 'credit');
+                MobileLayout.refreshMobileView(container);
             });
 
             // On form submit, disable empty/hidden rows and re-index the remaining
@@ -256,6 +260,9 @@ define(['jquery', 'qtype_buchungssatz/entry_utils'], function($, EntryUtils) {
             // Update delete button visibility.
             updateDeleteButtons(container);
         }
+
+        // Initialize mobile layout (works in both edit and readonly modes).
+        MobileLayout.init(container, ROW_SELECTOR, !allowEdit);
     }
 
     /**

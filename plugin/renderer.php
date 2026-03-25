@@ -166,10 +166,21 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         $result .= '</table>';
 
+        // Add mobile view container (populated by JS on small screens).
+        $result .= html_writer::div('', 'buchungssatz-mobile-view', ['style' => 'display:none;']);
+
         $result .= html_writer::end_div(); // End container.
 
         // Load language strings for JavaScript.
         $PAGE->requires->string_for_js('selectaccount', 'qtype_buchungssatz');
+        $PAGE->requires->string_for_js('debitentries', 'qtype_buchungssatz');
+        $PAGE->requires->string_for_js('creditentries', 'qtype_buchungssatz');
+        $PAGE->requires->string_for_js('adddebitentry', 'qtype_buchungssatz');
+        $PAGE->requires->string_for_js('addcreditentry', 'qtype_buchungssatz');
+        $PAGE->requires->string_for_js('account', 'qtype_buchungssatz');
+        $PAGE->requires->string_for_js('amount', 'qtype_buchungssatz');
+        $PAGE->requires->string_for_js('soll', 'qtype_buchungssatz');
+        $PAGE->requires->string_for_js('haben', 'qtype_buchungssatz');
 
         // Include JavaScript for interactive features.
         // Only pass the container ID - other data is in data attributes to avoid Moodle 3.10 size limits.

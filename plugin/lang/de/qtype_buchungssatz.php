@@ -202,3 +202,7 @@ $string['uploadchartcsv'] = 'Kontenplan hochladen (CSV)';
 $string['uploadchartcsv_btn'] = 'Hochladen';
 $string['uploadchartcsv_help'] = 'Laden Sie eine Textdatei hoch, um einen neuen Kontenplan für diesen Kurs zu erstellen. Der Kontenplan erscheint sofort nach dem Hochladen in der Auswahlliste. Format: eine Kontobezeichnung pro Zeile.';
 $string['saveandcontinue'] = 'Speichern und weiter';
+
+// Mobile-Ansicht.
+$string['debitentries'] = 'Sollbuchungen';
+$string['creditentries'] = 'Habenbuchungen';
