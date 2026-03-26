@@ -971,6 +971,17 @@ table.buchungssatz-student-table {
         border-radius: 4px;
     }
 
+    /* Feedback colors in mobile cards - must override the default background above */
+    .buchungssatz-mobile-card .buchungssatz-readonly.buchungssatz-correct {
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+    }
+
+    .buchungssatz-mobile-card .buchungssatz-readonly.buchungssatz-incorrect {
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+    }
+
     /* Empty section state */
     .buchungssatz-mobile-cards:empty::after {
         content: '\2014'; /* em-dash */

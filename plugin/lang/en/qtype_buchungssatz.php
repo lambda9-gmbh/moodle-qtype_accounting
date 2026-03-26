@@ -38,7 +38,7 @@ $string['accountsindropdown_help'] = 'The number of random additional accounts t
 $string['numberformat'] = 'Number format';
 $string['extraentrydeduction'] = 'Deduction for extra entries';
 $string['extraentrydeduction_help'] = 'Percentage deducted per extra account the student uses that is not part of the correct answer. Each side (debit/credit) is counted independently. Set to "None" for no deduction. The score cannot go below 0.';
-$string['allornothinggrading'] = 'Only award marks if all entries are correct';
+$string['allornothinggrading'] = 'No partial credit';
 $string['allornothinggrading_help'] = 'If enabled, the student only receives marks if all booking entries are completely correct. If there is any error (even just one amount), the entire question is graded as 0 points.';
 $string['allornothinggrading_notice'] = 'Note: No partial credit is awarded for this question. All entries must be completely correct to receive marks.';
 $string['numberformat_help'] = 'Choose the format for decimal and thousand separators. Either #,###.00 or #.###,00';
@@ -71,7 +71,7 @@ $string['weight_tooltip'] = 'Input fields (accounts, amounts) can be assigned a 
 
 Important: Account and amount are linked – a correct amount only counts if the associated account is also correct. A correctly entered account without the correct amount is still partially credited.
 
-The weighting is overridden and has no effect when the option "Only award marks if all entries are correct" is enabled.';
+The weighting is overridden and has no effect when the option "No partial credit" is enabled.';
 $string['accountnumber'] = 'Account name';
 $string['amount'] = 'Amount';
 $string['selectaccount'] = '-- Select account --';
@@ -110,6 +110,7 @@ $string['err_gradesumnotcomplete'] = 'The sum of all grades must equal exactly 1
 $string['err_chartrequired'] = 'Please select a chart of accounts.';
 $string['err_accountsindropdown_negative'] = 'The number of accounts in selection list cannot be negative.';
 $string['err_extraentrydeduction_range'] = 'The deduction must be between 0 and 100.';
+$string['err_balancemismatch'] = 'Total debit amount must equal total credit amount for a valid accounting entry.';
 
 // Chart of accounts management.
 $string['managecharts'] = 'Manage Charts of Accounts';

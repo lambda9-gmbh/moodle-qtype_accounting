@@ -121,6 +121,10 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $mform->addElement('header', 'answerhdr', get_string('correctanswer', 'qtype_buchungssatz'));
         $mform->setExpanded('answerhdr', true);
 
+        // Invisible anchor element for balance validation errors.
+        $mform->addElement('static', 'balancevalidation', '', '');
+
+
         // Get all accounts for dropdowns.
         $allaccounts = $this->get_all_accounts_by_chart();
 
@@ -198,6 +202,7 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $mform->addElement('html', '<script type="application/json" id="buchungssatz-editform-data">' .
             json_encode($jsdata, JSON_HEX_TAG | JSON_HEX_AMP) . '</script>');
 
+        $PAGE->requires->string_for_js('err_balancemismatch', 'qtype_buchungssatz');
         $PAGE->requires->js_call_amd('qtype_buchungssatz/editform', 'init', []);
 
         // Add the standard "Multiple tries" section (penalty and hints).
@@ -594,6 +599,22 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
                     $errors["habenbetrag[$i]"] = get_string('err_negativeamount', 'qtype_buchungssatz');
                 }
             }
+        }
+
+        // Validate that total debit equals total credit (balanced entry).
+        $numberformat = $data['numberformat'] ?? 'de';
+        $totaldebit = 0.0;
+        $totalcredit = 0.0;
+
+        foreach ($allindices as $i) {
+            $sollbetragraw = trim($data['sollbetrag'][$i] ?? '');
+            $habenbetragraw = trim($data['habenbetrag'][$i] ?? '');
+            $totaldebit += \qtype_buchungssatz\amount_helper::parse_amount($sollbetragraw, $numberformat);
+            $totalcredit += \qtype_buchungssatz\amount_helper::parse_amount($habenbetragraw, $numberformat);
+        }
+
+        if (abs($totaldebit - $totalcredit) > 0.001) {
+            $errors['balancevalidation'] = get_string('err_balancemismatch', 'qtype_buchungssatz');
         }
 
         return $errors;

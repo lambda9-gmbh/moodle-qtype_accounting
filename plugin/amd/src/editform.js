@@ -362,14 +362,90 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
     }
 
     /**
-     * Setup form submit handler to sync all display fields to hidden fields.
+     * Setup form submit handler to sync all display fields to hidden fields
+     * and validate balance before submission.
      */
     function setupFormSubmitHandler() {
         const form = document.querySelector('form.mform') || document.querySelector('form');
         if (form) {
-            form.addEventListener('submit', function() {
+            form.addEventListener('submit', function(e) {
                 syncAllDisplayToHidden();
+                if (!validateBalance()) {
+                    e.preventDefault();
+                }
             });
+        }
+    }
+
+    /**
+     * Validate that total debit amounts equal total credit amounts.
+     *
+     * @return {boolean} True if balanced, false if not.
+     */
+    function validateBalance() {
+        var totalDebit = 0;
+        var totalCredit = 0;
+
+        var entryRows = document.querySelectorAll(ROW_SELECTOR);
+        entryRows.forEach(function(row) {
+            if (row.style.display === 'none') {
+                return;
+            }
+            var index = row.getAttribute('data-entry-index');
+            if (index === '__INDEX__') {
+                return;
+            }
+
+            var sollField = row.querySelector('.buchungssatz-sollbetrag');
+            var habenField = row.querySelector('.buchungssatz-habenbetrag');
+
+            if (sollField && sollField.value) {
+                var parsed = parseFloat(EntryUtils.parseNumber(sollField.value));
+                if (!isNaN(parsed)) {
+                    totalDebit += parsed;
+                }
+            }
+            if (habenField && habenField.value) {
+                var parsed = parseFloat(EntryUtils.parseNumber(habenField.value));
+                if (!isNaN(parsed)) {
+                    totalCredit += parsed;
+                }
+            }
+        });
+
+        if (Math.abs(totalDebit - totalCredit) > 0.001) {
+            showBalanceError();
+            return false;
+        }
+
+        clearBalanceError();
+        return true;
+    }
+
+    /**
+     * Show balance validation error below the entries table.
+     */
+    function showBalanceError() {
+        clearBalanceError();
+        var table = document.querySelector('.buchungssatz-edit-table');
+        if (!table) {
+            return;
+        }
+        var errorDiv = document.createElement('div');
+        errorDiv.id = 'buchungssatz-balance-error';
+        errorDiv.className = 'alert alert-danger mt-2';
+        errorDiv.setAttribute('role', 'alert');
+        errorDiv.textContent = M.util.get_string('err_balancemismatch', 'qtype_buchungssatz');
+        table.parentNode.insertBefore(errorDiv, table.nextSibling);
+    }
+
+    /**
+     * Clear the balance validation error if present.
+     */
+    function clearBalanceError() {
+        var existing = document.getElementById('buchungssatz-balance-error');
+        if (existing) {
+            existing.remove();
         }
     }
 

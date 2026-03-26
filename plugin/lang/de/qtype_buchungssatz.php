@@ -38,7 +38,7 @@ $string['accountsindropdown_help'] = 'Die Anzahl der zufälligen zusätzlichen K
 $string['numberformat'] = 'Zahlenformat';
 $string['extraentrydeduction'] = 'Abzug für überflüssige Konten und Werte';
 $string['extraentrydeduction_help'] = 'Prozentualer Abzug pro zusätzlichem Konto, das der Studierende verwendet und nicht in der Musterlösung vorkommt. Jede Seite (Soll/Haben) wird unabhängig gezählt. Auf "Keine" setzen für keinen Abzug. Die Punktzahl kann nicht unter 0 fallen.';
-$string['allornothinggrading'] = 'Nur Positiv bewerten, wenn alle Eingaben korrekt sind';
+$string['allornothinggrading'] = 'Keine Teilpunkte vergeben';
 $string['allornothinggrading_help'] = 'Wenn aktiviert, erhält der Studierende nur dann Punkte, wenn alle Buchungseinträge vollständig korrekt sind. Bei einem Fehler (auch nur bei einem Betrag) wird die gesamte Frage mit 0 Punkten bewertet.';
 $string['allornothinggrading_notice'] = 'Hinweis: Für diese Frage werden keine Teilpunkte vergeben. Alle Eingaben müssen vollständig korrekt sein, um Punkte zu erhalten.';
 $string['numberformat_help'] = 'Wähle das Format für das Dezimal- und das Tausendertrennzeichen. Entweder #.###,00 oder #,###.00';
@@ -71,7 +71,7 @@ $string['weight_tooltip'] = 'Die Eingabefelder (Konten, Beträge) können mit ei
 
 Wichtig: Konto und Betrag sind verknüpft – ein richtiger Betrag zählt nur, wenn auch das zugehörige Konto korrekt ausgewählt wurde. Ein richtig eingetragenes Konto ohne korrekten Betrag wird hingegen anteilig gewertet.
 
-Die Gewichtung wird überschrieben bzw. hat keinen Effekt, sobald die Option „Punkte nur vergeben, wenn alle Eingaben korrekt sind" aktiviert ist.';
+Die Gewichtung wird überschrieben bzw. hat keinen Effekt, sobald die Option „Keine Teilpunkte vergeben" aktiviert ist.';
 $string['accountnumber'] = 'Kontobezeichnung';
 $string['amount'] = 'Betrag';
 $string['selectaccount'] = '-- Konto auswählen --';
@@ -110,6 +110,7 @@ $string['err_gradesumnotcomplete'] = 'Die Summe aller Bewertungen muss genau 100
 $string['err_chartrequired'] = 'Bitte wählen Sie einen Kontenplan aus.';
 $string['err_accountsindropdown_negative'] = 'Die Anzahl der Konten in der Auswahlliste darf nicht negativ sein.';
 $string['err_extraentrydeduction_range'] = 'Der Abzug muss zwischen 0 und 100 liegen.';
+$string['err_balancemismatch'] = 'Die Summe der Soll-Beträge muss der Summe der Haben-Beträge entsprechen.';
 
 // Kontenplanverwaltung.
 $string['managecharts'] = 'Kontenpläne verwalten';
