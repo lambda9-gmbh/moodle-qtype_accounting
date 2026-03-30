@@ -203,6 +203,8 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
             json_encode($jsdata, JSON_HEX_TAG | JSON_HEX_AMP) . '</script>');
 
         $PAGE->requires->string_for_js('err_balancemismatch', 'qtype_buchungssatz');
+        $PAGE->requires->string_for_js('err_sollkontorequired', 'qtype_buchungssatz');
+        $PAGE->requires->string_for_js('err_habenkontorequired', 'qtype_buchungssatz');
         $PAGE->requires->js_call_amd('qtype_buchungssatz/editform', 'init', []);
 
         // Add the standard "Multiple tries" section (penalty and hints).
@@ -591,6 +593,11 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
                 }
             }
 
+            // Debit account is required if debit amount is entered.
+            if ($sollkontoid === 0 && $sollbetragraw !== '') {
+                $errors["balancevalidation"] = get_string('err_sollkontorequired', 'qtype_buchungssatz');
+            }
+
             // Credit amount is required if credit account is selected.
             if ($habenkontoid > 0) {
                 if ($habenbetragraw === '') {
@@ -598,6 +605,11 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
                 } else if (floatval($habenbetragraw) < 0) {
                     $errors["habenbetrag[$i]"] = get_string('err_negativeamount', 'qtype_buchungssatz');
                 }
+            }
+
+            // Credit account is required if credit amount is entered.
+            if ($habenkontoid === 0 && $habenbetragraw !== '') {
+                $errors["balancevalidation"] = get_string('err_habenkontorequired', 'qtype_buchungssatz');
             }
         }
 

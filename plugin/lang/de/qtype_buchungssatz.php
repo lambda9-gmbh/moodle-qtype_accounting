@@ -111,6 +111,8 @@ $string['err_chartrequired'] = 'Bitte wählen Sie einen Kontenplan aus.';
 $string['err_accountsindropdown_negative'] = 'Die Anzahl der Konten in der Auswahlliste darf nicht negativ sein.';
 $string['err_extraentrydeduction_range'] = 'Der Abzug muss zwischen 0 und 100 liegen.';
 $string['err_balancemismatch'] = 'Die Summe der Soll-Beträge muss der Summe der Haben-Beträge entsprechen.';
+$string['err_sollkontorequired'] = 'Bitte wählen Sie ein Konto aus oder entfernen Sie diesen Eintrag.';
+$string['err_habenkontorequired'] = 'Bitte wählen Sie ein Konto aus oder entfernen Sie diesen Eintrag.';
 
 // Kontenplanverwaltung.
 $string['managecharts'] = 'Kontenpläne verwalten';

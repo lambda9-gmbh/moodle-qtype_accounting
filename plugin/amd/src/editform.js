@@ -370,11 +370,84 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
         if (form) {
             form.addEventListener('submit', function(e) {
                 syncAllDisplayToHidden();
+                var valid = validateAccounts();
                 if (!validateBalance()) {
+                    valid = false;
+                }
+                if (!valid) {
                     e.preventDefault();
                 }
             });
         }
+    }
+
+    /**
+     * Validate that every visible entry side has an account selected.
+     *
+     * @return {boolean} True if all visible sides have accounts, false if not.
+     */
+    function validateAccounts() {
+        var errors = [];
+        clearAccountErrors();
+
+        var entryRows = document.querySelectorAll(ROW_SELECTOR);
+        entryRows.forEach(function(row) {
+            if (row.style.display === 'none') {
+                return;
+            }
+            var index = row.getAttribute('data-entry-index');
+            if (index === '__INDEX__') {
+                return;
+            }
+
+            var entryType = row.getAttribute('data-entry-type') || 'both';
+            var sollKonto = row.querySelector('.buchungssatz-sollkonto');
+            var habenKonto = row.querySelector('.buchungssatz-habenkonto');
+
+            // Debit side is visible for 'debit' and 'both' entries.
+            if (entryType === 'debit' || entryType === 'both') {
+                var hasSollKonto = sollKonto && sollKonto.value && sollKonto.value !== '';
+                if (!hasSollKonto) {
+                    showAccountError(sollKonto, 'err_sollkontorequired');
+                    errors.push(index);
+                }
+            }
+
+            // Credit side is visible for 'credit' and 'both' entries.
+            if (entryType === 'credit' || entryType === 'both') {
+                var hasHabenKonto = habenKonto && habenKonto.value && habenKonto.value !== '';
+                if (!hasHabenKonto) {
+                    showAccountError(habenKonto, 'err_habenkontorequired');
+                    errors.push(index);
+                }
+            }
+        });
+
+        return errors.length === 0;
+    }
+
+    /**
+     * Show an inline validation error below a specific field.
+     *
+     * @param {HTMLElement} field The field element to show the error below.
+     * @param {string} stringKey The language string key for the error message.
+     */
+    function showAccountError(field, stringKey) {
+        var errorSpan = document.createElement('span');
+        errorSpan.className = 'buchungssatz-account-error text-danger d-block mt-1';
+        errorSpan.style.fontSize = '0.875rem';
+        errorSpan.textContent = M.util.get_string(stringKey, 'qtype_buchungssatz');
+        field.parentNode.appendChild(errorSpan);
+    }
+
+    /**
+     * Clear all inline account validation errors.
+     */
+    function clearAccountErrors() {
+        var existing = document.querySelectorAll('.buchungssatz-account-error');
+        existing.forEach(function(el) {
+            el.remove();
+        });
     }
 
     /**

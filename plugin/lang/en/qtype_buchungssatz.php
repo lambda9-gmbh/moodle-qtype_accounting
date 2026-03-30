@@ -111,6 +111,8 @@ $string['err_chartrequired'] = 'Please select a chart of accounts.';
 $string['err_accountsindropdown_negative'] = 'The number of accounts in selection list cannot be negative.';
 $string['err_extraentrydeduction_range'] = 'The deduction must be between 0 and 100.';
 $string['err_balancemismatch'] = 'Total debit amount must equal total credit amount for a valid accounting entry.';
+$string['err_sollkontorequired'] = 'Please select an account, or remove this entry.';
+$string['err_habenkontorequired'] = 'Please select an account, or remove this entry.';
 
 // Chart of accounts management.
 $string['managecharts'] = 'Manage Charts of Accounts';
