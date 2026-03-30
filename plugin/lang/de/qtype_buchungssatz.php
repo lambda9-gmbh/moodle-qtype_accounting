@@ -193,7 +193,8 @@ Beispiel:<br>
 <code>1200 Bank</code><br>
 <code>8400 Erlöse 19% USt</code><br>
 <code>1000 Kasse</code><br><br>
-Maximale Dateigröße: 2 MB';
+Maximale Dateigröße: 2 MB<br><br>
+<strong>Unterstützte Zeichenkodierungen:</strong> UTF-8 und Windows-1252 (gängiger Excel-Export).';
 $string['overrideexisting'] = 'Bestehenden Kontenplan überschreiben';
 $string['overrideexistingdesc'] = 'Bestehenden Kontenplan mit gleichem Namen ersetzen';
 $string['overrideexisting_help'] = 'Wenn aktiviert und ein Kontenplan mit demselben Namen bereits existiert, wird dieser gelöscht und durch den importierten Kontenplan ersetzt. Warnung: Dies löscht den bestehenden Kontenplan und alle seine Konten dauerhaft.';

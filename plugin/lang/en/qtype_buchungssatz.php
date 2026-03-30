@@ -193,7 +193,8 @@ Example:<br>
 <code>1200 Bank</code><br>
 <code>8400 Erlöse 19% USt</code><br>
 <code>1000 Kasse</code><br><br>
-Maximum file size: 2MB';
+Maximum file size: 2MB<br><br>
+<strong>Supported encodings:</strong> UTF-8 and Windows-1252 (common Excel export).';
 $string['overrideexisting'] = 'Override existing chart';
 $string['overrideexistingdesc'] = 'Replace existing chart with the same name';
 $string['overrideexisting_help'] = 'If enabled and a chart with the same name already exists, it will be deleted and replaced with the imported chart. Warning: This will permanently delete the existing chart and all its accounts.';
