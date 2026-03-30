@@ -24,7 +24,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str, EntryUtils) {
+define(['jquery'], function($) {
 
     /** Breakpoint for mobile layout (must match CSS). */
     var MOBILE_BREAKPOINT = 768;

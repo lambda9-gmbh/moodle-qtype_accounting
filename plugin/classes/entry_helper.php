@@ -75,7 +75,7 @@ class entry_helper {
         $title = get_string($titlekey, 'qtype_buchungssatz');
 
         return '<button type="button" class="btn btn-sm btn-outline-danger ' . $cssclass . '" ' .
-            $indexattr . '="' . $index . '" title="' . $title . '">' .
+            $indexattr . '="' . s($index) . '" title="' . s($title) . '">' .
             '<i class="fa fa-trash"></i>' .
             '</button>';
     }

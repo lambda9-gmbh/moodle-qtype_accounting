@@ -35,12 +35,16 @@ require_login();
 require_sesskey();
 
 $csvdata = required_param('csvdata', PARAM_RAW);
-$courseid = required_param('courseid', PARAM_INT);
+$contextid = required_param('courseid', PARAM_INT);
+
+// Verify the user has access to this context.
+$context = \context::instance_by_id($contextid, MUST_EXIST);
+require_capability('moodle/question:add', $context);
 
 header('Content-Type: application/json');
 
 try {
-    $result = import_chart_from_csv($csvdata, $courseid);
+    $result = import_chart_from_csv($csvdata, $contextid);
     echo json_encode($result);
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);

@@ -23,7 +23,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['jquery', 'core/str'], function($, Str) {
+define(['jquery'], function($) {
 
     /** CSS class used to hide cells based on entry type. */
     var HIDDEN_CLASS = 'buchungssatz-hidden-cell';

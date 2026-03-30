@@ -22,8 +22,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-global $DB;
-
 define('AJAX_SCRIPT', true);
 
 require_once(__DIR__ . '/../../../../config.php');
@@ -33,11 +31,16 @@ use qtype_buchungssatz\chart_manager;
 require_login();
 require_sesskey();
 
-$courseid = required_param('courseid', PARAM_INT);
+$contextid = required_param('courseid', PARAM_INT);
+
+// Verify the user has access to this context.
+$context = \context::instance_by_id($contextid, MUST_EXIST);
+require_capability('moodle/question:add', $context);
 
 // Get charts scoped to the course context.
+global $DB;
 $charts = $DB->get_records('qtype_buchungssatz_charts',
-    ['contextid' => $courseid], 'name ASC');
+    ['contextid' => $contextid], 'name ASC');
 
 $result = [];
 foreach ($charts as $chart) {

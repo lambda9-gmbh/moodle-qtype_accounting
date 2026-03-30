@@ -22,12 +22,12 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$string['pluginname'] = 'Accounting Entry (Buchungssatz)';
+$string['pluginname'] = 'Accounting Entry';
 $string['pluginname_help'] = 'A question type where students create accounting entries (journal entries) by selecting debit and credit accounts and entering amounts.';
 $string['pluginname_link'] = 'question/type/buchungssatz';
 $string['pluginnameadding'] = 'Adding an Accounting Entry question';
 $string['pluginnameediting'] = 'Editing an Accounting Entry question';
-$string['pluginnamesummary'] = 'A question type for practicing accounting entries (Buchungssätze). Students select accounts from a chart of accounts and enter debit/credit amounts.';
+$string['pluginnamesummary'] = 'A question type for practicing accounting entries. Students select accounts from a chart of accounts and enter debit/credit amounts.';
 
 // Form labels.
 $string['chartofaccounts'] = 'Chart of Accounts';
@@ -88,12 +88,12 @@ $string['explanation_help'] = 'An optional explanation for this entry that will 
 $string['correctansweris'] = 'The correct answer is:';
 $string['pleaseenteranswer'] = 'Please enter at least one complete booking entry.';
 $string['allcorrect'] = 'All entries are correct!';
-$string['debitincorrect'] = 'The debit side (Soll) is incorrect.';
-$string['debitpartiallyincorrect'] = 'The debit side (Soll) is partially incorrect.';
-$string['debithasextraaccounts'] = 'The debit side (Soll) contains unnecessary accounts.';
-$string['creditincorrect'] = 'The credit side (Haben) is incorrect.';
-$string['creditpartiallyincorrect'] = 'The credit side (Haben) is partially incorrect.';
-$string['credithasextraaccounts'] = 'The credit side (Haben) contains unnecessary accounts.';
+$string['debitincorrect'] = 'The debit side is incorrect.';
+$string['debitpartiallyincorrect'] = 'The debit side is partially incorrect.';
+$string['debithasextraaccounts'] = 'The debit side contains unnecessary accounts.';
+$string['creditincorrect'] = 'The credit side is incorrect.';
+$string['creditpartiallyincorrect'] = 'The credit side is partially incorrect.';
+$string['credithasextraaccounts'] = 'The credit side contains unnecessary accounts.';
 
 // Validation errors.
 $string['err_noentries'] = 'Please enter at least one booking entry with account and amount.';

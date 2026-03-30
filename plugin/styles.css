@@ -148,19 +148,6 @@
     margin-bottom: 1rem;
 }
 
-/* Entry header group - align delete button to the right */
-#fgroup_id_entry_header_0 .felement,
-[id^="fgroup_id_entry_header_"] .felement {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-}
-
-/* Remove bottom margin from last field in entry group */
-.buchungssatz-entry-group > div:last-of-type.mb-3 {
-    margin-bottom: 0 !important;
-}
 
 /* T-Account visual style (optional enhanced view) */
 .buchungssatz-t-account {
@@ -498,7 +485,7 @@
 .delete_entry {
     width: 100%;
     display: flex;
-    justify-content: end;
+    justify-content: flex-end;
 }
 
 /* Edit form table styles */
@@ -572,10 +559,6 @@
 
 .buchungssatz-delete-entry {
     padding: 0.25rem 0.5rem;
-}
-
-#buchungssatz-add-entry {
-    margin-top: 1rem;
 }
 
 /* Hide the template element */

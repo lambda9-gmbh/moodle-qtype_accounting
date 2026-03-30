@@ -72,23 +72,6 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
             numberFormatSelect = document.querySelector('select[name="numberformat"]');
         }
 
-        // Debug logging to help identify issues.
-        console.log('Buchungssatz: Init started');
-        console.log('Buchungssatz: dataElement found =', !!dataElement);
-        console.log('Buchungssatz: chartSelect found =', !!chartSelect);
-        console.log('Buchungssatz: accountsByChart keys =', Object.keys(accountsByChart));
-        console.log('Buchungssatz: initialChartId =', initialChartId);
-
-        if (!chartSelect) {
-            console.warn('Buchungssatz: Chart select element not found');
-        }
-        if (!dataElement) {
-            console.warn('Buchungssatz: Data element not found');
-        }
-        if (Object.keys(accountsByChart).length === 0) {
-            console.warn('Buchungssatz: No accounts data loaded');
-        }
-
         // Initial setup - populate dropdowns based on selected chart
         if (chartSelect && initialChartId && (!chartSelect.value || chartSelect.value === '0')) {
             chartSelect.value = initialChartId;
@@ -146,13 +129,9 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
     function setupChartChangeHandler() {
         if (chartSelect) {
             chartSelect.addEventListener('change', function() {
-                console.log('Buchungssatz: Chart changed to', chartSelect.value);
-                console.log('Buchungssatz: Available chart IDs', Object.keys(accountsByChart));
                 lastChartId = null; // Reset to force rebuild
                 updateAccountDropdowns(true);
             });
-        } else {
-            console.warn('Buchungssatz: Cannot setup chart change handler - chartSelect is null');
         }
     }
 
@@ -473,15 +452,15 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
             var habenField = row.querySelector('.buchungssatz-habenbetrag');
 
             if (sollField && sollField.value) {
-                var parsed = parseFloat(EntryUtils.parseNumber(sollField.value));
-                if (!isNaN(parsed)) {
-                    totalDebit += parsed;
+                var parsedSoll = parseFloat(EntryUtils.parseNumber(sollField.value));
+                if (!isNaN(parsedSoll)) {
+                    totalDebit += parsedSoll;
                 }
             }
             if (habenField && habenField.value) {
-                var parsed = parseFloat(EntryUtils.parseNumber(habenField.value));
-                if (!isNaN(parsed)) {
-                    totalCredit += parsed;
+                var parsedHaben = parseFloat(EntryUtils.parseNumber(habenField.value));
+                if (!isNaN(parsedHaben)) {
+                    totalCredit += parsedHaben;
                 }
             }
         });
@@ -783,14 +762,8 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
         const chartId = chartSelect ? chartSelect.value : '0';
         const accounts = accountsByChart[chartId] || {};
 
-        console.log('Buchungssatz: updateAccountDropdowns called');
-        console.log('Buchungssatz: chartId =', chartId, 'type:', typeof chartId);
-        console.log('Buchungssatz: accounts for this chart =', accounts);
-        console.log('Buchungssatz: number of accounts =', Object.keys(accounts).length);
-
         // Skip if chart hasn't changed (unless forced).
         if (!forceRebuild && lastChartId === chartId) {
-            console.log('Buchungssatz: Skipping update - chart unchanged');
             return;
         }
         lastChartId = chartId;

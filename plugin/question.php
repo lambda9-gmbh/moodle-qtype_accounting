@@ -87,22 +87,17 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /**
      * Get the expected data keys for the question.
      *
-     * Scans $_POST to discover the highest entry index submitted, then declares
-     * fields for indices 0 through that maximum. This removes the former hard cap.
+     * Declares fields for indices 0 through a generous upper bound based on the
+     * number of correct entries. Uses PARAM_RAW for amounts to preserve empty
+     * strings (PARAM_FLOAT converts them to 0).
      *
      * @return array The expected data keys and their types.
      */
     public function get_expected_data(): array {
         $expected = [];
 
-        // Scan POST data to find the highest entry index submitted.
-        // Use PARAM_RAW for amounts to preserve empty strings (PARAM_FLOAT converts them to 0).
-        $maxindex = max(count($this->entries), 1) + 9;
-        foreach (array_keys($_POST) as $key) {
-            if (preg_match('/(?:sollkonto|habenkonto)_(\d+)$/', $key, $matches)) {
-                $maxindex = max($maxindex, (int)$matches[1]);
-            }
-        }
+        // Use a generous upper bound: number of correct entries + headroom for student additions.
+        $maxindex = max(count($this->entries), 1) + 19;
         for ($i = 0; $i <= $maxindex; $i++) {
             $expected["sollkonto_{$i}"] = PARAM_RAW;
             $expected["sollbetrag_{$i}"] = PARAM_RAW;
@@ -352,11 +347,11 @@ class qtype_buchungssatz_question extends question_graded_automatically {
      * For correct entries, also sums the weights.
      *
      * @param array $entries The entries to aggregate.
-     * @param bool $includweights Whether to include and aggregate weights (for correct entries).
+     * @param bool $includeweights Whether to include and aggregate weights (for correct entries).
      * @return array Aggregated data with 'debit' and 'credit' keys, each containing
      *               accountid => ['amount' => float, 'weight_account' => int, 'weight_amount' => int].
      */
-    protected function aggregate_entries(array $entries, bool $includweights): array {
+    protected function aggregate_entries(array $entries, bool $includeweights): array {
         $aggregated = [
             'debit' => [],
             'credit' => [],
@@ -374,7 +369,7 @@ class qtype_buchungssatz_question extends question_graded_automatically {
                     ];
                 }
                 $aggregated['debit'][$sollkontoid]['amount'] += (float)($entry['sollbetrag'] ?? 0);
-                if ($includweights) {
+                if ($includeweights) {
                     $aggregated['debit'][$sollkontoid]['weight_account'] += ($entry['weight_sollkonto'] ?? 1);
                     $aggregated['debit'][$sollkontoid]['weight_amount'] += ($entry['weight_sollbetrag'] ?? 1);
                 }
@@ -391,7 +386,7 @@ class qtype_buchungssatz_question extends question_graded_automatically {
                     ];
                 }
                 $aggregated['credit'][$habenkontoid]['amount'] += (float)($entry['habenbetrag'] ?? 0);
-                if ($includweights) {
+                if ($includeweights) {
                     $aggregated['credit'][$habenkontoid]['weight_account'] += ($entry['weight_habenkonto'] ?? 1);
                     $aggregated['credit'][$habenkontoid]['weight_amount'] += ($entry['weight_habenbetrag'] ?? 1);
                 }
