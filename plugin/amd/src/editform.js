@@ -105,7 +105,11 @@ define(['jquery', 'core/str', 'qtype_buchungssatz/entry_utils'], function($, Str
         syncAllDisplayToHidden();
 
         // Initialize Bootstrap popovers (for weight tooltip).
-        $('[data-toggle="popover"]').popover();
+        // Guard: the Bootstrap popover jQuery plugin is lazy-loaded and may not be
+        // present on minimal pages (e.g., Behat). A missing popover is purely cosmetic.
+        if (typeof $.fn.popover === 'function') {
+            $('[data-toggle="popover"]').popover();
+        }
     }
 
     /**

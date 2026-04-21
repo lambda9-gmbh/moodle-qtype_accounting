@@ -230,9 +230,6 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $habenstr = get_string('haben', 'qtype_buchungssatz');
         $kontostr = get_string('account', 'qtype_buchungssatz');
         $betragstr = get_string('amount', 'qtype_buchungssatz');
-        $weightstr = get_string('weight', 'qtype_buchungssatz');
-        $deletestr = get_string('deleteentry', 'qtype_buchungssatz');
-        $addentrystr = get_string('addentry', 'qtype_buchungssatz');
 
         $html = '<table class="table table-bordered buchungssatz-edit-table" id="buchungssatz-entries-table">';
 

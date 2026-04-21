@@ -112,7 +112,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->chartofaccountsid = 0;
         $question->allowmultipleentries = 0;
         $question->maxentries = 1;
-
+        $question->numberformat = 'de';
         $question->accountsmap = self::get_test_accounts_map();
 
         $question->entries = [
@@ -156,6 +156,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->allowmultipleentries = 1;
         $question->maxentries = 5;
 
+        $question->numberformat = 'de';
         $question->accountsmap = self::get_test_accounts_map();
 
         $question->entries = [
@@ -207,7 +208,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->chartofaccountsid = 0;
         $question->allowmultipleentries = 0;
         $question->maxentries = 1;
-
+        $question->numberformat = 'de';
         $question->accountsmap = self::get_test_accounts_map();
 
         $question->entries = [
@@ -250,6 +251,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->maxentries = 1;
         $question->allornothinggrading = 0;
 
+        $question->numberformat = 'de';
         $question->accountsmap = self::get_test_accounts_map();
 
         // Custom weights: account has weight 2, amount has weight 1.
@@ -293,6 +295,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->maxentries = 1;
         $question->allornothinggrading = 1;
 
+        $question->numberformat = 'de';
         $question->accountsmap = self::get_test_accounts_map();
 
         $question->entries = [
@@ -337,6 +340,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->maxentries = 5;
         $question->allornothinggrading = 0;
 
+        $question->numberformat = 'de';
         $question->accountsmap = self::get_test_accounts_map();
 
         // Single entry with total amounts.
@@ -382,6 +386,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->maxentries = 5;
         $question->allornothinggrading = 0;
 
+        $question->numberformat = 'de';
         $question->accountsmap = self::get_test_accounts_map();
 
         // Two entries to the same account.
@@ -439,6 +444,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->allornothinggrading = 0;
         $question->extraentrydeduction = 0.05;
 
+        $question->numberformat = 'de';
         $question->accountsmap = self::get_test_accounts_map();
 
         $question->entries = [

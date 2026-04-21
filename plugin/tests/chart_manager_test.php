@@ -116,11 +116,11 @@ class chart_manager_test extends \advanced_testcase {
         $accounts = chart_manager::get_accounts($chartid);
         $this->assertCount(3, $accounts);
 
-        // Accounts should be sorted by sortorder then accountname.
+        // Accounts are returned sorted alphabetically by accountname.
         $accountnames = array_map(function($a) {
             return $a->accountname;
         }, array_values($accounts));
-        $this->assertEquals(['1200 Bank', '8400 Erlöse 19%', '1000 Kasse'], $accountnames);
+        $this->assertEquals(['1000 Kasse', '1200 Bank', '8400 Erlöse 19%'], $accountnames);
     }
 
     /**

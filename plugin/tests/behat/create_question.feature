@@ -19,7 +19,7 @@ Feature: Create and edit Buchungssatz questions
   Scenario: Access the Buchungssatz question creation form
     Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."
-    And I set the field "Accounting Entry (Buchungssatz)" to "1"
+    And I set the field "Accounting Entry" to "1"
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
     Then I should see "Adding an Accounting Entry question"
     And I should see "Question name"
@@ -29,11 +29,11 @@ Feature: Create and edit Buchungssatz questions
   Scenario: Question form shows entry input fields
     Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."
-    And I set the field "Accounting Entry (Buchungssatz)" to "1"
+    And I set the field "Accounting Entry" to "1"
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
     Then I should see "Chart of Accounts"
     And I should see "Correct Answer"
-    And I should see "Per"
+    And I should see "Dr."
     And I should see "Debit"
     And I should see "Credit"
 
@@ -41,7 +41,7 @@ Feature: Create and edit Buchungssatz questions
   Scenario: Validation error when question name is empty
     Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."
-    And I set the field "Accounting Entry (Buchungssatz)" to "1"
+    And I set the field "Accounting Entry" to "1"
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
     And I set the field "Question text" to "Test question"
     And I press "id_submitbutton"
@@ -51,7 +51,7 @@ Feature: Create and edit Buchungssatz questions
   Scenario: Weight fields are visible in entry table
     Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."
-    And I set the field "Accounting Entry (Buchungssatz)" to "1"
+    And I set the field "Accounting Entry" to "1"
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
     Then I should see "Weight"
 
@@ -59,33 +59,25 @@ Feature: Create and edit Buchungssatz questions
   Scenario: Number format option is available
     Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."
-    And I set the field "Accounting Entry (Buchungssatz)" to "1"
+    And I set the field "Accounting Entry" to "1"
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
     Then I should see "Number format"
-    And I should see "German/EU"
-    And I should see "US"
+    And I should see "#.###,00"
+    And I should see "#,###.00"
 
   @javascript
   Scenario: All-or-nothing option is available
     Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."
-    And I set the field "Accounting Entry (Buchungssatz)" to "1"
+    And I set the field "Accounting Entry" to "1"
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
-    Then I should see "Only award marks if all entries are correct"
-
-  @javascript
-  Scenario: Decimal places option is available
-    Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
-    When I press "Create a new question ..."
-    And I set the field "Accounting Entry (Buchungssatz)" to "1"
-    And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
-    Then I should see "Decimal places"
+    Then I should see "No partial credit"
 
   @javascript
   Scenario: Multiple tries section is available
     Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."
-    And I set the field "Accounting Entry (Buchungssatz)" to "1"
+    And I set the field "Accounting Entry" to "1"
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
     Then I should see "Multiple tries"
 
@@ -93,7 +85,7 @@ Feature: Create and edit Buchungssatz questions
   Scenario: Add entry button works
     Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."
-    And I set the field "Accounting Entry (Buchungssatz)" to "1"
+    And I set the field "Accounting Entry" to "1"
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
     Then I should see "Add Debit Entry"
     When I click on "Add Debit Entry" "button"

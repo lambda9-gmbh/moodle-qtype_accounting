@@ -121,10 +121,11 @@ class questiontype_test extends \advanced_testcase {
         $this->assertEquals(10, $loadedquestion->maxentries);
         $this->assertCount(2, $loadedquestion->entries);
 
-        // Check first entry.
-        $this->assertEquals('1200', $loadedquestion->entries[0]['sollkonto']);
+        // Check first entry. Account fields use the sollkontoid / habenkontoid keys
+        // (the entries array mirrors the DB column names).
+        $this->assertEquals(1200, $loadedquestion->entries[0]['sollkontoid']);
         $this->assertEquals(1000.00, $loadedquestion->entries[0]['sollbetrag']);
-        $this->assertEquals('8400', $loadedquestion->entries[0]['habenkonto']);
+        $this->assertEquals(8400, $loadedquestion->entries[0]['habenkontoid']);
         $this->assertEquals(1000.00, $loadedquestion->entries[0]['habenbetrag']);
         $this->assertEquals(2, $loadedquestion->entries[0]['weight_sollkonto']);
         $this->assertEquals(1, $loadedquestion->entries[0]['weight_sollbetrag']);
@@ -132,7 +133,7 @@ class questiontype_test extends \advanced_testcase {
         $this->assertEquals(1, $loadedquestion->entries[0]['weight_habenbetrag']);
 
         // Check second entry.
-        $this->assertEquals('1000', $loadedquestion->entries[1]['sollkonto']);
+        $this->assertEquals(1000, $loadedquestion->entries[1]['sollkontoid']);
         $this->assertEquals(500.00, $loadedquestion->entries[1]['sollbetrag']);
         $this->assertEquals(1, $loadedquestion->entries[1]['weight_sollkonto']);
         $this->assertEquals(1, $loadedquestion->entries[1]['weight_sollbetrag']);
@@ -320,6 +321,13 @@ class questiontype_test extends \advanced_testcase {
     public function test_export_to_xml_includes_entries(): void {
         $this->resetAfterTest(true);
 
+        // Create real accounts so the export can resolve IDs to names.
+        $contextid = \context_system::instance()->id;
+        $chartid = chart_manager::create_chart('Export Entries Chart', $contextid);
+        $bankid = chart_manager::add_account($chartid, '1200 Bank', 0);
+        $kasseid = chart_manager::add_account($chartid, '1000 Kasse', 1);
+        $erloeseid = chart_manager::add_account($chartid, '8400 Erloese', 2);
+
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $category = $generator->create_question_category();
 
@@ -331,12 +339,12 @@ class questiontype_test extends \advanced_testcase {
             'defaultmark' => 1,
             'penalty' => 0.3333333,
             'qtype' => 'buchungssatz',
-            'chartofaccountsid' => 0,
+            'chartofaccountsid' => $chartid,
             'allowmultipleentries' => 1,
             'maxentries' => 5,
-            'sollkonto' => ['1200', '1000'],
+            'sollkonto' => [$bankid, $kasseid],
             'sollbetrag' => [500.00, 300.00],
-            'habenkonto' => ['8400', '8400'],
+            'habenkonto' => [$erloeseid, $erloeseid],
             'habenbetrag' => [500.00, 300.00],
             'weight_sollkonto' => [2, 1],
             'weight_sollbetrag' => [1, 1],
@@ -359,13 +367,13 @@ class questiontype_test extends \advanced_testcase {
         $this->assertStringContainsString('<entries>', $xml);
         $this->assertStringContainsString('<entry>', $xml);
 
-        // Verify first entry data.
-        $this->assertStringContainsString('<sollkonto>1200</sollkonto>', $xml);
-        $this->assertStringContainsString('<habenkonto>8400</habenkonto>', $xml);
+        // Verify first entry data. Export resolves account IDs to names.
+        $this->assertStringContainsString('<sollkonto>1200 Bank</sollkonto>', $xml);
+        $this->assertStringContainsString('<habenkonto>8400 Erloese</habenkonto>', $xml);
         $this->assertStringContainsString('<weight_sollkonto>2</weight_sollkonto>', $xml);
 
         // Verify second entry data.
-        $this->assertStringContainsString('<sollkonto>1000</sollkonto>', $xml);
+        $this->assertStringContainsString('<sollkonto>1000 Kasse</sollkonto>', $xml);
     }
 
     /**

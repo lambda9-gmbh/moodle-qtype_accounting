@@ -218,8 +218,11 @@ class question_test extends \advanced_testcase {
      */
     public function test_grade_response_float_tolerance(): void {
         $question = \test_question_maker::make_question('buchungssatz', 'simple_debit_credit');
+        // Use US number format so the float -> string coercion ("1000.005") parses correctly.
+        // In German format, dots are thousand separators and would be stripped.
+        $question->numberformat = 'us';
 
-        // Response with tiny floating point difference.
+        // Response with tiny floating point difference (under the 0.01 tolerance).
         $response = qtype_buchungssatz_test_helper::make_response(101, 1000.005, 201, 1000.005);
         [$fraction, $state] = $question->grade_response($response);
 

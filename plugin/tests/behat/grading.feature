@@ -94,7 +94,7 @@ Feature: Grading Buchungssatz questions
   Scenario: Teacher can see Multiple Tries section in question form
     Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."
-    And I set the field "Accounting Entry (Buchungssatz)" to "1"
+    And I set the field "Accounting Entry" to "1"
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
     Then I should see "Multiple tries"
     # Expand the Multiple tries section to see its contents
@@ -106,9 +106,9 @@ Feature: Grading Buchungssatz questions
   Scenario: All-or-nothing grading option is available
     Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."
-    And I set the field "Accounting Entry (Buchungssatz)" to "1"
+    And I set the field "Accounting Entry" to "1"
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
-    Then I should see "Only award marks if all entries are correct"
+    Then I should see "No partial credit"
 
   @javascript
   Scenario: Question preview shows correct answer structure
