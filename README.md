@@ -16,15 +16,8 @@ Developed for **Hochschule Flensburg** by **lambda9**.
 
 ### For Teachers/Instructors
 - Create questions with multiple correct answer entries
-- Define partial credit percentage per entry (must sum to 100%)
-- "Distribute equally" button to split points evenly across entries
-- Import entries from CSV/Excel files
-- Explanation field for each entry (shown in feedback)
-
-### For Administrators
-- Manage charts of accounts at system level
-- Create custom charts with account numbers, names, and types
-- Import test chart (SKR03) with one click
+- Define partial credit weights
+- Manage charts of accounts at course level
 - CSV import/export for account structures
 
 ## Requirements
@@ -72,9 +65,8 @@ After Moodle installation, go to **Site administration > Notifications** to trig
 
 1. Create a quiz in any course
 2. Add a new question of type "Accounting Entry (Buchungssatz)"
-3. Optionally select a chart of accounts
+3. Select a chart of accounts
 4. Enter the correct answer entries (Soll/Haben accounts and amounts)
-5. Set grade percentages (must sum to 100%)
 
 ## Project Structure
 
@@ -166,11 +158,6 @@ A Buchungssatz question presents a business transaction scenario. Students must:
 | 3400 Purchases | 1,000 | 1600 Payables | 1,190 |
 | 1576 Input VAT | 190   |                |       |
 
-### Grade Distribution
-
-- Each entry has a grade percentage (0-100%)
-- All grades must sum to exactly 100%
-- Use the "Distribute equally" button to split points evenly
 
 ## Chart of Accounts Management
 
@@ -180,24 +167,6 @@ A Buchungssatz question presents a business transaction scenario. Students must:
 2. Enter a name and description
 3. Click "Add new chart"
 4. Click "Edit Accounts" to add individual accounts
-
-### CSV Import Format
-
-```csv
-accountnumber,accountname,accounttype
-1000,Cash,asset
-1200,Bank,asset
-1400,Receivables,asset
-1600,Payables,liability
-8000,Revenue,revenue
-3400,Purchases,expense
-```
-
-**Account types:** `asset`, `liability`, `equity`, `revenue`, `expense`
-
-### Default SKR03
-
-Click "SKR03 Standardkontenplan erstellen" to create a simplified German standard chart (Standardkontenrahmen 03) with common accounts.
 
 ## Development
 
@@ -259,15 +228,6 @@ After PHP changes, purge Moodle caches:
 # or
 docker exec moft-moodle php admin/cli/purge_caches.php
 ```
-
-## Grading Logic
-
-- Each entry line has a configurable point value (grade percentage)
-- Student entries are matched against correct entries
-- Matching is case-insensitive for account numbers
-- Amount matching allows 0.01 tolerance for floating-point precision
-- Partial credit is awarded based on matched entries
-- Total score = sum of matched entry fractions
 
 ## Database Tables
 
