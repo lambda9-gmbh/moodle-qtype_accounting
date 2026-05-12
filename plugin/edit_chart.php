@@ -23,8 +23,31 @@
  */
 
 require_once(__DIR__ . '/../../../config.php');
+require_once($CFG->libdir . '/formslib.php');
 
 use qtype_buchungssatz\chart_manager;
+
+/**
+ * Form for importing accounts into an existing chart of accounts from a CSV file.
+ *
+ * @package    qtype_buchungssatz
+ * @copyright  2024 Hochschule Flensburg / lambda9
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class qtype_buchungssatz_chart_account_import_form extends moodleform {
+
+    /**
+     * Define the form elements.
+     */
+    protected function definition() {
+        $mform = $this->_form;
+
+        $mform->addElement('filepicker', 'chartcsvfile', '', null,
+            ['maxbytes' => 2097152, 'accepted_types' => ['.csv', '.txt']]);
+
+        $this->add_action_buttons(false, get_string('importchart', 'qtype_buchungssatz'));
+    }
+}
 
 $courseid = required_param('courseid', PARAM_INT);
 $chartid = required_param('chartid', PARAM_INT);
@@ -140,11 +163,19 @@ if ($action === 'deleteaccount' && $accountid) {
     die;
 }
 
-// Handle CSV import to existing chart.
-if ($action === 'import' && confirm_sesskey()) {
-    $csvfile = $_FILES['csvfile'] ?? null;
-    if ($csvfile && $csvfile['error'] === UPLOAD_ERR_OK && $csvfile['size'] > 0) {
-        $csvcontent = file_get_contents($csvfile['tmp_name']);
+// Handle CSV import to existing chart via Moodle filepicker form.
+$importform = new qtype_buchungssatz_chart_account_import_form($baseurl);
+if ($data = $importform->get_data()) {
+    global $USER;
+
+    $draftitemid = $data->chartcsvfile;
+    $fs = get_file_storage();
+    $usercontext = context_user::instance($USER->id);
+    $files = $fs->get_area_files($usercontext->id, 'user', 'draft', $draftitemid, 'id DESC', false);
+
+    if (!empty($files)) {
+        $file = reset($files);
+        $csvcontent = $file->get_content();
         $result = chart_manager::import_from_csv($chartid, $csvcontent);
 
         if ($result['imported'] > 0) {
@@ -321,48 +352,22 @@ if (!empty($accounts)) {
     echo html_writer::tag('p', get_string('noaccounts', 'qtype_buchungssatz'), ['class' => 'alert alert-info']);
 }
 
-// Import/Export section below the table.
-echo html_writer::start_div('buchungssatz-csv-actions d-flex flex-wrap align-items-center mt-3 mb-3',
-    ['style' => 'gap: 0.5rem;']);
-
-// CSV import form (inline).
-$importurl = new moodle_url($baseurl, ['action' => 'import']);
-echo html_writer::start_tag('form', [
-    'method' => 'post',
-    'action' => $importurl->out(false),
-    'enctype' => 'multipart/form-data',
-    'class' => 'd-flex align-items-center',
-    'style' => 'gap: 0.5rem;',
-]);
-echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
-echo html_writer::empty_tag('input', [
-    'type' => 'file',
-    'name' => 'csvfile',
-    'accept' => '.csv,.txt',
-    'class' => 'form-control',
-]);
-echo html_writer::empty_tag('input', [
-    'type' => 'submit',
-    'value' => get_string('importchart', 'qtype_buchungssatz'),
-    'class' => 'btn btn-secondary',
-]);
-echo html_writer::end_tag('form');
-
-// Export button.
-$exporturl = new moodle_url($baseurl, ['action' => 'export']);
-echo html_writer::link($exporturl, get_string('exportaccounts', 'qtype_buchungssatz'), [
-    'class' => 'btn btn-secondary',
-]);
-
+// CSV import section — full-width Moodle filepicker form.
+echo html_writer::start_div('buchungssatz-csv-import mt-4');
+echo $OUTPUT->heading(get_string('importchart', 'qtype_buchungssatz'), 3);
+$importform->display();
 echo html_writer::end_div();
 
-// Back button — standard Moodle form button alignment.
-echo html_writer::start_div('form-group row mt-4 mb-3');
-echo html_writer::start_div('col-md-9 offset-md-3');
+// Bottom action row: Back button on the left, Export button next to it.
+$exporturl = new moodle_url($baseurl, ['action' => 'export']);
+echo html_writer::start_div('buchungssatz-chart-actions d-flex flex-wrap justify-content-center align-items-center mt-4 mb-3',
+    ['style' => 'gap: 0.5rem;']);
 echo html_writer::link($manageurl, '&laquo; ' . get_string('managecharts', 'qtype_buchungssatz'), [
     'class' => 'btn btn-primary',
 ]);
-echo html_writer::end_div();
+echo html_writer::link($exporturl, get_string('exportaccounts', 'qtype_buchungssatz'), [
+    'class' => 'btn btn-secondary',
+]);
 echo html_writer::end_div();
 
 echo $OUTPUT->footer();

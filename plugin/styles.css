@@ -808,6 +808,56 @@ table.buchungssatz-student-table {
     padding-top: 1rem;
 }
 
+/* Edit-chart CSV import (Moodle filepicker form) — span the full page width. */
+.buchungssatz-csv-import {
+    border-top: 1px solid #dee2e6;
+    padding-top: 1rem;
+}
+
+.buchungssatz-csv-import .mform .fitem {
+    width: 100%;
+}
+
+/* Collapse the (empty) label column so the filepicker fills the full row.
+   Moodle renders the label as <label class="col-md-3 col-form-label"> directly
+   inside .fitem, so we target it specifically (including the empty-label case). */
+.buchungssatz-csv-import .mform .fitem > .fitemtitle,
+.buchungssatz-csv-import .mform .fitem > label.col-form-label,
+.buchungssatz-csv-import .mform .fitem > .col-md-3,
+.buchungssatz-csv-import .mform .fitem > label[class*="col-md-"] {
+    display: none !important;
+    width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.buchungssatz-csv-import .mform .fitem > .felement,
+.buchungssatz-csv-import .mform .fitem > [class*="col-md-"]:not(label) {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+}
+
+.buchungssatz-csv-import .mform .fitem .filemanager,
+.buchungssatz-csv-import .mform .fitem .filepicker {
+    width: 100%;
+    max-width: 100%;
+}
+
+.buchungssatz-csv-import .mform .fp-btn-add,
+.buchungssatz-csv-import .mform .filepicker-filename {
+    width: 100%;
+}
+
+/* Bottom action row: Back + Export sit side by side, wrap nicely on small screens. */
+.buchungssatz-chart-actions {
+    border-top: 1px solid #dee2e6;
+    padding-top: 1rem;
+}
+
 /* Print styles */
 @media print {
     .buchungssatz-entries {
