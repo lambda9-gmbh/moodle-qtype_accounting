@@ -12,14 +12,14 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with MoFT BuSa.  If not, see <http://www.gnu.org/licenses/>.
+// along with MoFT BuSa.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
  * Privacy provider for qtype_buchungssatz.
  *
  * @package    qtype_buchungssatz
  * @copyright  2024 Hochschule Flensburg / lambda9
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 namespace qtype_buchungssatz\privacy;
@@ -41,7 +41,7 @@ use core_privacy\local\request\userlist;
  *
  * @package    qtype_buchungssatz
  * @copyright  2024 Hochschule Flensburg / lambda9
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class provider implements metadata_provider, plugin_provider, core_userlist_provider {
 
