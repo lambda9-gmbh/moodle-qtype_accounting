@@ -198,6 +198,7 @@ if ($data = $importform->get_data()) {
 
 // Handle export.
 if ($action === 'export') {
+    require_sesskey();
     $csv = chart_manager::export_to_csv($chartid);
     $filename = clean_filename($chart->name) . '.csv';
 
@@ -359,7 +360,7 @@ $importform->display();
 echo html_writer::end_div();
 
 // Bottom action row: Back button on the left, Export button next to it.
-$exporturl = new moodle_url($baseurl, ['action' => 'export']);
+$exporturl = new moodle_url($baseurl, ['action' => 'export', 'sesskey' => sesskey()]);
 echo html_writer::start_div('buchungssatz-chart-actions d-flex flex-wrap justify-content-center align-items-center mt-4 mb-3',
     ['style' => 'gap: 0.5rem;']);
 echo html_writer::link($manageurl, '&laquo; ' . get_string('managecharts', 'qtype_buchungssatz'), [
