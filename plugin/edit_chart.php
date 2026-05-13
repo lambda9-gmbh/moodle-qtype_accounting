@@ -160,7 +160,7 @@ if ($action === 'deleteaccount' && $accountid) {
         $baseurl
     );
     echo $OUTPUT->footer();
-    die;
+    exit;
 }
 
 // Handle CSV import to existing chart via Moodle filepicker form.
@@ -205,7 +205,7 @@ if ($action === 'export') {
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
     echo $csv;
-    die;
+    exit;
 }
 
 // Display the page.

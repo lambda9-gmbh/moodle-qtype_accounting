@@ -94,7 +94,7 @@ if ($action === 'delete' && $chartid) {
         $baseurl
     );
     echo $OUTPUT->footer();
-    die;
+    exit;
 }
 
 // Handle export action.
@@ -110,7 +110,7 @@ if ($action === 'export' && $chartid) {
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
     echo $csv;
-    die;
+    exit;
 }
 
 // Handle CSV upload via Moodle filepicker form.
