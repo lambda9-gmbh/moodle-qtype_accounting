@@ -23,7 +23,7 @@
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['jquery'], function($) {
+define(['jquery'], function ($) {
 
     /** CSS class used to hide cells based on entry type. */
     var HIDDEN_CLASS = 'buchungssatz-hidden-cell';
@@ -262,8 +262,10 @@ define(['jquery'], function($) {
         var sollVal = getFieldValue(sollCell);
         var habenVal = getFieldValue(habenCell);
         // Treat "0" as empty (account ID 0 = no account selected).
-        if (sollVal === '0') { sollVal = ''; }
-        if (habenVal === '0') { habenVal = ''; }
+        if (sollVal === '0') {
+            sollVal = ''; }
+        if (habenVal === '0') {
+            habenVal = ''; }
 
         if (sollVal && habenVal) {
             return 'both';
@@ -304,8 +306,10 @@ define(['jquery'], function($) {
         var sollVal = getFieldValue(cells[COL.SOLL_ACCOUNT]);
         var habenVal = getFieldValue(cells[COL.HABEN_ACCOUNT]);
         // Treat "0" as empty (account ID 0 = no account selected).
-        if (sollVal === '0') { sollVal = ''; }
-        if (habenVal === '0') { habenVal = ''; }
+        if (sollVal === '0') {
+            sollVal = ''; }
+        if (habenVal === '0') {
+            habenVal = ''; }
         return !sollVal && !habenVal;
     }
 

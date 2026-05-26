@@ -37,7 +37,6 @@ require_once($CFG->dirroot . '/question/engine/lib.php');
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_buchungssatz extends question_type {
-
     /**
      * Whether this question type can be used for random questions.
      *
@@ -177,8 +176,10 @@ class qtype_buchungssatz extends question_type {
     public function get_question_options($question): bool {
         global $DB;
 
-        $question->options = $DB->get_record('qtype_buchungssatz_options',
-            ['questionid' => $question->id]);
+        $question->options = $DB->get_record(
+            'qtype_buchungssatz_options',
+            ['questionid' => $question->id]
+        );
 
         if ($question->options === false) {
             $question->options = new stdClass();
@@ -192,8 +193,11 @@ class qtype_buchungssatz extends question_type {
             $question->options->maxentries = 5;
         }
 
-        $question->options->entries = $DB->get_records('qtype_buchungssatz_entries',
-            ['questionid' => $question->id], 'sortorder ASC');
+        $question->options->entries = $DB->get_records(
+            'qtype_buchungssatz_entries',
+            ['questionid' => $question->id],
+            'sortorder ASC'
+        );
 
         parent::get_question_options($question);
         return true;
@@ -237,8 +241,10 @@ class qtype_buchungssatz extends question_type {
         // Load account lookup map for display (ID => name).
         $question->accountsmap = [];
         if ($question->chartofaccountsid > 0) {
-            $accounts = $DB->get_records('qtype_buchungssatz_accounts',
-                ['chartid' => $question->chartofaccountsid]);
+            $accounts = $DB->get_records(
+                'qtype_buchungssatz_accounts',
+                ['chartid' => $question->chartofaccountsid]
+            );
             foreach ($accounts as $acc) {
                 $question->accountsmap[$acc->id] = $acc->accountname;
             }
@@ -409,14 +415,26 @@ class qtype_buchungssatz extends question_type {
             $qo->sollbetrag[$i] = $format->getpath($entrydata, ['#', 'sollbetrag', 0, '#'], 0);
             $qo->habenkonto[$i] = $format->getpath($entrydata, ['#', 'habenkonto', 0, '#'], '');
             $qo->habenbetrag[$i] = $format->getpath($entrydata, ['#', 'habenbetrag', 0, '#'], 0);
-            $qo->weight_sollkonto[$i] = (int) $format->getpath($entrydata,
-                ['#', 'weight_sollkonto', 0, '#'], 1);
-            $qo->weight_sollbetrag[$i] = (int) $format->getpath($entrydata,
-                ['#', 'weight_sollbetrag', 0, '#'], 1);
-            $qo->weight_habenkonto[$i] = (int) $format->getpath($entrydata,
-                ['#', 'weight_habenkonto', 0, '#'], 1);
-            $qo->weight_habenbetrag[$i] = (int) $format->getpath($entrydata,
-                ['#', 'weight_habenbetrag', 0, '#'], 1);
+            $qo->weight_sollkonto[$i] = (int) $format->getpath(
+                $entrydata,
+                ['#', 'weight_sollkonto', 0, '#'],
+                1
+            );
+            $qo->weight_sollbetrag[$i] = (int) $format->getpath(
+                $entrydata,
+                ['#', 'weight_sollbetrag', 0, '#'],
+                1
+            );
+            $qo->weight_habenkonto[$i] = (int) $format->getpath(
+                $entrydata,
+                ['#', 'weight_habenkonto', 0, '#'],
+                1
+            );
+            $qo->weight_habenbetrag[$i] = (int) $format->getpath(
+                $entrydata,
+                ['#', 'weight_habenbetrag', 0, '#'],
+                1
+            );
         }
 
         // Determine target course context for chart resolution.
@@ -457,7 +475,9 @@ class qtype_buchungssatz extends question_type {
 
                 // Try to find existing matching chart in target context.
                 $chartid = \qtype_buchungssatz\chart_manager::find_matching_chart_in_context(
-                    $chartname, $contextid, $accountsbyname
+                    $chartname,
+                    $contextid,
+                    $accountsbyname
                 );
 
                 if (!$chartid) {

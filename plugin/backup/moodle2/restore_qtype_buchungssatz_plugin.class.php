@@ -35,7 +35,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
-
     /** @var string Chart name from the backup XML. */
     protected $chartname = '';
 
@@ -106,8 +105,10 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
         $data = (object) $data;
 
         // Only process if the question was newly created by restore.
-        $questioncreated = $this->get_mappingid('question_created',
-            $this->get_old_parentid('question')) ? true : false;
+        $questioncreated = $this->get_mappingid(
+            'question_created',
+            $this->get_old_parentid('question')
+        ) ? true : false;
 
         if (!$questioncreated) {
             return;
@@ -136,8 +137,10 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
         $data = (object) $data;
 
         // Only process if the question was newly created by restore.
-        $questioncreated = $this->get_mappingid('question_created',
-            $this->get_old_parentid('question')) ? true : false;
+        $questioncreated = $this->get_mappingid(
+            'question_created',
+            $this->get_old_parentid('question')
+        ) ? true : false;
 
         if (!$questioncreated) {
             return;
@@ -219,7 +222,9 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
 
         // Try to find an existing matching chart in the target course context.
         $chartid = \qtype_buchungssatz\chart_manager::find_matching_chart_in_context(
-            $this->chartname, $contextid, $accountsbyname
+            $this->chartname,
+            $contextid,
+            $accountsbyname
         );
 
         if (!$chartid) {
@@ -261,8 +266,10 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
             return null;
         }
 
-        $account = $DB->get_record('qtype_buchungssatz_accounts',
-            ['chartid' => $options->chartofaccountsid, 'accountname' => $accountname]);
+        $account = $DB->get_record(
+            'qtype_buchungssatz_accounts',
+            ['chartid' => $options->chartofaccountsid, 'accountname' => $accountname]
+        );
 
         return $account ? (int) $account->id : null;
     }

@@ -28,7 +28,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class import_helper {
-
     /** @var array Known header keywords to skip (lowercase). */
     const HEADER_KEYWORDS = [
         'kontoname',

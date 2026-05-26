@@ -35,16 +35,19 @@ use qtype_buchungssatz\chart_manager;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_buchungssatz_chart_upload_form extends moodleform {
-
     /**
      * Define the form elements.
      */
     protected function definition() {
         $mform = $this->_form;
 
-        $mform->addElement('filepicker', 'chartcsvfile',
-            get_string('csvfile', 'qtype_buchungssatz'), null,
-            ['maxbytes' => 2097152, 'accepted_types' => ['.csv', '.txt']]);
+        $mform->addElement(
+            'filepicker',
+            'chartcsvfile',
+            get_string('csvfile', 'qtype_buchungssatz'),
+            null,
+            ['maxbytes' => 2097152, 'accepted_types' => ['.csv', '.txt']]
+        );
         $mform->addHelpButton('chartcsvfile', 'csvfile', 'qtype_buchungssatz');
 
         $this->add_action_buttons(false, get_string('uploadchartcsv_btn', 'qtype_buchungssatz'));
@@ -219,8 +222,11 @@ if (empty($charts)) {
 if ($returnurl !== '') {
     echo html_writer::start_div('form-group row mt-3 mb-3');
     echo html_writer::start_div('col-md-9 offset-md-3');
-    echo html_writer::link($returnurl, get_string('saveandcontinue', 'qtype_buchungssatz'),
-        ['class' => 'btn btn-primary']);
+    echo html_writer::link(
+        $returnurl,
+        get_string('saveandcontinue', 'qtype_buchungssatz'),
+        ['class' => 'btn btn-primary']
+    );
     echo html_writer::end_div();
     echo html_writer::end_div();
 }

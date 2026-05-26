@@ -32,7 +32,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_buchungssatz_renderer extends qtype_renderer {
-
     /**
      * Generate the display of the formulation part of the question.
      *
@@ -51,9 +50,11 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         // Show notice when all-or-nothing grading is enabled.
         if (!empty($question->allornothinggrading)) {
-            $result .= html_writer::tag('div',
+            $result .= html_writer::tag(
+                'div',
                 get_string('allornothinggrading_notice', 'qtype_buchungssatz'),
-                ['class' => 'alert alert-warning mt-2 mb-2']);
+                ['class' => 'alert alert-warning mt-2 mb-2']
+            );
         }
 
         // Load available accounts for dropdowns.
@@ -127,8 +128,17 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         // Render only the needed rows — all visible (no hidden pre-rendered rows).
         for ($i = 0; $i < $visiblerows; $i++) {
             $result .= $this->render_entry_row(
-                $qa, $options, $i, $response, $filteredaccounts, $filteredaccounts,
-                $question, false, !$options->readonly, $i === 0, $feedbackmap[$i] ?? []
+                $qa,
+                $options,
+                $i,
+                $response,
+                $filteredaccounts,
+                $filteredaccounts,
+                $question,
+                false,
+                !$options->readonly,
+                $i === 0,
+                $feedbackmap[$i] ?? []
             );
         }
 
@@ -554,8 +564,11 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             return [];
         }
 
-        return $DB->get_records('qtype_buchungssatz_accounts',
-            ['chartid' => $chartid], 'accountname');
+        return $DB->get_records(
+            'qtype_buchungssatz_accounts',
+            ['chartid' => $chartid],
+            'accountname'
+        );
     }
 
     /**
@@ -593,8 +606,10 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         // Separate must-include accounts (correct + selected) from others.
         foreach ($allaccounts as $account) {
-            if (isset($correctset[$account->id]) ||
-                    isset($selectedset[$account->id])) {
+            if (
+                isset($correctset[$account->id]) ||
+                    isset($selectedset[$account->id])
+            ) {
                 $result[$account->id] = $account;
             } else {
                 $otheraccounts[$account->id] = $account;
@@ -618,7 +633,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         }
 
         // Sort by account name for consistent display.
-        uasort($result, function($a, $b) {
+        uasort($result, function ($a, $b) {
             return strcmp($a->accountname, $b->accountname);
         });
 
@@ -705,22 +720,39 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         foreach ($question->entries as $entry) {
             $html .= html_writer::start_tag('tr');
             $sollname = \qtype_buchungssatz\entry_helper::format_account_display_by_id(
-                (int)($entry['sollkontoid'] ?? 0), $accounts);
+                (int)($entry['sollkontoid'] ?? 0),
+                $accounts
+            );
             $habenname = \qtype_buchungssatz\entry_helper::format_account_display_by_id(
-                (int)($entry['habenkontoid'] ?? 0), $accounts);
-            $html .= html_writer::tag('td', s($sollname),
-                ['data-label' => $sollkontostr, 'style' => 'text-align: start;' ]);
-            $html .= html_writer::tag('td', $this->format_amount_display($entry['sollbetrag'], $numberformat),
-                ['data-label' => $sollbetragstr, 'style' => 'text-align: end;' ]);
-            $html .= html_writer::tag('td', s($habenname),
-                ['data-label' => $habenkontostr, 'style' => 'text-align: start;' ]);
-            $html .= html_writer::tag('td', $this->format_amount_display($entry['habenbetrag'], $numberformat),
-                ['data-label' => $habenbetragstr, 'style' => 'text-align: end;' ]);
+                (int)($entry['habenkontoid'] ?? 0),
+                $accounts
+            );
+            $html .= html_writer::tag(
+                'td',
+                s($sollname),
+                ['data-label' => $sollkontostr, 'style' => 'text-align: start;' ]
+            );
+            $html .= html_writer::tag(
+                'td',
+                $this->format_amount_display($entry['sollbetrag'], $numberformat),
+                ['data-label' => $sollbetragstr, 'style' => 'text-align: end;' ]
+            );
+            $html .= html_writer::tag(
+                'td',
+                s($habenname),
+                ['data-label' => $habenkontostr, 'style' => 'text-align: start;' ]
+            );
+            $html .= html_writer::tag(
+                'td',
+                $this->format_amount_display($entry['habenbetrag'], $numberformat),
+                ['data-label' => $habenbetragstr, 'style' => 'text-align: end;' ]
+            );
             $html .= html_writer::end_tag('tr');
             // Show explanation as separate row if present.
             if (!empty($entry['explanation'])) {
                 $html .= html_writer::start_tag('tr', ['class' => 'buchungssatz-explanation-row']);
-                $html .= html_writer::tag('td',
+                $html .= html_writer::tag(
+                    'td',
                     html_writer::tag('strong', get_string('explanation', 'qtype_buchungssatz') . ': ') . s($entry['explanation']),
                     ['colspan' => 4, 'style' => 'background-color: #fff3cd; color: #856404;']
                 );
@@ -863,8 +895,8 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      */
     protected function calculate_aggregated_feedback(object $question, array $response): array {
         $feedback = [
-            'debit_status' => 'correct',   // 'correct', 'partial', or 'incorrect'.
-            'credit_status' => 'correct',  // 'correct', 'partial', or 'incorrect'.
+            'debit_status' => 'correct', // 'correct', 'partial', or 'incorrect'.
+            'credit_status' => 'correct', // 'correct', 'partial', or 'incorrect'.
             'all_correct' => true,
             'debit_details' => [],
             'credit_details' => [],
@@ -1085,7 +1117,8 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $html = html_writer::start_div('buchungssatz-feedback-summary mt-3');
 
         if ($feedback['all_correct']) {
-            $html .= html_writer::tag('div',
+            $html .= html_writer::tag(
+                'div',
                 '<i class="fa fa-check-circle"></i> ' . get_string('allcorrect', 'qtype_buchungssatz'),
                 ['class' => 'alert alert-success']
             );
@@ -1118,7 +1151,8 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             $alertclass = $haspartial ? 'alert alert-warning' : 'alert alert-danger';
             $icon = $haspartial ? 'fa-exclamation-triangle' : 'fa-times-circle';
 
-            $html .= html_writer::tag('div',
+            $html .= html_writer::tag(
+                'div',
                 '<i class="fa ' . $icon . '"></i> ' . implode(' ', $messages),
                 ['class' => $alertclass]
             );

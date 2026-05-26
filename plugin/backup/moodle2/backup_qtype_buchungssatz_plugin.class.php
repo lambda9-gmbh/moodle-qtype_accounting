@@ -32,7 +32,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class backup_qtype_buchungssatz_plugin extends backup_qtype_plugin {
-
     /**
      * Returns the qtype information to attach to question element.
      *
@@ -51,21 +50,31 @@ class backup_qtype_buchungssatz_plugin extends backup_qtype_plugin {
         // Chart of accounts data.
         $chart = new backup_nested_element('buchungssatz_chart', null, ['name']);
         $chartaccounts = new backup_nested_element('chart_accounts');
-        $chartaccount = new backup_nested_element('chart_account', null,
-            ['accountname', 'sortorder']);
+        $chartaccount = new backup_nested_element(
+            'chart_account',
+            null,
+            ['accountname', 'sortorder']
+        );
 
         // Options with all current fields.
-        $options = new backup_nested_element('buchungssatz_options', null,
+        $options = new backup_nested_element(
+            'buchungssatz_options',
+            null,
             ['chartofaccountsid', 'accountsindropdown', 'numberformat',
              'extraentrydeduction', 'allornothinggrading',
-             'allowmultipleentries', 'maxentries']);
+            'allowmultipleentries',
+            'maxentries']
+        );
 
         // Entries with current weight fields and explanation.
         $entries = new backup_nested_element('buchungssatz_entries');
-        $entry = new backup_nested_element('entry', ['id'],
+        $entry = new backup_nested_element(
+            'entry',
+            ['id'],
             ['sortorder', 'sollkontoid', 'sollbetrag', 'habenkontoid', 'habenbetrag',
              'weight_sollkonto', 'weight_sollbetrag', 'weight_habenkonto', 'weight_habenbetrag',
-             'explanation']);
+            'explanation']
+        );
 
         // Build the tree.
         $pluginwrapper->add_child($chart);
@@ -95,10 +104,15 @@ class backup_qtype_buchungssatz_plugin extends backup_qtype_plugin {
         );
 
         // Set source for options and entries.
-        $options->set_source_table('qtype_buchungssatz_options',
-            ['questionid' => backup::VAR_PARENTID]);
-        $entry->set_source_table('qtype_buchungssatz_entries',
-            ['questionid' => backup::VAR_PARENTID], 'sortorder ASC');
+        $options->set_source_table(
+            'qtype_buchungssatz_options',
+            ['questionid' => backup::VAR_PARENTID]
+        );
+        $entry->set_source_table(
+            'qtype_buchungssatz_entries',
+            ['questionid' => backup::VAR_PARENTID],
+            'sortorder ASC'
+        );
 
         return $plugin;
     }

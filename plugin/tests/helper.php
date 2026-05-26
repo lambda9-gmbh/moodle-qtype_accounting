@@ -42,7 +42,6 @@ require_once($CFG->dirroot . '/question/type/buchungssatz/question.php');
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_buchungssatz_test_helper extends question_test_helper {
-
     /** @var int Account ID for 1200 Bank. */
     const ACCOUNT_BANK = 101;
 

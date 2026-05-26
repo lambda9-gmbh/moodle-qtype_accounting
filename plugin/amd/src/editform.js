@@ -120,7 +120,7 @@ function init() {
 function calculateNextEntryIndex() {
     const existingRows = document.querySelectorAll(ROW_SELECTOR);
     let maxIndex = -1;
-    existingRows.forEach(function(row) {
+    existingRows.forEach(function (row) {
         const index = parseInt(row.getAttribute('data-entry-index'), 10);
         if (!isNaN(index) && index > maxIndex) {
             maxIndex = index;
@@ -134,7 +134,7 @@ function calculateNextEntryIndex() {
  */
 function setupChartChangeHandler() {
     if (chartSelect) {
-        chartSelect.addEventListener('change', function() {
+        chartSelect.addEventListener('change', function () {
             lastChartId = null; // Reset to force rebuild
             updateAccountDropdowns(true);
         });
@@ -149,13 +149,13 @@ function setupChartChangeHandler() {
  */
 function setupNumberFormatChangeHandler() {
     if (numberFormatSelect) {
-        numberFormatSelect.addEventListener('change', function() {
+        numberFormatSelect.addEventListener('change', function () {
             var fmt = numberFormatSelect.value || 'de';
             var placeholder = (fmt === 'us') ? '0.00' : '0,00';
 
             // Reformat all amount fields.
             var amountFields = document.querySelectorAll('.buchungssatz-sollbetrag, .buchungssatz-habenbetrag');
-            amountFields.forEach(function(field) {
+            amountFields.forEach(function (field) {
                 // Update placeholder.
                 field.placeholder = placeholder;
                 // Reformat current value if present.
@@ -175,7 +175,7 @@ function setupNumberFormatChangeHandler() {
  * Setup event delegation for sollkonto and habenkonto changes.
  */
 function setupSollkontoChangeHandler() {
-    document.addEventListener('change', function(e) {
+    document.addEventListener('change', function (e) {
         // Guard against events where target doesn't have classList.
         if (!e.target || !e.target.classList) {
             return;
@@ -200,7 +200,7 @@ function setupSollkontoChangeHandler() {
     });
 
     // Sync amount fields on input (not just change).
-    document.addEventListener('input', function(e) {
+    document.addEventListener('input', function (e) {
         // Guard against events where target doesn't have classList.
         if (!e.target || !e.target.classList) {
             return;
@@ -214,7 +214,7 @@ function setupSollkontoChangeHandler() {
     });
 
     // Format amount fields on blur (when user leaves the field).
-    document.addEventListener('blur', function(e) {
+    document.addEventListener('blur', function (e) {
         // Guard against events where target doesn't have classList.
         if (!e.target || !e.target.classList) {
             return;
@@ -240,14 +240,14 @@ function setupAddEntryHandler() {
     const addCreditButton = document.getElementById('buchungssatz-add-credit-entry');
 
     if (addDebitButton) {
-        addDebitButton.addEventListener('click', function(e) {
+        addDebitButton.addEventListener('click', function (e) {
             e.preventDefault();
             addEntryRow('debit');
         });
     }
 
     if (addCreditButton) {
-        addCreditButton.addEventListener('click', function(e) {
+        addCreditButton.addEventListener('click', function (e) {
             e.preventDefault();
             addEntryRow('credit');
         });
@@ -258,7 +258,7 @@ function setupAddEntryHandler() {
  * Setup delete entry button handlers (event delegation).
  */
 function setupDeleteEntryHandler() {
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         // Handle delete debit button.
         const deleteDebitBtn = e.target.closest('.buchungssatz-delete-debit');
         if (deleteDebitBtn) {
@@ -353,7 +353,7 @@ function clearHiddenFieldsForSide(index, side) {
 function setupFormSubmitHandler() {
     const form = document.querySelector('form.mform') || document.querySelector('form');
     if (form) {
-        form.addEventListener('submit', function(e) {
+        form.addEventListener('submit', function (e) {
             syncAllDisplayToHidden();
             var valid = validateAccounts();
             if (!validateBalance()) {
@@ -376,7 +376,7 @@ function validateAccounts() {
     clearAccountErrors();
 
     var entryRows = document.querySelectorAll(ROW_SELECTOR);
-    entryRows.forEach(function(row) {
+    entryRows.forEach(function (row) {
         if (row.style.display === 'none') {
             return;
         }
@@ -430,7 +430,7 @@ function showAccountError(field, stringKey) {
  */
 function clearAccountErrors() {
     var existing = document.querySelectorAll('.buchungssatz-account-error');
-    existing.forEach(function(el) {
+    existing.forEach(function (el) {
         el.remove();
     });
 }
@@ -445,7 +445,7 @@ function validateBalance() {
     var totalCredit = 0;
 
     var entryRows = document.querySelectorAll(ROW_SELECTOR);
-    entryRows.forEach(function(row) {
+    entryRows.forEach(function (row) {
         if (row.style.display === 'none') {
             return;
         }
@@ -550,13 +550,13 @@ function addEntryRow(entryType) {
 
     // Update all __INDEX__ placeholders in the cloned content.
     // We need to update attributes and text content.
-    clone.querySelectorAll('[data-index="__INDEX__"]').forEach(function(el) {
+    clone.querySelectorAll('[data-index="__INDEX__"]').forEach(function (el) {
         el.setAttribute('data-index', nextEntryIndex);
     });
-    clone.querySelectorAll('[data-entry-index="__INDEX__"]').forEach(function(el) {
+    clone.querySelectorAll('[data-entry-index="__INDEX__"]').forEach(function (el) {
         el.setAttribute('data-entry-index', nextEntryIndex);
     });
-    clone.querySelectorAll('[name*="__INDEX__"]').forEach(function(el) {
+    clone.querySelectorAll('[name*="__INDEX__"]').forEach(function (el) {
         el.name = el.name.replace('__INDEX__', nextEntryIndex);
     });
 
@@ -648,7 +648,7 @@ function updateDeleteButtonStates() {
     const deleteButtons = document.querySelectorAll('.buchungssatz-delete-debit, .buchungssatz-delete-credit');
     const isOnlyOne = allEntryRows.length <= 1;
 
-    deleteButtons.forEach(function(button) {
+    deleteButtons.forEach(function (button) {
         button.disabled = isOnlyOne;
         if (isOnlyOne) {
             button.classList.add('disabled');
@@ -671,7 +671,7 @@ function clearHiddenFieldsForIndex(index) {
     // Clear all Moodle hidden fields.
     const allFields = ['sollkonto', 'sollbetrag', 'habenkonto', 'habenbetrag',
                     'weight_sollkonto', 'weight_sollbetrag', 'weight_habenkonto', 'weight_habenbetrag'];
-    allFields.forEach(function(field) {
+    allFields.forEach(function (field) {
         const hiddenField = getFieldByName(field + '[' + index + ']');
         if (hiddenField) {
             hiddenField.value = '';
@@ -737,7 +737,7 @@ function syncDisplayToHidden(index) {
 
     // Sync weight fields.
     const weightFields = ['sollkonto', 'sollbetrag', 'habenkonto', 'habenbetrag'];
-    weightFields.forEach(function(field) {
+    weightFields.forEach(function (field) {
         const displayField = document.querySelector('.buchungssatz-weight[data-index="' + index + '"][data-field="' + field + '"]');
         const hiddenField = getFieldByName('weight_' + field + '[' + index + ']');
         if (displayField && hiddenField) {
@@ -751,7 +751,7 @@ function syncDisplayToHidden(index) {
  */
 function syncAllDisplayToHidden() {
     const entryRows = document.querySelectorAll(ROW_SELECTOR);
-    entryRows.forEach(function(row) {
+    entryRows.forEach(function (row) {
         const index = row.getAttribute('data-entry-index');
         if (index !== '__INDEX__') {
             syncDisplayToHidden(index);
@@ -778,7 +778,7 @@ function updateAccountDropdowns(forceRebuild) {
     const sollSelects = document.querySelectorAll('select.buchungssatz-sollkonto');
     const habenSelects = document.querySelectorAll('select.buchungssatz-habenkonto');
 
-    sollSelects.forEach(function(select) {
+    sollSelects.forEach(function (select) {
         const currentValue = select.value;
         // Keep first option (placeholder).
         while (select.options.length > 1) {
@@ -795,7 +795,7 @@ function updateAccountDropdowns(forceRebuild) {
         }
     });
 
-    habenSelects.forEach(function(select) {
+    habenSelects.forEach(function (select) {
         const currentValue = select.value;
         while (select.options.length > 1) {
             select.remove(1);
@@ -832,7 +832,7 @@ function updateSollbetragState(index) {
         if (hasAccount) {
             sollBetrag.title = '';
         } else {
-            Str.get_string('selectDebitAccountFirst', 'qtype_buchungssatz').then(function(str) {
+            Str.get_string('selectDebitAccountFirst', 'qtype_buchungssatz').then(function (str) {
                 sollBetrag.title = str;
             });
             sollBetrag.value = '';
@@ -845,7 +845,7 @@ function updateSollbetragState(index) {
  */
 function updateAllSollbetragStates() {
     const entryRows = document.querySelectorAll(ROW_SELECTOR);
-    entryRows.forEach(function(row) {
+    entryRows.forEach(function (row) {
         const index = row.getAttribute('data-entry-index');
         if (index !== '__INDEX__') {
             updateSollbetragState(index);
@@ -867,7 +867,7 @@ function setupAllOrNothingHandler() {
 
     allOrNothingEnabled = checkbox.checked;
 
-    checkbox.addEventListener('change', function() {
+    checkbox.addEventListener('change', function () {
         allOrNothingEnabled = checkbox.checked;
         updateAllWeightStates();
     });
@@ -928,7 +928,7 @@ function updateWeightStates(index) {
  */
 function updateAllWeightStates() {
     const entryRows = document.querySelectorAll(ROW_SELECTOR);
-    entryRows.forEach(function(row) {
+    entryRows.forEach(function (row) {
         const index = row.getAttribute('data-entry-index');
         if (index !== '__INDEX__') {
             updateWeightStates(index);

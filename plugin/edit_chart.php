@@ -35,15 +35,19 @@ use qtype_buchungssatz\chart_manager;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_buchungssatz_chart_account_import_form extends moodleform {
-
     /**
      * Define the form elements.
      */
     protected function definition() {
         $mform = $this->_form;
 
-        $mform->addElement('filepicker', 'chartcsvfile', '', null,
-            ['maxbytes' => 2097152, 'accepted_types' => ['.csv', '.txt']]);
+        $mform->addElement(
+            'filepicker',
+            'chartcsvfile',
+            '',
+            null,
+            ['maxbytes' => 2097152, 'accepted_types' => ['.csv', '.txt']]
+        );
 
         $this->add_action_buttons(false, get_string('importchart', 'qtype_buchungssatz'));
     }
@@ -361,8 +365,10 @@ echo html_writer::end_div();
 
 // Bottom action row: Back button on the left, Export button next to it.
 $exporturl = new moodle_url($baseurl, ['action' => 'export', 'sesskey' => sesskey()]);
-echo html_writer::start_div('buchungssatz-chart-actions d-flex flex-wrap justify-content-center align-items-center mt-4 mb-3',
-    ['style' => 'gap: 0.5rem;']);
+echo html_writer::start_div(
+    'buchungssatz-chart-actions d-flex flex-wrap justify-content-center align-items-center mt-4 mb-3',
+    ['style' => 'gap: 0.5rem;']
+);
 echo html_writer::link($manageurl, '&laquo; ' . get_string('managecharts', 'qtype_buchungssatz'), [
     'class' => 'btn btn-primary',
 ]);

@@ -32,7 +32,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_buchungssatz_question extends question_graded_automatically {
-
     /** @var int Chart of accounts ID. */
     public $chartofaccountsid;
 

@@ -31,7 +31,6 @@ require_once($CFG->dirroot . '/question/format/xml/format.php');
  * @covers     \qtype_buchungssatz
  */
 class questiontype_test extends \advanced_testcase {
-
     /** @var \qtype_buchungssatz The question type instance. */
     protected $qtype;
 
@@ -213,7 +212,7 @@ class questiontype_test extends \advanced_testcase {
             'maxentries' => 5,
             'sollkonto' => ['1200', '', '1000'],
             'sollbetrag' => [1000.00, 0, 500.00],
-            'habenkonto' => ['8400', '', '8400'],  // Second entry is empty.
+            'habenkonto' => ['8400', '', '8400'], // Second entry is empty.
             'habenbetrag' => [1000.00, 0, 500.00],
             'weight_sollkonto' => [1, 1, 1],
             'weight_sollbetrag' => [1, 1, 1],
@@ -250,8 +249,11 @@ class questiontype_test extends \advanced_testcase {
      * @param array|null $chartdata Chart data with 'chartname' and 'accounts' keys.
      * @return array The XML data structure.
      */
-    protected function build_xml_import_data(array $options = [], array $entries = [],
-            ?array $chartdata = null): array {
+    protected function build_xml_import_data(
+        array $options = [],
+        array $entries = [],
+        ?array $chartdata = null
+    ): array {
         $data = [
             '@' => ['type' => 'buchungssatz'],
             '#' => [

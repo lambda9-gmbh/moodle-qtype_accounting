@@ -43,8 +43,7 @@ use core_privacy\local\request\userlist;
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class provider implements metadata_provider, plugin_provider, core_userlist_provider {
-
+class provider implements core_userlist_provider, metadata_provider, plugin_provider {
     /**
      * Describe the metadata stored by this plugin.
      *

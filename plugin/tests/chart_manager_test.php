@@ -27,7 +27,6 @@ defined('MOODLE_INTERNAL') || die();
  * @covers     \qtype_buchungssatz\chart_manager
  */
 class chart_manager_test extends \advanced_testcase {
-
     /**
      * Test creating and retrieving a chart.
      */
@@ -117,7 +116,7 @@ class chart_manager_test extends \advanced_testcase {
         $this->assertCount(3, $accounts);
 
         // Accounts are returned sorted alphabetically by accountname.
-        $accountnames = array_map(function($a) {
+        $accountnames = array_map(function ($a) {
             return $a->accountname;
         }, array_values($accounts));
         $this->assertEquals(['1000 Kasse', '1200 Bank', '8400 Erlöse 19%'], $accountnames);
@@ -178,7 +177,7 @@ class chart_manager_test extends \advanced_testcase {
         $charts = chart_manager::get_charts_for_context($contextid);
         $this->assertCount(3, $charts);
 
-        $names = array_map(function($c) {
+        $names = array_map(function ($c) {
             return $c->name;
         }, array_values($charts));
         $this->assertEquals(['Chart A', 'Chart B', 'Chart C'], $names);
@@ -304,7 +303,7 @@ class chart_manager_test extends \advanced_testcase {
         $newaccounts = chart_manager::get_accounts($newid);
         $this->assertCount(2, $newaccounts);
 
-        $accountnames = array_map(function($a) {
+        $accountnames = array_map(function ($a) {
             return $a->accountname;
         }, array_values($newaccounts));
         $this->assertContains('1200 Bank', $accountnames);
@@ -322,7 +321,7 @@ class chart_manager_test extends \advanced_testcase {
         chart_manager::create_chart('Zulu', $contextid);
 
         $charts = chart_manager::get_charts_for_context($contextid, 'name', 'DESC');
-        $names = array_map(function($c) {
+        $names = array_map(function ($c) {
             return $c->name;
         }, array_values($charts));
         $this->assertEquals(['Zulu', 'Alpha'], $names);

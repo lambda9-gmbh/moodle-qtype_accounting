@@ -32,7 +32,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_buchungssatz_edit_form extends question_edit_form {
-
     /**
      * Add question-type specific form fields.
      *
@@ -42,8 +41,12 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         global $DB, $PAGE;
 
         // Number of accounts in dropdown.
-        $mform->addElement('text', 'accountsindropdown',
-            get_string('accountsindropdown', 'qtype_buchungssatz'), ['size' => 5]);
+        $mform->addElement(
+            'text',
+            'accountsindropdown',
+            get_string('accountsindropdown', 'qtype_buchungssatz'),
+            ['size' => 5]
+        );
         $mform->setType('accountsindropdown', PARAM_INT);
         $mform->setDefault('accountsindropdown', 0);
         $mform->addHelpButton('accountsindropdown', 'accountsindropdown', 'qtype_buchungssatz');
@@ -54,8 +57,12 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
             'de' => get_string('numberformat_de', 'qtype_buchungssatz'),
             'us' => get_string('numberformat_us', 'qtype_buchungssatz'),
         ];
-        $mform->addElement('select', 'numberformat',
-            get_string('numberformat', 'qtype_buchungssatz'), $numberformatoptions);
+        $mform->addElement(
+            'select',
+            'numberformat',
+            get_string('numberformat', 'qtype_buchungssatz'),
+            $numberformatoptions
+        );
         $decsep = get_string('decsep', 'langconfig');
         $defaultformat = ($decsep === ',') ? 'de' : 'us';
         $mform->setDefault('numberformat', $defaultformat);
@@ -90,31 +97,51 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
             '0.1' => '10%',
             '0.05' => '5%',
         ];
-        $mform->addElement('select', 'extraentrydeduction',
-            get_string('extraentrydeduction', 'qtype_buchungssatz'), $deductionoptions);
+        $mform->addElement(
+            'select',
+            'extraentrydeduction',
+            get_string('extraentrydeduction', 'qtype_buchungssatz'),
+            $deductionoptions
+        );
         $mform->setDefault('extraentrydeduction', '0.0');
         $mform->addHelpButton('extraentrydeduction', 'extraentrydeduction', 'qtype_buchungssatz');
 
         // All-or-nothing grading checkbox.
-        $mform->addElement('advcheckbox', 'allornothinggrading',
-            get_string('allornothinggrading', 'qtype_buchungssatz'), null, null, [0, 1]);
+        $mform->addElement(
+            'advcheckbox',
+            'allornothinggrading',
+            get_string('allornothinggrading', 'qtype_buchungssatz'),
+            null,
+            null,
+            [0, 1]
+        );
         $mform->setDefault('allornothinggrading', 0);
         $mform->addHelpButton('allornothinggrading', 'allornothinggrading', 'qtype_buchungssatz');
 
         // Chart of accounts selection (last item in general section).
         $charts = $this->get_available_charts();
-        $mform->addElement('select', 'chartofaccountsid',
-            get_string('chartofaccounts', 'qtype_buchungssatz'), $charts);
+        $mform->addElement(
+            'select',
+            'chartofaccountsid',
+            get_string('chartofaccounts', 'qtype_buchungssatz'),
+            $charts
+        );
         $mform->setType('chartofaccountsid', PARAM_INT);
         $mform->addHelpButton('chartofaccountsid', 'chartofaccounts', 'qtype_buchungssatz');
 
         // Link to manage charts of accounts.
         $coursecontext = $this->context->get_course_context(false);
         if ($coursecontext) {
-            $manageurl = new moodle_url('/question/type/buchungssatz/manage_charts.php',
-                ['courseid' => $coursecontext->instanceid, 'returnurl' => qualified_me()]);
-            $mform->addElement('static', 'managecharts_link', '',
-                html_writer::link($manageurl, get_string('managecharts', 'qtype_buchungssatz')));
+            $manageurl = new moodle_url(
+                '/question/type/buchungssatz/manage_charts.php',
+                ['courseid' => $coursecontext->instanceid, 'returnurl' => qualified_me()]
+            );
+            $mform->addElement(
+                'static',
+                'managecharts_link',
+                '',
+                html_writer::link($manageurl, get_string('managecharts', 'qtype_buchungssatz'))
+            );
         }
 
         // Correct answer entries section.
@@ -123,7 +150,6 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
 
         // Invisible anchor element for balance validation errors.
         $mform->addElement('static', 'balancevalidation', '', '');
-
 
         // Get all accounts for dropdowns.
         $allaccounts = $this->get_all_accounts_by_chart();
@@ -161,8 +187,13 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $entrycount = count($existingentries) > 0 ? count($existingentries) : 2;
 
         // Build the table HTML with form elements.
-        $tablehtml = $this->build_entries_table($sollaccountoptions, $habenaccountoptions,
-            $entrycount, $existingentries, $effectiveformat);
+        $tablehtml = $this->build_entries_table(
+            $sollaccountoptions,
+            $habenaccountoptions,
+            $entrycount,
+            $existingentries,
+            $effectiveformat
+        );
         $mform->addElement('html', $tablehtml);
 
         // Hidden fields for form element registration.
@@ -221,8 +252,13 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
      * @param string $numberformat The number format ('de' or 'us').
      * @return string The HTML for the entries table.
      */
-    protected function build_entries_table(array $sollaccountoptions, array $habenaccountoptions,
-            int $entrycount, array $existingentries, string $numberformat = 'de'): string {
+    protected function build_entries_table(
+        array $sollaccountoptions,
+        array $habenaccountoptions,
+        int $entrycount,
+        array $existingentries,
+        string $numberformat = 'de'
+    ): string {
 
         $perstr = get_string('per', 'qtype_buchungssatz');
         $anstr = get_string('an', 'qtype_buchungssatz');
@@ -310,8 +346,14 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
      * @param string $numberformat The number format ('de' or 'us').
      * @return string The HTML for the entry rows.
      */
-    protected function build_entry_rows($index, array $sollaccountoptions, array $habenaccountoptions,
-            $entry, bool $isfirst, string $numberformat = 'de'): string {
+    protected function build_entry_rows(
+        $index,
+        array $sollaccountoptions,
+        array $habenaccountoptions,
+        $entry,
+        bool $isfirst,
+        string $numberformat = 'de'
+    ): string {
 
         $weightstr = get_string('weight', 'qtype_buchungssatz');
 
@@ -444,8 +486,11 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
             if ($chartid == 0) {
                 continue;
             }
-            $accounts = $DB->get_records('qtype_buchungssatz_accounts',
-                ['chartid' => $chartid], 'accountname');
+            $accounts = $DB->get_records(
+                'qtype_buchungssatz_accounts',
+                ['chartid' => $chartid],
+                'accountname'
+            );
             $result[$chartid] = [];
             foreach ($accounts as $account) {
                 $result[$chartid][$account->id] = $account->accountname;
@@ -467,8 +512,11 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
 
         $coursecontext = $this->context->get_course_context(false);
         if ($coursecontext) {
-            $records = $DB->get_records('qtype_buchungssatz_charts',
-                ['contextid' => $coursecontext->id], 'name ASC');
+            $records = $DB->get_records(
+                'qtype_buchungssatz_charts',
+                ['contextid' => $coursecontext->id],
+                'name ASC'
+            );
             foreach ($records as $record) {
                 $charts[$record->id] = $record->name;
             }

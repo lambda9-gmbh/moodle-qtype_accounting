@@ -39,8 +39,11 @@ require_capability('moodle/question:add', $context);
 
 // Get charts scoped to the course context.
 global $DB;
-$charts = $DB->get_records('qtype_buchungssatz_charts',
-    ['contextid' => $contextid], 'name ASC');
+$charts = $DB->get_records(
+    'qtype_buchungssatz_charts',
+    ['contextid' => $contextid],
+    'name ASC'
+);
 
 $result = [];
 foreach ($charts as $chart) {

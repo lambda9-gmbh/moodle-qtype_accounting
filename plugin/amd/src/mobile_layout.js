@@ -24,7 +24,7 @@
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define(['jquery'], function($) {
+define(['jquery'], function ($) {
 
     /** Breakpoint for mobile layout (must match CSS). */
     var MOBILE_BREAKPOINT = 768;
@@ -60,9 +60,9 @@ define(['jquery'], function($) {
         numberFormat = container.data('numberformat') || 'de';
 
         // Set up resize handler.
-        $(window).on('resize', function() {
+        $(window).on('resize', function () {
             clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(function() {
+            resizeTimer = setTimeout(function () {
                 handleResize(container);
             }, 300);
         });
@@ -129,7 +129,7 @@ define(['jquery'], function($) {
         creditSection.append(creditCards);
 
         // Iterate visible entry rows and create cards.
-        container.find(rowSelector).each(function() {
+        container.find(rowSelector).each(function () {
             var $row = $(this);
             if ($row.css('display') === 'none') {
                 return; // Skip hidden rows.
@@ -273,7 +273,7 @@ define(['jquery'], function($) {
                 .attr('placeholder', realInput.attr('placeholder') || '')
                 .attr('aria-label', label);
 
-            proxyInput.on('input', function() {
+            proxyInput.on('input', function () {
                 realInput.val($(this).val());
             });
 
@@ -297,7 +297,7 @@ define(['jquery'], function($) {
         proxySelect.val(realSelect.val());
 
         // Sync proxy → real.
-        proxySelect.on('change', function() {
+        proxySelect.on('change', function () {
             realSelect.val($(this).val()).trigger('change');
         });
 
@@ -328,15 +328,15 @@ define(['jquery'], function($) {
             .attr('aria-label', label);
 
         // Sync proxy → real on input.
-        proxyInput.on('input', function() {
+        proxyInput.on('input', function () {
             realInput.val($(this).val());
         });
 
         // Also sync on blur (after formatting by the existing blur handler in question.js).
-        proxyInput.on('blur', function() {
+        proxyInput.on('blur', function () {
             // The amount formatting handler in question.js fires on .buchungssatz-amount-input blur.
             // After formatting, sync the formatted value to the real input.
-            setTimeout(function() {
+            setTimeout(function () {
                 realInput.val(proxyInput.val());
             }, 0);
         });

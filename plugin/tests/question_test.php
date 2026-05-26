@@ -35,7 +35,6 @@ require_once($CFG->dirroot . '/question/type/buchungssatz/question.php');
  * @covers     \qtype_buchungssatz_question
  */
 class question_test extends \advanced_testcase {
-
     /**
      * Test getting expected data keys.
      */

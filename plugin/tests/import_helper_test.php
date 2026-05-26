@@ -29,7 +29,6 @@ defined('MOODLE_INTERNAL') || die();
  * @covers     \qtype_buchungssatz\import_helper
  */
 class import_helper_test extends \advanced_testcase {
-
     /**
      * Test basic line-per-name parsing.
      */
@@ -276,7 +275,7 @@ class import_helper_test extends \advanced_testcase {
         $this->assertCount(4, $accounts);
 
         // Verify account names.
-        $names = array_map(function($a) {
+        $names = array_map(function ($a) {
             return $a->accountname;
         }, array_values($accounts));
         $this->assertContains('1200 Bank', $names);

@@ -38,7 +38,7 @@ var ROW_SELECTOR = '.buchungssatz-entry-row';
  * @param {jQuery} container The question container.
  */
 function formatAllAmountFields(container) {
-    container.find('.buchungssatz-amount-input').each(function() {
+    container.find('.buchungssatz-amount-input').each(function () {
         var val = $(this).val();
         if (val !== '') {
             $(this).val(EntryUtils.formatNumber(val, numberFormat, decimalPlaces));
@@ -147,7 +147,7 @@ function init(containerId) {
     // Auto-copy amount from Soll to Haben for convenience (delegated for cloned rows).
     // Only copies when the row is a debit-only entry that just got its credit side added,
     // i.e., when the credit amount is truly empty and the user hasn't interacted with it.
-    container.on('change', 'input[name*="sollbetrag"]', function() {
+    container.on('change', 'input[name*="sollbetrag"]', function () {
         const match = $(this).attr('name').match(/_(\d+)$/);
         if (!match) {
             return;
@@ -164,7 +164,7 @@ function init(containerId) {
     });
 
     // Format amount fields on blur (delegated for cloned rows).
-    container.on('blur', '.buchungssatz-amount-input', function() {
+    container.on('blur', '.buchungssatz-amount-input', function () {
         const formatted = EntryUtils.formatNumber($(this).val(), numberFormat, decimalPlaces);
         $(this).val(formatted);
     });
@@ -173,8 +173,8 @@ function init(containerId) {
     formatAllAmountFields(container);
 
     // Format amount fields after "Fill correct answers" button is clicked (AJAX case).
-    $('input.btn[name="fill"]').on('click', function() {
-        setTimeout(function() {
+    $('input.btn[name="fill"]').on('click', function () {
+        setTimeout(function () {
             formatAllAmountFields(container);
         }, 500);
     });
@@ -184,25 +184,25 @@ function init(containerId) {
 
     // Add entry button handlers (using delegation so mobile view buttons also work).
     if (allowEdit) {
-        container.on('click', '.buchungssatz-add-debit-entry', function() {
+        container.on('click', '.buchungssatz-add-debit-entry', function () {
             nextEntryIndex = addEntry(container, template, tbody, nextEntryIndex, 'debit');
             MobileLayout.refreshMobileView(container);
         });
 
-        container.on('click', '.buchungssatz-add-credit-entry', function() {
+        container.on('click', '.buchungssatz-add-credit-entry', function () {
             nextEntryIndex = addEntry(container, template, tbody, nextEntryIndex, 'credit');
             MobileLayout.refreshMobileView(container);
         });
 
         // Delete debit button handler (using delegation for cloned rows and mobile cards).
-        container.on('click', '.buchungssatz-delete-debit', function() {
+        container.on('click', '.buchungssatz-delete-debit', function () {
             const entryIndex = $(this).data('entry');
             deleteEntrySide(container, entryIndex, 'debit');
             MobileLayout.refreshMobileView(container);
         });
 
         // Delete credit button handler (using delegation for cloned rows and mobile cards).
-        container.on('click', '.buchungssatz-delete-credit', function() {
+        container.on('click', '.buchungssatz-delete-credit', function () {
             const entryIndex = $(this).data('entry');
             deleteEntrySide(container, entryIndex, 'credit');
             MobileLayout.refreshMobileView(container);
@@ -213,24 +213,24 @@ function init(containerId) {
         // index gaps that would cause the PHP renderer to show empty rows.
         var form = container.closest('form');
         if (form.length) {
-            form.on('submit', function() {
+            form.on('submit', function () {
                 // Save original states so we can restore if submission is intercepted.
                 var savedStates = [];
                 var writeIndex = 0;
-                container.find(ROW_SELECTOR).each(function() {
+                container.find(ROW_SELECTOR).each(function () {
                     var $row = $(this);
                     var isHidden = $row.css('display') === 'none';
                     var isEmpty = EntryUtils.isRowEmpty(this);
 
                     if (isHidden || isEmpty) {
                         // Exclude from form submission.
-                        $row.find('select, input').each(function() {
+                        $row.find('select, input').each(function () {
                             savedStates.push({el: this, disabled: this.disabled, name: $(this).attr('name')});
                             $(this).prop('disabled', true);
                         });
                     } else {
                         // Re-index fields to ensure contiguous indices.
-                        $row.find('select, input').each(function() {
+                        $row.find('select, input').each(function () {
                             var name = $(this).attr('name');
                             if (name) {
                                 savedStates.push({el: this, disabled: this.disabled, name: name});
@@ -244,7 +244,7 @@ function init(containerId) {
                 // Restore original states after the event loop tick. If the page
                 // reloads (normal POST), this never fires. If submission was
                 // intercepted (AJAX, validation), this restores the DOM.
-                setTimeout(function() {
+                setTimeout(function () {
                     for (var i = 0; i < savedStates.length; i++) {
                         var s = savedStates[i];
                         s.el.disabled = s.disabled;
@@ -278,7 +278,7 @@ function init(containerId) {
  * @param {jQuery} container The question container.
  */
 function restoreEntryTypes(container) {
-    container.find(ROW_SELECTOR).each(function() {
+    container.find(ROW_SELECTOR).each(function () {
         if ($(this).css('display') === 'none') {
             return; // Skip hidden rows.
         }
@@ -303,7 +303,7 @@ function restoreEntryTypes(container) {
 function initSelect2OnRow(row) {
     const isMobile = window.innerWidth <= 768;
     if (typeof $.fn.select2 !== 'undefined' && !isMobile) {
-        row.find('.buchungssatz-account-select').each(function() {
+        row.find('.buchungssatz-account-select').each(function () {
             if (!$(this).closest('td').hasClass('buchungssatz-hidden-cell') && !$(this).data('select2')) {
                 $(this).select2({
                     placeholder: M.util.get_string('selectaccount', 'qtype_buchungssatz'),
@@ -400,7 +400,7 @@ function addEntry(container, template, tbody, nextIndex, entryType) {
  * @param {number} entryIndex The index of the entry to delete.
  */
 function deleteEntry(container, entryIndex) {
-    const visibleRows = container.find(ROW_SELECTOR).filter(function() {
+    const visibleRows = container.find(ROW_SELECTOR).filter(function () {
         return $(this).css('display') !== 'none';
     });
 
@@ -417,7 +417,7 @@ function deleteEntry(container, entryIndex) {
 
         // Destroy Select2 if active.
         if (typeof $.fn.select2 !== 'undefined') {
-            entryRow.find('.buchungssatz-account-select').each(function() {
+            entryRow.find('.buchungssatz-account-select').each(function () {
                 if ($(this).data('select2')) {
                     $(this).select2('destroy');
                 }
@@ -482,14 +482,14 @@ function deleteEntrySide(container, entryIndex, side) {
  * @param {jQuery} container The question container.
  */
 function updateDeleteButtons(container) {
-    const visibleRows = container.find(ROW_SELECTOR).filter(function() {
+    const visibleRows = container.find(ROW_SELECTOR).filter(function () {
         return $(this).css('display') !== 'none';
     });
 
     if (visibleRows.length <= 1) {
         container.find('.buchungssatz-delete-debit, .buchungssatz-delete-credit').css('visibility', 'hidden');
     } else {
-        container.find(ROW_SELECTOR).each(function() {
+        container.find(ROW_SELECTOR).each(function () {
             if ($(this).css('display') !== 'none') {
                 $(this).find('.buchungssatz-delete-debit, .buchungssatz-delete-credit').css('visibility', 'visible');
             }

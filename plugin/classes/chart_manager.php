@@ -34,7 +34,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class chart_manager {
-
     /**
      * Create a new chart of accounts.
      *
@@ -167,8 +166,11 @@ class chart_manager {
      */
     public static function get_accounts(int $chartid, string $sort = 'accountname'): array {
         global $DB;
-        return $DB->get_records('qtype_buchungssatz_accounts',
-            ['chartid' => $chartid], $sort);
+        return $DB->get_records(
+            'qtype_buchungssatz_accounts',
+            ['chartid' => $chartid],
+            $sort
+        );
     }
 
     /**
@@ -223,8 +225,12 @@ class chart_manager {
         }
 
         // Get existing accounts to avoid duplicates.
-        $existing = $DB->get_records_menu('qtype_buchungssatz_accounts',
-            ['chartid' => $chartid], '', 'accountname, id');
+        $existing = $DB->get_records_menu(
+            'qtype_buchungssatz_accounts',
+            ['chartid' => $chartid],
+            '',
+            'accountname, id'
+        );
 
         foreach ($parsed['accounts'] as $accountname => $accountdata) {
             // Skip if account already exists.

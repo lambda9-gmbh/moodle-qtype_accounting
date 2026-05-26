@@ -325,16 +325,20 @@ function xmldb_qtype_buchungssatz_upgrade($oldversion) {
             $chartid = $options->chartofaccountsid;
 
             if (!empty($entry->sollkonto)) {
-                $acc = $DB->get_record('qtype_buchungssatz_accounts',
-                    ['chartid' => $chartid, 'accountname' => $entry->sollkonto]);
+                $acc = $DB->get_record(
+                    'qtype_buchungssatz_accounts',
+                    ['chartid' => $chartid, 'accountname' => $entry->sollkonto]
+                );
                 if ($acc) {
                     $entry->sollkontoid = $acc->id;
                 }
             }
 
             if (!empty($entry->habenkonto)) {
-                $acc = $DB->get_record('qtype_buchungssatz_accounts',
-                    ['chartid' => $chartid, 'accountname' => $entry->habenkonto]);
+                $acc = $DB->get_record(
+                    'qtype_buchungssatz_accounts',
+                    ['chartid' => $chartid, 'accountname' => $entry->habenkonto]
+                );
                 if ($acc) {
                     $entry->habenkontoid = $acc->id;
                 }

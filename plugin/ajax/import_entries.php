@@ -86,8 +86,11 @@ function import_chart_from_csv(string $csvdata, int $contextid): array {
 
     // Get all charts and accounts for this context for dropdown refresh.
     $allaccounts = [];
-    $charts = $DB->get_records('qtype_buchungssatz_charts',
-        ['contextid' => $contextid], 'name ASC');
+    $charts = $DB->get_records(
+        'qtype_buchungssatz_charts',
+        ['contextid' => $contextid],
+        'name ASC'
+    );
     foreach ($charts as $chart) {
         $chartaccounts = chart_manager::get_accounts($chart->id);
         $allaccounts[$chart->id] = [];

@@ -26,7 +26,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class amount_helper {
-
     /**
      * Parse an amount string to a float using the known number format.
      *

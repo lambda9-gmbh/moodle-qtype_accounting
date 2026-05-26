@@ -30,7 +30,6 @@
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_buchungssatz_generator extends component_generator_base {
-
     /**
      * Generate a default data set for a Buchungssatz question.
      *
