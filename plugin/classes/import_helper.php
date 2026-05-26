@@ -27,7 +27,7 @@ namespace qtype_buchungssatz;
  */
 class import_helper {
     /** @var array Known header keywords to skip (lowercase). */
-    const HEADER_KEYWORDS = [
+    public const HEADER_KEYWORDS = [
         'kontoname',
         'kontenname',
         'name',

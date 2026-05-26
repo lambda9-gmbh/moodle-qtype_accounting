@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<ruleset name="qtype_buchungssatz">
+    <description>PHP CodeSniffer configuration for qtype_buchungssatz.</description>
+
+    <file>.</file>
+
+    <exclude-pattern>amd/build/*</exclude-pattern>
+    <exclude-pattern>vendor/*</exclude-pattern>
+    <exclude-pattern>node_modules/*</exclude-pattern>
+
+    <rule ref="moodle"/>
+    <rule ref="moodle-extra"/>
+</ruleset>

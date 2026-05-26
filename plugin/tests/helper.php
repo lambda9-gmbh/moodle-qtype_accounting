@@ -43,16 +43,16 @@ require_once($CFG->dirroot . '/question/type/buchungssatz/question.php');
  */
 class qtype_buchungssatz_test_helper extends question_test_helper {
     /** @var int Account ID for 1200 Bank. */
-    const ACCOUNT_BANK = 101;
+    public const ACCOUNT_BANK = 101;
 
     /** @var int Account ID for 1000 Kasse. */
-    const ACCOUNT_KASSE = 102;
+    public const ACCOUNT_KASSE = 102;
 
     /** @var int Account ID for 8400 Erloese 19% USt. */
-    const ACCOUNT_ERLOESE = 201;
+    public const ACCOUNT_ERLOESE = 201;
 
     /** @var int Account ID for 4400 Verbindlichkeiten. */
-    const ACCOUNT_VERBINDLICHKEITEN = 301;
+    public const ACCOUNT_VERBINDLICHKEITEN = 301;
 
     /**
      * Get the standard accounts map used in tests.
