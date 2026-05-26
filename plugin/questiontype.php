@@ -116,21 +116,21 @@ class qtype_buchungssatz extends question_type {
             $habenbetragarray = [$habenbetragarray];
         }
         // Weight fields arrays.
-        $weightsollkontoarray = $question->weight_sollkonto ?? [];
-        if (!is_array($weightsollkontoarray)) {
-            $weightsollkontoarray = [$weightsollkontoarray];
+        $wsollkontos = $question->weight_sollkonto ?? [];
+        if (!is_array($wsollkontos)) {
+            $wsollkontos = [$wsollkontos];
         }
-        $weightsollbetragarray = $question->weight_sollbetrag ?? [];
-        if (!is_array($weightsollbetragarray)) {
-            $weightsollbetragarray = [$weightsollbetragarray];
+        $wsollbetrags = $question->weight_sollbetrag ?? [];
+        if (!is_array($wsollbetrags)) {
+            $wsollbetrags = [$wsollbetrags];
         }
-        $weighthabenkontoarray = $question->weight_habenkonto ?? [];
-        if (!is_array($weighthabenkontoarray)) {
-            $weighthabenkontoarray = [$weighthabenkontoarray];
+        $whabenkontos = $question->weight_habenkonto ?? [];
+        if (!is_array($whabenkontos)) {
+            $whabenkontos = [$whabenkontos];
         }
-        $weighthabenbetragarray = $question->weight_habenbetrag ?? [];
-        if (!is_array($weighthabenbetragarray)) {
-            $weighthabenbetragarray = [$weighthabenbetragarray];
+        $whabenbetrags = $question->weight_habenbetrag ?? [];
+        if (!is_array($whabenbetrags)) {
+            $whabenbetrags = [$whabenbetrags];
         }
 
         // Get all unique indices from both sollkonto and habenkonto arrays.
@@ -153,10 +153,10 @@ class qtype_buchungssatz extends question_type {
             $record->sollbetrag = floatval($sollbetragarray[$i] ?? 0);
             $record->habenkontoid = $habenkontoid ?: null;
             $record->habenbetrag = floatval($habenbetragarray[$i] ?? 0);
-            $record->weight_sollkonto = intval($weightsollkontoarray[$i] ?? 1);
-            $record->weight_sollbetrag = intval($weightsollbetragarray[$i] ?? 1);
-            $record->weight_habenkonto = intval($weighthabenkontoarray[$i] ?? 1);
-            $record->weight_habenbetrag = intval($weighthabenbetragarray[$i] ?? 1);
+            $record->weight_sollkonto = intval($wsollkontos[$i] ?? 1);
+            $record->weight_sollbetrag = intval($wsollbetrags[$i] ?? 1);
+            $record->weight_habenkonto = intval($whabenkontos[$i] ?? 1);
+            $record->weight_habenbetrag = intval($whabenbetrags[$i] ?? 1);
             $record->explanation = '';
             $DB->insert_record('qtype_buchungssatz_entries', $record);
         }

@@ -1,5 +1,10 @@
 /* Buchungssatz Question Type Styles */
 
+/* stylelint-disable declaration-no-important --
+ * !important is required throughout this file to override Moodle's
+ * theme and Bootstrap table styles, especially inside the mobile-layout
+ * media queries that convert the entry table into a card view. */
+
 .buchungssatz-entries {
     margin: 1rem 0;
     border: 1px solid #dee2e6;
@@ -228,7 +233,7 @@
         border-radius: 8px;
         margin-bottom: 1rem;
         padding: 0;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         overflow: visible !important;
         position: relative;
     }
@@ -765,7 +770,8 @@ table.buchungssatz-student-table {
 
     /* For credit-only entries: Cell 3 (data-section="haben") needs to be visible as header,
        even though JS adds buchungssatz-hidden-cell to it. Override specifically. */
-    .buchungssatz-student-table tr[data-entry-type="credit"] td.buchungssatz-label-cell[data-section="haben"].buchungssatz-hidden-cell {
+    .buchungssatz-student-table tr[data-entry-type="credit"]
+    td.buchungssatz-label-cell[data-section="haben"].buchungssatz-hidden-cell {
         display: block !important;
         background-color: #cce5ff;
         color: #004085;
@@ -774,7 +780,8 @@ table.buchungssatz-student-table {
     }
 
     /* Ensure the ::before content for "Haben" shows for credit-only */
-    .buchungssatz-student-table tr[data-entry-type="credit"] td.buchungssatz-label-cell[data-section="haben"].buchungssatz-hidden-cell::before {
+    .buchungssatz-student-table tr[data-entry-type="credit"]
+    td.buchungssatz-label-cell[data-section="haben"].buchungssatz-hidden-cell::before {
         content: "Haben" !important;
         font-size: 1rem !important;
     }
@@ -925,7 +932,7 @@ table.buchungssatz-student-table {
         border-radius: 8px;
         margin-bottom: 0.75rem;
         padding: 1rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
     .buchungssatz-mobile-card[data-side="debit"],

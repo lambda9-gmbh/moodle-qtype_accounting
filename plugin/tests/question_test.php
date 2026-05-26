@@ -305,7 +305,7 @@ class question_test extends \advanced_testcase {
         $question->entries = [];
 
         $response = qtype_buchungssatz_test_helper::make_response(101, 1000, 201, 1000);
-        [$fraction, $state] = $question->grade_response($response);
+        [$fraction] = $question->grade_response($response);
 
         $this->assertEquals(0.0, $fraction);
     }

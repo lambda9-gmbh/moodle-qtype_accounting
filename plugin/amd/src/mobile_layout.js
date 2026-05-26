@@ -209,8 +209,8 @@ define(['jquery'], function ($) {
             cardBody.append(createReadonlyField(amountLabel, amountCell));
         } else {
             // Edit mode: create proxy inputs.
-            cardBody.append(createProxyAccountField(accountLabel, accountCell, entryIndex, side));
-            cardBody.append(createProxyAmountField(amountLabel, amountCell, entryIndex, side));
+            cardBody.append(createProxyAccountField(accountLabel, accountCell));
+            cardBody.append(createProxyAmountField(amountLabel, amountCell));
         }
 
         card.append(cardBody);
@@ -256,11 +256,9 @@ define(['jquery'], function ($) {
      *
      * @param {string} label The field label text.
      * @param {jQuery} cell The original table cell containing the real select.
-     * @param {string} entryIndex The entry index.
-     * @param {string} side The side: 'debit' or 'credit'.
      * @return {jQuery} The field wrapper element.
      */
-    function createProxyAccountField(label, cell, entryIndex, side) {
+    function createProxyAccountField(label, cell) {
         var field = $('<div class="buchungssatz-mobile-field">');
         field.append('<label>' + label + '</label>');
 
@@ -310,11 +308,9 @@ define(['jquery'], function ($) {
      *
      * @param {string} label The field label text.
      * @param {jQuery} cell The original table cell containing the real input.
-     * @param {string} entryIndex The entry index.
-     * @param {string} side The side: 'debit' or 'credit'.
      * @return {jQuery} The field wrapper element.
      */
-    function createProxyAmountField(label, cell, entryIndex, side) {
+    function createProxyAmountField(label, cell) {
         var field = $('<div class="buchungssatz-mobile-field">');
         field.append('<label>' + label + '</label>');
 

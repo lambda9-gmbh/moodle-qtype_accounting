@@ -133,7 +133,6 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
                 $question,
                 false,
                 !$options->readonly,
-                $i === 0,
                 $feedbackmap[$i] ?? []
             );
         }
@@ -283,7 +282,6 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      * @param object $question The question object.
      * @param bool $hidden Whether the row should be hidden initially.
      * @param bool $showdelete Whether to show the delete button.
-     * @param bool $isfirst Whether this is the first entry row.
      * @param array $feedbackclasses Per-cell feedback CSS classes keyed by field name.
      * @return string The HTML output.
      */
@@ -297,7 +295,6 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         object $question,
         bool $hidden = false,
         bool $showdelete = false,
-        bool $isfirst = false,
         array $feedbackclasses = []
     ): string {
         $sollkontoname = $qa->get_qt_field_name("sollkonto_{$index}");

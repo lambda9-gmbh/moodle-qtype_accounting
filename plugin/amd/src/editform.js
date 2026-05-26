@@ -23,6 +23,7 @@
 
 import $ from 'jquery';
 import * as Str from 'core/str';
+import Log from 'core/log';
 import * as EntryUtils from 'qtype_buchungssatz/entry_utils';
 
 // Module-level state.
@@ -55,7 +56,7 @@ function init() {
                 config = JSON.parse(jsonText);
             }
         } catch (e) {
-            console.error('Failed to parse editform config', e);
+            Log.error('Failed to parse editform config', e);
         }
     }
 
@@ -541,7 +542,7 @@ function addEntryRow(entryType) {
     const tbody = document.getElementById('buchungssatz-entries-body');
 
     if (!template || !tbody) {
-        console.error('Template or tbody not found', {template: template, tbody: tbody});
+        Log.error('Template or tbody not found', {template: template, tbody: tbody});
         return;
     }
 

@@ -25,6 +25,9 @@
 /**
  * Upgrade the qtype_buchungssatz plugin.
  *
+ * Moodle's upgrade API requires a single function with one
+ * `if ($oldversion < N) { ... savepoint }` block per version step.
+ *
  * @param int $oldversion The old version of the plugin.
  * @return bool True on success.
  */

@@ -478,7 +478,6 @@ class questiontype_test extends \advanced_testcase {
      * Test importing entries from XML data.
      */
     public function test_import_from_xml_with_entries(): void {
-        global $CFG;
         $this->resetAfterTest(true);
 
         $data = $this->build_xml_import_data(
