@@ -133,43 +133,60 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
         global $DB;
 
         $data = (object) $data;
-
-        // Only process if the question was newly created by restore.
-        $questioncreated = $this->get_mappingid(
-            'question_created',
-            $this->get_old_parentid('question')
-        ) ? true : false;
-
-        if (!$questioncreated) {
+        if (!$this->question_was_newly_created()) {
             return;
         }
 
         $data->questionid = $this->get_new_parentid('question');
         unset($data->id);
 
-        // Backward compatibility: default weight fields to 1 if not present.
-        if (!isset($data->weight_sollkonto)) {
-            $data->weight_sollkonto = 1;
-        }
-        if (!isset($data->weight_sollbetrag)) {
-            $data->weight_sollbetrag = 1;
-        }
-        if (!isset($data->weight_habenkonto)) {
-            $data->weight_habenkonto = 1;
-        }
-        if (!isset($data->weight_habenbetrag)) {
-            $data->weight_habenbetrag = 1;
-        }
+        $this->default_entry_weights($data);
+        $this->normalize_legacy_entry_fields($data);
+        $this->resolve_entry_account_ids($data);
 
-        // Backward compatibility: default explanation if not present.
+        $DB->insert_record('qtype_buchungssatz_entries', $data);
+    }
+
+    /**
+     * Check whether the question this entry belongs to was newly created by the current restore.
+     *
+     * @return bool True when the parent question is a new mapping; false if it already existed.
+     */
+    protected function question_was_newly_created(): bool {
+        return (bool) $this->get_mappingid('question_created', $this->get_old_parentid('question'));
+    }
+
+    /**
+     * Apply weight=1 defaults to the four weight fields, for backups that predate weighted scoring.
+     *
+     * @param \stdClass $data Entry data, modified in place.
+     */
+    protected function default_entry_weights(\stdClass $data): void {
+        foreach (['weight_sollkonto', 'weight_sollbetrag', 'weight_habenkonto', 'weight_habenbetrag'] as $field) {
+            if (!isset($data->$field)) {
+                $data->$field = 1;
+            }
+        }
+    }
+
+    /**
+     * Normalise legacy fields: default explanation and strip the obsolete fraction field.
+     *
+     * @param \stdClass $data Entry data, modified in place.
+     */
+    protected function normalize_legacy_entry_fields(\stdClass $data): void {
         if (!isset($data->explanation)) {
             $data->explanation = '';
         }
-
-        // Remove old fraction field if present (no longer used).
         unset($data->fraction);
+    }
 
-        // Backward compatibility: convert old name-based sollkonto/habenkonto to IDs.
+    /**
+     * Convert legacy name-based account fields (sollkonto/habenkonto) to ID-based fields.
+     *
+     * @param \stdClass $data Entry data, modified in place.
+     */
+    protected function resolve_entry_account_ids(\stdClass $data): void {
         if (isset($data->sollkonto) && !isset($data->sollkontoid)) {
             $data->sollkontoid = $this->resolve_account_name_to_id($data->sollkonto, $data->questionid);
             unset($data->sollkonto);
@@ -178,8 +195,6 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
             $data->habenkontoid = $this->resolve_account_name_to_id($data->habenkonto, $data->questionid);
             unset($data->habenkonto);
         }
-
-        $DB->insert_record('qtype_buchungssatz_entries', $data);
     }
 
     /**
@@ -229,7 +244,7 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
             // Create new chart + accounts.
             $chartid = \qtype_buchungssatz\chart_manager::create_chart($this->chartname, $contextid);
             foreach ($this->chartaccounts as $acc) {
-                \qtype_buchungssatz\chart_manager::add_account(
+                \qtype_buchungssatz\account_manager::add(
                     $chartid,
                     $acc->accountname,
                     $acc->sortorder ?? 0

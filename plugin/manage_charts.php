@@ -26,6 +26,7 @@ require_once(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/formslib.php');
 
 use qtype_buchungssatz\chart_manager;
+use qtype_buchungssatz\account_manager;
 
 /**
  * Form for uploading a chart of accounts CSV file.
@@ -189,7 +190,7 @@ if (empty($charts)) {
     $table->head[] = get_string('actions');
 
     foreach ($charts as $chart) {
-        $accounts = chart_manager::get_accounts($chart->id);
+        $accounts = account_manager::get_for_chart($chart->id);
         $accountcount = count($accounts);
 
         $editurl = new moodle_url('/question/type/buchungssatz/edit_chart.php', [

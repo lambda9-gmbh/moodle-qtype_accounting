@@ -326,9 +326,9 @@ class questiontype_test extends \advanced_testcase {
         // Create real accounts so the export can resolve IDs to names.
         $contextid = \context_system::instance()->id;
         $chartid = chart_manager::create_chart('Export Entries Chart', $contextid);
-        $bankid = chart_manager::add_account($chartid, '1200 Bank', 0);
-        $kasseid = chart_manager::add_account($chartid, '1000 Kasse', 1);
-        $erloeseid = chart_manager::add_account($chartid, '8400 Erloese', 2);
+        $bankid = account_manager::add($chartid, '1200 Bank', 0);
+        $kasseid = account_manager::add($chartid, '1000 Kasse', 1);
+        $erloeseid = account_manager::add($chartid, '8400 Erloese', 2);
 
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $category = $generator->create_question_category();
@@ -387,8 +387,8 @@ class questiontype_test extends \advanced_testcase {
         // Create a chart with accounts.
         $contextid = \context_system::instance()->id;
         $chartid = chart_manager::create_chart('Test Export Chart', $contextid);
-        chart_manager::add_account($chartid, '1200 Bank', 0);
-        chart_manager::add_account($chartid, '8400 Erlöse', 1);
+        account_manager::add($chartid, '1200 Bank', 0);
+        account_manager::add($chartid, '8400 Erlöse', 1);
 
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $category = $generator->create_question_category();
@@ -579,7 +579,7 @@ class questiontype_test extends \advanced_testcase {
         $this->assertEquals('Import Test Chart', $chart->name);
 
         // Verify accounts were created.
-        $accounts = chart_manager::get_accounts($qo->chartofaccountsid);
+        $accounts = account_manager::get_for_chart($qo->chartofaccountsid);
         $this->assertCount(2, $accounts);
     }
 
@@ -594,8 +594,8 @@ class questiontype_test extends \advanced_testcase {
 
         // Pre-create a chart in the course context.
         $existingchartid = chart_manager::create_chart('Reuse Chart', $coursecontext->id);
-        chart_manager::add_account($existingchartid, '1200 Bank', 0);
-        chart_manager::add_account($existingchartid, '8400 Erlöse', 1);
+        account_manager::add($existingchartid, '1200 Bank', 0);
+        account_manager::add($existingchartid, '8400 Erlöse', 1);
 
         $chartaccounts = [
             ['accountname' => '1200 Bank', 'sortorder' => 0],

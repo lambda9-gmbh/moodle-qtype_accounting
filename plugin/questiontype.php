@@ -77,11 +77,26 @@ class qtype_buchungssatz extends question_type {
     public function save_question_options($question) {
         global $DB;
 
-        // Delete old options.
         $DB->delete_records('qtype_buchungssatz_options', ['questionid' => $question->id]);
         $DB->delete_records('qtype_buchungssatz_entries', ['questionid' => $question->id]);
 
-        // Save options.
+        $DB->insert_record('qtype_buchungssatz_options', $this->build_options_record($question));
+
+        $arrays = $this->normalize_entry_arrays($question);
+        $this->save_entries($question->id, $arrays);
+
+        $this->save_hints($question);
+
+        return true;
+    }
+
+    /**
+     * Build the qtype_buchungssatz_options DB record from the submitted question form data.
+     *
+     * @param object $question The question being saved.
+     * @return \stdClass Record ready for $DB->insert_record.
+     */
+    protected function build_options_record($question): \stdClass {
         $options = new stdClass();
         $options->questionid = $question->id;
         $options->chartofaccountsid = $question->chartofaccountsid ?? 0;
@@ -91,79 +106,65 @@ class qtype_buchungssatz extends question_type {
         $options->allornothinggrading = $question->allornothinggrading ?? 0;
         $options->allowmultipleentries = $question->allowmultipleentries ?? 1;
         $options->maxentries = $question->maxentries ?? 5;
-        $DB->insert_record('qtype_buchungssatz_options', $options);
+        return $options;
+    }
 
-        // Save correct answer entries. Either Debit (Soll) or Credit (Haben) account is required.
-        // Form fields are arrays: sollkonto[], sollbetrag[], etc.
-        // Also handle Behat data where values may be strings instead of arrays.
-        $sortorder = 0;
+    /**
+     * Normalise the 8 entry-form arrays (account/amount + weights) into actual arrays.
+     *
+     * Behat submissions sometimes send scalar values instead of arrays; this coerces those
+     * back so the indexed lookups below work uniformly.
+     *
+     * @param object $question The question being saved.
+     * @return array Keyed by field name (sollkonto, sollbetrag, ..., weight_habenbetrag).
+     */
+    protected function normalize_entry_arrays($question): array {
+        $fields = [
+            'sollkonto', 'sollbetrag', 'habenkonto', 'habenbetrag',
+            'weight_sollkonto', 'weight_sollbetrag', 'weight_habenkonto', 'weight_habenbetrag',
+        ];
+        $arrays = [];
+        foreach ($fields as $field) {
+            $value = $question->$field ?? [];
+            $arrays[$field] = is_array($value) ? $value : [$value];
+        }
+        return $arrays;
+    }
 
-        // Ensure all field arrays are properly formatted.
-        $sollkontoarray = $question->sollkonto ?? [];
-        if (!is_array($sollkontoarray)) {
-            $sollkontoarray = [$sollkontoarray];
-        }
-        $sollbetragarray = $question->sollbetrag ?? [];
-        if (!is_array($sollbetragarray)) {
-            $sollbetragarray = [$sollbetragarray];
-        }
-        $habenkontoarray = $question->habenkonto ?? [];
-        if (!is_array($habenkontoarray)) {
-            $habenkontoarray = [$habenkontoarray];
-        }
-        $habenbetragarray = $question->habenbetrag ?? [];
-        if (!is_array($habenbetragarray)) {
-            $habenbetragarray = [$habenbetragarray];
-        }
-        // Weight fields arrays.
-        $wsollkontos = $question->weight_sollkonto ?? [];
-        if (!is_array($wsollkontos)) {
-            $wsollkontos = [$wsollkontos];
-        }
-        $wsollbetrags = $question->weight_sollbetrag ?? [];
-        if (!is_array($wsollbetrags)) {
-            $wsollbetrags = [$wsollbetrags];
-        }
-        $whabenkontos = $question->weight_habenkonto ?? [];
-        if (!is_array($whabenkontos)) {
-            $whabenkontos = [$whabenkontos];
-        }
-        $whabenbetrags = $question->weight_habenbetrag ?? [];
-        if (!is_array($whabenbetrags)) {
-            $whabenbetrags = [$whabenbetrags];
-        }
-
-        // Get all unique indices from both sollkonto and habenkonto arrays.
-        $allindices = array_unique(array_merge(array_keys($sollkontoarray), array_keys($habenkontoarray)));
+    /**
+     * Save the correct-answer entry rows for a question.
+     *
+     * Iterates the union of indices across sollkonto and habenkonto, skipping rows where
+     * both account fields are empty, and inserts one record per remaining row.
+     *
+     * @param int $questionid The question ID.
+     * @param array $arrays Normalised entry-field arrays (output of normalize_entry_arrays()).
+     */
+    protected function save_entries(int $questionid, array $arrays): void {
+        global $DB;
+        $allindices = array_unique(array_merge(array_keys($arrays['sollkonto']), array_keys($arrays['habenkonto'])));
         sort($allindices);
-
+        $sortorder = 0;
         foreach ($allindices as $i) {
-            $sollkontoid = intval($sollkontoarray[$i] ?? 0);
-            $habenkontoid = intval($habenkontoarray[$i] ?? 0);
-
-            // Save entries that have either a Debit (Soll) or Credit (Haben) account.
+            $sollkontoid = intval($arrays['sollkonto'][$i] ?? 0);
+            $habenkontoid = intval($arrays['habenkonto'][$i] ?? 0);
             if (empty($sollkontoid) && empty($habenkontoid)) {
                 continue;
             }
-
             $record = new stdClass();
-            $record->questionid = $question->id;
+            $record->questionid = $questionid;
             $record->sortorder = $sortorder++;
             $record->sollkontoid = $sollkontoid ?: null;
-            $record->sollbetrag = floatval($sollbetragarray[$i] ?? 0);
+            $record->sollbetrag = floatval($arrays['sollbetrag'][$i] ?? 0);
             $record->habenkontoid = $habenkontoid ?: null;
-            $record->habenbetrag = floatval($habenbetragarray[$i] ?? 0);
-            $record->weight_sollkonto = intval($wsollkontos[$i] ?? 1);
-            $record->weight_sollbetrag = intval($wsollbetrags[$i] ?? 1);
-            $record->weight_habenkonto = intval($whabenkontos[$i] ?? 1);
-            $record->weight_habenbetrag = intval($whabenbetrags[$i] ?? 1);
+            $record->habenbetrag = floatval($arrays['habenbetrag'][$i] ?? 0);
+            $record->weight_sollkonto = intval($arrays['weight_sollkonto'][$i] ?? 1);
+            $record->weight_sollbetrag = intval($arrays['weight_sollbetrag'][$i] ?? 1);
+            $record->weight_habenkonto = intval($arrays['weight_habenkonto'][$i] ?? 1);
+            $record->weight_habenbetrag = intval($arrays['weight_habenbetrag'][$i] ?? 1);
             $record->explanation = '';
             $DB->insert_record('qtype_buchungssatz_entries', $record);
         }
-
-        $this->save_hints($question);
-
-        return true;
     }
 
     /**
@@ -308,68 +309,20 @@ class qtype_buchungssatz extends question_type {
      * @return string The XML fragment for this question type.
      */
     public function export_to_xml($question, qformat_xml $format, $extra = null) {
-        global $DB;
-        // Parent exports the extra_question_fields (options table fields).
         $expout = parent::export_to_xml($question, $format, $extra);
-
-        // Export correct answer entries. Resolve IDs to names for portable XML.
+        $handler = new \qtype_buchungssatz\xml_handler();
         if (!empty($question->options->entries)) {
-            $expout .= "    <entries>\n";
-            foreach ($question->options->entries as $entry) {
-                $sollname = '';
-                if (!empty($entry->sollkontoid)) {
-                    $acc = $DB->get_record('qtype_buchungssatz_accounts', ['id' => $entry->sollkontoid]);
-                    $sollname = $acc ? $acc->accountname : '';
-                }
-                $habenname = '';
-                if (!empty($entry->habenkontoid)) {
-                    $acc = $DB->get_record('qtype_buchungssatz_accounts', ['id' => $entry->habenkontoid]);
-                    $habenname = $acc ? $acc->accountname : '';
-                }
-                $expout .= "      <entry>\n";
-                $expout .= "        <sortorder>{$entry->sortorder}</sortorder>\n";
-                $expout .= "        <sollkonto>" . $format->xml_escape($sollname) . "</sollkonto>\n";
-                $expout .= "        <sollbetrag>{$entry->sollbetrag}</sollbetrag>\n";
-                $expout .= "        <habenkonto>" . $format->xml_escape($habenname) . "</habenkonto>\n";
-                $expout .= "        <habenbetrag>{$entry->habenbetrag}</habenbetrag>\n";
-                $expout .= "        <weight_sollkonto>" . ($entry->weight_sollkonto ?? 1) . "</weight_sollkonto>\n";
-                $expout .= "        <weight_sollbetrag>" . ($entry->weight_sollbetrag ?? 1) . "</weight_sollbetrag>\n";
-                $expout .= "        <weight_habenkonto>" . ($entry->weight_habenkonto ?? 1) . "</weight_habenkonto>\n";
-                $expout .= "        <weight_habenbetrag>" . ($entry->weight_habenbetrag ?? 1) . "</weight_habenbetrag>\n";
-                $expout .= "        <explanation>" . $format->xml_escape($entry->explanation ?? '') . "</explanation>\n";
-                $expout .= "      </entry>\n";
-            }
-            $expout .= "    </entries>\n";
+            $expout .= $handler->export_entries($question->options->entries, $format);
         }
-
-        // Export chart of accounts with full account data.
-        $chartid = $question->options->chartofaccountsid ?? 0;
+        $chartid = (int)($question->options->chartofaccountsid ?? 0);
         if ($chartid > 0) {
-            $chart = \qtype_buchungssatz\chart_manager::get_chart($chartid);
-            if ($chart) {
-                $accounts = \qtype_buchungssatz\chart_manager::get_accounts($chartid);
-                $expout .= "    <chartofaccounts>\n";
-                $expout .= "      <chartname>" . $format->xml_escape($chart->name) . "</chartname>\n";
-                foreach ($accounts as $account) {
-                    $expout .= "      <account>\n";
-                    $expout .= "        <accountname>" . $format->xml_escape($account->accountname)
-                        . "</accountname>\n";
-                    $expout .= "        <sortorder>{$account->sortorder}</sortorder>\n";
-                    $expout .= "      </account>\n";
-                }
-                $expout .= "    </chartofaccounts>\n";
-            }
+            $expout .= $handler->export_chart($chartid, $format);
         }
-
         return $expout;
     }
 
     /**
      * Import a question from the Moodle XML format.
-     *
-     * Parses correct answer entries and chart of accounts data,
-     * resolving the chart to an existing or newly created chart
-     * in the target course context.
      *
      * @param array $data The XML data for this question.
      * @param object $question The default question object.
@@ -378,136 +331,21 @@ class qtype_buchungssatz extends question_type {
      * @return object|false The question object, or false if not this type.
      */
     public function import_from_xml($data, $question, qformat_xml $format, $extra = null) {
-        // Check this is our question type.
         $qtype = $data['@']['type'];
         if ($qtype != $this->name()) {
             return false;
         }
-
-        // Import headers and extra_question_fields (cannot call parent because
-        // the base implementation unconditionally parses 'answer' elements).
-        $qo = $format->import_headers($data);
-        $qo->qtype = $qtype;
-
+        $handler = new \qtype_buchungssatz\xml_handler();
         $extraquestionfields = $this->extra_question_fields();
         array_shift($extraquestionfields); // Remove table name.
-        foreach ($extraquestionfields as $field) {
-            $qo->$field = $format->getpath($data, ['#', $field, 0, '#'], '');
-        }
+        $qo = $handler->import_options($data, $format, $qtype, $extraquestionfields);
+        $handler->import_entries($data, $format, $qo);
 
-        // Clear the source system's chart ID — it will be resolved from the chart data below.
-        $qo->chartofaccountsid = 0;
-
-        // Parse correct answer entries (account names from XML, resolved to IDs below).
-        $qo->sollkonto = [];
-        $qo->sollbetrag = [];
-        $qo->habenkonto = [];
-        $qo->habenbetrag = [];
-        $qo->weight_sollkonto = [];
-        $qo->weight_sollbetrag = [];
-        $qo->weight_habenkonto = [];
-        $qo->weight_habenbetrag = [];
-
-        $entries = $format->getpath($data, ['#', 'entries', 0, '#', 'entry'], []);
-        foreach ($entries as $i => $entrydata) {
-            $qo->sollkonto[$i] = $format->getpath($entrydata, ['#', 'sollkonto', 0, '#'], '');
-            $qo->sollbetrag[$i] = $format->getpath($entrydata, ['#', 'sollbetrag', 0, '#'], 0);
-            $qo->habenkonto[$i] = $format->getpath($entrydata, ['#', 'habenkonto', 0, '#'], '');
-            $qo->habenbetrag[$i] = $format->getpath($entrydata, ['#', 'habenbetrag', 0, '#'], 0);
-            $qo->weight_sollkonto[$i] = (int) $format->getpath(
-                $entrydata,
-                ['#', 'weight_sollkonto', 0, '#'],
-                1
-            );
-            $qo->weight_sollbetrag[$i] = (int) $format->getpath(
-                $entrydata,
-                ['#', 'weight_sollbetrag', 0, '#'],
-                1
-            );
-            $qo->weight_habenkonto[$i] = (int) $format->getpath(
-                $entrydata,
-                ['#', 'weight_habenkonto', 0, '#'],
-                1
-            );
-            $qo->weight_habenbetrag[$i] = (int) $format->getpath(
-                $entrydata,
-                ['#', 'weight_habenbetrag', 0, '#'],
-                1
-            );
-        }
-
-        // Determine target course context for chart resolution.
-        $contextid = 0;
-        if (!empty($format->course->id)) {
-            $coursecontext = \context_course::instance($format->course->id);
-            $contextid = $coursecontext->id;
-        } else if (!empty($format->category->contextid)) {
-            // Category context may be a course context or a system context.
-            // Try to get the course context from it.
-            $catcontext = \context::instance_by_id($format->category->contextid, IGNORE_MISSING);
-            if ($catcontext) {
-                $coursecontext = $catcontext->get_course_context(false);
-                $contextid = $coursecontext ? $coursecontext->id : $catcontext->id;
-            }
-        }
-
-        // Parse and resolve chart of accounts.
+        $contextid = $handler->resolve_contextid($format);
         $chartdata = $format->getpath($data, ['#', 'chartofaccounts', 0], null);
         if ($chartdata !== null && $contextid > 0) {
-            $chartname = $format->getpath($chartdata, ['#', 'chartname', 0, '#'], '');
-            $xmlaccounts = $format->getpath($chartdata, ['#', 'account'], []);
-
-            if (!empty($chartname) && !empty($xmlaccounts)) {
-                // Build accounts array keyed by account name.
-                $accountsbyname = [];
-                $accountslist = [];
-                foreach ($xmlaccounts as $accdata) {
-                    $accountname = $format->getpath($accdata, ['#', 'accountname', 0, '#'], '');
-                    $sortorder = (int) $format->getpath($accdata, ['#', 'sortorder', 0, '#'], 0);
-
-                    $accountsbyname[$accountname] = [
-                        'accountname' => $accountname,
-                        'sortorder' => $sortorder,
-                    ];
-                    $accountslist[] = $accountsbyname[$accountname];
-                }
-
-                // Try to find existing matching chart in target context.
-                $chartid = \qtype_buchungssatz\chart_manager::find_matching_chart_in_context(
-                    $chartname,
-                    $contextid,
-                    $accountsbyname
-                );
-
-                if (!$chartid) {
-                    // Create new chart with all accounts.
-                    $chartid = \qtype_buchungssatz\chart_manager::create_chart($chartname, $contextid);
-                    foreach ($accountslist as $acc) {
-                        \qtype_buchungssatz\chart_manager::add_account(
-                            $chartid,
-                            $acc['accountname'],
-                            $acc['sortorder']
-                        );
-                    }
-                }
-
-                $qo->chartofaccountsid = $chartid;
-
-                // Resolve imported account names to IDs.
-                $chartaccounts = \qtype_buchungssatz\chart_manager::get_accounts($chartid);
-                $nametoid = [];
-                foreach ($chartaccounts as $acc) {
-                    $nametoid[$acc->accountname] = $acc->id;
-                }
-                foreach ($qo->sollkonto as $idx => $name) {
-                    $qo->sollkonto[$idx] = $nametoid[$name] ?? 0;
-                }
-                foreach ($qo->habenkonto as $idx => $name) {
-                    $qo->habenkonto[$idx] = $nametoid[$name] ?? 0;
-                }
-            }
+            $handler->resolve_chart($chartdata, $format, $contextid, $qo);
         }
-
         return $qo;
     }
 }

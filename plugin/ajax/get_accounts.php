@@ -27,6 +27,7 @@ define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../../config.php');
 
 use qtype_buchungssatz\chart_manager;
+use qtype_buchungssatz\account_manager;
 
 require_login();
 require_sesskey();
@@ -47,7 +48,7 @@ $charts = $DB->get_records(
 
 $result = [];
 foreach ($charts as $chart) {
-    $accounts = chart_manager::get_accounts($chart->id);
+    $accounts = account_manager::get_for_chart($chart->id);
     $result[$chart->id] = [];
     foreach ($accounts as $account) {
         $result[$chart->id][$account->id] = $account->accountname;

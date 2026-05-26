@@ -229,9 +229,9 @@ class import_helper_test extends \advanced_testcase {
         // Create a chart with accounts.
         $contextid = \context_system::instance()->id;
         $chartid = chart_manager::create_chart('Test Chart', $contextid);
-        chart_manager::add_account($chartid, 'Account 1', 0);
-        chart_manager::add_account($chartid, 'Account 2', 1);
-        chart_manager::add_account($chartid, 'Account 3', 2);
+        account_manager::add($chartid, 'Account 1', 0);
+        account_manager::add($chartid, 'Account 2', 1);
+        account_manager::add($chartid, 'Account 3', 2);
 
         // Test finding chart with matching accounts.
         $accounts = [
@@ -269,7 +269,7 @@ class import_helper_test extends \advanced_testcase {
         $this->assertEmpty($result['errors']);
 
         // Verify the accounts were created correctly.
-        $accounts = chart_manager::get_accounts($result['chartid']);
+        $accounts = account_manager::get_for_chart($result['chartid']);
         $this->assertCount(4, $accounts);
 
         // Verify account names.
@@ -291,8 +291,8 @@ class import_helper_test extends \advanced_testcase {
         // Create a chart with accounts.
         $contextid = \context_system::instance()->id;
         $chartid = chart_manager::create_chart('Export Test', $contextid);
-        chart_manager::add_account($chartid, 'Account 1', 0);
-        chart_manager::add_account($chartid, 'Account 2', 1);
+        account_manager::add($chartid, 'Account 1', 0);
+        account_manager::add($chartid, 'Account 2', 1);
 
         $output = chart_manager::export_to_csv($chartid);
 

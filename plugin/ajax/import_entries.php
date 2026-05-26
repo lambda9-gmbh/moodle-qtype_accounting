@@ -29,6 +29,7 @@ define('AJAX_SCRIPT', true);
 require_once(__DIR__ . '/../../../../config.php');
 
 use qtype_buchungssatz\chart_manager;
+use qtype_buchungssatz\account_manager;
 use qtype_buchungssatz\import_helper;
 
 require_login();
@@ -92,7 +93,7 @@ function import_chart_from_csv(string $csvdata, int $contextid): array {
         'name ASC'
     );
     foreach ($charts as $chart) {
-        $chartaccounts = chart_manager::get_accounts($chart->id);
+        $chartaccounts = account_manager::get_for_chart($chart->id);
         $allaccounts[$chart->id] = [];
         foreach ($chartaccounts as $acc) {
             $allaccounts[$chart->id][$acc->id] = $acc->accountname;

@@ -26,6 +26,7 @@ require_once(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/formslib.php');
 
 use qtype_buchungssatz\chart_manager;
+use qtype_buchungssatz\account_manager;
 
 /**
  * Form for importing accounts into an existing chart of accounts from a CSV file.
@@ -114,14 +115,14 @@ if ($action === 'addaccount' && confirm_sesskey()) {
 
     if (!empty($accountname)) {
         // Determine sort order (append at end).
-        $accounts = chart_manager::get_accounts($chartid);
+        $accounts = account_manager::get_for_chart($chartid);
         $maxsort = 0;
         foreach ($accounts as $acc) {
             if ($acc->sortorder > $maxsort) {
                 $maxsort = $acc->sortorder;
             }
         }
-        chart_manager::add_account($chartid, $accountname, $maxsort + 1);
+        account_manager::add($chartid, $accountname, $maxsort + 1);
         redirect($baseurl, get_string('accountadded', 'qtype_buchungssatz'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
     redirect($baseurl);
@@ -134,7 +135,7 @@ if ($action === 'updateaccount' && $accountid && confirm_sesskey()) {
     $account = $DB->get_record('qtype_buchungssatz_accounts', ['id' => $accountid, 'chartid' => $chartid]);
     if ($account) {
         $accountname = required_param('accountname', PARAM_TEXT);
-        chart_manager::update_account($accountid, trim($accountname));
+        account_manager::update($accountid, trim($accountname));
         redirect($baseurl, get_string('accountupdated', 'qtype_buchungssatz'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
     redirect($baseurl);
@@ -151,7 +152,7 @@ if ($action === 'deleteaccount' && $accountid) {
 
     if (optional_param('confirm', 0, PARAM_BOOL)) {
         require_sesskey();
-        chart_manager::delete_account($accountid);
+        account_manager::delete($accountid);
         redirect($baseurl, get_string('accountdeleted', 'qtype_buchungssatz'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
 
@@ -180,7 +181,7 @@ if ($data = $importform->get_data()) {
     if (!empty($files)) {
         $file = reset($files);
         $csvcontent = $file->get_content();
-        $result = chart_manager::import_from_csv($chartid, $csvcontent);
+        $result = account_manager::import_into_chart($chartid, $csvcontent);
 
         if ($result['imported'] > 0) {
             $msg = get_string('imported', 'qtype_buchungssatz', $result['imported']);
@@ -255,7 +256,7 @@ if ($tsort === 'accountname') {
     $sortorder = 'sortorder, accountname';
 }
 
-$accounts = chart_manager::get_accounts($chartid, $sortorder);
+$accounts = account_manager::get_for_chart($chartid, $sortorder);
 
 // Heading row with add-account form on the right.
 echo html_writer::start_div('d-flex justify-content-between align-items-center mb-3');

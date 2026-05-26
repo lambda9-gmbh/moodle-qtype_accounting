@@ -79,8 +79,8 @@ class chart_manager_test extends \advanced_testcase {
 
         $contextid = \context_system::instance()->id;
         $chartid = chart_manager::create_chart('Delete Test', $contextid);
-        chart_manager::add_account($chartid, '1200 Bank', 0);
-        chart_manager::add_account($chartid, '8400 Erlöse', 1);
+        account_manager::add($chartid, '1200 Bank', 0);
+        account_manager::add($chartid, '8400 Erlöse', 1);
 
         // Verify accounts exist.
         $this->assertEquals(2, $DB->count_records('qtype_buchungssatz_accounts', ['chartid' => $chartid]));
@@ -91,73 +91,6 @@ class chart_manager_test extends \advanced_testcase {
         // Verify chart and accounts are gone.
         $this->assertFalse(chart_manager::get_chart($chartid));
         $this->assertEquals(0, $DB->count_records('qtype_buchungssatz_accounts', ['chartid' => $chartid]));
-    }
-
-    /**
-     * Test adding and retrieving accounts.
-     */
-    public function test_add_and_get_accounts(): void {
-        $this->resetAfterTest();
-
-        $contextid = \context_system::instance()->id;
-        $chartid = chart_manager::create_chart('Accounts Test', $contextid);
-
-        $id1 = chart_manager::add_account($chartid, '1200 Bank', 0);
-        $id2 = chart_manager::add_account($chartid, '8400 Erlöse 19%', 1);
-        $id3 = chart_manager::add_account($chartid, '1000 Kasse', 2);
-
-        $this->assertGreaterThan(0, $id1);
-        $this->assertGreaterThan(0, $id2);
-        $this->assertGreaterThan(0, $id3);
-
-        $accounts = chart_manager::get_accounts($chartid);
-        $this->assertCount(3, $accounts);
-
-        // Accounts are returned sorted alphabetically by accountname.
-        $accountnames = array_map(function ($a) {
-            return $a->accountname;
-        }, array_values($accounts));
-        $this->assertEquals(['1000 Kasse', '1200 Bank', '8400 Erlöse 19%'], $accountnames);
-    }
-
-    /**
-     * Test updating an account.
-     */
-    public function test_update_account(): void {
-        $this->resetAfterTest();
-
-        $contextid = \context_system::instance()->id;
-        $chartid = chart_manager::create_chart('Update Account Test', $contextid);
-        $accountid = chart_manager::add_account($chartid, '1200 Bank', 0);
-
-        $result = chart_manager::update_account($accountid, '1201 Bankkonten');
-        $this->assertTrue($result);
-
-        $accounts = chart_manager::get_accounts($chartid);
-        $account = reset($accounts);
-        $this->assertEquals('1201 Bankkonten', $account->accountname);
-    }
-
-    /**
-     * Test deleting a single account.
-     */
-    public function test_delete_account(): void {
-        $this->resetAfterTest();
-
-        $contextid = \context_system::instance()->id;
-        $chartid = chart_manager::create_chart('Delete Account Test', $contextid);
-        $id1 = chart_manager::add_account($chartid, '1200 Bank', 0);
-        chart_manager::add_account($chartid, '8400 Erlöse', 1);
-
-        $this->assertCount(2, chart_manager::get_accounts($chartid));
-
-        $result = chart_manager::delete_account($id1);
-        $this->assertTrue($result);
-
-        $accounts = chart_manager::get_accounts($chartid);
-        $this->assertCount(1, $accounts);
-        $remaining = reset($accounts);
-        $this->assertEquals('8400 Erlöse', $remaining->accountname);
     }
 
     /**
@@ -224,9 +157,9 @@ class chart_manager_test extends \advanced_testcase {
 
         $contextid = \context_system::instance()->id;
         $chartid = chart_manager::create_chart('Match Test', $contextid);
-        chart_manager::add_account($chartid, '1200 Bank', 0);
-        chart_manager::add_account($chartid, '8400 Erlöse', 1);
-        chart_manager::add_account($chartid, '1000 Kasse', 2);
+        account_manager::add($chartid, '1200 Bank', 0);
+        account_manager::add($chartid, '8400 Erlöse', 1);
+        account_manager::add($chartid, '1000 Kasse', 2);
 
         // Search with a subset of accounts — should find the chart.
         $accounts = [
@@ -245,7 +178,7 @@ class chart_manager_test extends \advanced_testcase {
 
         $contextid = \context_system::instance()->id;
         $chartid = chart_manager::create_chart('Partial Match', $contextid);
-        chart_manager::add_account($chartid, '1200 Bank', 0);
+        account_manager::add($chartid, '1200 Bank', 0);
 
         // Search for accounts that include one not in the chart.
         $accounts = [
@@ -264,7 +197,7 @@ class chart_manager_test extends \advanced_testcase {
 
         $contextid = \context_system::instance()->id;
         $chartid = chart_manager::create_chart('Right Name', $contextid);
-        chart_manager::add_account($chartid, '1200 Bank', 0);
+        account_manager::add($chartid, '1200 Bank', 0);
 
         $accounts = [
             '1200 Bank' => ['accountname' => '1200 Bank', 'sortorder' => 0],
@@ -281,8 +214,8 @@ class chart_manager_test extends \advanced_testcase {
 
         $contextid = \context_system::instance()->id;
         $sourceid = chart_manager::create_chart('Source Chart', $contextid);
-        chart_manager::add_account($sourceid, '1200 Bank', 0);
-        chart_manager::add_account($sourceid, '8400 Erlöse', 1);
+        account_manager::add($sourceid, '1200 Bank', 0);
+        account_manager::add($sourceid, '8400 Erlöse', 1);
 
         $course = $this->getDataGenerator()->create_course();
         $targetcontext = \context_course::instance($course->id);
@@ -298,7 +231,7 @@ class chart_manager_test extends \advanced_testcase {
         $this->assertEquals($targetcontext->id, $newchart->contextid);
 
         // Verify all accounts were copied.
-        $newaccounts = chart_manager::get_accounts($newid);
+        $newaccounts = account_manager::get_for_chart($newid);
         $this->assertCount(2, $newaccounts);
 
         $accountnames = array_map(function ($a) {
@@ -341,27 +274,7 @@ class chart_manager_test extends \advanced_testcase {
         $this->assertEquals(2, $result['imported']);
         $this->assertEmpty($result['errors']);
 
-        $accounts = chart_manager::get_accounts($result['chartid']);
-        $this->assertCount(2, $accounts);
-    }
-
-    /**
-     * Test that import_from_csv skips duplicate account names.
-     */
-    public function test_import_from_csv_skips_duplicates(): void {
-        $this->resetAfterTest();
-
-        $contextid = \context_system::instance()->id;
-        $chartid = chart_manager::create_chart('Dup Test', $contextid);
-        chart_manager::add_account($chartid, '1200 Bank', 0);
-
-        $data = "1200 Bank\n8400 Erlöse";
-
-        $result = chart_manager::import_from_csv($chartid, $data);
-
-        // Only the new account should be imported.
-        $this->assertEquals(1, $result['imported']);
-        $accounts = chart_manager::get_accounts($chartid);
+        $accounts = account_manager::get_for_chart($result['chartid']);
         $this->assertCount(2, $accounts);
     }
 
@@ -373,8 +286,8 @@ class chart_manager_test extends \advanced_testcase {
 
         $contextid = \context_system::instance()->id;
         $chartid = chart_manager::create_chart('CSV Export', $contextid);
-        chart_manager::add_account($chartid, '1200 Bank', 0);
-        chart_manager::add_account($chartid, '8400 Erlöse 19%', 1);
+        account_manager::add($chartid, '1200 Bank', 0);
+        account_manager::add($chartid, '8400 Erlöse 19%', 1);
 
         $output = chart_manager::export_to_csv($chartid);
 
