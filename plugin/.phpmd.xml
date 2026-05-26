@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<ruleset name="qtype_buchungssatz"
+        xmlns="http://pmd.sf.net/ruleset/1.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://pmd.sf.net/ruleset/1.0.0 http://pmd.sf.net/ruleset_xml_schema.xsd"
+        xsi:noNamespaceSchemaLocation="http://pmd.sf.net/ruleset_xml_schema.xsd">
+
+    <description>
+        PHPMD ruleset for qtype_buchungssatz.
+
+        PHPUnit test classes (tests/*) and the Moodle upgrade entry point
+        (db/upgrade.php) are excluded via the --exclude CLI flag passed by
+        scripts/ci.sh, not via this ruleset — PHPMD does not honour
+        ruleset-level &lt;exclude-pattern&gt; the way phpcs does.
+    </description>
+
+    <!-- Code size: keep all rules. PHPUnit test classes that legitimately
+         exceed the per-class method threshold use class-level
+         @SuppressWarnings(PHPMD.TooManyPublicMethods) annotations. -->
+    <rule ref="rulesets/codesize.xml"/>
+
+    <!-- Design rules: drop boolean-flag-argument warnings (Moodle's
+         renderer/question_type APIs use boolean toggles extensively). -->
+    <rule ref="rulesets/design.xml">
+        <exclude name="BooleanArgumentFlag"/>
+    </rule>
+
+    <!-- Naming: drop the rules that conflict with Moodle conventions
+         (e.g. global $DB, $qo for question objects, get_question_options(),
+         long descriptive variable names). -->
+    <rule ref="rulesets/naming.xml">
+        <exclude name="BooleanGetMethodName"/>
+        <exclude name="LongVariable"/>
+        <exclude name="ShortVariable"/>
+        <exclude name="LongClassName"/>
+    </rule>
+
+    <!-- Unused code: keep UnusedLocalVariable and UnusedPrivateMethod, but
+         drop UnusedFormalParameter — many params are required by Moodle's
+         question_type / renderer base-class signatures. -->
+    <rule ref="rulesets/unusedcode.xml">
+        <exclude name="UnusedFormalParameter"/>
+    </rule>
+</ruleset>

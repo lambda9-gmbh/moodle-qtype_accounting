@@ -65,8 +65,6 @@ services:
   selenium:
     image: selenium/standalone-firefox:latest
     container_name: moft-selenium
-    profiles:
-      - testing
     ports:
       - "${SELENIUM_PORT:-4444}:4444"
       - "${SELENIUM_VNC_PORT:-7900}:7900"

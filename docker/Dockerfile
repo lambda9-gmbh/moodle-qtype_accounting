@@ -16,6 +16,28 @@ RUN apt-get update && apt-get install -y \
     locales \
     && rm -rf /var/lib/apt/lists/*
 
+# Install composer (used by moodle-cs and moodle-plugin-ci installs below).
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+# Install Node.js 22 (required by Moodle's grunt tasks).
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install moodle-cs (phpcs ruleset) used by scripts/ci.sh codecheck.
+RUN mkdir -p /opt/moodle-cs && cd /opt/moodle-cs \
+    && printf '%s\n' \
+        '{' \
+        '    "require-dev": {"moodlehq/moodle-cs": "^3.7"},' \
+        '    "config": {"allow-plugins": {"dealerdirect/phpcodesniffer-composer-installer": true}}' \
+        '}' > composer.json \
+    && composer install --no-interaction --no-progress
+
+# Install moodle-plugin-ci (used by scripts/ci.sh for phpcs/phpmd/phpdoc/...).
+RUN composer create-project moodlehq/moodle-plugin-ci /opt/moodle-plugin-ci ^4 \
+    --no-interaction --no-progress \
+    || true # post-install hook attempts npm install in vendor/.../moodle-local_ci; harmless if it fails
+
 # Install required locales for PHPUnit tests
 RUN sed -i '/en_AU.UTF-8/s/^# //g' /etc/locale.gen && locale-gen en_AU.UTF-8
 
