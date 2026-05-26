@@ -26,22 +26,22 @@
 
 define(['jquery'], function ($) {
 
-    /** Breakpoint for mobile layout (must match CSS). */
+    // Breakpoint for mobile layout (must match CSS).
     var MOBILE_BREAKPOINT = 768;
 
-    /** CSS class added to container when mobile layout is active. */
+    // CSS class added to container when mobile layout is active.
     var ACTIVE_CLASS = 'buchungssatz-mobile-active';
 
-    /** Stored row selector from init. */
+    // Stored row selector from init.
     var rowSelector = '.buchungssatz-entry-row';
 
-    /** Whether the question is readonly (review mode). */
+    // Whether the question is readonly (review mode).
     var isReadonly = false;
 
-    /** Debounce timer for resize handler. */
+    // Debounce timer for resize handler.
     var resizeTimer = null;
 
-    /** Number format for amount placeholders. */
+    // Number format for amount placeholders.
     var numberFormat = 'de';
 
     /**

@@ -25,7 +25,7 @@
 
 define(['jquery'], function ($) {
 
-    /** CSS class used to hide cells based on entry type. */
+    // CSS class used to hide cells based on entry type.
     var HIDDEN_CLASS = 'buchungssatz-hidden-cell';
 
     /**
@@ -91,7 +91,7 @@ define(['jquery'], function ($) {
                 cells[COL.DEBIT_DELETE].classList.add(HIDDEN_CLASS);
             }
         }
-        // 'both' keeps everything visible (already reset above).
+        // The 'both' type keeps everything visible (already reset above).
     }
 
     /**
@@ -183,7 +183,7 @@ define(['jquery'], function ($) {
         }
         var rows = el.querySelectorAll(rowSelector);
 
-        // "Per" is only shown in the header row, not in data rows.
+        // The "Per" column is only shown in the header row, not in data rows.
         for (var i = 0; i < rows.length; i++) {
             var row = rows[i];
             var perCell = row.querySelector('td:first-child');

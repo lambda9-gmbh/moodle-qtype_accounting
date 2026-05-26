@@ -334,9 +334,7 @@ class question_test extends \advanced_testcase {
         $this->assertEmpty($error);
     }
 
-    // ========================================
-    // Aggregation-based grading tests
-    // ========================================
+    // Aggregation-based grading tests.
 
     /**
      * Test that amounts are aggregated by account - split amounts.
@@ -417,9 +415,7 @@ class question_test extends \advanced_testcase {
         $this->assertEquals(question_state::$gradedright, $state);
     }
 
-    // ========================================
-    // All-or-nothing grading tests
-    // ========================================
+    // All-or-nothing grading tests.
 
     /**
      * Test all-or-nothing grading with correct answer.
@@ -482,9 +478,7 @@ class question_test extends \advanced_testcase {
         $this->assertEquals(question_state::$gradedpartial, $state);
     }
 
-    // ========================================
-    // Weighted scoring tests
-    // ========================================
+    // Weighted scoring tests.
 
     /**
      * Test weighted scoring with correct answer.
@@ -515,9 +509,9 @@ class question_test extends \advanced_testcase {
         [$fraction, $state] = $question->grade_response($response);
 
         // Accounts have weight 2 each, amounts weight 1 each.
-        // Total weight = 2+1+2+1 = 6
-        // Earned = 2+0+2+0 = 4
-        // Fraction = 4/6 = 0.6667
+        // Total weight = 2+1+2+1 = 6.
+        // Earned = 2+0+2+0 = 4.
+        // Fraction = 4/6 = 0.6667.
         $this->assertEqualsWithDelta(0.6667, $fraction, 0.001);
         $this->assertEquals(question_state::$gradedpartial, $state);
     }
@@ -540,8 +534,8 @@ class question_test extends \advanced_testcase {
         $response = qtype_buchungssatz_test_helper::make_response(101, 1000, 901, 9999);
         [$fraction, $state] = $question->grade_response($response);
 
-        // Debit = 2+1 = 3, Credit = 0
-        // Fraction = 3/6 = 0.5
+        // Debit = 2+1 = 3, Credit = 0.
+        // Fraction = 3/6 = 0.5.
         $this->assertEquals(0.5, $fraction);
         $this->assertEquals(question_state::$gradedpartial, $state);
     }
@@ -559,15 +553,13 @@ class question_test extends \advanced_testcase {
         $response = qtype_buchungssatz_test_helper::make_response(901, 9999, 201, 1000);
         [$fraction, $state] = $question->grade_response($response);
 
-        // Debit = 0, Credit = 2+1 = 3
-        // Fraction = 3/6 = 0.5
+        // Debit = 0, Credit = 2+1 = 3.
+        // Fraction = 3/6 = 0.5.
         $this->assertEquals(0.5, $fraction);
         $this->assertEquals(question_state::$gradedpartial, $state);
     }
 
-    // ========================================
-    // Order independence tests
-    // ========================================
+    // Order independence tests.
 
     /**
      * Test that entry order doesn't matter.
@@ -607,9 +599,7 @@ class question_test extends \advanced_testcase {
         $this->assertEquals(question_state::$gradedright, $state);
     }
 
-    // ========================================
-    // Partial correctness tests
-    // ========================================
+    // Partial correctness tests.
 
     /**
      * Test correct accounts but wrong amounts gives partial credit.
@@ -620,9 +610,9 @@ class question_test extends \advanced_testcase {
         $response = qtype_buchungssatz_test_helper::make_response(101, 500, 201, 500);
         [$fraction, $state] = $question->grade_response($response);
 
-        // All 4 weights = 1, total = 4
-        // Accounts correct = 2, amounts wrong = 0
-        // Fraction = 2/4 = 0.5
+        // All 4 weights = 1, total = 4.
+        // Accounts correct = 2, amounts wrong = 0.
+        // Fraction = 2/4 = 0.5.
         $this->assertEquals(0.5, $fraction);
         $this->assertEquals(question_state::$gradedpartial, $state);
     }
@@ -640,8 +630,8 @@ class question_test extends \advanced_testcase {
         $response = qtype_buchungssatz_test_helper::make_response(101, 1000, 901, 9999);
         [$fraction, $state] = $question->grade_response($response);
 
-        // Debit correct = 2, Credit = 0
-        // Fraction = 2/4 = 0.5
+        // Debit correct = 2, Credit = 0.
+        // Fraction = 2/4 = 0.5.
         $this->assertEquals(0.5, $fraction);
         $this->assertEquals(question_state::$gradedpartial, $state);
     }
@@ -659,14 +649,12 @@ class question_test extends \advanced_testcase {
         $response = qtype_buchungssatz_test_helper::make_response(901, 1000, 201, 1000);
         [$fraction, $state] = $question->grade_response($response);
 
-        // Credit side correct = 2, Debit wrong = 0
+        // Credit side correct = 2, Debit wrong = 0.
         $this->assertEquals(0.5, $fraction);
         $this->assertEquals(question_state::$gradedpartial, $state);
     }
 
-    // ========================================
-    // Edge cases
-    // ========================================
+    // Edge cases.
 
     /**
      * Test empty student response.
@@ -743,9 +731,7 @@ class question_test extends \advanced_testcase {
         $this->assertEquals(question_state::$gradedright, $state);
     }
 
-    // ========================================
-    // Extra entry deduction tests
-    // ========================================
+    // Extra entry deduction tests.
 
     /**
      * Test extra entry deduction with no extra accounts.

@@ -16,8 +16,6 @@
 
 namespace qtype_buchungssatz;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Unit tests for the chart_manager class.
  *

@@ -25,18 +25,18 @@ import $ from 'jquery';
 import * as Str from 'core/str';
 import * as EntryUtils from 'qtype_buchungssatz/entry_utils';
 
-// Module-level state
+// Module-level state.
 let accountsByChart = {};
 let lastChartId = null;
 let nextEntryIndex = 0;
 let allOrNothingEnabled = false;
 
-// DOM element references
+// DOM element references.
 let chartSelect = null;
 let numberFormatSelect = null;
 let initialChartId = '0';
 
-/** CSS selector for entry rows in the edit form. */
+// CSS selector for entry rows in the edit form.
 var ROW_SELECTOR = '.buchungssatz-entry-row';
 
 /**
@@ -74,7 +74,7 @@ function init() {
         numberFormatSelect = document.querySelector('select[name="numberformat"]');
     }
 
-    // Initial setup - populate dropdowns based on selected chart
+    // Initial setup - populate dropdowns based on selected chart.
     if (chartSelect && initialChartId && (!chartSelect.value || chartSelect.value === '0')) {
         chartSelect.value = initialChartId;
     }
@@ -135,7 +135,7 @@ function calculateNextEntryIndex() {
 function setupChartChangeHandler() {
     if (chartSelect) {
         chartSelect.addEventListener('change', function () {
-            lastChartId = null; // Reset to force rebuild
+            lastChartId = null; // Reset to force rebuild.
             updateAccountDropdowns(true);
         });
     }

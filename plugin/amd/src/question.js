@@ -29,7 +29,7 @@ import * as MobileLayout from 'qtype_buchungssatz/mobile_layout';
 let numberFormat = 'de';
 const decimalPlaces = 2;
 
-/** CSS selector for entry rows in the student view. */
+// CSS selector for entry rows in the student view.
 var ROW_SELECTOR = '.buchungssatz-entry-row';
 
 /**

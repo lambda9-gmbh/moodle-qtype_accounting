@@ -22,8 +22,6 @@
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Represents a Buchungssatz question.
  *
@@ -424,9 +422,15 @@ class qtype_buchungssatz_question extends question_graded_automatically {
             if ($sollkontoid > 0 || $habenkontoid > 0) {
                 $entries[] = [
                     'sollkontoid' => $sollkontoid,
-                    'sollbetrag' => \qtype_buchungssatz\amount_helper::parse_amount($response["sollbetrag_{$i}"] ?? '', $this->numberformat),
+                    'sollbetrag' => \qtype_buchungssatz\amount_helper::parse_amount(
+                        $response["sollbetrag_{$i}"] ?? '',
+                        $this->numberformat
+                    ),
                     'habenkontoid' => $habenkontoid,
-                    'habenbetrag' => \qtype_buchungssatz\amount_helper::parse_amount($response["habenbetrag_{$i}"] ?? '', $this->numberformat),
+                    'habenbetrag' => \qtype_buchungssatz\amount_helper::parse_amount(
+                        $response["habenbetrag_{$i}"] ?? '',
+                        $this->numberformat
+                    ),
                 ];
             }
         }

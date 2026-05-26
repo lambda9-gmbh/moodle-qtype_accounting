@@ -16,8 +16,6 @@
 
 namespace qtype_buchungssatz;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Helper class for parsing amount strings using the known number format.
  *

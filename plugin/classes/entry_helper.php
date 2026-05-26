@@ -16,8 +16,6 @@
 
 namespace qtype_buchungssatz;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Helper class for shared entry rendering logic between student and teacher views.
  *

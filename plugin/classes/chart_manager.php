@@ -24,8 +24,6 @@
 
 namespace qtype_buchungssatz;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Manager class for charts of accounts.
  *

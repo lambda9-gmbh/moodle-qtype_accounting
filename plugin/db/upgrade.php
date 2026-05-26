@@ -88,7 +88,16 @@ function xmldb_qtype_buchungssatz_upgrade($oldversion) {
     if ($oldversion < 2024010109) {
         // Add accountsindropdown field to options table.
         $table = new xmldb_table('qtype_buchungssatz_options');
-        $field = new xmldb_field('accountsindropdown', XMLDB_TYPE_INTEGER, '5', null, XMLDB_NOTNULL, null, '0', 'chartofaccountsid');
+        $field = new xmldb_field(
+            'accountsindropdown',
+            XMLDB_TYPE_INTEGER,
+            '5',
+            null,
+            XMLDB_NOTNULL,
+            null,
+            '0',
+            'chartofaccountsid'
+        );
 
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
@@ -148,7 +157,16 @@ function xmldb_qtype_buchungssatz_upgrade($oldversion) {
     if ($oldversion < 2024010115) {
         // Add allornothinggrading field to options table.
         $table = new xmldb_table('qtype_buchungssatz_options');
-        $field = new xmldb_field('allornothinggrading', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'extraentrydeduction');
+        $field = new xmldb_field(
+            'allornothinggrading',
+            XMLDB_TYPE_INTEGER,
+            '1',
+            null,
+            XMLDB_NOTNULL,
+            null,
+            '0',
+            'extraentrydeduction'
+        );
 
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
@@ -180,7 +198,16 @@ function xmldb_qtype_buchungssatz_upgrade($oldversion) {
         }
 
         // Add weight_habenbetrag field.
-        $field = new xmldb_field('weight_habenbetrag', XMLDB_TYPE_INTEGER, '5', null, XMLDB_NOTNULL, null, '1', 'weight_habenkonto');
+        $field = new xmldb_field(
+            'weight_habenbetrag',
+            XMLDB_TYPE_INTEGER,
+            '5',
+            null,
+            XMLDB_NOTNULL,
+            null,
+            '1',
+            'weight_habenkonto'
+        );
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }

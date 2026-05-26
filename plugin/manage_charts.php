@@ -204,7 +204,10 @@ if (empty($charts)) {
 
         $actions = html_writer::link($editurl, $OUTPUT->pix_icon('t/edit', get_string('edit')));
         $actions .= ' ';
-        $actions .= html_writer::link($exporturl, $OUTPUT->pix_icon('i/export', get_string('exportaccounts', 'qtype_buchungssatz')));
+        $actions .= html_writer::link(
+            $exporturl,
+            $OUTPUT->pix_icon('i/export', get_string('exportaccounts', 'qtype_buchungssatz'))
+        );
         $actions .= ' ';
         $actions .= html_writer::link($deleteurl, $OUTPUT->pix_icon('t/delete', get_string('delete')));
 

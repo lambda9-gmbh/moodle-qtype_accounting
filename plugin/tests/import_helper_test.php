@@ -16,8 +16,6 @@
 
 namespace qtype_buchungssatz;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Unit tests for import_helper class.
  *
@@ -198,7 +196,7 @@ class import_helper_test extends \advanced_testcase {
      * Test that Windows-1252 encoded data (German umlauts) is converted to UTF-8.
      */
     public function test_parse_csv_converts_windows1252(): void {
-        // "Erlöse" and "Büro" in Windows-1252 encoding.
+        // The words "Erlöse" and "Büro" in Windows-1252 encoding.
         $data = mb_convert_encoding("1200 Erlöse\n1400 Büro", 'Windows-1252', 'UTF-8');
 
         $result = import_helper::parse_csv($data);

@@ -16,8 +16,6 @@
 
 namespace qtype_buchungssatz;
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Helper class for importing chart of accounts from a text file.
  *

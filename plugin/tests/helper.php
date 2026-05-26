@@ -539,7 +539,10 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $fromform = new \stdClass();
 
         $fromform->name = 'Multiple entries question';
-        $fromform->questiontext = ['text' => 'Record the following: Cash sale 500 EUR and bank sale 500 EUR.', 'format' => FORMAT_HTML];
+        $fromform->questiontext = [
+            'text' => 'Record the following: Cash sale 500 EUR and bank sale 500 EUR.',
+            'format' => FORMAT_HTML,
+        ];
         $fromform->generalfeedback = ['text' => 'Two entries are needed.', 'format' => FORMAT_HTML];
         $fromform->defaultmark = 1;
         $fromform->penalty = 0.3333333;

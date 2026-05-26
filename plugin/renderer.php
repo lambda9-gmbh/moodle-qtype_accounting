@@ -22,8 +22,6 @@
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Generates the output for Buchungssatz questions.
  *
@@ -40,8 +38,6 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      * @return string The HTML output.
      */
     public function formulation_and_controls(question_attempt $qa, question_display_options $options): string {
-        global $PAGE;
-
         $question = $qa->get_question();
         $response = $qa->get_last_qt_data();
 
@@ -161,7 +157,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             ]);
             $result .= '</td>';
             $result .= '<td></td>'; // Soll Amount column.
-            $result .= '<td></td>'; // an label column.
+            $result .= '<td></td>'; // The 'an' label column.
             $result .= '<td>';
             $result .= html_writer::tag('button', get_string('addcreditentry', 'qtype_buchungssatz'), [
                 'type' => 'button',
@@ -182,19 +178,19 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $result .= html_writer::end_div(); // End container.
 
         // Load language strings for JavaScript.
-        $PAGE->requires->string_for_js('selectaccount', 'qtype_buchungssatz');
-        $PAGE->requires->string_for_js('debitentries', 'qtype_buchungssatz');
-        $PAGE->requires->string_for_js('creditentries', 'qtype_buchungssatz');
-        $PAGE->requires->string_for_js('adddebitentry', 'qtype_buchungssatz');
-        $PAGE->requires->string_for_js('addcreditentry', 'qtype_buchungssatz');
-        $PAGE->requires->string_for_js('account', 'qtype_buchungssatz');
-        $PAGE->requires->string_for_js('amount', 'qtype_buchungssatz');
-        $PAGE->requires->string_for_js('soll', 'qtype_buchungssatz');
-        $PAGE->requires->string_for_js('haben', 'qtype_buchungssatz');
+        $this->page->requires->string_for_js('selectaccount', 'qtype_buchungssatz');
+        $this->page->requires->string_for_js('debitentries', 'qtype_buchungssatz');
+        $this->page->requires->string_for_js('creditentries', 'qtype_buchungssatz');
+        $this->page->requires->string_for_js('adddebitentry', 'qtype_buchungssatz');
+        $this->page->requires->string_for_js('addcreditentry', 'qtype_buchungssatz');
+        $this->page->requires->string_for_js('account', 'qtype_buchungssatz');
+        $this->page->requires->string_for_js('amount', 'qtype_buchungssatz');
+        $this->page->requires->string_for_js('soll', 'qtype_buchungssatz');
+        $this->page->requires->string_for_js('haben', 'qtype_buchungssatz');
 
         // Include JavaScript for interactive features.
         // Only pass the container ID - other data is in data attributes to avoid Moodle 3.10 size limits.
-        $PAGE->requires->js_call_amd('qtype_buchungssatz/question', 'init', [$containerid]);
+        $this->page->requires->js_call_amd('qtype_buchungssatz/question', 'init', [$containerid]);
 
         return $result;
     }
@@ -318,31 +314,46 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
 
         // Determine entry type and hidden classes.
         $entrytype = \qtype_buchungssatz\entry_helper::determine_entry_type($sollkontoval, $habenkontoval);
-        $hidden_classes = \qtype_buchungssatz\entry_helper::get_hidden_classes($entrytype);
-        $debithidden = $hidden_classes['debit'];
-        $credithidden = $hidden_classes['credit'];
+        $hiddenclasses = \qtype_buchungssatz\entry_helper::get_hidden_classes($entrytype);
+        $debithidden = $hiddenclasses['debit'];
+        $credithidden = $hiddenclasses['credit'];
 
         // Build table row.
         $rowstyle = $hidden ? 'display: none;' : '';
-        $html = '<tr class="buchungssatz-entry-row" data-entry="' . $index . '" data-entry-type="' . $entrytype . '" style="' . $rowstyle . '">';
+        $html = '<tr class="buchungssatz-entry-row" data-entry="' . $index
+            . '" data-entry-type="' . $entrytype . '" style="' . $rowstyle . '">';
 
         // Per label cell - add data-section for mobile header.
         $html .= '<td class="buchungssatz-label-cell' . $debithidden . '" data-section="soll"></td>';
 
         // Soll (Debit) account cell - add data-label for mobile.
-        $html .= '<td class="buchungssatz-data-cell' . $debithidden . '" data-label="' . get_string('account', 'qtype_buchungssatz') . '">';
-        $html .= $this->render_account_field($readonly, $sollkontoval, $sollkontoname, $sollaccounts, $feedbackclasses['sollkonto'] ?? '');
+        $html .= '<td class="buchungssatz-data-cell' . $debithidden
+            . '" data-label="' . get_string('account', 'qtype_buchungssatz') . '">';
+        $html .= $this->render_account_field(
+            $readonly,
+            $sollkontoval,
+            $sollkontoname,
+            $sollaccounts,
+            $feedbackclasses['sollkonto'] ?? ''
+        );
         $html .= '</td>';
 
         // Get number format settings from question.
         $numberformat = $question->numberformat ?? 'de';
 
         // Soll (Debit) amount cell - add data-label for mobile.
-        $html .= '<td class="buchungssatz-data-cell' . $debithidden . '" data-label="' . get_string('amount', 'qtype_buchungssatz') . '">';
-        $html .= $this->render_amount_field($readonly, $sollbetragval, $sollbetragname, $feedbackclasses['sollbetrag'] ?? '', $numberformat);
+        $html .= '<td class="buchungssatz-data-cell' . $debithidden
+            . '" data-label="' . get_string('amount', 'qtype_buchungssatz') . '">';
+        $html .= $this->render_amount_field(
+            $readonly,
+            $sollbetragval,
+            $sollbetragname,
+            $feedbackclasses['sollbetrag'] ?? '',
+            $numberformat
+        );
         $html .= '</td>';
 
-        // "an" label cell - contains debit delete button if editable.
+        // The "an" label cell - contains debit delete button if editable.
         $html .= '<td class="buchungssatz-label-cell' . $debithidden . '" data-section="haben">';
         if ($showdelete) {
             $html .= \qtype_buchungssatz\entry_helper::render_delete_button('debit', $index, 'data-entry');
@@ -352,13 +363,27 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
         $html .= '</td>';
 
         // Haben (Credit) account cell - add data-label for mobile.
-        $html .= '<td class="buchungssatz-data-cell' . $credithidden . '" data-label="' . get_string('account', 'qtype_buchungssatz') . '">';
-        $html .= $this->render_account_field($readonly, $habenkontoval, $habenkontoname, $habenaccounts, $feedbackclasses['habenkonto'] ?? '');
+        $html .= '<td class="buchungssatz-data-cell' . $credithidden
+            . '" data-label="' . get_string('account', 'qtype_buchungssatz') . '">';
+        $html .= $this->render_account_field(
+            $readonly,
+            $habenkontoval,
+            $habenkontoname,
+            $habenaccounts,
+            $feedbackclasses['habenkonto'] ?? ''
+        );
         $html .= '</td>';
 
         // Haben (Credit) amount cell - add data-label for mobile.
-        $html .= '<td class="buchungssatz-data-cell' . $credithidden . '" data-label="' . get_string('amount', 'qtype_buchungssatz') . '">';
-        $html .= $this->render_amount_field($readonly, $habenbetragval, $habenbetragname, $feedbackclasses['habenbetrag'] ?? '', $numberformat);
+        $html .= '<td class="buchungssatz-data-cell' . $credithidden
+            . '" data-label="' . get_string('amount', 'qtype_buchungssatz') . '">';
+        $html .= $this->render_amount_field(
+            $readonly,
+            $habenbetragval,
+            $habenbetragname,
+            $feedbackclasses['habenbetrag'] ?? '',
+            $numberformat
+        );
         $html .= '</td>';
 
         // Delete button cell (credit delete only - debit delete is in the "an" cell).
@@ -429,7 +454,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             'inputmode="decimal" aria-label="' . $amountlabel . '">';
         $html .= '</td>';
 
-        // "an" label cell — contains debit delete button.
+        // The "an" label cell — contains debit delete button.
         $html .= '<td class="buchungssatz-label-cell" data-section="haben">';
         $html .= \qtype_buchungssatz\entry_helper::render_delete_button('debit', $placeholder, 'data-entry');
         $html .= '</td>';
@@ -469,7 +494,13 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      * @param string $feedbackclass CSS class for feedback styling.
      * @return string The HTML output.
      */
-    protected function render_account_field(bool $readonly, string $value, string $name, array $accounts, string $feedbackclass = ''): string {
+    protected function render_account_field(
+        bool $readonly,
+        string $value,
+        string $name,
+        array $accounts,
+        string $feedbackclass = ''
+    ): string {
         if ($readonly) {
             // Look up account name from ID for display.
             $displayval = \qtype_buchungssatz\entry_helper::format_account_display_by_id((int)$value, $accounts);
@@ -793,7 +824,7 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      *
      * @param object $question The question object with correct entries.
      * @param array $response The student response data.
-     * @return array Map of row index => ['sollkonto' => class, 'sollbetrag' => class, 'habenkonto' => class, 'habenbetrag' => class].
+     * @return array Map of row index => keyed array of CSS classes for sollkonto, sollbetrag, habenkonto, habenbetrag.
      */
     protected function build_cell_feedback_map(object $question, array $response): array {
         $feedbackmap = [];
@@ -895,8 +926,8 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
      */
     protected function calculate_aggregated_feedback(object $question, array $response): array {
         $feedback = [
-            'debit_status' => 'correct', // 'correct', 'partial', or 'incorrect'.
-            'credit_status' => 'correct', // 'correct', 'partial', or 'incorrect'.
+            'debit_status' => 'correct', // One of: correct, partial, incorrect.
+            'credit_status' => 'correct', // One of: correct, partial, incorrect.
             'all_correct' => true,
             'debit_details' => [],
             'credit_details' => [],
@@ -1097,9 +1128,15 @@ class qtype_buchungssatz_renderer extends qtype_renderer {
             if ($sollkontoid > 0 || $habenkontoid > 0) {
                 $entries[] = [
                     'sollkontoid' => $sollkontoid,
-                    'sollbetrag' => \qtype_buchungssatz\amount_helper::parse_amount($response["sollbetrag_{$i}"] ?? '', $numberformat),
+                    'sollbetrag' => \qtype_buchungssatz\amount_helper::parse_amount(
+                        $response["sollbetrag_{$i}"] ?? '',
+                        $numberformat
+                    ),
                     'habenkontoid' => $habenkontoid,
-                    'habenbetrag' => \qtype_buchungssatz\amount_helper::parse_amount($response["habenbetrag_{$i}"] ?? '', $numberformat),
+                    'habenbetrag' => \qtype_buchungssatz\amount_helper::parse_amount(
+                        $response["habenbetrag_{$i}"] ?? '',
+                        $numberformat
+                    ),
                 ];
             }
         }

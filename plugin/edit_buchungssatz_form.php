@@ -22,8 +22,6 @@
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * Buchungssatz question editing form definition.
  *
@@ -309,14 +307,16 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $html .= '<tr>';
         $html .= '<td></td>'; // Per label column.
         $html .= '<td>';
-        $html .= '<button type="button" class="btn btn-secondary btn-sm buchungssatz-add-debit-entry" id="buchungssatz-add-debit-entry">';
+        $html .= '<button type="button" class="btn btn-secondary btn-sm buchungssatz-add-debit-entry"'
+            . ' id="buchungssatz-add-debit-entry">';
         $html .= '+ ' . $adddebitentrystr;
         $html .= '</button>';
         $html .= '</td>';
         $html .= '<td></td>'; // Soll Amount column.
-        $html .= '<td></td>'; // an label column.
+        $html .= '<td></td>'; // The 'an' label column.
         $html .= '<td>';
-        $html .= '<button type="button" class="btn btn-secondary btn-sm buchungssatz-add-credit-entry" id="buchungssatz-add-credit-entry">';
+        $html .= '<button type="button" class="btn btn-secondary btn-sm buchungssatz-add-credit-entry"'
+            . ' id="buchungssatz-add-credit-entry">';
         $html .= '+ ' . $addcreditentrystr;
         $html .= '</button>';
         $html .= '</td>';
@@ -369,21 +369,23 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
 
         // Determine entry type and hidden classes.
         $entrytype = \qtype_buchungssatz\entry_helper::determine_entry_type($sollkonto, $habenkonto);
-        $hidden_classes = \qtype_buchungssatz\entry_helper::get_hidden_classes($entrytype);
-        $debithidden = $hidden_classes['debit'];
-        $credithidden = $hidden_classes['credit'];
+        $hiddenclasses = \qtype_buchungssatz\entry_helper::get_hidden_classes($entrytype);
+        $debithidden = $hiddenclasses['debit'];
+        $credithidden = $hiddenclasses['credit'];
 
         // Format amounts with 2 decimal places for display using the question's number format.
         $sollbetrag = $this->format_amount_for_edit((float)$sollbetragraw, $numberformat);
         $habenbetrag = $this->format_amount_for_edit((float)$habenbetragraw, $numberformat);
 
         // Build select options HTML for sollkonto.
-        $sollselecthtml = '<select name="sollkonto_display[' . $index . ']" class="form-control buchungssatz-sollkonto" data-index="' . $index . '">';
+        $sollselecthtml = '<select name="sollkonto_display[' . $index . ']"'
+            . ' class="form-control buchungssatz-sollkonto" data-index="' . $index . '">';
         $sollselecthtml .= \qtype_buchungssatz\entry_helper::build_account_options($sollaccountoptions, (string)$sollkonto, '');
         $sollselecthtml .= '</select>';
 
         // Build select options HTML for habenkonto.
-        $habenselecthtml = '<select name="habenkonto_display[' . $index . ']" class="form-control buchungssatz-habenkonto" data-index="' . $index . '">';
+        $habenselecthtml = '<select name="habenkonto_display[' . $index . ']"'
+            . ' class="form-control buchungssatz-habenkonto" data-index="' . $index . '">';
         $habenselecthtml .= \qtype_buchungssatz\entry_helper::build_account_options($habenaccountoptions, (string)$habenkonto, '');
         $habenselecthtml .= '</select>';
 
@@ -415,7 +417,12 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $html .= '<tr class="buchungssatz-weight-row" data-entry-index="' . $index . '">';
         $html .= '<td class="' . trim($debithidden) . '"></td>';
         $html .= '<td class="buchungssatz-weight-cell' . $debithidden . '">';
-        $html .= $weightstr . ': ' . $this->build_weight_select('weight_sollkonto_display[' . $index . ']', $weightsollkonto, $index, 'sollkonto');
+        $html .= $weightstr . ': ' . $this->build_weight_select(
+            'weight_sollkonto_display[' . $index . ']',
+            $weightsollkonto,
+            $index,
+            'sollkonto'
+        );
         if ($isfirst) {
             $tooltiptext = get_string('weight_tooltip', 'qtype_buchungssatz');
             // Convert newlines to <br> for popover display.
@@ -428,14 +435,29 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         }
         $html .= '</td>';
         $html .= '<td class="buchungssatz-weight-cell' . $debithidden . '">';
-        $html .= $weightstr . ': ' . $this->build_weight_select('weight_sollbetrag_display[' . $index . ']', $weightsollbetrag, $index, 'sollbetrag');
+        $html .= $weightstr . ': ' . $this->build_weight_select(
+            'weight_sollbetrag_display[' . $index . ']',
+            $weightsollbetrag,
+            $index,
+            'sollbetrag'
+        );
         $html .= '</td>';
         $html .= '<td class="' . trim($debithidden) . '"></td>';
         $html .= '<td class="buchungssatz-weight-cell' . $credithidden . '">';
-        $html .= $weightstr . ': ' . $this->build_weight_select('weight_habenkonto_display[' . $index . ']', $weighthabenkonto, $index, 'habenkonto');
+        $html .= $weightstr . ': ' . $this->build_weight_select(
+            'weight_habenkonto_display[' . $index . ']',
+            $weighthabenkonto,
+            $index,
+            'habenkonto'
+        );
         $html .= '</td>';
         $html .= '<td class="buchungssatz-weight-cell' . $credithidden . '">';
-        $html .= $weightstr . ': ' . $this->build_weight_select('weight_habenbetrag_display[' . $index . ']', $weighthabenbetrag, $index, 'habenbetrag');
+        $html .= $weightstr . ': ' . $this->build_weight_select(
+            'weight_habenbetrag_display[' . $index . ']',
+            $weighthabenbetrag,
+            $index,
+            'habenbetrag'
+        );
         $html .= '</td>';
         $html .= '<td class="' . trim($credithidden) . '"></td>';
         $html .= '</tr>';
