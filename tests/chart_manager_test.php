@@ -14,15 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
-namespace qtype_buchungssatz;
+namespace qtype_accounting;
 
 /**
  * Unit tests for the chart_manager class.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers     \qtype_buchungssatz\chart_manager
+ * @covers     \qtype_accounting\chart_manager
  */
 class chart_manager_test extends \advanced_testcase {
     /**
@@ -83,14 +83,14 @@ class chart_manager_test extends \advanced_testcase {
         account_manager::add($chartid, '8400 Erlöse', 1);
 
         // Verify accounts exist.
-        $this->assertEquals(2, $DB->count_records('qtype_buchungssatz_accounts', ['chartid' => $chartid]));
+        $this->assertEquals(2, $DB->count_records('qtype_accounting_accounts', ['chartid' => $chartid]));
 
         $result = chart_manager::delete_chart($chartid);
         $this->assertTrue($result);
 
         // Verify chart and accounts are gone.
         $this->assertFalse(chart_manager::get_chart($chartid));
-        $this->assertEquals(0, $DB->count_records('qtype_buchungssatz_accounts', ['chartid' => $chartid]));
+        $this->assertEquals(0, $DB->count_records('qtype_accounting_accounts', ['chartid' => $chartid]));
     }
 
     /**

@@ -15,16 +15,16 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * English language strings for qtype_buchungssatz.
+ * English language strings for qtype_accounting.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 $string['pluginname'] = 'Accounting Entry';
 $string['pluginname_help'] = 'A question type where students create accounting entries (journal entries) by selecting debit and credit accounts and entering amounts.';
-$string['pluginname_link'] = 'question/type/buchungssatz';
+$string['pluginname_link'] = 'question/type/accounting';
 $string['pluginnameadding'] = 'Adding an Accounting Entry question';
 $string['pluginnameediting'] = 'Editing an Accounting Entry question';
 $string['pluginnamesummary'] = 'A question type for practicing accounting entries. Students select accounts from a chart of accounts and enter debit/credit amounts.';
@@ -58,13 +58,13 @@ $string['deleteentry'] = 'Delete';
 // Account fields.
 $string['per'] = 'Dr.';
 $string['an'] = 'Cr.';
-$string['soll'] = 'Debit';
-$string['haben'] = 'Credit';
+$string['debit'] = 'Debit';
+$string['credit'] = 'Credit';
 $string['account'] = 'Account';
-$string['sollkonto'] = 'Debit Account';
-$string['sollbetrag'] = 'Debit Amount';
-$string['habenkonto'] = 'Credit Account';
-$string['habenbetrag'] = 'Credit Amount';
+$string['debitaccount'] = 'Debit Account';
+$string['debitamount'] = 'Debit Amount';
+$string['creditaccount'] = 'Credit Account';
+$string['creditamount'] = 'Credit Amount';
 $string['weight'] = 'Weight';
 $string['weight_help'] = 'Weight for this field in grading (1, 2, or 3). Higher values mean more points. For example, if an account has weight 3 and its amount has weight 1, the account is three times as important as the amount for scoring.';
 $string['weight_tooltip'] = 'Input fields (accounts, amounts) can be assigned a weight from 1–3. The weight is used to calculate partial credit as follows: (Σ weights of correct fields) ÷ (Σ weights of all fields) × achievable points.
@@ -77,8 +77,6 @@ $string['amount'] = 'Amount';
 $string['selectaccount'] = '-- Select account --';
 $string['enteraccount'] = 'Enter account number';
 $string['noaccountselected'] = 'No account selected';
-$string['sollamount'] = 'Debit amount';
-$string['habenamount'] = 'Credit amount';
 $string['grade'] = 'Grade (%)';
 $string['grade_help'] = 'The percentage of total marks this entry is worth. All entry grades must sum to exactly 100%.';
 $string['explanation'] = 'Explanation';
@@ -97,13 +95,13 @@ $string['credithasextraaccounts'] = 'The credit side contains unnecessary accoun
 
 // Validation errors.
 $string['err_noentries'] = 'Please enter at least one booking entry with account and amount.';
-$string['err_sollrequired'] = 'Debit account is required when credit account is specified.';
-$string['err_habenrequired'] = 'Credit account is required when debit account is specified.';
+$string['err_debitrequired'] = 'Debit account is required when credit account is specified.';
+$string['err_creditrequired'] = 'Credit account is required when debit account is specified.';
 $string['err_negativeamount'] = 'Amounts must be positive.';
 $string['err_minentries'] = 'Maximum entries must be at least 1.';
 $string['err_maxentries'] = 'Maximum entries cannot exceed {$a}.';
-$string['err_habenamountrequired'] = 'Credit amount is required.';
-$string['err_sollbetragrequired'] = 'Debit amount is required when a debit account is selected.';
+$string['err_creditamountrequired'] = 'Credit amount is required.';
+$string['err_debitamountrequired'] = 'Debit amount is required when a debit account is selected.';
 $string['err_graderequired'] = 'Grade is required.';
 $string['err_gradeinvalid'] = 'Grade must be between 0 and 100.';
 $string['err_gradesumnotcomplete'] = 'The sum of all grades must equal exactly 100%. Current sum: {$a}%';
@@ -111,8 +109,8 @@ $string['err_chartrequired'] = 'Please select a chart of accounts.';
 $string['err_accountsindropdown_negative'] = 'The number of accounts in selection list cannot be negative.';
 $string['err_extraentrydeduction_range'] = 'The deduction must be between 0 and 100.';
 $string['err_balancemismatch'] = 'Total debit amount must equal total credit amount for a valid accounting entry.';
-$string['err_sollkontorequired'] = 'Please select an account, or remove this entry.';
-$string['err_habenkontorequired'] = 'Please select an account, or remove this entry.';
+$string['err_debitaccountrequired'] = 'Please select an account, or remove this entry.';
+$string['err_creditaccountrequired'] = 'Please select an account, or remove this entry.';
 
 // Chart of accounts management.
 $string['managecharts'] = 'Manage Charts of Accounts';
@@ -125,11 +123,11 @@ $string['importaccounts'] = 'Import accounts from CSV';
 $string['exportaccounts'] = 'Export accounts to CSV';
 
 // Privacy.
-$string['privacy:metadata:qtype_buchungssatz_charts'] = 'The charts of accounts table stores who last modified each chart.';
-$string['privacy:metadata:qtype_buchungssatz_charts:usermodified'] = 'The ID of the user who last modified the chart of accounts.';
+$string['privacy:metadata:qtype_accounting_charts'] = 'The charts of accounts table stores who last modified each chart.';
+$string['privacy:metadata:qtype_accounting_charts:usermodified'] = 'The ID of the user who last modified the chart of accounts.';
 
 // Capabilities.
-$string['buchungssatz:managecharts'] = 'Manage charts of accounts';
+$string['accounting:managecharts'] = 'Manage charts of accounts';
 
 // Settings.
 $string['settings'] = 'Buchungssatz settings';

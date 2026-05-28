@@ -17,20 +17,20 @@
 /**
  * XML import/export for the Buchungssatz question type.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace qtype_buchungssatz;
+namespace qtype_accounting;
 
 /**
  * Handles the Moodle-XML question-export and question-import paths.
  *
- * Extracted from {@see \qtype_buchungssatz} so the question_type subclass can stay
+ * Extracted from {@see \qtype_accounting} so the question_type subclass can stay
  * focused on the persistence + bootstrap responsibilities Moodle imposes.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -48,26 +48,26 @@ class xml_handler {
         global $DB;
         $expout = "    <entries>\n";
         foreach ($entries as $entry) {
-            $sollname = '';
-            if (!empty($entry->sollkontoid)) {
-                $acc = $DB->get_record('qtype_buchungssatz_accounts', ['id' => $entry->sollkontoid]);
-                $sollname = $acc ? $acc->accountname : '';
+            $debitname = '';
+            if (!empty($entry->debitaccountid)) {
+                $acc = $DB->get_record('qtype_accounting_accounts', ['id' => $entry->debitaccountid]);
+                $debitname = $acc ? $acc->accountname : '';
             }
-            $habenname = '';
-            if (!empty($entry->habenkontoid)) {
-                $acc = $DB->get_record('qtype_buchungssatz_accounts', ['id' => $entry->habenkontoid]);
-                $habenname = $acc ? $acc->accountname : '';
+            $creditname = '';
+            if (!empty($entry->creditaccountid)) {
+                $acc = $DB->get_record('qtype_accounting_accounts', ['id' => $entry->creditaccountid]);
+                $creditname = $acc ? $acc->accountname : '';
             }
             $expout .= "      <entry>\n";
             $expout .= "        <sortorder>{$entry->sortorder}</sortorder>\n";
-            $expout .= "        <sollkonto>" . $format->xml_escape($sollname) . "</sollkonto>\n";
-            $expout .= "        <sollbetrag>{$entry->sollbetrag}</sollbetrag>\n";
-            $expout .= "        <habenkonto>" . $format->xml_escape($habenname) . "</habenkonto>\n";
-            $expout .= "        <habenbetrag>{$entry->habenbetrag}</habenbetrag>\n";
-            $expout .= "        <weight_sollkonto>" . ($entry->weight_sollkonto ?? 1) . "</weight_sollkonto>\n";
-            $expout .= "        <weight_sollbetrag>" . ($entry->weight_sollbetrag ?? 1) . "</weight_sollbetrag>\n";
-            $expout .= "        <weight_habenkonto>" . ($entry->weight_habenkonto ?? 1) . "</weight_habenkonto>\n";
-            $expout .= "        <weight_habenbetrag>" . ($entry->weight_habenbetrag ?? 1) . "</weight_habenbetrag>\n";
+            $expout .= "        <debitaccount>" . $format->xml_escape($debitname) . "</debitaccount>\n";
+            $expout .= "        <debitamount>{$entry->debitamount}</debitamount>\n";
+            $expout .= "        <creditaccount>" . $format->xml_escape($creditname) . "</creditaccount>\n";
+            $expout .= "        <creditamount>{$entry->creditamount}</creditamount>\n";
+            $expout .= "        <weight_debitaccount>" . ($entry->weight_debitaccount ?? 1) . "</weight_debitaccount>\n";
+            $expout .= "        <weight_debitamount>" . ($entry->weight_debitamount ?? 1) . "</weight_debitamount>\n";
+            $expout .= "        <weight_creditaccount>" . ($entry->weight_creditaccount ?? 1) . "</weight_creditaccount>\n";
+            $expout .= "        <weight_creditamount>" . ($entry->weight_creditamount ?? 1) . "</weight_creditamount>\n";
             $expout .= "        <explanation>" . $format->xml_escape($entry->explanation ?? '') . "</explanation>\n";
             $expout .= "      </entry>\n";
         }
@@ -139,25 +139,25 @@ class xml_handler {
      * @param \stdClass $qo The question object to populate (modified in place).
      */
     public function import_entries(array $data, \qformat_xml $format, \stdClass $qo): void {
-        $qo->sollkonto = [];
-        $qo->sollbetrag = [];
-        $qo->habenkonto = [];
-        $qo->habenbetrag = [];
-        $qo->weight_sollkonto = [];
-        $qo->weight_sollbetrag = [];
-        $qo->weight_habenkonto = [];
-        $qo->weight_habenbetrag = [];
+        $qo->debitaccount = [];
+        $qo->debitamount = [];
+        $qo->creditaccount = [];
+        $qo->creditamount = [];
+        $qo->weight_debitaccount = [];
+        $qo->weight_debitamount = [];
+        $qo->weight_creditaccount = [];
+        $qo->weight_creditamount = [];
 
         $entries = $format->getpath($data, ['#', 'entries', 0, '#', 'entry'], []);
         foreach ($entries as $i => $entrydata) {
-            $qo->sollkonto[$i] = $format->getpath($entrydata, ['#', 'sollkonto', 0, '#'], '');
-            $qo->sollbetrag[$i] = $format->getpath($entrydata, ['#', 'sollbetrag', 0, '#'], 0);
-            $qo->habenkonto[$i] = $format->getpath($entrydata, ['#', 'habenkonto', 0, '#'], '');
-            $qo->habenbetrag[$i] = $format->getpath($entrydata, ['#', 'habenbetrag', 0, '#'], 0);
-            $qo->weight_sollkonto[$i] = (int) $format->getpath($entrydata, ['#', 'weight_sollkonto', 0, '#'], 1);
-            $qo->weight_sollbetrag[$i] = (int) $format->getpath($entrydata, ['#', 'weight_sollbetrag', 0, '#'], 1);
-            $qo->weight_habenkonto[$i] = (int) $format->getpath($entrydata, ['#', 'weight_habenkonto', 0, '#'], 1);
-            $qo->weight_habenbetrag[$i] = (int) $format->getpath($entrydata, ['#', 'weight_habenbetrag', 0, '#'], 1);
+            $qo->debitaccount[$i] = $format->getpath($entrydata, ['#', 'debitaccount', 0, '#'], '');
+            $qo->debitamount[$i] = $format->getpath($entrydata, ['#', 'debitamount', 0, '#'], 0);
+            $qo->creditaccount[$i] = $format->getpath($entrydata, ['#', 'creditaccount', 0, '#'], '');
+            $qo->creditamount[$i] = $format->getpath($entrydata, ['#', 'creditamount', 0, '#'], 0);
+            $qo->weight_debitaccount[$i] = (int) $format->getpath($entrydata, ['#', 'weight_debitaccount', 0, '#'], 1);
+            $qo->weight_debitamount[$i] = (int) $format->getpath($entrydata, ['#', 'weight_debitamount', 0, '#'], 1);
+            $qo->weight_creditaccount[$i] = (int) $format->getpath($entrydata, ['#', 'weight_creditaccount', 0, '#'], 1);
+            $qo->weight_creditamount[$i] = (int) $format->getpath($entrydata, ['#', 'weight_creditamount', 0, '#'], 1);
         }
     }
 
@@ -240,7 +240,7 @@ class xml_handler {
     }
 
     /**
-     * Replace the account names on $qo->sollkonto / $qo->habenkonto with the resolved IDs from the chart.
+     * Replace the account names on $qo->debitaccount / $qo->creditaccount with the resolved IDs from the chart.
      *
      * @param int $chartid The resolved chart ID.
      * @param \stdClass $qo The question object (modified in place).
@@ -250,11 +250,11 @@ class xml_handler {
         foreach (account_manager::get_for_chart($chartid) as $acc) {
             $nametoid[$acc->accountname] = $acc->id;
         }
-        foreach ($qo->sollkonto as $idx => $name) {
-            $qo->sollkonto[$idx] = $nametoid[$name] ?? 0;
+        foreach ($qo->debitaccount as $idx => $name) {
+            $qo->debitaccount[$idx] = $nametoid[$name] ?? 0;
         }
-        foreach ($qo->habenkonto as $idx => $name) {
-            $qo->habenkonto[$idx] = $nametoid[$name] ?? 0;
+        foreach ($qo->creditaccount as $idx => $name) {
+            $qo->creditaccount[$idx] = $nametoid[$name] ?? 0;
         }
     }
 }

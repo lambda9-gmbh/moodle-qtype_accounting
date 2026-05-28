@@ -17,21 +17,21 @@
 /**
  * Feedback calculation for the Buchungssatz question type.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace qtype_buchungssatz;
+namespace qtype_accounting;
 
 /**
  * Aggregates student responses against the correct answer to produce per-cell and per-side feedback.
  *
- * Logic was extracted from {@see \qtype_buchungssatz_renderer} so the renderer can stay
+ * Logic was extracted from {@see \qtype_accounting_renderer} so the renderer can stay
  * focused on HTML output. The methods are stateless; the renderer instantiates one calculator
  * and delegates.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -44,7 +44,7 @@ class feedback_calculator {
      *
      * @param object $question The question object with correct entries.
      * @param array $response The student response data.
-     * @return array Map of row index => keyed CSS classes for sollkonto, sollbetrag, habenkonto, habenbetrag.
+     * @return array Map of row index => keyed CSS classes for debitaccount, debitamount, creditaccount, creditamount.
      */
     public function build_cell_feedback_map(object $question, array $response): array {
         $feedbackmap = [];
@@ -60,17 +60,17 @@ class feedback_calculator {
         $accountstatus = $this->classify_account_statuses($studentaggregated, $correctaggregated);
 
         for ($i = 0; $i <= $maxindex; $i++) {
-            $sollkontoid = (int)($response["sollkonto_{$i}"] ?? 0);
-            $habenkontoid = (int)($response["habenkonto_{$i}"] ?? 0);
-            $row = ['sollkonto' => '', 'sollbetrag' => '', 'habenkonto' => '', 'habenbetrag' => ''];
+            $debitaccountid = (int)($response["debitaccount_{$i}"] ?? 0);
+            $creditaccountid = (int)($response["creditaccount_{$i}"] ?? 0);
+            $row = ['debitaccount' => '', 'debitamount' => '', 'creditaccount' => '', 'creditamount' => ''];
 
-            if ($sollkontoid > 0 && isset($accountstatus['debit'][$sollkontoid])) {
-                $row['sollkonto'] = 'buchungssatz-' . $accountstatus['debit'][$sollkontoid]['account'];
-                $row['sollbetrag'] = 'buchungssatz-' . $accountstatus['debit'][$sollkontoid]['amount'];
+            if ($debitaccountid > 0 && isset($accountstatus['debit'][$debitaccountid])) {
+                $row['debitaccount'] = 'accounting-' . $accountstatus['debit'][$debitaccountid]['account'];
+                $row['debitamount'] = 'accounting-' . $accountstatus['debit'][$debitaccountid]['amount'];
             }
-            if ($habenkontoid > 0 && isset($accountstatus['credit'][$habenkontoid])) {
-                $row['habenkonto'] = 'buchungssatz-' . $accountstatus['credit'][$habenkontoid]['account'];
-                $row['habenbetrag'] = 'buchungssatz-' . $accountstatus['credit'][$habenkontoid]['amount'];
+            if ($creditaccountid > 0 && isset($accountstatus['credit'][$creditaccountid])) {
+                $row['creditaccount'] = 'accounting-' . $accountstatus['credit'][$creditaccountid]['account'];
+                $row['creditamount'] = 'accounting-' . $accountstatus['credit'][$creditaccountid]['amount'];
             }
             $feedbackmap[$i] = $row;
         }
@@ -133,28 +133,28 @@ class feedback_calculator {
     /**
      * Aggregate entries by account ID on each side.
      *
-     * @param array $entries Entries (each with sollkontoid/sollbetrag/habenkontoid/habenbetrag).
+     * @param array $entries Entries (each with debitaccountid/debitamount/creditaccountid/creditamount).
      * @return array ['debit' => [accountid => amount], 'credit' => [accountid => amount]].
      */
     public function aggregate_entries_for_feedback(array $entries): array {
         $aggregated = ['debit' => [], 'credit' => []];
         foreach ($entries as $entry) {
-            $sollkontoid = (int)($entry['sollkontoid'] ?? 0);
-            if ($sollkontoid > 0) {
-                $aggregated['debit'][$sollkontoid] = ($aggregated['debit'][$sollkontoid] ?? 0)
-                    + (float)($entry['sollbetrag'] ?? 0);
+            $debitaccountid = (int)($entry['debitaccountid'] ?? 0);
+            if ($debitaccountid > 0) {
+                $aggregated['debit'][$debitaccountid] = ($aggregated['debit'][$debitaccountid] ?? 0)
+                    + (float)($entry['debitamount'] ?? 0);
             }
-            $habenkontoid = (int)($entry['habenkontoid'] ?? 0);
-            if ($habenkontoid > 0) {
-                $aggregated['credit'][$habenkontoid] = ($aggregated['credit'][$habenkontoid] ?? 0)
-                    + (float)($entry['habenbetrag'] ?? 0);
+            $creditaccountid = (int)($entry['creditaccountid'] ?? 0);
+            if ($creditaccountid > 0) {
+                $aggregated['credit'][$creditaccountid] = ($aggregated['credit'][$creditaccountid] ?? 0)
+                    + (float)($entry['creditamount'] ?? 0);
             }
         }
         return $aggregated;
     }
 
     /**
-     * Parse a Moodle response array (flat sollkonto_i/sollbetrag_i/... keys) into entry rows.
+     * Parse a Moodle response array (flat debitaccount_i/debitamount_i/... keys) into entry rows.
      *
      * @param array $response The response data.
      * @param string $numberformat The number format ('de' or 'us') for amount parsing.
@@ -164,20 +164,20 @@ class feedback_calculator {
         $entries = [];
         $maxindex = $this->max_response_index($response);
         for ($i = 0; $i <= $maxindex; $i++) {
-            $sollkontoid = (int)($response["sollkonto_{$i}"] ?? 0);
-            $habenkontoid = (int)($response["habenkonto_{$i}"] ?? 0);
-            if ($sollkontoid <= 0 && $habenkontoid <= 0) {
+            $debitaccountid = (int)($response["debitaccount_{$i}"] ?? 0);
+            $creditaccountid = (int)($response["creditaccount_{$i}"] ?? 0);
+            if ($debitaccountid <= 0 && $creditaccountid <= 0) {
                 continue;
             }
             $entries[] = [
-                'sollkontoid' => $sollkontoid,
-                'sollbetrag' => amount_helper::parse_amount(
-                    $response["sollbetrag_{$i}"] ?? '',
+                'debitaccountid' => $debitaccountid,
+                'debitamount' => amount_helper::parse_amount(
+                    $response["debitamount_{$i}"] ?? '',
                     $numberformat
                 ),
-                'habenkontoid' => $habenkontoid,
-                'habenbetrag' => amount_helper::parse_amount(
-                    $response["habenbetrag_{$i}"] ?? '',
+                'creditaccountid' => $creditaccountid,
+                'creditamount' => amount_helper::parse_amount(
+                    $response["creditamount_{$i}"] ?? '',
                     $numberformat
                 ),
             ];
@@ -186,7 +186,7 @@ class feedback_calculator {
     }
 
     /**
-     * Find the highest entry index N present in the response, across sollkonto_N / habenkonto_N keys.
+     * Find the highest entry index N present in the response, across debitaccount_N / creditaccount_N keys.
      *
      * @param array $response The response data.
      * @return int Highest index, or -1 if none.
@@ -194,7 +194,7 @@ class feedback_calculator {
     protected function max_response_index(array $response): int {
         $maxindex = -1;
         foreach (array_keys($response) as $key) {
-            if (preg_match('/^(?:sollkonto|habenkonto)_(\d+)$/', $key, $matches)) {
+            if (preg_match('/^(?:debitaccount|creditaccount)_(\d+)$/', $key, $matches)) {
                 $maxindex = max($maxindex, (int)$matches[1]);
             }
         }
@@ -212,15 +212,15 @@ class feedback_calculator {
     protected function aggregate_response_amounts(array $response, int $maxindex, string $numberformat): array {
         $aggregated = ['debit' => [], 'credit' => []];
         for ($i = 0; $i <= $maxindex; $i++) {
-            $sollkontoid = (int)($response["sollkonto_{$i}"] ?? 0);
-            $habenkontoid = (int)($response["habenkonto_{$i}"] ?? 0);
-            if ($sollkontoid > 0) {
-                $amount = amount_helper::parse_amount($response["sollbetrag_{$i}"] ?? '', $numberformat);
-                $aggregated['debit'][$sollkontoid] = ($aggregated['debit'][$sollkontoid] ?? 0) + $amount;
+            $debitaccountid = (int)($response["debitaccount_{$i}"] ?? 0);
+            $creditaccountid = (int)($response["creditaccount_{$i}"] ?? 0);
+            if ($debitaccountid > 0) {
+                $amount = amount_helper::parse_amount($response["debitamount_{$i}"] ?? '', $numberformat);
+                $aggregated['debit'][$debitaccountid] = ($aggregated['debit'][$debitaccountid] ?? 0) + $amount;
             }
-            if ($habenkontoid > 0) {
-                $amount = amount_helper::parse_amount($response["habenbetrag_{$i}"] ?? '', $numberformat);
-                $aggregated['credit'][$habenkontoid] = ($aggregated['credit'][$habenkontoid] ?? 0) + $amount;
+            if ($creditaccountid > 0) {
+                $amount = amount_helper::parse_amount($response["creditamount_{$i}"] ?? '', $numberformat);
+                $aggregated['credit'][$creditaccountid] = ($aggregated['credit'][$creditaccountid] ?? 0) + $amount;
             }
         }
         return $aggregated;

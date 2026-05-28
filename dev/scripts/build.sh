@@ -14,7 +14,7 @@
 set -e
 
 CONTAINER="accounting-moodle"
-PLUGIN_PATH="/var/www/html/question/type/buchungssatz"
+PLUGIN_PATH="/var/www/html/question/type/accounting"
 
 echo "========================================"
 echo "Building AMD JavaScript modules via grunt..."

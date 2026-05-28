@@ -17,20 +17,20 @@
 /**
  * Account loading + dropdown filtering for the Buchungssatz renderer.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace qtype_buchungssatz;
+namespace qtype_accounting;
 
 /**
  * Loads and filters the account list used by the question dropdowns.
  *
- * Extracted from {@see \qtype_buchungssatz_renderer} so the renderer can stay focused
+ * Extracted from {@see \qtype_accounting_renderer} so the renderer can stay focused
  * on HTML output. The provider is stateless: callers pass in the question and response.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -49,7 +49,7 @@ class account_provider {
             return [];
         }
         return $DB->get_records(
-            'qtype_buchungssatz_accounts',
+            'qtype_accounting_accounts',
             ['chartid' => $chartid],
             'accountname'
         );
@@ -75,7 +75,7 @@ class account_provider {
         }
         $selectedids = [];
         foreach ($response as $key => $value) {
-            if (preg_match('/^(?:sollkonto|habenkonto)_\d+$/', $key) && $value !== '' && (int)$value > 0) {
+            if (preg_match('/^(?:debitaccount|creditaccount)_\d+$/', $key) && $value !== '' && (int)$value > 0) {
                 $selectedids[(int)$value] = true;
             }
         }

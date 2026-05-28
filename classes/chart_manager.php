@@ -15,19 +15,19 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Chart of accounts manager for qtype_buchungssatz.
+ * Chart of accounts manager for qtype_accounting.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace qtype_buchungssatz;
+namespace qtype_accounting;
 
 /**
  * Manager class for charts of accounts.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -49,7 +49,7 @@ class chart_manager {
         $chart->timemodified = time();
         $chart->usermodified = $USER->id;
 
-        return $DB->insert_record('qtype_buchungssatz_charts', $chart);
+        return $DB->insert_record('qtype_accounting_charts', $chart);
     }
 
     /**
@@ -62,12 +62,12 @@ class chart_manager {
     public static function update_chart(int $chartid, string $name): bool {
         global $DB, $USER;
 
-        $chart = $DB->get_record('qtype_buchungssatz_charts', ['id' => $chartid], '*', MUST_EXIST);
+        $chart = $DB->get_record('qtype_accounting_charts', ['id' => $chartid], '*', MUST_EXIST);
         $chart->name = $name;
         $chart->timemodified = time();
         $chart->usermodified = $USER->id;
 
-        return $DB->update_record('qtype_buchungssatz_charts', $chart);
+        return $DB->update_record('qtype_accounting_charts', $chart);
     }
 
     /**
@@ -80,10 +80,10 @@ class chart_manager {
         global $DB;
 
         // Delete all accounts in this chart.
-        $DB->delete_records('qtype_buchungssatz_accounts', ['chartid' => $chartid]);
+        $DB->delete_records('qtype_accounting_accounts', ['chartid' => $chartid]);
 
         // Delete the chart.
-        return $DB->delete_records('qtype_buchungssatz_charts', ['id' => $chartid]);
+        return $DB->delete_records('qtype_accounting_charts', ['id' => $chartid]);
     }
 
     /**
@@ -94,7 +94,7 @@ class chart_manager {
      */
     public static function get_chart(int $chartid) {
         global $DB;
-        return $DB->get_record('qtype_buchungssatz_charts', ['id' => $chartid]);
+        return $DB->get_record('qtype_accounting_charts', ['id' => $chartid]);
     }
 
     /**
@@ -117,7 +117,7 @@ class chart_manager {
         // Validate direction.
         $dir = strtoupper($dir) === 'DESC' ? 'DESC' : 'ASC';
 
-        return $DB->get_records('qtype_buchungssatz_charts', ['contextid' => $contextid], "$sort $dir");
+        return $DB->get_records('qtype_accounting_charts', ['contextid' => $contextid], "$sort $dir");
     }
 
     /**
@@ -129,7 +129,7 @@ class chart_manager {
      */
     public static function get_chart_by_name(string $name, int $contextid) {
         global $DB;
-        return $DB->get_record('qtype_buchungssatz_charts', ['name' => $name, 'contextid' => $contextid]);
+        return $DB->get_record('qtype_accounting_charts', ['name' => $name, 'contextid' => $contextid]);
     }
 
     /**
@@ -194,7 +194,7 @@ class chart_manager {
             self::delete_chart($chartid);
             $result['chartid'] = 0;
             $result['chartname'] = '';
-            $result['errors'][] = get_string('csvnoentries', 'qtype_buchungssatz');
+            $result['errors'][] = get_string('csvnoentries', 'qtype_accounting');
         }
 
         return $result;
@@ -211,7 +211,7 @@ class chart_manager {
     public static function find_matching_chart_in_context(string $name, int $contextid, array $accounts): ?int {
         global $DB;
 
-        $charts = $DB->get_records('qtype_buchungssatz_charts', ['name' => $name, 'contextid' => $contextid]);
+        $charts = $DB->get_records('qtype_accounting_charts', ['name' => $name, 'contextid' => $contextid]);
         if (empty($charts)) {
             return null;
         }
@@ -220,7 +220,7 @@ class chart_manager {
         sort($requiredaccounts);
 
         foreach ($charts as $chart) {
-            $chartaccounts = $DB->get_records('qtype_buchungssatz_accounts', ['chartid' => $chart->id]);
+            $chartaccounts = $DB->get_records('qtype_accounting_accounts', ['chartid' => $chart->id]);
             $chartaccountnames = [];
             foreach ($chartaccounts as $acc) {
                 $chartaccountnames[] = $acc->accountname;
@@ -254,7 +254,7 @@ class chart_manager {
     public static function duplicate_chart(int $sourcechartid, int $targetcontextid): int {
         $source = self::get_chart($sourcechartid);
         if (!$source) {
-            throw new \moodle_exception('chartnotfound', 'qtype_buchungssatz');
+            throw new \moodle_exception('chartnotfound', 'qtype_accounting');
         }
 
         $newchartid = self::create_chart($source->name, $targetcontextid);

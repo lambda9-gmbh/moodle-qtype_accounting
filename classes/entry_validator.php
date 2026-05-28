@@ -17,20 +17,20 @@
 /**
  * Submission validator for the Buchungssatz edit form.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace qtype_buchungssatz;
+namespace qtype_accounting;
 
 /**
  * Validates the entry rows submitted from the edit form.
  *
- * Extracted from {@see \qtype_buchungssatz_edit_form} so the form class can stay
+ * Extracted from {@see \qtype_accounting_edit_form} so the form class can stay
  * focused on building the form definition.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -46,9 +46,9 @@ class entry_validator {
      * @return array Errors after this validation pass.
      */
     public function validate(array $data, array $errors): array {
-        $sollkontoarray = $data['sollkonto'] ?? [];
-        $habenkontoarray = $data['habenkonto'] ?? [];
-        $allindices = array_unique(array_merge(array_keys($sollkontoarray), array_keys($habenkontoarray)));
+        $debitaccountarray = $data['debitaccount'] ?? [];
+        $creditaccountarray = $data['creditaccount'] ?? [];
+        $allindices = array_unique(array_merge(array_keys($debitaccountarray), array_keys($creditaccountarray)));
 
         $errors = $this->validate_completeness($data, $allindices, $errors);
         return $this->validate_balance($data, $allindices, $errors);
@@ -58,38 +58,38 @@ class entry_validator {
      * Per-entry checks: account ↔ amount pairing rules.
      *
      * @param array $data Form data.
-     * @param array $allindices Union of indices across sollkonto and habenkonto arrays.
+     * @param array $allindices Union of indices across debitaccount and creditaccount arrays.
      * @param array $errors Errors accumulated so far.
      * @return array Errors after this check.
      */
     protected function validate_completeness(array $data, array $allindices, array $errors): array {
         foreach ($allindices as $i) {
-            $sollkontoid = (int)($data['sollkonto'][$i] ?? 0);
-            $habenkontoid = (int)($data['habenkonto'][$i] ?? 0);
-            $sollbetragraw = trim($data['sollbetrag'][$i] ?? '');
-            $habenbetragraw = trim($data['habenbetrag'][$i] ?? '');
+            $debitaccountid = (int)($data['debitaccount'][$i] ?? 0);
+            $creditaccountid = (int)($data['creditaccount'][$i] ?? 0);
+            $debitamountraw = trim($data['debitamount'][$i] ?? '');
+            $creditamountraw = trim($data['creditamount'][$i] ?? '');
 
             // Skip completely empty entries.
-            if ($sollkontoid === 0 && $sollbetragraw === '' && $habenkontoid === 0 && $habenbetragraw === '') {
+            if ($debitaccountid === 0 && $debitamountraw === '' && $creditaccountid === 0 && $creditamountraw === '') {
                 continue;
             }
             $errors = $this->validate_side(
                 $errors,
                 $i,
-                'sollbetrag',
-                $sollkontoid,
-                $sollbetragraw,
-                'err_sollbetragrequired',
-                'err_sollkontorequired'
+                'debitamount',
+                $debitaccountid,
+                $debitamountraw,
+                'err_debitamountrequired',
+                'err_debitaccountrequired'
             );
             $errors = $this->validate_side(
                 $errors,
                 $i,
-                'habenbetrag',
-                $habenkontoid,
-                $habenbetragraw,
-                'err_habenamountrequired',
-                'err_habenkontorequired'
+                'creditamount',
+                $creditaccountid,
+                $creditamountraw,
+                'err_creditamountrequired',
+                'err_creditaccountrequired'
             );
         }
         return $errors;
@@ -100,7 +100,7 @@ class entry_validator {
      *
      * @param array $errors Errors accumulated so far.
      * @param int|string $index Entry row index.
-     * @param string $amountfield 'sollbetrag' or 'habenbetrag'.
+     * @param string $amountfield 'debitamount' or 'creditamount'.
      * @param int $accountid Account ID from the form (0 = none).
      * @param string $amountraw Raw amount input (already trim()ed).
      * @param string $amountmissingkey Lang key when account is set but amount is empty.
@@ -118,12 +118,12 @@ class entry_validator {
     ): array {
         if ($accountid > 0) {
             if ($amountraw === '') {
-                $errors[$amountfield . '[' . $index . ']'] = get_string($amountmissingkey, 'qtype_buchungssatz');
+                $errors[$amountfield . '[' . $index . ']'] = get_string($amountmissingkey, 'qtype_accounting');
             } else if (floatval($amountraw) < 0) {
-                $errors[$amountfield . '[' . $index . ']'] = get_string('err_negativeamount', 'qtype_buchungssatz');
+                $errors[$amountfield . '[' . $index . ']'] = get_string('err_negativeamount', 'qtype_accounting');
             }
         } else if ($amountraw !== '') {
-            $errors['balancevalidation'] = get_string($accountmissingkey, 'qtype_buchungssatz');
+            $errors['balancevalidation'] = get_string($accountmissingkey, 'qtype_accounting');
         }
         return $errors;
     }
@@ -132,7 +132,7 @@ class entry_validator {
      * Balance check: sum of debit amounts must equal sum of credit amounts (within tolerance).
      *
      * @param array $data Form data.
-     * @param array $allindices Union of indices across sollkonto and habenkonto arrays.
+     * @param array $allindices Union of indices across debitaccount and creditaccount arrays.
      * @param array $errors Errors accumulated so far.
      * @return array Errors after this check.
      */
@@ -142,16 +142,16 @@ class entry_validator {
         $totalcredit = 0.0;
         foreach ($allindices as $i) {
             $totaldebit += amount_helper::parse_amount(
-                trim($data['sollbetrag'][$i] ?? ''),
+                trim($data['debitamount'][$i] ?? ''),
                 $numberformat
             );
             $totalcredit += amount_helper::parse_amount(
-                trim($data['habenbetrag'][$i] ?? ''),
+                trim($data['creditamount'][$i] ?? ''),
                 $numberformat
             );
         }
         if (abs($totaldebit - $totalcredit) > 0.001) {
-            $errors['balancevalidation'] = get_string('err_balancemismatch', 'qtype_buchungssatz');
+            $errors['balancevalidation'] = get_string('err_balancemismatch', 'qtype_accounting');
         }
         return $errors;
     }

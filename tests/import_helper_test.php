@@ -14,17 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
-namespace qtype_buchungssatz;
+namespace qtype_accounting;
 
 /**
  * Unit tests for import_helper class.
  *
  * Tests the name-only CSV format: each line = one account name.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers     \qtype_buchungssatz\import_helper
+ * @covers     \qtype_accounting\import_helper
  */
 class import_helper_test extends \advanced_testcase {
     /**
@@ -120,12 +120,12 @@ class import_helper_test extends \advanced_testcase {
      * Test that a known header line is skipped.
      */
     public function test_parse_csv_skips_header(): void {
-        $data = "Kontoname\n1200 Bank\n8400 Erlöse";
+        $data = "Accountname\n1200 Bank\n8400 Erlöse";
 
         $result = import_helper::parse_csv($data);
 
         $this->assertCount(2, $result['accounts']);
-        $this->assertArrayNotHasKey('Kontoname', $result['accounts']);
+        $this->assertArrayNotHasKey('Accountname', $result['accounts']);
         $this->assertArrayHasKey('1200 Bank', $result['accounts']);
         $this->assertArrayHasKey('8400 Erlöse', $result['accounts']);
     }
@@ -253,7 +253,7 @@ class import_helper_test extends \advanced_testcase {
     /**
      * Test full import workflow with chart_manager.
      *
-     * @covers \qtype_buchungssatz\chart_manager::import_chart_from_csv
+     * @covers \qtype_accounting\chart_manager::import_chart_from_csv
      */
     public function test_chart_import_from_csv(): void {
         $this->resetAfterTest();
@@ -283,7 +283,7 @@ class import_helper_test extends \advanced_testcase {
     /**
      * Test export to text format (one name per line).
      *
-     * @covers \qtype_buchungssatz\chart_manager::export_to_csv
+     * @covers \qtype_accounting\chart_manager::export_to_csv
      */
     public function test_export_to_csv(): void {
         $this->resetAfterTest();
@@ -299,6 +299,6 @@ class import_helper_test extends \advanced_testcase {
         $this->assertStringContainsString('Account 1', $output);
         $this->assertStringContainsString('Account 2', $output);
         // Should NOT contain old-style CSV headers.
-        $this->assertStringNotContainsString('Liste;Kontokl;Kontonr;Name', $output);
+        $this->assertStringNotContainsString('Liste;Accountkl;Accountnr;Name', $output);
     }
 }

@@ -17,7 +17,7 @@
 /**
  * AJAX endpoint to get accounts for charts in a course context.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -26,8 +26,8 @@ define('AJAX_SCRIPT', true);
 
 require_once(__DIR__ . '/../../../../config.php');
 
-use qtype_buchungssatz\chart_manager;
-use qtype_buchungssatz\account_manager;
+use qtype_accounting\chart_manager;
+use qtype_accounting\account_manager;
 
 require_login();
 require_sesskey();
@@ -41,7 +41,7 @@ require_capability('moodle/question:add', $context);
 // Get charts scoped to the course context.
 global $DB;
 $charts = $DB->get_records(
-    'qtype_buchungssatz_charts',
+    'qtype_accounting_charts',
     ['contextid' => $contextid],
     'name ASC'
 );

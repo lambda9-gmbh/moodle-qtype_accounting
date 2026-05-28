@@ -1,4 +1,4 @@
-# moodle-qtype_accounting-BuSa - Moodle Question Type: Buchungssatz
+# moodle-qtype_accounting — Moodle Question Type: Accounting Entry (Buchungssatz)
 
 A Moodle question type plugin for practicing accounting entries (Buchungssätze). Students select accounts from a chart of accounts (Kontenplan) and enter debit/credit amounts.
 
@@ -31,7 +31,7 @@ Developed for **Hochschule Flensburg** by **lambda9**.
 ### 1. Start the Development Environment
 
 ```bash
-./scripts/start.sh
+./dev/scripts/start.sh
 ```
 
 First startup builds the Docker image and may take several minutes.
@@ -58,7 +58,7 @@ After Moodle installation, go to **Site administration > Notifications** to trig
 ### 4. Create a Chart of Accounts (Optional)
 
 - Go to **Site administration > Plugins > Question types > Accounting Entry (Buchungssatz)**
-- Click the link to manage charts, or navigate directly to `/question/type/buchungssatz/manage_charts.php`
+- Click the link to manage charts, or navigate directly to `/question/type/accounting/manage_charts.php`
 - Create a new chart or click "SKR03 Standardkontenplan erstellen" for a default testing chart
 
 ### 5. Create a Test Question
@@ -66,64 +66,69 @@ After Moodle installation, go to **Site administration > Notifications** to trig
 1. Create a quiz in any course
 2. Add a new question of type "Accounting Entry (Buchungssatz)"
 3. Select a chart of accounts
-4. Enter the correct answer entries (Soll/Haben accounts and amounts)
+4. Enter the correct answer entries (Debit/Credit accounts and amounts)
 
 ## Project Structure
 
 ```
-moodle-qtype_accounting/
-├── plugin/                              # Moodle qtype plugin
-│   ├── amd/
-│   │   ├── src/                         # JavaScript ES modules
-│   │   │   ├── question.js              # Student quiz interaction
-│   │   │   └── editform.js              # Edit form functionality
-│   │   └── build/                       # Minified JS (auto-generated)
-│   ├── ajax/                            # AJAX endpoints
-│   │   ├── get_accounts.php             # Fetch accounts for chart
-│   │   └── import_entries.php           # CSV import endpoint
-│   ├── backup/moodle2/                  # Backup/restore handlers
-│   ├── classes/
-│   │   ├── chart_manager.php            # Chart of accounts CRUD
-│   │   └── privacy/provider.php         # GDPR privacy API
-│   ├── db/
-│   │   ├── access.php                   # Capability definitions
-│   │   ├── install.xml                  # Database schema
-│   │   └── upgrade.php                  # Database upgrades
-│   ├── lang/
-│   │   ├── de/qtype_buchungssatz.php    # German strings
-│   │   └── en/qtype_buchungssatz.php    # English strings
-│   ├── pix/
-│   │   └── icon.svg                     # Question type icon
-│   ├── tests/
-│   │   ├── behat/                       # Behat acceptance tests
-│   │   │   ├── attempt_question.feature
-│   │   │   ├── create_question.feature
-│   │   │   └── manage_charts.feature
-│   │   ├── generator/lib.php            # Test data generator
-│   │   ├── helper.php                   # Test helper class
-│   │   ├── question_test.php            # PHPUnit: question grading
-│   │   └── questiontype_test.php        # PHPUnit: save/load
-│   ├── edit_buchungssatz_form.php       # Question edit form
-│   ├── edit_chart.php                   # Chart editing page
-│   ├── manage_charts.php                # Chart management page
-│   ├── question.php                     # Question definition class
-│   ├── questiontype.php                 # Question type class
-│   ├── renderer.php                     # Question renderer
-│   ├── styles.css                       # CSS styles
-│   └── version.php                      # Plugin version
-├── docker/                              # Docker development environment
-│   ├── docker-compose.yml               # Moodle + MariaDB + phpMyAdmin + Selenium
-│   ├── Dockerfile                       # Moodle container
-│   └── config.php                       # Moodle configuration
-├── scripts/                             # Development scripts
-│   ├── start.sh                         # Start Docker environment
-│   ├── stop.sh                          # Stop Docker environment
-│   ├── reset.sh                         # Reset environment
-│   ├── logs.sh                          # View container logs
-│   ├── purge-cache.sh                   # Purge Moodle caches
-│   └── test.sh                          # Run tests
-├── CLAUDE.md                            # AI assistant instructions
-└── README.md                            # This file
+moodle-qtype_accounting/                 # Plugin root (unpacks to question/type/accounting/)
+├── amd/
+│   ├── src/                             # JavaScript ES modules
+│   │   ├── question.js                  # Student quiz interaction
+│   │   ├── editform.js                  # Edit form functionality
+│   │   ├── entry_utils.js               # Shared entry helpers
+│   │   └── mobile_layout.js             # Mobile layout
+│   └── build/                           # Minified JS (auto-generated)
+├── ajax/                                # AJAX endpoints
+│   ├── get_accounts.php                 # Fetch accounts for chart
+│   └── import_entries.php               # CSV import endpoint
+├── backup/moodle2/                      # Backup/restore handlers
+│   ├── backup_qtype_accounting_plugin.class.php
+│   └── restore_qtype_accounting_plugin.class.php
+├── classes/                             # Autoloaded classes (qtype_accounting namespace)
+│   ├── chart_manager.php                # Chart of accounts CRUD
+│   ├── account_manager.php              # Account CRUD
+│   ├── scorer.php                       # Grading logic
+│   └── privacy/provider.php             # GDPR privacy API
+├── db/
+│   ├── access.php                       # Capability definitions
+│   ├── install.xml                      # Database schema
+│   └── upgrade.php                      # Database upgrades
+├── lang/
+│   ├── en/qtype_accounting.php          # English strings (shipped)
+│   └── de/qtype_accounting.php          # German strings (dev only — export-ignored)
+├── pix/
+│   └── icon.svg                         # Question type icon
+├── tests/
+│   ├── behat/                           # Behat acceptance tests
+│   │   ├── attempt_question.feature
+│   │   ├── create_question.feature
+│   │   └── grading.feature
+│   ├── generator/lib.php                # Test data generator
+│   ├── helper.php                       # Test helper class
+│   ├── question_test.php                # PHPUnit: question grading
+│   └── questiontype_test.php            # PHPUnit: save/load
+├── edit_accounting_form.php             # Question edit form (Moodle convention)
+├── edit_chart.php                       # Chart editing page
+├── manage_charts.php                    # Chart management page
+├── question.php                         # Question definition class
+├── questiontype.php                     # Question type class
+├── renderer.php                         # Question renderer
+├── styles.css                           # CSS styles
+├── version.php                          # Plugin version
+├── README.md                            # This file
+├── CHANGES.md                           # Changelog
+├── .phpcs.xml.dist                      # PHP_CodeSniffer ruleset
+├── .phpmd.xml                           # PHPMD ruleset
+├── .gitattributes                       # Marks dev/ as export-ignore for release ZIPs
+└── dev/                                 # Development tooling (NOT shipped in release ZIP)
+    ├── docker-compose.yml               # Moodle + MariaDB + phpMyAdmin + Selenium
+    ├── docker/
+    │   ├── Dockerfile
+    │   └── config.php                   # Moodle configuration
+    ├── init/                            # MariaDB init SQL
+    ├── scripts/                         # build / ci / test / deploy / start / stop / …
+    └── CLAUDE.md                        # AI assistant instructions
 ```
 
 ## Creating Questions
@@ -173,19 +178,19 @@ A Buchungssatz question presents a business transaction scenario. Students must:
 
 ```bash
 # Start environment
-./scripts/start.sh
+./dev/scripts/start.sh
 
 # Stop environment
-./scripts/stop.sh
+./dev/scripts/stop.sh
 
 # View logs
-./scripts/logs.sh
+./dev/scripts/logs.sh
 
 # Purge Moodle caches
-./scripts/purge-cache.sh
+./dev/scripts/purge-cache.sh
 
 # Reset environment (destroys data)
-./scripts/reset.sh
+./dev/scripts/reset.sh
 ```
 
 ### Running Tests
@@ -194,13 +199,13 @@ Tests are automatically initialized on first run:
 
 ```bash
 # Run all tests (PHPUnit + Behat)
-./scripts/test.sh
+./dev/scripts/test.sh
 
 # Run PHPUnit tests only
-./scripts/test.sh phpunit
+./dev/scripts/test.sh phpunit
 
 # Run Behat acceptance tests only
-./scripts/test.sh behat
+./dev/scripts/test.sh behat
 ```
 
 ### Building JavaScript
@@ -208,7 +213,7 @@ Tests are automatically initialized on first run:
 After modifying JavaScript files in `plugin/amd/src/`:
 
 ```bash
-./scripts/build.sh
+./dev/scripts/build.sh
 ```
 
 The script minifies files using [terser](https://terser.org/) if available. Install it with `npm install -g terser` for proper minification.
@@ -223,7 +228,7 @@ $CFG->cachejs = false;
 After PHP changes, purge Moodle caches:
 
 ```bash
-./scripts/purge-cache.sh
+./dev/scripts/purge-cache.sh
 # or
 docker exec accounting-moodle php admin/cli/purge_caches.php
 ```
@@ -232,20 +237,20 @@ docker exec accounting-moodle php admin/cli/purge_caches.php
 
 | Table                         | Purpose                           |
 |-------------------------------|-----------------------------------|
-| `qtype_buchungssatz_charts`   | Chart of accounts definitions     |
-| `qtype_buchungssatz_accounts` | Individual accounts within charts |
-| `qtype_buchungssatz_options`  | Question-specific settings        |
-| `qtype_buchungssatz_entries`  | Correct answer entries            |
+| `qtype_accounting_charts`   | Chart of accounts definitions     |
+| `qtype_accounting_accounts` | Individual accounts within charts |
+| `qtype_accounting_options`  | Question-specific settings        |
+| `qtype_accounting_entries`  | Correct answer entries            |
 
 ## Terminology
 
 | German       | English                           |
 |--------------|-----------------------------------|
 | Buchungssatz | Journal entry / Accounting entry  |
-| Soll         | Debit                             |
-| Haben        | Credit                            |
-| Konto        | Account                           |
-| Betrag       | Amount                            |
+| Debit         | Debit                             |
+| Credit        | Credit                            |
+| Account        | Account                           |
+| Amount       | Amount                            |
 | Kontenrahmen | Chart of accounts                 |
 | SKR03        | Standard German chart of accounts |
 

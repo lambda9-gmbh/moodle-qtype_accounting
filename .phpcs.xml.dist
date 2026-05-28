@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<ruleset name="qtype_buchungssatz">
-    <description>PHP CodeSniffer configuration for qtype_buchungssatz.</description>
+<ruleset name="qtype_accounting">
+    <description>PHP CodeSniffer configuration for qtype_accounting.</description>
 
     <file>.</file>
 

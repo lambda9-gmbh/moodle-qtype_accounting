@@ -14,12 +14,12 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Mobile layout module for the Buchungssatz question type.
+ * Mobile layout module for the Accounting Entry question type.
  *
  * Creates a card-based mobile view with separate debit and credit sections.
  * Uses proxy inputs that sync to hidden real form fields in the table.
  *
- * @module     qtype_buchungssatz/mobile_layout
+ * @module     qtype_accounting/mobile_layout
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -30,10 +30,10 @@ define(['jquery'], function ($) {
     var MOBILE_BREAKPOINT = 768;
 
     // CSS class added to container when mobile layout is active.
-    var ACTIVE_CLASS = 'buchungssatz-mobile-active';
+    var ACTIVE_CLASS = 'accounting-mobile-active';
 
     // Stored row selector from init.
-    var rowSelector = '.buchungssatz-entry-row';
+    var rowSelector = '.accounting-entry-row';
 
     // Whether the question is readonly (review mode).
     var isReadonly = false;
@@ -96,7 +96,7 @@ define(['jquery'], function ($) {
      */
     function buildMobileView(container) {
         // Find or create the mobile view container.
-        var mobileView = container.find('.buchungssatz-mobile-view');
+        var mobileView = container.find('.accounting-mobile-view');
         if (mobileView.length === 0) {
             return;
         }
@@ -105,27 +105,27 @@ define(['jquery'], function ($) {
         mobileView.empty();
 
         // Get translated strings.
-        var debitLabel = M.util.get_string('debitentries', 'qtype_buchungssatz');
-        var creditLabel = M.util.get_string('creditentries', 'qtype_buchungssatz');
-        var addDebitLabel = M.util.get_string('adddebitentry', 'qtype_buchungssatz');
-        var addCreditLabel = M.util.get_string('addcreditentry', 'qtype_buchungssatz');
+        var debitLabel = M.util.get_string('debitentries', 'qtype_accounting');
+        var creditLabel = M.util.get_string('creditentries', 'qtype_accounting');
+        var addDebitLabel = M.util.get_string('adddebitentry', 'qtype_accounting');
+        var addCreditLabel = M.util.get_string('addcreditentry', 'qtype_accounting');
 
         // Create debit section.
-        var debitSection = $('<div class="buchungssatz-mobile-section" data-section="debit">');
+        var debitSection = $('<div class="accounting-mobile-section" data-section="debit">');
         debitSection.append(
-            '<div class="buchungssatz-mobile-section-header buchungssatz-mobile-debit-header">' +
+            '<div class="accounting-mobile-section-header accounting-mobile-debit-header">' +
             '<h4>' + debitLabel + '</h4></div>'
         );
-        var debitCards = $('<div class="buchungssatz-mobile-cards">');
+        var debitCards = $('<div class="accounting-mobile-cards">');
         debitSection.append(debitCards);
 
         // Create credit section.
-        var creditSection = $('<div class="buchungssatz-mobile-section" data-section="credit">');
+        var creditSection = $('<div class="accounting-mobile-section" data-section="credit">');
         creditSection.append(
-            '<div class="buchungssatz-mobile-section-header buchungssatz-mobile-credit-header">' +
+            '<div class="accounting-mobile-section-header accounting-mobile-credit-header">' +
             '<h4>' + creditLabel + '</h4></div>'
         );
-        var creditCards = $('<div class="buchungssatz-mobile-cards">');
+        var creditCards = $('<div class="accounting-mobile-cards">');
         creditSection.append(creditCards);
 
         // Iterate visible entry rows and create cards.
@@ -155,11 +155,11 @@ define(['jquery'], function ($) {
         // Add buttons (only in edit mode).
         if (!isReadonly) {
             debitSection.append(
-                '<button type="button" class="btn btn-secondary buchungssatz-add-debit-entry">' +
+                '<button type="button" class="btn btn-secondary accounting-add-debit-entry">' +
                 addDebitLabel + '</button>'
             );
             creditSection.append(
-                '<button type="button" class="btn btn-secondary buchungssatz-add-credit-entry">' +
+                '<button type="button" class="btn btn-secondary accounting-add-credit-entry">' +
                 addCreditLabel + '</button>'
             );
         }
@@ -178,30 +178,30 @@ define(['jquery'], function ($) {
      * @return {jQuery} The card element.
      */
     function createMobileCard($row, side, entryIndex) {
-        var accountLabel = M.util.get_string('account', 'qtype_buchungssatz');
-        var amountLabel = M.util.get_string('amount', 'qtype_buchungssatz');
+        var accountLabel = M.util.get_string('account', 'qtype_accounting');
+        var amountLabel = M.util.get_string('amount', 'qtype_accounting');
 
         var cells = $row.find('td');
 
         // Determine which cells to read based on side.
         var accountCell, amountCell;
         if (side === 'debit') {
-            accountCell = cells.eq(1); // Soll Account (cell index 1).
-            amountCell = cells.eq(2);  // Soll Amount (cell index 2).
+            accountCell = cells.eq(1); // Debit Account (cell index 1).
+            amountCell = cells.eq(2);  // Debit Amount (cell index 2).
         } else {
-            accountCell = cells.eq(4); // Haben Account (cell index 4).
-            amountCell = cells.eq(5);  // Haben Amount (cell index 5).
+            accountCell = cells.eq(4); // Credit Account (cell index 4).
+            amountCell = cells.eq(5);  // Credit Amount (cell index 5).
         }
 
         // Build the card.
         var sideLabel = (side === 'debit')
-            ? M.util.get_string('soll', 'qtype_buchungssatz')
-            : M.util.get_string('haben', 'qtype_buchungssatz');
+            ? M.util.get_string('debit', 'qtype_accounting')
+            : M.util.get_string('credit', 'qtype_accounting');
 
-        var card = $('<div class="buchungssatz-mobile-card" data-entry="' + entryIndex +
+        var card = $('<div class="accounting-mobile-card" data-entry="' + entryIndex +
             '" data-side="' + side + '" role="group" aria-label="' + sideLabel + ' ' + (parseInt(entryIndex, 10) + 1) + '">');
 
-        var cardBody = $('<div class="buchungssatz-mobile-card-body">');
+        var cardBody = $('<div class="accounting-mobile-card-body">');
 
         if (isReadonly) {
             // Readonly mode: clone display spans.
@@ -217,8 +217,8 @@ define(['jquery'], function ($) {
 
         // Add delete button in edit mode.
         if (!isReadonly) {
-            var deleteClass = (side === 'debit') ? 'buchungssatz-delete-debit' : 'buchungssatz-delete-credit';
-            var actionsDiv = $('<div class="buchungssatz-mobile-card-actions">');
+            var deleteClass = (side === 'debit') ? 'accounting-delete-debit' : 'accounting-delete-credit';
+            var actionsDiv = $('<div class="accounting-mobile-card-actions">');
             actionsDiv.append(
                 '<button type="button" class="btn btn-sm btn-outline-danger ' + deleteClass +
                 '" data-entry="' + entryIndex + '" title="' + sideLabel + '">' +
@@ -238,14 +238,14 @@ define(['jquery'], function ($) {
      * @return {jQuery} The field wrapper element.
      */
     function createReadonlyField(label, cell) {
-        var field = $('<div class="buchungssatz-mobile-field">');
+        var field = $('<div class="accounting-mobile-field">');
         field.append('<label>' + label + '</label>');
 
-        var span = cell.find('.buchungssatz-readonly').first();
+        var span = cell.find('.accounting-readonly').first();
         if (span.length) {
             field.append(span.clone());
         } else {
-            field.append('<span class="buchungssatz-readonly"></span>');
+            field.append('<span class="accounting-readonly"></span>');
         }
 
         return field;
@@ -259,14 +259,14 @@ define(['jquery'], function ($) {
      * @return {jQuery} The field wrapper element.
      */
     function createProxyAccountField(label, cell) {
-        var field = $('<div class="buchungssatz-mobile-field">');
+        var field = $('<div class="accounting-mobile-field">');
         field.append('<label>' + label + '</label>');
 
         var realSelect = cell.find('select').first();
         if (realSelect.length === 0) {
             // Text input fallback (no accounts available).
             var realInput = cell.find('input').first();
-            var proxyInput = $('<input type="text" class="form-control buchungssatz-mobile-proxy">')
+            var proxyInput = $('<input type="text" class="form-control accounting-mobile-proxy">')
                 .val(realInput.val())
                 .attr('placeholder', realInput.attr('placeholder') || '')
                 .attr('aria-label', label);
@@ -283,7 +283,7 @@ define(['jquery'], function ($) {
         var proxySelect = realSelect.clone()
             .removeAttr('name')
             .removeAttr('id')
-            .addClass('buchungssatz-mobile-proxy')
+            .addClass('accounting-mobile-proxy')
             .attr('aria-label', label);
 
         // Remove any Select2 artifacts from the clone.
@@ -311,13 +311,13 @@ define(['jquery'], function ($) {
      * @return {jQuery} The field wrapper element.
      */
     function createProxyAmountField(label, cell) {
-        var field = $('<div class="buchungssatz-mobile-field">');
+        var field = $('<div class="accounting-mobile-field">');
         field.append('<label>' + label + '</label>');
 
         var realInput = cell.find('input').first();
         var placeholder = (numberFormat === 'us') ? '0.00' : '0,00';
 
-        var proxyInput = $('<input type="text" class="form-control buchungssatz-mobile-proxy buchungssatz-amount-input">')
+        var proxyInput = $('<input type="text" class="form-control accounting-mobile-proxy accounting-amount-input">')
             .val(realInput.val())
             .attr('placeholder', placeholder)
             .attr('inputmode', 'decimal')
@@ -330,7 +330,7 @@ define(['jquery'], function ($) {
 
         // Also sync on blur (after formatting by the existing blur handler in question.js).
         proxyInput.on('blur', function () {
-            // The amount formatting handler in question.js fires on .buchungssatz-amount-input blur.
+            // The amount formatting handler in question.js fires on .accounting-amount-input blur.
             // After formatting, sync the formatted value to the real input.
             setTimeout(function () {
                 realInput.val(proxyInput.val());
@@ -348,7 +348,7 @@ define(['jquery'], function ($) {
      */
     function destroyMobileView(container) {
         container.removeClass(ACTIVE_CLASS);
-        var mobileView = container.find('.buchungssatz-mobile-view');
+        var mobileView = container.find('.accounting-mobile-view');
         mobileView.empty().hide();
     }
 

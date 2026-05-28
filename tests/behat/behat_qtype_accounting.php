@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Behat steps for qtype_buchungssatz.
+ * Behat steps for qtype_accounting.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -30,9 +30,9 @@ use Behat\Mink\Exception\ExpectationException;
 /**
  * Behat steps for the Buchungssatz question type.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class behat_qtype_buchungssatz extends behat_base {
+class behat_qtype_accounting extends behat_base {
 }

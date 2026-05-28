@@ -17,7 +17,7 @@
 /**
  * Edit a chart of accounts and its accounts.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -25,17 +25,17 @@
 require_once(__DIR__ . '/../../../config.php');
 require_once($CFG->libdir . '/formslib.php');
 
-use qtype_buchungssatz\chart_manager;
-use qtype_buchungssatz\account_manager;
+use qtype_accounting\chart_manager;
+use qtype_accounting\account_manager;
 
 /**
  * Form for importing accounts into an existing chart of accounts from a CSV file.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class qtype_buchungssatz_chart_account_import_form extends moodleform {
+class qtype_accounting_chart_account_import_form extends moodleform {
     /**
      * Define the form elements.
      */
@@ -50,7 +50,7 @@ class qtype_buchungssatz_chart_account_import_form extends moodleform {
             ['maxbytes' => 2097152, 'accepted_types' => ['.csv', '.txt']]
         );
 
-        $this->add_action_buttons(false, get_string('importchart', 'qtype_buchungssatz'));
+        $this->add_action_buttons(false, get_string('importchart', 'qtype_accounting'));
     }
 }
 
@@ -64,19 +64,19 @@ $returnurl = optional_param('returnurl', '', PARAM_LOCALURL);
 $course = get_course($courseid);
 require_login($course);
 $context = context_course::instance($course->id);
-require_capability('qtype/buchungssatz:managecharts', $context);
+require_capability('qtype/accounting:managecharts', $context);
 
 // Verify chart belongs to this course context.
 $chart = chart_manager::get_chart($chartid);
 if (!$chart || (int)$chart->contextid !== (int)$context->id) {
-    throw new moodle_exception('chartnotfound', 'qtype_buchungssatz');
+    throw new moodle_exception('chartnotfound', 'qtype_accounting');
 }
 
-$manageurl = new moodle_url('/question/type/buchungssatz/manage_charts.php', ['courseid' => $courseid]);
+$manageurl = new moodle_url('/question/type/accounting/manage_charts.php', ['courseid' => $courseid]);
 if ($returnurl !== '') {
     $manageurl->param('returnurl', $returnurl);
 }
-$baseurl = new moodle_url('/question/type/buchungssatz/edit_chart.php', [
+$baseurl = new moodle_url('/question/type/accounting/edit_chart.php', [
     'courseid' => $courseid,
     'chartid' => $chartid,
 ]);
@@ -87,12 +87,12 @@ if ($returnurl !== '') {
 $PAGE->set_url($baseurl);
 $PAGE->set_context($context);
 $PAGE->set_pagelayout('incourse');
-$PAGE->set_title(get_string('editchart', 'qtype_buchungssatz') . ': ' . format_string($chart->name));
+$PAGE->set_title(get_string('editchart', 'qtype_accounting') . ': ' . format_string($chart->name));
 $PAGE->set_heading($course->fullname);
 
 // Breadcrumbs.
 $PAGE->navbar->add(
-    get_string('managecharts', 'qtype_buchungssatz'),
+    get_string('managecharts', 'qtype_accounting'),
     $manageurl
 );
 $PAGE->navbar->add(format_string($chart->name));
@@ -103,7 +103,7 @@ if ($action === 'rename' && confirm_sesskey()) {
     $newname = trim($newname);
     if (!empty($newname)) {
         chart_manager::update_chart($chartid, $newname);
-        redirect($baseurl, get_string('chartrenamed', 'qtype_buchungssatz'), null, \core\output\notification::NOTIFY_SUCCESS);
+        redirect($baseurl, get_string('chartrenamed', 'qtype_accounting'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
     redirect($baseurl);
 }
@@ -123,7 +123,7 @@ if ($action === 'addaccount' && confirm_sesskey()) {
             }
         }
         account_manager::add($chartid, $accountname, $maxsort + 1);
-        redirect($baseurl, get_string('accountadded', 'qtype_buchungssatz'), null, \core\output\notification::NOTIFY_SUCCESS);
+        redirect($baseurl, get_string('accountadded', 'qtype_accounting'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
     redirect($baseurl);
 }
@@ -132,11 +132,11 @@ if ($action === 'addaccount' && confirm_sesskey()) {
 if ($action === 'updateaccount' && $accountid && confirm_sesskey()) {
     global $DB;
     // Verify account belongs to this chart.
-    $account = $DB->get_record('qtype_buchungssatz_accounts', ['id' => $accountid, 'chartid' => $chartid]);
+    $account = $DB->get_record('qtype_accounting_accounts', ['id' => $accountid, 'chartid' => $chartid]);
     if ($account) {
         $accountname = required_param('accountname', PARAM_TEXT);
         account_manager::update($accountid, trim($accountname));
-        redirect($baseurl, get_string('accountupdated', 'qtype_buchungssatz'), null, \core\output\notification::NOTIFY_SUCCESS);
+        redirect($baseurl, get_string('accountupdated', 'qtype_accounting'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
     redirect($baseurl);
 }
@@ -145,7 +145,7 @@ if ($action === 'updateaccount' && $accountid && confirm_sesskey()) {
 if ($action === 'deleteaccount' && $accountid) {
     global $DB;
     // Verify account belongs to this chart.
-    $account = $DB->get_record('qtype_buchungssatz_accounts', ['id' => $accountid, 'chartid' => $chartid]);
+    $account = $DB->get_record('qtype_accounting_accounts', ['id' => $accountid, 'chartid' => $chartid]);
     if (!$account) {
         redirect($baseurl);
     }
@@ -153,13 +153,13 @@ if ($action === 'deleteaccount' && $accountid) {
     if (optional_param('confirm', 0, PARAM_BOOL)) {
         require_sesskey();
         account_manager::delete($accountid);
-        redirect($baseurl, get_string('accountdeleted', 'qtype_buchungssatz'), null, \core\output\notification::NOTIFY_SUCCESS);
+        redirect($baseurl, get_string('accountdeleted', 'qtype_accounting'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
 
     // Show confirmation page.
     echo $OUTPUT->header();
     echo $OUTPUT->confirm(
-        get_string('confirmdeleteaccount', 'qtype_buchungssatz') . ' <strong>'
+        get_string('confirmdeleteaccount', 'qtype_accounting') . ' <strong>'
             . format_string($account->accountname) . '</strong>',
         new moodle_url($baseurl, ['action' => 'deleteaccount', 'accountid' => $accountid, 'confirm' => 1]),
         $baseurl
@@ -169,7 +169,7 @@ if ($action === 'deleteaccount' && $accountid) {
 }
 
 // Handle CSV import to existing chart via Moodle filepicker form.
-$importform = new qtype_buchungssatz_chart_account_import_form($baseurl);
+$importform = new qtype_accounting_chart_account_import_form($baseurl);
 if ($data = $importform->get_data()) {
     global $USER;
 
@@ -184,20 +184,20 @@ if ($data = $importform->get_data()) {
         $result = account_manager::import_into_chart($chartid, $csvcontent);
 
         if ($result['imported'] > 0) {
-            $msg = get_string('imported', 'qtype_buchungssatz', $result['imported']);
+            $msg = get_string('imported', 'qtype_accounting', $result['imported']);
             if (!empty($result['errors'])) {
-                $msg .= ' ' . get_string('witherrors', 'qtype_buchungssatz') . ': ' . implode(', ', $result['errors']);
+                $msg .= ' ' . get_string('witherrors', 'qtype_accounting') . ': ' . implode(', ', $result['errors']);
             }
             redirect($baseurl, $msg, null, \core\output\notification::NOTIFY_SUCCESS);
         } else {
-            $msg = get_string('chartimportfailed', 'qtype_buchungssatz');
+            $msg = get_string('chartimportfailed', 'qtype_accounting');
             if (!empty($result['errors'])) {
                 $msg .= ': ' . implode(', ', $result['errors']);
             }
             redirect($baseurl, $msg, null, \core\output\notification::NOTIFY_ERROR);
         }
     } else {
-        redirect($baseurl, get_string('csvfilerequired', 'qtype_buchungssatz'), null, \core\output\notification::NOTIFY_ERROR);
+        redirect($baseurl, get_string('csvfilerequired', 'qtype_accounting'), null, \core\output\notification::NOTIFY_ERROR);
     }
 }
 
@@ -226,7 +226,7 @@ echo html_writer::start_tag('form', [
     'class' => 'form-inline mb-4',
 ]);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
-echo html_writer::tag('label', get_string('chartname', 'qtype_buchungssatz') . ': ', [
+echo html_writer::tag('label', get_string('chartname', 'qtype_accounting') . ': ', [
     'for' => 'chartname',
     'class' => 'mr-2',
 ]);
@@ -260,7 +260,7 @@ $accounts = account_manager::get_for_chart($chartid, $sortorder);
 
 // Heading row with add-account form on the right.
 echo html_writer::start_div('d-flex justify-content-between align-items-center mb-3');
-echo $OUTPUT->heading(get_string('editaccounts', 'qtype_buchungssatz') . ' (' . count($accounts) . ')', 3, 'mb-0');
+echo $OUTPUT->heading(get_string('editaccounts', 'qtype_accounting') . ' (' . count($accounts) . ')', 3, 'mb-0');
 
 $addurl = new moodle_url($baseurl, ['action' => 'addaccount']);
 echo html_writer::start_tag('form', [
@@ -272,14 +272,14 @@ echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', '
 echo html_writer::empty_tag('input', [
     'type' => 'text',
     'name' => 'accountname',
-    'placeholder' => get_string('accountname', 'qtype_buchungssatz'),
+    'placeholder' => get_string('accountname', 'qtype_accounting'),
     'class' => 'form-control mr-2',
     'size' => 30,
     'required' => 'required',
 ]);
 echo html_writer::empty_tag('input', [
     'type' => 'submit',
-    'value' => get_string('addaccount', 'qtype_buchungssatz'),
+    'value' => get_string('addaccount', 'qtype_accounting'),
     'class' => 'btn btn-success',
 ]);
 echo html_writer::end_tag('form');
@@ -302,7 +302,7 @@ if (!empty($accounts)) {
     $newdir = ($tsort === 'accountname' && $tdir === 'asc') ? 'desc' : 'asc';
     $sorturl = new moodle_url($baseurl, ['tsort' => 'accountname', 'tdir' => $newdir]);
     $arrow = ($tsort === 'accountname') ? ($tdir === 'asc' ? ' ▲' : ' ▼') : '';
-    $accountnameheader = html_writer::link($sorturl, get_string('accountname', 'qtype_buchungssatz') . $arrow);
+    $accountnameheader = html_writer::link($sorturl, get_string('accountname', 'qtype_accounting') . $arrow);
 
     $table = new html_table();
     $table->head = [
@@ -355,25 +355,25 @@ if (!empty($accounts)) {
 
     echo html_writer::table($table);
 } else {
-    echo html_writer::tag('p', get_string('noaccounts', 'qtype_buchungssatz'), ['class' => 'alert alert-info']);
+    echo html_writer::tag('p', get_string('noaccounts', 'qtype_accounting'), ['class' => 'alert alert-info']);
 }
 
 // CSV import section — full-width Moodle filepicker form.
-echo html_writer::start_div('buchungssatz-csv-import mt-4');
-echo $OUTPUT->heading(get_string('importchart', 'qtype_buchungssatz'), 3);
+echo html_writer::start_div('accounting-csv-import mt-4');
+echo $OUTPUT->heading(get_string('importchart', 'qtype_accounting'), 3);
 $importform->display();
 echo html_writer::end_div();
 
 // Bottom action row: Back button on the left, Export button next to it.
 $exporturl = new moodle_url($baseurl, ['action' => 'export', 'sesskey' => sesskey()]);
 echo html_writer::start_div(
-    'buchungssatz-chart-actions d-flex flex-wrap justify-content-center align-items-center mt-4 mb-3',
+    'accounting-chart-actions d-flex flex-wrap justify-content-center align-items-center mt-4 mb-3',
     ['style' => 'gap: 0.5rem;']
 );
-echo html_writer::link($manageurl, '&laquo; ' . get_string('managecharts', 'qtype_buchungssatz'), [
+echo html_writer::link($manageurl, '&laquo; ' . get_string('managecharts', 'qtype_accounting'), [
     'class' => 'btn btn-primary',
 ]);
-echo html_writer::link($exporturl, get_string('exportaccounts', 'qtype_buchungssatz'), [
+echo html_writer::link($exporturl, get_string('exportaccounts', 'qtype_accounting'), [
     'class' => 'btn btn-secondary',
 ]);
 echo html_writer::end_div();

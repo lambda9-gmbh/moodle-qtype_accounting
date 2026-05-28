@@ -25,7 +25,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 CONTAINER="accounting-moodle"
-PLUGIN_PATH="/var/www/html/question/type/buchungssatz"
+PLUGIN_PATH="/var/www/html/question/type/accounting"
 MOODLE_DIR="/var/www/html"
 MPCI="/opt/moodle-plugin-ci/bin/moodle-plugin-ci"
 PHPMD_BIN="/opt/moodle-plugin-ci/vendor/bin/phpmd"

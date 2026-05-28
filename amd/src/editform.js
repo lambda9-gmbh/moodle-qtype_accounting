@@ -14,9 +14,9 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * JavaScript for the Buchungssatz question edit form.
+ * JavaScript for the Accounting Entry question edit form.
  *
- * @module     qtype_buchungssatz/editform
+ * @module     qtype_accounting/editform
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -24,7 +24,7 @@
 import $ from 'jquery';
 import * as Str from 'core/str';
 import Log from 'core/log';
-import * as EntryUtils from 'qtype_buchungssatz/entry_utils';
+import * as EntryUtils from 'qtype_accounting/entry_utils';
 
 // Module-level state.
 let accountsByChart = {};
@@ -38,7 +38,7 @@ let numberFormatSelect = null;
 let initialChartId = '0';
 
 // CSS selector for entry rows in the edit form.
-var ROW_SELECTOR = '.buchungssatz-entry-row';
+var ROW_SELECTOR = '.accounting-entry-row';
 
 /**
  * Initialize the edit form enhancements.
@@ -46,7 +46,7 @@ var ROW_SELECTOR = '.buchungssatz-entry-row';
  */
 function init() {
     // Read configuration from script tag (preferred) or data attribute (fallback).
-    const dataElement = document.getElementById('buchungssatz-editform-data');
+    const dataElement = document.getElementById('accounting-editform-data');
     let config = {};
     if (dataElement) {
         try {
@@ -87,13 +87,13 @@ function init() {
     // Setup event handlers.
     setupChartChangeHandler();
     setupNumberFormatChangeHandler();
-    setupSollkontoChangeHandler();
+    setupDebitaccountChangeHandler();
     setupAddEntryHandler();
     setupDeleteEntryHandler();
     setupFormSubmitHandler();
     // Don't rebuild dropdowns on init - PHP already populated them correctly.
-    // Only update sollbetrag states (disable if no debit account selected).
-    updateAllSollbetragStates();
+    // Only update debitamount states (disable if no debit account selected).
+    updateAllDebitamountStates();
 
     // Setup all-or-nothing grading handler (must run before updateAllWeightStates).
     setupAllOrNothingHandler();
@@ -155,7 +155,7 @@ function setupNumberFormatChangeHandler() {
             var placeholder = (fmt === 'us') ? '0.00' : '0,00';
 
             // Reformat all amount fields.
-            var amountFields = document.querySelectorAll('.buchungssatz-sollbetrag, .buchungssatz-habenbetrag');
+            var amountFields = document.querySelectorAll('.accounting-debitamount, .accounting-creditamount');
             amountFields.forEach(function (field) {
                 // Update placeholder.
                 field.placeholder = placeholder;
@@ -173,28 +173,28 @@ function setupNumberFormatChangeHandler() {
 }
 
 /**
- * Setup event delegation for sollkonto and habenkonto changes.
+ * Setup event delegation for debitaccount and creditaccount changes.
  */
-function setupSollkontoChangeHandler() {
+function setupDebitaccountChangeHandler() {
     document.addEventListener('change', function (e) {
         // Guard against events where target doesn't have classList.
         if (!e.target || !e.target.classList) {
             return;
         }
-        if (e.target.classList.contains('buchungssatz-sollkonto')) {
+        if (e.target.classList.contains('accounting-debitaccount')) {
             const index = e.target.getAttribute('data-index');
-            updateSollbetragState(index);
+            updateDebitamountState(index);
             updateWeightStates(index);
             syncDisplayToHidden(index);
         }
-        // Handle habenkonto changes to update weight states.
-        if (e.target.classList.contains('buchungssatz-habenkonto')) {
+        // Handle creditaccount changes to update weight states.
+        if (e.target.classList.contains('accounting-creditaccount')) {
             const index = e.target.getAttribute('data-index');
             updateWeightStates(index);
             syncDisplayToHidden(index);
         }
         // Also sync weight fields on change.
-        if (e.target.classList.contains('buchungssatz-weight')) {
+        if (e.target.classList.contains('accounting-weight')) {
             const index = e.target.getAttribute('data-index');
             syncDisplayToHidden(index);
         }
@@ -206,9 +206,9 @@ function setupSollkontoChangeHandler() {
         if (!e.target || !e.target.classList) {
             return;
         }
-        if (e.target.classList.contains('buchungssatz-sollbetrag') ||
-            e.target.classList.contains('buchungssatz-habenbetrag') ||
-            e.target.classList.contains('buchungssatz-weight')) {
+        if (e.target.classList.contains('accounting-debitamount') ||
+            e.target.classList.contains('accounting-creditamount') ||
+            e.target.classList.contains('accounting-weight')) {
             const index = e.target.getAttribute('data-index');
             syncDisplayToHidden(index);
         }
@@ -220,8 +220,8 @@ function setupSollkontoChangeHandler() {
         if (!e.target || !e.target.classList) {
             return;
         }
-        if (e.target.classList.contains('buchungssatz-sollbetrag') ||
-            e.target.classList.contains('buchungssatz-habenbetrag')) {
+        if (e.target.classList.contains('accounting-debitamount') ||
+            e.target.classList.contains('accounting-creditamount')) {
             // Format the display value using the selected number format.
             const fmt = getNumberFormat();
             const formatted = EntryUtils.formatNumber(e.target.value, fmt, 2);
@@ -237,8 +237,8 @@ function setupSollkontoChangeHandler() {
  * Setup add entry button handlers.
  */
 function setupAddEntryHandler() {
-    const addDebitButton = document.getElementById('buchungssatz-add-debit-entry');
-    const addCreditButton = document.getElementById('buchungssatz-add-credit-entry');
+    const addDebitButton = document.getElementById('accounting-add-debit-entry');
+    const addCreditButton = document.getElementById('accounting-add-credit-entry');
 
     if (addDebitButton) {
         addDebitButton.addEventListener('click', function (e) {
@@ -261,7 +261,7 @@ function setupAddEntryHandler() {
 function setupDeleteEntryHandler() {
     document.addEventListener('click', function (e) {
         // Handle delete debit button.
-        const deleteDebitBtn = e.target.closest('.buchungssatz-delete-debit');
+        const deleteDebitBtn = e.target.closest('.accounting-delete-debit');
         if (deleteDebitBtn) {
             e.preventDefault();
             const index = deleteDebitBtn.getAttribute('data-index');
@@ -270,7 +270,7 @@ function setupDeleteEntryHandler() {
         }
 
         // Handle delete credit button.
-        const deleteCreditBtn = e.target.closest('.buchungssatz-delete-credit');
+        const deleteCreditBtn = e.target.closest('.accounting-delete-credit');
         if (deleteCreditBtn) {
             e.preventDefault();
             const index = deleteCreditBtn.getAttribute('data-index');
@@ -288,7 +288,7 @@ function setupDeleteEntryHandler() {
  */
 function deleteEntrySide(index, side) {
     const entryRow = document.querySelector(ROW_SELECTOR + '[data-entry-index="' + index + '"]');
-    const weightRow = document.querySelector('.buchungssatz-weight-row[data-entry-index="' + index + '"]');
+    const weightRow = document.querySelector('.accounting-weight-row[data-entry-index="' + index + '"]');
 
     if (!entryRow) {
         return;
@@ -327,22 +327,22 @@ function deleteEntrySide(index, side) {
  */
 function clearHiddenFieldsForSide(index, side) {
     if (side === 'debit') {
-        var sollkontoHidden = getFieldByName('sollkonto[' + index + ']');
-        var sollbetragHidden = getFieldByName('sollbetrag[' + index + ']');
-        if (sollkontoHidden) {
-            sollkontoHidden.value = '';
+        var debitaccountHidden = getFieldByName('debitaccount[' + index + ']');
+        var debitamountHidden = getFieldByName('debitamount[' + index + ']');
+        if (debitaccountHidden) {
+            debitaccountHidden.value = '';
         }
-        if (sollbetragHidden) {
-            sollbetragHidden.value = '';
+        if (debitamountHidden) {
+            debitamountHidden.value = '';
         }
     } else if (side === 'credit') {
-        var habenkontoHidden = getFieldByName('habenkonto[' + index + ']');
-        var habenbetragHidden = getFieldByName('habenbetrag[' + index + ']');
-        if (habenkontoHidden) {
-            habenkontoHidden.value = '';
+        var creditaccountHidden = getFieldByName('creditaccount[' + index + ']');
+        var creditamountHidden = getFieldByName('creditamount[' + index + ']');
+        if (creditaccountHidden) {
+            creditaccountHidden.value = '';
         }
-        if (habenbetragHidden) {
-            habenbetragHidden.value = '';
+        if (creditamountHidden) {
+            creditamountHidden.value = '';
         }
     }
 }
@@ -387,23 +387,23 @@ function validateAccounts() {
         }
 
         var entryType = row.getAttribute('data-entry-type') || 'both';
-        var sollKonto = row.querySelector('.buchungssatz-sollkonto');
-        var habenKonto = row.querySelector('.buchungssatz-habenkonto');
+        var debitAccount = row.querySelector('.accounting-debitaccount');
+        var creditAccount = row.querySelector('.accounting-creditaccount');
 
         // Debit side is visible for 'debit' and 'both' entries.
         if (entryType === 'debit' || entryType === 'both') {
-            var hasSollKonto = sollKonto && sollKonto.value && sollKonto.value !== '';
-            if (!hasSollKonto) {
-                showAccountError(sollKonto, 'err_sollkontorequired');
+            var hasDebitAccount = debitAccount && debitAccount.value && debitAccount.value !== '';
+            if (!hasDebitAccount) {
+                showAccountError(debitAccount, 'err_debitaccountrequired');
                 errors.push(index);
             }
         }
 
         // Credit side is visible for 'credit' and 'both' entries.
         if (entryType === 'credit' || entryType === 'both') {
-            var hasHabenKonto = habenKonto && habenKonto.value && habenKonto.value !== '';
-            if (!hasHabenKonto) {
-                showAccountError(habenKonto, 'err_habenkontorequired');
+            var hasCreditAccount = creditAccount && creditAccount.value && creditAccount.value !== '';
+            if (!hasCreditAccount) {
+                showAccountError(creditAccount, 'err_creditaccountrequired');
                 errors.push(index);
             }
         }
@@ -420,9 +420,9 @@ function validateAccounts() {
  */
 function showAccountError(field, stringKey) {
     var errorSpan = document.createElement('span');
-    errorSpan.className = 'buchungssatz-account-error text-danger d-block mt-1';
+    errorSpan.className = 'accounting-account-error text-danger d-block mt-1';
     errorSpan.style.fontSize = '0.875rem';
-    errorSpan.textContent = M.util.get_string(stringKey, 'qtype_buchungssatz');
+    errorSpan.textContent = M.util.get_string(stringKey, 'qtype_accounting');
     field.parentNode.appendChild(errorSpan);
 }
 
@@ -430,7 +430,7 @@ function showAccountError(field, stringKey) {
  * Clear all inline account validation errors.
  */
 function clearAccountErrors() {
-    var existing = document.querySelectorAll('.buchungssatz-account-error');
+    var existing = document.querySelectorAll('.accounting-account-error');
     existing.forEach(function (el) {
         el.remove();
     });
@@ -455,19 +455,19 @@ function validateBalance() {
             return;
         }
 
-        var sollField = row.querySelector('.buchungssatz-sollbetrag');
-        var habenField = row.querySelector('.buchungssatz-habenbetrag');
+        var debitField = row.querySelector('.accounting-debitamount');
+        var creditField = row.querySelector('.accounting-creditamount');
 
-        if (sollField && sollField.value) {
-            var parsedSoll = parseFloat(EntryUtils.parseNumber(sollField.value));
-            if (!isNaN(parsedSoll)) {
-                totalDebit += parsedSoll;
+        if (debitField && debitField.value) {
+            var parsedDebit = parseFloat(EntryUtils.parseNumber(debitField.value));
+            if (!isNaN(parsedDebit)) {
+                totalDebit += parsedDebit;
             }
         }
-        if (habenField && habenField.value) {
-            var parsedHaben = parseFloat(EntryUtils.parseNumber(habenField.value));
-            if (!isNaN(parsedHaben)) {
-                totalCredit += parsedHaben;
+        if (creditField && creditField.value) {
+            var parsedCredit = parseFloat(EntryUtils.parseNumber(creditField.value));
+            if (!isNaN(parsedCredit)) {
+                totalCredit += parsedCredit;
             }
         }
     });
@@ -486,15 +486,15 @@ function validateBalance() {
  */
 function showBalanceError() {
     clearBalanceError();
-    var table = document.querySelector('.buchungssatz-edit-table');
+    var table = document.querySelector('.accounting-edit-table');
     if (!table) {
         return;
     }
     var errorDiv = document.createElement('div');
-    errorDiv.id = 'buchungssatz-balance-error';
+    errorDiv.id = 'accounting-balance-error';
     errorDiv.className = 'alert alert-danger mt-2';
     errorDiv.setAttribute('role', 'alert');
-    errorDiv.textContent = M.util.get_string('err_balancemismatch', 'qtype_buchungssatz');
+    errorDiv.textContent = M.util.get_string('err_balancemismatch', 'qtype_accounting');
     table.parentNode.insertBefore(errorDiv, table.nextSibling);
 }
 
@@ -502,7 +502,7 @@ function showBalanceError() {
  * Clear the balance validation error if present.
  */
 function clearBalanceError() {
-    var existing = document.getElementById('buchungssatz-balance-error');
+    var existing = document.getElementById('accounting-balance-error');
     if (existing) {
         existing.remove();
     }
@@ -524,22 +524,22 @@ function addEntryRow(entryType) {
 
         // Find the associated weight row.
         const index = incompleteRow.getAttribute('data-entry-index');
-        const weightRow = document.querySelector('.buchungssatz-weight-row[data-entry-index="' + index + '"]');
+        const weightRow = document.querySelector('.accounting-weight-row[data-entry-index="' + index + '"]');
 
         // Remove hidden-cell classes from both rows.
         EntryUtils.applyEntryTypeVisibility(incompleteRow, 'both');
         EntryUtils.applyWeightRowVisibility(weightRow, 'both');
 
         // Update states for the completed row.
-        updateSollbetragState(index);
+        updateDebitamountState(index);
         updateWeightStates(index);
         EntryUtils.updatePerLabels(document, ROW_SELECTOR);
         return;
     }
 
     // No incomplete row to complete, so add a new row.
-    const template = document.getElementById('buchungssatz-entry-template');
-    const tbody = document.getElementById('buchungssatz-entries-body');
+    const template = document.getElementById('accounting-entry-template');
+    const tbody = document.getElementById('accounting-entries-body');
 
     if (!template || !tbody) {
         Log.error('Template or tbody not found', {template: template, tbody: tbody});
@@ -563,7 +563,7 @@ function addEntryRow(entryType) {
 
     // Set the entry type on the entry row.
     const entryRow = clone.querySelector(ROW_SELECTOR);
-    const weightRow = clone.querySelector('.buchungssatz-weight-row');
+    const weightRow = clone.querySelector('.accounting-weight-row');
     if (entryRow) {
         entryRow.setAttribute('data-entry-type', entryType);
     }
@@ -577,7 +577,7 @@ function addEntryRow(entryType) {
 
     // Update dropdowns for the new row (force rebuild to populate new row's selects).
     updateAccountDropdowns(true);
-    updateSollbetragState(nextEntryIndex);
+    updateDebitamountState(nextEntryIndex);
     updateWeightStates(nextEntryIndex);
 
     // Initialize hidden fields for the new index.
@@ -621,7 +621,7 @@ function deleteEntryRow(index) {
     }
 
     const entryRow = document.querySelector(ROW_SELECTOR + '[data-entry-index="' + index + '"]');
-    const weightRow = document.querySelector('.buchungssatz-weight-row[data-entry-index="' + index + '"]');
+    const weightRow = document.querySelector('.accounting-weight-row[data-entry-index="' + index + '"]');
 
     if (entryRow) {
         entryRow.remove();
@@ -646,7 +646,7 @@ function deleteEntryRow(index) {
  */
 function updateDeleteButtonStates() {
     const allEntryRows = document.querySelectorAll(ROW_SELECTOR);
-    const deleteButtons = document.querySelectorAll('.buchungssatz-delete-debit, .buchungssatz-delete-credit');
+    const deleteButtons = document.querySelectorAll('.accounting-delete-debit, .accounting-delete-credit');
     const isOnlyOne = allEntryRows.length <= 1;
 
     deleteButtons.forEach(function (button) {
@@ -670,8 +670,8 @@ function updateDeleteButtonStates() {
  */
 function clearHiddenFieldsForIndex(index) {
     // Clear all Moodle hidden fields.
-    const allFields = ['sollkonto', 'sollbetrag', 'habenkonto', 'habenbetrag',
-                    'weight_sollkonto', 'weight_sollbetrag', 'weight_habenkonto', 'weight_habenbetrag'];
+    const allFields = ['debitaccount', 'debitamount', 'creditaccount', 'creditamount',
+                    'weight_debitaccount', 'weight_debitamount', 'weight_creditaccount', 'weight_creditamount'];
     allFields.forEach(function (field) {
         const hiddenField = getFieldByName(field + '[' + index + ']');
         if (hiddenField) {
@@ -683,7 +683,7 @@ function clearHiddenFieldsForIndex(index) {
 /**
  * Get a form field by name, handling array-style names properly.
  *
- * @param {string} name The field name (e.g., "sollbetrag[0]").
+ * @param {string} name The field name (e.g., "debitamount[0]").
  * @return {Element|null} The form field element or null.
  */
 function getFieldByName(name) {
@@ -711,35 +711,35 @@ function getNumberFormat() {
  */
 function syncDisplayToHidden(index) {
     // Sync account selects.
-    const sollkontoDisplay = document.querySelector('.buchungssatz-sollkonto[data-index="' + index + '"]');
-    const sollkontoHidden = getFieldByName('sollkonto[' + index + ']');
-    if (sollkontoDisplay && sollkontoHidden) {
-        sollkontoHidden.value = sollkontoDisplay.value;
+    const debitaccountDisplay = document.querySelector('.accounting-debitaccount[data-index="' + index + '"]');
+    const debitaccountHidden = getFieldByName('debitaccount[' + index + ']');
+    if (debitaccountDisplay && debitaccountHidden) {
+        debitaccountHidden.value = debitaccountDisplay.value;
     }
 
-    const habenkontoDisplay = document.querySelector('.buchungssatz-habenkonto[data-index="' + index + '"]');
-    const habenkontoHidden = getFieldByName('habenkonto[' + index + ']');
-    if (habenkontoDisplay && habenkontoHidden) {
-        habenkontoHidden.value = habenkontoDisplay.value;
+    const creditaccountDisplay = document.querySelector('.accounting-creditaccount[data-index="' + index + '"]');
+    const creditaccountHidden = getFieldByName('creditaccount[' + index + ']');
+    if (creditaccountDisplay && creditaccountHidden) {
+        creditaccountHidden.value = creditaccountDisplay.value;
     }
 
     // Sync amount fields - parse German format to plain numbers for hidden fields.
-    const sollbetragDisplay = document.querySelector('.buchungssatz-sollbetrag[data-index="' + index + '"]');
-    const sollbetragHidden = getFieldByName('sollbetrag[' + index + ']');
-    if (sollbetragDisplay && sollbetragHidden) {
-        sollbetragHidden.value = EntryUtils.parseNumber(sollbetragDisplay.value);
+    const debitamountDisplay = document.querySelector('.accounting-debitamount[data-index="' + index + '"]');
+    const debitamountHidden = getFieldByName('debitamount[' + index + ']');
+    if (debitamountDisplay && debitamountHidden) {
+        debitamountHidden.value = EntryUtils.parseNumber(debitamountDisplay.value);
     }
 
-    const habenbetragDisplay = document.querySelector('.buchungssatz-habenbetrag[data-index="' + index + '"]');
-    const habenbetragHidden = getFieldByName('habenbetrag[' + index + ']');
-    if (habenbetragDisplay && habenbetragHidden) {
-        habenbetragHidden.value = EntryUtils.parseNumber(habenbetragDisplay.value);
+    const creditamountDisplay = document.querySelector('.accounting-creditamount[data-index="' + index + '"]');
+    const creditamountHidden = getFieldByName('creditamount[' + index + ']');
+    if (creditamountDisplay && creditamountHidden) {
+        creditamountHidden.value = EntryUtils.parseNumber(creditamountDisplay.value);
     }
 
     // Sync weight fields.
-    const weightFields = ['sollkonto', 'sollbetrag', 'habenkonto', 'habenbetrag'];
+    const weightFields = ['debitaccount', 'debitamount', 'creditaccount', 'creditamount'];
     weightFields.forEach(function (field) {
-        const displayField = document.querySelector('.buchungssatz-weight[data-index="' + index + '"][data-field="' + field + '"]');
+        const displayField = document.querySelector('.accounting-weight[data-index="' + index + '"][data-field="' + field + '"]');
         const hiddenField = getFieldByName('weight_' + field + '[' + index + ']');
         if (displayField && hiddenField) {
             hiddenField.value = displayField.value;
@@ -775,11 +775,11 @@ function updateAccountDropdowns(forceRebuild) {
     }
     lastChartId = chartId;
 
-    // Find all sollkonto and habenkonto selects (display fields).
-    const sollSelects = document.querySelectorAll('select.buchungssatz-sollkonto');
-    const habenSelects = document.querySelectorAll('select.buchungssatz-habenkonto');
+    // Find all debitaccount and creditaccount selects (display fields).
+    const debitSelects = document.querySelectorAll('select.accounting-debitaccount');
+    const creditSelects = document.querySelectorAll('select.accounting-creditaccount');
 
-    sollSelects.forEach(function (select) {
+    debitSelects.forEach(function (select) {
         const currentValue = select.value;
         // Keep first option (placeholder).
         while (select.options.length > 1) {
@@ -796,7 +796,7 @@ function updateAccountDropdowns(forceRebuild) {
         }
     });
 
-    habenSelects.forEach(function (select) {
+    creditSelects.forEach(function (select) {
         const currentValue = select.value;
         while (select.options.length > 1) {
             select.remove(1);
@@ -812,44 +812,44 @@ function updateAccountDropdowns(forceRebuild) {
         }
     });
 
-    updateAllSollbetragStates();
+    updateAllDebitamountStates();
     updateAllWeightStates();
 }
 
 /**
- * Update the disabled state of a Soll (debit) amount field.
+ * Update the disabled state of a Debit (debit) amount field.
  *
  * @param {string|number} index The entry index.
  */
-function updateSollbetragState(index) {
-    const sollSelect = document.querySelector('select.buchungssatz-sollkonto[data-index="' + index + '"]');
-    const sollBetrag = document.querySelector('input.buchungssatz-sollbetrag[data-index="' + index + '"]');
+function updateDebitamountState(index) {
+    const debitSelect = document.querySelector('select.accounting-debitaccount[data-index="' + index + '"]');
+    const debitAmount = document.querySelector('input.accounting-debitamount[data-index="' + index + '"]');
 
-    if (sollSelect && sollBetrag) {
-        const hasAccount = sollSelect.value !== '' && sollSelect.value !== null;
-        sollBetrag.disabled = !hasAccount;
-        sollBetrag.style.backgroundColor = hasAccount ? '' : '#e9ecef';
+    if (debitSelect && debitAmount) {
+        const hasAccount = debitSelect.value !== '' && debitSelect.value !== null;
+        debitAmount.disabled = !hasAccount;
+        debitAmount.style.backgroundColor = hasAccount ? '' : '#e9ecef';
 
         if (hasAccount) {
-            sollBetrag.title = '';
+            debitAmount.title = '';
         } else {
-            Str.get_string('selectDebitAccountFirst', 'qtype_buchungssatz').then(function (str) {
-                sollBetrag.title = str;
+            Str.get_string('selectDebitAccountFirst', 'qtype_accounting').then(function (str) {
+                debitAmount.title = str;
             });
-            sollBetrag.value = '';
+            debitAmount.value = '';
         }
     }
 }
 
 /**
- * Update all Soll (debit) amount field states.
+ * Update all Debit (debit) amount field states.
  */
-function updateAllSollbetragStates() {
+function updateAllDebitamountStates() {
     const entryRows = document.querySelectorAll(ROW_SELECTOR);
     entryRows.forEach(function (row) {
         const index = row.getAttribute('data-entry-index');
         if (index !== '__INDEX__') {
-            updateSollbetragState(index);
+            updateDebitamountState(index);
         }
     });
 }
@@ -876,51 +876,51 @@ function setupAllOrNothingHandler() {
 
 /**
  * Update the disabled state of weight selectors based on account selection.
- * Disables sollkonto/sollbetrag weights when no debit account is selected.
- * Disables habenkonto/habenbetrag weights when no credit account is selected.
+ * Disables debitaccount/debitamount weights when no debit account is selected.
+ * Disables creditaccount/creditamount weights when no credit account is selected.
  * Also disables all weights when all-or-nothing grading is enabled.
  *
  * @param {string|number} index The entry index.
  */
 function updateWeightStates(index) {
-    const sollSelect = document.querySelector('select.buchungssatz-sollkonto[data-index="' + index + '"]');
-    const habenSelect = document.querySelector('select.buchungssatz-habenkonto[data-index="' + index + '"]');
+    const debitSelect = document.querySelector('select.accounting-debitaccount[data-index="' + index + '"]');
+    const creditSelect = document.querySelector('select.accounting-creditaccount[data-index="' + index + '"]');
 
-    const hasSollAccount = sollSelect && sollSelect.value !== '' && sollSelect.value !== null;
-    const hasHabenAccount = habenSelect && habenSelect.value !== '' && habenSelect.value !== null;
+    const hasDebitAccount = debitSelect && debitSelect.value !== '' && debitSelect.value !== null;
+    const hasCreditAccount = creditSelect && creditSelect.value !== '' && creditSelect.value !== null;
 
     // When all-or-nothing is enabled, all weights are disabled regardless of account state.
-    var sollEnabled = hasSollAccount && !allOrNothingEnabled;
-    var habenEnabled = hasHabenAccount && !allOrNothingEnabled;
+    var debitEnabled = hasDebitAccount && !allOrNothingEnabled;
+    var creditEnabled = hasCreditAccount && !allOrNothingEnabled;
 
-    // Update soll (debit) weight fields.
-    const weightSollkonto = document.querySelector('.buchungssatz-weight[data-index="' + index + '"][data-field="sollkonto"]');
-    const weightSollbetrag = document.querySelector('.buchungssatz-weight[data-index="' + index + '"][data-field="sollbetrag"]');
+    // Update debit (debit) weight fields.
+    const weightDebitaccount = document.querySelector('.accounting-weight[data-index="' + index + '"][data-field="debitaccount"]');
+    const weightDebitamount = document.querySelector('.accounting-weight[data-index="' + index + '"][data-field="debitamount"]');
 
-    if (weightSollkonto) {
-        weightSollkonto.disabled = !sollEnabled;
-        weightSollkonto.style.opacity = sollEnabled ? '' : '0.5';
-        weightSollkonto.style.cursor = sollEnabled ? '' : 'not-allowed';
+    if (weightDebitaccount) {
+        weightDebitaccount.disabled = !debitEnabled;
+        weightDebitaccount.style.opacity = debitEnabled ? '' : '0.5';
+        weightDebitaccount.style.cursor = debitEnabled ? '' : 'not-allowed';
     }
-    if (weightSollbetrag) {
-        weightSollbetrag.disabled = !sollEnabled;
-        weightSollbetrag.style.opacity = sollEnabled ? '' : '0.5';
-        weightSollbetrag.style.cursor = sollEnabled ? '' : 'not-allowed';
+    if (weightDebitamount) {
+        weightDebitamount.disabled = !debitEnabled;
+        weightDebitamount.style.opacity = debitEnabled ? '' : '0.5';
+        weightDebitamount.style.cursor = debitEnabled ? '' : 'not-allowed';
     }
 
-    // Update haben (credit) weight fields.
-    const weightHabenkonto = document.querySelector('.buchungssatz-weight[data-index="' + index + '"][data-field="habenkonto"]');
-    const weightHabenbetrag = document.querySelector('.buchungssatz-weight[data-index="' + index + '"][data-field="habenbetrag"]');
+    // Update credit (credit) weight fields.
+    const weightCreditaccount = document.querySelector('.accounting-weight[data-index="' + index + '"][data-field="creditaccount"]');
+    const weightCreditamount = document.querySelector('.accounting-weight[data-index="' + index + '"][data-field="creditamount"]');
 
-    if (weightHabenkonto) {
-        weightHabenkonto.disabled = !habenEnabled;
-        weightHabenkonto.style.opacity = habenEnabled ? '' : '0.5';
-        weightHabenkonto.style.cursor = habenEnabled ? '' : 'not-allowed';
+    if (weightCreditaccount) {
+        weightCreditaccount.disabled = !creditEnabled;
+        weightCreditaccount.style.opacity = creditEnabled ? '' : '0.5';
+        weightCreditaccount.style.cursor = creditEnabled ? '' : 'not-allowed';
     }
-    if (weightHabenbetrag) {
-        weightHabenbetrag.disabled = !habenEnabled;
-        weightHabenbetrag.style.opacity = habenEnabled ? '' : '0.5';
-        weightHabenbetrag.style.cursor = habenEnabled ? '' : 'not-allowed';
+    if (weightCreditamount) {
+        weightCreditamount.disabled = !creditEnabled;
+        weightCreditamount.style.opacity = creditEnabled ? '' : '0.5';
+        weightCreditamount.style.cursor = creditEnabled ? '' : 'not-allowed';
     }
 }
 

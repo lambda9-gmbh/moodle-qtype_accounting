@@ -17,7 +17,7 @@
 /**
  * Buchungssatz question type data generator.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -25,11 +25,11 @@
 /**
  * Buchungssatz question type data generator.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class qtype_buchungssatz_generator extends component_generator_base {
+class qtype_accounting_generator extends component_generator_base {
     /**
      * Generate a default data set for a Buchungssatz question.
      *
@@ -40,10 +40,10 @@ class qtype_buchungssatz_generator extends component_generator_base {
             'chartofaccountsid' => 0,
             'allowmultipleentries' => 0,
             'maxentries' => 5,
-            'sollkonto' => ['1200 Bank'],
-            'sollbetrag' => [1000.00],
-            'habenkonto' => ['8400 Erlöse 19% USt'],
-            'habenbetrag' => [1000.00],
+            'debitaccount' => ['1200 Bank'],
+            'debitamount' => [1000.00],
+            'creditaccount' => ['8400 Erlöse 19% USt'],
+            'creditamount' => [1000.00],
             'grade' => [100],
             'explanation' => [''],
         ];
@@ -68,10 +68,10 @@ class qtype_buchungssatz_generator extends component_generator_base {
 
         // Parse entries from data.
         // Entries can be specified as comma-separated values in single fields.
-        $questiondata->sollkonto = $this->parse_array_field($data, 'sollkonto');
-        $questiondata->sollbetrag = $this->parse_array_field($data, 'sollbetrag', true);
-        $questiondata->habenkonto = $this->parse_array_field($data, 'habenkonto');
-        $questiondata->habenbetrag = $this->parse_array_field($data, 'habenbetrag', true);
+        $questiondata->debitaccount = $this->parse_array_field($data, 'debitaccount');
+        $questiondata->debitamount = $this->parse_array_field($data, 'debitamount', true);
+        $questiondata->creditaccount = $this->parse_array_field($data, 'creditaccount');
+        $questiondata->creditamount = $this->parse_array_field($data, 'creditamount', true);
         $questiondata->grade = $this->parse_array_field($data, 'grade', true);
         $questiondata->explanation = $this->parse_array_field($data, 'explanation');
 

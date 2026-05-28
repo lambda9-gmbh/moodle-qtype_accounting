@@ -19,7 +19,7 @@
  *
  * Each line = one account name.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -28,9 +28,9 @@ define('AJAX_SCRIPT', true);
 
 require_once(__DIR__ . '/../../../../config.php');
 
-use qtype_buchungssatz\chart_manager;
-use qtype_buchungssatz\account_manager;
-use qtype_buchungssatz\import_helper;
+use qtype_accounting\chart_manager;
+use qtype_accounting\account_manager;
+use qtype_accounting\import_helper;
 
 require_login();
 require_sesskey();
@@ -71,7 +71,7 @@ function import_chart_from_csv(string $csvdata, int $contextid): array {
 
     if ($chartid) {
         // Use existing chart.
-        $chart = $DB->get_record('qtype_buchungssatz_charts', ['id' => $chartid]);
+        $chart = $DB->get_record('qtype_accounting_charts', ['id' => $chartid]);
         $chartname = $chart->name;
     } else {
         // Create a new chart of accounts in the course context.
@@ -88,7 +88,7 @@ function import_chart_from_csv(string $csvdata, int $contextid): array {
     // Get all charts and accounts for this context for dropdown refresh.
     $allaccounts = [];
     $charts = $DB->get_records(
-        'qtype_buchungssatz_charts',
+        'qtype_accounting_charts',
         ['contextid' => $contextid],
         'name ASC'
     );

@@ -17,7 +17,7 @@
 /**
  * Defines the editing form for the Buchungssatz question type.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -25,11 +25,11 @@
 /**
  * Buchungssatz question editing form definition.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class qtype_buchungssatz_edit_form extends question_edit_form {
+class qtype_accounting_edit_form extends question_edit_form {
     /**
      * Add question-type specific form fields.
      *
@@ -59,28 +59,28 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $mform->addElement(
             'text',
             'accountsindropdown',
-            get_string('accountsindropdown', 'qtype_buchungssatz'),
+            get_string('accountsindropdown', 'qtype_accounting'),
             ['size' => 5]
         );
         $mform->setType('accountsindropdown', PARAM_INT);
         $mform->setDefault('accountsindropdown', 0);
-        $mform->addHelpButton('accountsindropdown', 'accountsindropdown', 'qtype_buchungssatz');
+        $mform->addHelpButton('accountsindropdown', 'accountsindropdown', 'qtype_accounting');
         $mform->addRule('accountsindropdown', get_string('err_numeric', 'form'), 'numeric', null, 'client');
 
         $numberformatoptions = [
-            'de' => get_string('numberformat_de', 'qtype_buchungssatz'),
-            'us' => get_string('numberformat_us', 'qtype_buchungssatz'),
+            'de' => get_string('numberformat_de', 'qtype_accounting'),
+            'us' => get_string('numberformat_us', 'qtype_accounting'),
         ];
         $mform->addElement(
             'select',
             'numberformat',
-            get_string('numberformat', 'qtype_buchungssatz'),
+            get_string('numberformat', 'qtype_accounting'),
             $numberformatoptions
         );
         $decsep = get_string('decsep', 'langconfig');
         $defaultformat = ($decsep === ',') ? 'de' : 'us';
         $mform->setDefault('numberformat', $defaultformat);
-        $mform->addHelpButton('numberformat', 'numberformat', 'qtype_buchungssatz');
+        $mform->addHelpButton('numberformat', 'numberformat', 'qtype_accounting');
         return $defaultformat;
     }
 
@@ -116,22 +116,22 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $mform->addElement(
             'select',
             'extraentrydeduction',
-            get_string('extraentrydeduction', 'qtype_buchungssatz'),
+            get_string('extraentrydeduction', 'qtype_accounting'),
             $deductionoptions
         );
         $mform->setDefault('extraentrydeduction', '0.0');
-        $mform->addHelpButton('extraentrydeduction', 'extraentrydeduction', 'qtype_buchungssatz');
+        $mform->addHelpButton('extraentrydeduction', 'extraentrydeduction', 'qtype_accounting');
 
         $mform->addElement(
             'advcheckbox',
             'allornothinggrading',
-            get_string('allornothinggrading', 'qtype_buchungssatz'),
+            get_string('allornothinggrading', 'qtype_accounting'),
             null,
             null,
             [0, 1]
         );
         $mform->setDefault('allornothinggrading', 0);
-        $mform->addHelpButton('allornothinggrading', 'allornothinggrading', 'qtype_buchungssatz');
+        $mform->addHelpButton('allornothinggrading', 'allornothinggrading', 'qtype_accounting');
     }
 
     /**
@@ -144,25 +144,25 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $mform->addElement(
             'select',
             'chartofaccountsid',
-            get_string('chartofaccounts', 'qtype_buchungssatz'),
+            get_string('chartofaccounts', 'qtype_accounting'),
             $charts
         );
         $mform->setType('chartofaccountsid', PARAM_INT);
-        $mform->addHelpButton('chartofaccountsid', 'chartofaccounts', 'qtype_buchungssatz');
+        $mform->addHelpButton('chartofaccountsid', 'chartofaccounts', 'qtype_accounting');
 
         $coursecontext = $this->context->get_course_context(false);
         if (!$coursecontext) {
             return;
         }
         $manageurl = new moodle_url(
-            '/question/type/buchungssatz/manage_charts.php',
+            '/question/type/accounting/manage_charts.php',
             ['courseid' => $coursecontext->instanceid, 'returnurl' => qualified_me()]
         );
         $mform->addElement(
             'static',
             'managecharts_link',
             '',
-            html_writer::link($manageurl, get_string('managecharts', 'qtype_buchungssatz'))
+            html_writer::link($manageurl, get_string('managecharts', 'qtype_accounting'))
         );
     }
 
@@ -175,7 +175,7 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
     protected function add_entries_section($mform, string $effectiveformat): void {
         global $DB, $PAGE;
 
-        $mform->addElement('header', 'answerhdr', get_string('correctanswer', 'qtype_buchungssatz'));
+        $mform->addElement('header', 'answerhdr', get_string('correctanswer', 'qtype_accounting'));
         $mform->setExpanded('answerhdr', true);
         $mform->addElement('static', 'balancevalidation', '', '');
 
@@ -183,11 +183,11 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $currentchartid = $this->resolve_current_chart_id($DB);
 
         // Build account options for select elements - only include accounts from the selected chart.
-        $sollaccountoptions = ['' => get_string('noaccountselected', 'qtype_buchungssatz')];
-        $habenaccountoptions = ['' => get_string('selectaccount', 'qtype_buchungssatz')];
+        $debitaccountoptions = ['' => get_string('noaccountselected', 'qtype_accounting')];
+        $creditaccountoptions = ['' => get_string('selectaccount', 'qtype_accounting')];
         if ($currentchartid > 0 && isset($allaccounts[$currentchartid])) {
-            $sollaccountoptions = $sollaccountoptions + $allaccounts[$currentchartid];
-            $habenaccountoptions = $habenaccountoptions + $allaccounts[$currentchartid];
+            $debitaccountoptions = $debitaccountoptions + $allaccounts[$currentchartid];
+            $creditaccountoptions = $creditaccountoptions + $allaccounts[$currentchartid];
         }
 
         $existingentries = !empty($this->question->options->entries)
@@ -197,8 +197,8 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         $entrycount = count($existingentries) > 0 ? count($existingentries) : 2;
 
         $mform->addElement('html', $this->build_entries_table(
-            $sollaccountoptions,
-            $habenaccountoptions,
+            $debitaccountoptions,
+            $creditaccountoptions,
             $entrycount,
             $existingentries,
             $effectiveformat
@@ -206,22 +206,22 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
 
         // Hidden fields for form element registration; populated via JS on submit.
         for ($i = 0; $i < 20; $i++) {
-            $mform->addElement('hidden', "sollkonto[$i]", '');
-            $mform->setType("sollkonto[$i]", PARAM_RAW);
-            $mform->addElement('hidden', "sollbetrag[$i]", '');
-            $mform->setType("sollbetrag[$i]", PARAM_RAW);
-            $mform->addElement('hidden', "habenkonto[$i]", '');
-            $mform->setType("habenkonto[$i]", PARAM_RAW);
-            $mform->addElement('hidden', "habenbetrag[$i]", '');
-            $mform->setType("habenbetrag[$i]", PARAM_RAW);
-            $mform->addElement('hidden', "weight_sollkonto[$i]", '1');
-            $mform->setType("weight_sollkonto[$i]", PARAM_INT);
-            $mform->addElement('hidden', "weight_sollbetrag[$i]", '1');
-            $mform->setType("weight_sollbetrag[$i]", PARAM_INT);
-            $mform->addElement('hidden', "weight_habenkonto[$i]", '1');
-            $mform->setType("weight_habenkonto[$i]", PARAM_INT);
-            $mform->addElement('hidden', "weight_habenbetrag[$i]", '1');
-            $mform->setType("weight_habenbetrag[$i]", PARAM_INT);
+            $mform->addElement('hidden', "debitaccount[$i]", '');
+            $mform->setType("debitaccount[$i]", PARAM_RAW);
+            $mform->addElement('hidden', "debitamount[$i]", '');
+            $mform->setType("debitamount[$i]", PARAM_RAW);
+            $mform->addElement('hidden', "creditaccount[$i]", '');
+            $mform->setType("creditaccount[$i]", PARAM_RAW);
+            $mform->addElement('hidden', "creditamount[$i]", '');
+            $mform->setType("creditamount[$i]", PARAM_RAW);
+            $mform->addElement('hidden', "weight_debitaccount[$i]", '1');
+            $mform->setType("weight_debitaccount[$i]", PARAM_INT);
+            $mform->addElement('hidden', "weight_debitamount[$i]", '1');
+            $mform->setType("weight_debitamount[$i]", PARAM_INT);
+            $mform->addElement('hidden', "weight_creditaccount[$i]", '1');
+            $mform->setType("weight_creditaccount[$i]", PARAM_INT);
+            $mform->addElement('hidden', "weight_creditamount[$i]", '1');
+            $mform->setType("weight_creditamount[$i]", PARAM_INT);
         }
 
         $coursecontext = $this->context->get_course_context(false);
@@ -233,13 +233,13 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
             'courseId' => $coursecontextid,
             'numberFormat' => $effectiveformat,
         ];
-        $mform->addElement('html', '<script type="application/json" id="buchungssatz-editform-data">' .
+        $mform->addElement('html', '<script type="application/json" id="accounting-editform-data">' .
             json_encode($jsdata, JSON_HEX_TAG | JSON_HEX_AMP) . '</script>');
 
-        $PAGE->requires->string_for_js('err_balancemismatch', 'qtype_buchungssatz');
-        $PAGE->requires->string_for_js('err_sollkontorequired', 'qtype_buchungssatz');
-        $PAGE->requires->string_for_js('err_habenkontorequired', 'qtype_buchungssatz');
-        $PAGE->requires->js_call_amd('qtype_buchungssatz/editform', 'init', []);
+        $PAGE->requires->string_for_js('err_balancemismatch', 'qtype_accounting');
+        $PAGE->requires->string_for_js('err_debitaccountrequired', 'qtype_accounting');
+        $PAGE->requires->string_for_js('err_creditaccountrequired', 'qtype_accounting');
+        $PAGE->requires->js_call_amd('qtype_accounting/editform', 'init', []);
     }
 
     /**
@@ -258,7 +258,7 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
             return (int)$this->question->chartofaccountsid;
         }
         if (!empty($this->question->id)) {
-            $options = $db->get_record('qtype_buchungssatz_options', ['questionid' => $this->question->id]);
+            $options = $db->get_record('qtype_accounting_options', ['questionid' => $this->question->id]);
             if ($options) {
                 return (int)$options->chartofaccountsid;
             }
@@ -269,23 +269,23 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
     /**
      * Build the entries table HTML.
      *
-     * @param array $sollaccountoptions Options for debit account select.
-     * @param array $habenaccountoptions Options for credit account select.
+     * @param array $debitaccountoptions Options for debit account select.
+     * @param array $creditaccountoptions Options for credit account select.
      * @param int $entrycount Number of entries to show.
      * @param array $existingentries Existing entry data.
      * @param string $numberformat The number format ('de' or 'us').
      * @return string The HTML for the entries table.
      */
     protected function build_entries_table(
-        array $sollaccountoptions,
-        array $habenaccountoptions,
+        array $debitaccountoptions,
+        array $creditaccountoptions,
         int $entrycount,
         array $existingentries,
         string $numberformat = 'de'
     ): string {
-        return (new \qtype_buchungssatz\entries_table_builder())->build_table(
-            $sollaccountoptions,
-            $habenaccountoptions,
+        return (new \qtype_accounting\entries_table_builder())->build_table(
+            $debitaccountoptions,
+            $creditaccountoptions,
             $entrycount,
             $existingentries,
             $numberformat
@@ -308,7 +308,7 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
                 continue;
             }
             $accounts = $DB->get_records(
-                'qtype_buchungssatz_accounts',
+                'qtype_accounting_accounts',
                 ['chartid' => $chartid],
                 'accountname'
             );
@@ -329,12 +329,12 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
     protected function get_available_charts(): array {
         global $DB;
 
-        $charts = [0 => get_string('nochartselected', 'qtype_buchungssatz')];
+        $charts = [0 => get_string('nochartselected', 'qtype_accounting')];
 
         $coursecontext = $this->context->get_course_context(false);
         if ($coursecontext) {
             $records = $DB->get_records(
-                'qtype_buchungssatz_charts',
+                'qtype_accounting_charts',
                 ['contextid' => $coursecontext->id],
                 'name ASC'
             );
@@ -413,14 +413,14 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
         }
         $i = 0;
         foreach ($question->options->entries as $entry) {
-            $question->sollkonto[$i] = $entry->sollkontoid ?? '';
-            $question->sollbetrag[$i] = $entry->sollbetrag;
-            $question->habenkonto[$i] = $entry->habenkontoid ?? '';
-            $question->habenbetrag[$i] = $entry->habenbetrag;
-            $question->weight_sollkonto[$i] = $entry->weight_sollkonto ?? 1;
-            $question->weight_sollbetrag[$i] = $entry->weight_sollbetrag ?? 1;
-            $question->weight_habenkonto[$i] = $entry->weight_habenkonto ?? 1;
-            $question->weight_habenbetrag[$i] = $entry->weight_habenbetrag ?? 1;
+            $question->debitaccount[$i] = $entry->debitaccountid ?? '';
+            $question->debitamount[$i] = $entry->debitamount;
+            $question->creditaccount[$i] = $entry->creditaccountid ?? '';
+            $question->creditamount[$i] = $entry->creditamount;
+            $question->weight_debitaccount[$i] = $entry->weight_debitaccount ?? 1;
+            $question->weight_debitamount[$i] = $entry->weight_debitamount ?? 1;
+            $question->weight_creditaccount[$i] = $entry->weight_creditaccount ?? 1;
+            $question->weight_creditamount[$i] = $entry->weight_creditamount ?? 1;
             $i++;
         }
     }
@@ -435,9 +435,9 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
     public function validation($data, $files): array {
         $errors = parent::validation($data, $files);
         if ((int)($data['accountsindropdown'] ?? 0) < 0) {
-            $errors['accountsindropdown'] = get_string('err_accountsindropdown_negative', 'qtype_buchungssatz');
+            $errors['accountsindropdown'] = get_string('err_accountsindropdown_negative', 'qtype_accounting');
         }
-        return (new \qtype_buchungssatz\entry_validator())->validate($data, $errors);
+        return (new \qtype_accounting\entry_validator())->validate($data, $errors);
     }
 
     /**
@@ -446,6 +446,6 @@ class qtype_buchungssatz_edit_form extends question_edit_form {
      * @return string The question type name.
      */
     public function qtype(): string {
-        return 'buchungssatz';
+        return 'accounting';
     }
 }

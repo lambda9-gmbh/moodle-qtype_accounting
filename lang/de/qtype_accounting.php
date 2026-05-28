@@ -15,16 +15,16 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * German language strings for qtype_buchungssatz.
+ * German language strings for qtype_accounting.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 $string['pluginname'] = 'Buchungssatz';
 $string['pluginname_help'] = 'Ein Fragetyp, bei dem Studierende Buchungssätze erstellen, indem sie Soll- und Haben-Konten auswählen und Beträge eingeben.';
-$string['pluginname_link'] = 'question/type/buchungssatz';
+$string['pluginname_link'] = 'question/type/accounting';
 $string['pluginnameadding'] = 'Buchungssatz-Frage hinzufügen';
 $string['pluginnameediting'] = 'Buchungssatz-Frage bearbeiten';
 $string['pluginnamesummary'] = 'Ein Fragetyp zum Üben von Buchungssätzen. Studierende wählen Konten aus einem Kontenplan und geben Soll-/Haben-Beträge ein.';
@@ -58,13 +58,13 @@ $string['deleteentry'] = 'Löschen';
 // Kontenfelder.
 $string['per'] = 'Per';
 $string['an'] = 'an';
-$string['soll'] = 'Soll';
-$string['haben'] = 'Haben';
+$string['debit'] = 'Soll';
+$string['credit'] = 'Haben';
 $string['account'] = 'Konto';
-$string['sollkonto'] = 'Sollkonto';
-$string['sollbetrag'] = 'Sollbetrag';
-$string['habenkonto'] = 'Habenkonto';
-$string['habenbetrag'] = 'Habenbetrag';
+$string['debitaccount'] = 'Sollkonto';
+$string['debitamount'] = 'Sollbetrag';
+$string['creditaccount'] = 'Habenkonto';
+$string['creditamount'] = 'Habenbetrag';
 $string['weight'] = 'Gewicht';
 $string['weight_help'] = 'Gewichtung für dieses Feld bei der Bewertung (1, 2 oder 3). Höhere Werte bedeuten mehr Punkte. Beispiel: Hat ein Konto das Gewicht 3 und der zugehörige Betrag das Gewicht 1, ist das Konto dreimal so wichtig wie der Betrag für die Bewertung.';
 $string['weight_tooltip'] = 'Die Eingabefelder (Konten, Beträge) können mit einem Gewicht von 1–3 versehen werden. Das Gewicht ist für die Berechnung der Teilpunkte relevant. Teilpunkte werden wie folgt berechnet: (Σ Gewichte richtiger Eingabefelder) ÷ (Σ Gewichte aller Eingabefelder) × Erreichbare Punkte.
@@ -77,8 +77,6 @@ $string['amount'] = 'Betrag';
 $string['selectaccount'] = '-- Konto auswählen --';
 $string['enteraccount'] = 'Kontonummer eingeben';
 $string['noaccountselected'] = 'Kein Konto ausgewählt';
-$string['sollamount'] = 'Soll-Betrag';
-$string['habenamount'] = 'Haben-Betrag';
 $string['grade'] = 'Bewertung (%)';
 $string['grade_help'] = 'Der Prozentsatz der Gesamtpunktzahl, den dieser Eintrag wert ist. Alle Bewertungen müssen zusammen genau 100% ergeben.';
 $string['explanation'] = 'Erklärung';
@@ -97,13 +95,13 @@ $string['credithasextraaccounts'] = 'Die Haben-Seite enthält überflüssige Kon
 
 // Validierungsfehler.
 $string['err_noentries'] = 'Bitte geben Sie mindestens eine Buchungszeile mit Konto und Betrag ein.';
-$string['err_sollrequired'] = 'Ein Soll-Konto ist erforderlich, wenn ein Haben-Konto angegeben ist.';
-$string['err_habenrequired'] = 'Ein Haben-Konto ist erforderlich, wenn ein Soll-Konto angegeben ist.';
+$string['err_debitrequired'] = 'Ein Soll-Konto ist erforderlich, wenn ein Haben-Konto angegeben ist.';
+$string['err_creditrequired'] = 'Ein Haben-Konto ist erforderlich, wenn ein Soll-Konto angegeben ist.';
 $string['err_negativeamount'] = 'Beträge müssen positiv sein.';
 $string['err_minentries'] = 'Die maximale Anzahl der Buchungszeilen muss mindestens 1 sein.';
 $string['err_maxentries'] = 'Die maximale Anzahl der Buchungszeilen darf {$a} nicht überschreiten.';
-$string['err_habenamountrequired'] = 'Der Haben-Betrag ist erforderlich.';
-$string['err_sollbetragrequired'] = 'Der Soll-Betrag ist erforderlich, wenn ein Soll-Konto ausgewählt ist.';
+$string['err_creditamountrequired'] = 'Der Haben-Betrag ist erforderlich.';
+$string['err_debitamountrequired'] = 'Der Soll-Betrag ist erforderlich, wenn ein Soll-Konto ausgewählt ist.';
 $string['err_graderequired'] = 'Die Bewertung ist erforderlich.';
 $string['err_gradeinvalid'] = 'Die Bewertung muss zwischen 0 und 100 liegen.';
 $string['err_gradesumnotcomplete'] = 'Die Summe aller Bewertungen muss genau 100% betragen. Aktuelle Summe: {$a}%';
@@ -111,8 +109,8 @@ $string['err_chartrequired'] = 'Bitte wählen Sie einen Kontenplan aus.';
 $string['err_accountsindropdown_negative'] = 'Die Anzahl der Konten in der Auswahlliste darf nicht negativ sein.';
 $string['err_extraentrydeduction_range'] = 'Der Abzug muss zwischen 0 und 100 liegen.';
 $string['err_balancemismatch'] = 'Die Summe der Soll-Beträge muss der Summe der Haben-Beträge entsprechen.';
-$string['err_sollkontorequired'] = 'Bitte wählen Sie ein Konto aus oder entfernen Sie diesen Eintrag.';
-$string['err_habenkontorequired'] = 'Bitte wählen Sie ein Konto aus oder entfernen Sie diesen Eintrag.';
+$string['err_debitaccountrequired'] = 'Bitte wählen Sie ein Konto aus oder entfernen Sie diesen Eintrag.';
+$string['err_creditaccountrequired'] = 'Bitte wählen Sie ein Konto aus oder entfernen Sie diesen Eintrag.';
 
 // Kontenplanverwaltung.
 $string['managecharts'] = 'Kontenpläne verwalten';
@@ -125,11 +123,11 @@ $string['importaccounts'] = 'Konten aus CSV importieren';
 $string['exportaccounts'] = 'Konten als CSV exportieren';
 
 // Datenschutz.
-$string['privacy:metadata:qtype_buchungssatz_charts'] = 'Die Kontenpläne-Tabelle speichert, wer den jeweiligen Kontenplan zuletzt geändert hat.';
-$string['privacy:metadata:qtype_buchungssatz_charts:usermodified'] = 'Die ID des Benutzers, der den Kontenplan zuletzt geändert hat.';
+$string['privacy:metadata:qtype_accounting_charts'] = 'Die Kontenpläne-Tabelle speichert, wer den jeweiligen Kontenplan zuletzt geändert hat.';
+$string['privacy:metadata:qtype_accounting_charts:usermodified'] = 'Die ID des Benutzers, der den Kontenplan zuletzt geändert hat.';
 
 // Berechtigungen.
-$string['buchungssatz:managecharts'] = 'Kontenpläne verwalten';
+$string['accounting:managecharts'] = 'Kontenpläne verwalten';
 
 // Einstellungen.
 $string['settings'] = 'Buchungssatz-Einstellungen';

@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Backup routines for qtype_buchungssatz.
+ * Backup routines for qtype_accounting.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -25,11 +25,11 @@
 /**
  * Provides the information to backup Buchungssatz questions.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class backup_qtype_buchungssatz_plugin extends backup_qtype_plugin {
+class backup_qtype_accounting_plugin extends backup_qtype_plugin {
     /**
      * Returns the qtype information to attach to question element.
      *
@@ -37,7 +37,7 @@ class backup_qtype_buchungssatz_plugin extends backup_qtype_plugin {
      */
     protected function define_question_plugin_structure() {
         // Define the virtual plugin element with the condition to fulfill.
-        $plugin = $this->get_plugin_element(null, '../../qtype', 'buchungssatz');
+        $plugin = $this->get_plugin_element(null, '../../qtype', 'accounting');
 
         // Create one standard named plugin element (the visible container).
         $pluginwrapper = new backup_nested_element($this->get_recommended_name());
@@ -46,7 +46,7 @@ class backup_qtype_buchungssatz_plugin extends backup_qtype_plugin {
         $plugin->add_child($pluginwrapper);
 
         // Chart of accounts data.
-        $chart = new backup_nested_element('buchungssatz_chart', null, ['name']);
+        $chart = new backup_nested_element('accounting_chart', null, ['name']);
         $chartaccounts = new backup_nested_element('chart_accounts');
         $chartaccount = new backup_nested_element(
             'chart_account',
@@ -56,7 +56,7 @@ class backup_qtype_buchungssatz_plugin extends backup_qtype_plugin {
 
         // Options with all current fields.
         $options = new backup_nested_element(
-            'buchungssatz_options',
+            'accounting_options',
             null,
             ['chartofaccountsid', 'accountsindropdown', 'numberformat',
              'extraentrydeduction', 'allornothinggrading',
@@ -65,12 +65,12 @@ class backup_qtype_buchungssatz_plugin extends backup_qtype_plugin {
         );
 
         // Entries with current weight fields and explanation.
-        $entries = new backup_nested_element('buchungssatz_entries');
+        $entries = new backup_nested_element('accounting_entries');
         $entry = new backup_nested_element(
             'entry',
             ['id'],
-            ['sortorder', 'sollkontoid', 'sollbetrag', 'habenkontoid', 'habenbetrag',
-             'weight_sollkonto', 'weight_sollbetrag', 'weight_habenkonto', 'weight_habenbetrag',
+            ['sortorder', 'debitaccountid', 'debitamount', 'creditaccountid', 'creditamount',
+             'weight_debitaccount', 'weight_debitamount', 'weight_creditaccount', 'weight_creditamount',
             'explanation']
         );
 
@@ -85,17 +85,17 @@ class backup_qtype_buchungssatz_plugin extends backup_qtype_plugin {
         // Set source for chart data via SQL join through options.
         $chart->set_source_sql(
             "SELECT c.name
-               FROM {qtype_buchungssatz_charts} c
-               JOIN {qtype_buchungssatz_options} o ON o.chartofaccountsid = c.id
+               FROM {qtype_accounting_charts} c
+               JOIN {qtype_accounting_options} o ON o.chartofaccountsid = c.id
               WHERE o.questionid = ?",
             [backup::VAR_PARENTID]
         );
 
         $chartaccount->set_source_sql(
             "SELECT a.accountname, a.sortorder
-               FROM {qtype_buchungssatz_accounts} a
-               JOIN {qtype_buchungssatz_charts} c ON c.id = a.chartid
-               JOIN {qtype_buchungssatz_options} o ON o.chartofaccountsid = c.id
+               FROM {qtype_accounting_accounts} a
+               JOIN {qtype_accounting_charts} c ON c.id = a.chartid
+               JOIN {qtype_accounting_options} o ON o.chartofaccountsid = c.id
               WHERE o.questionid = ?
            ORDER BY a.sortorder, a.accountname",
             [backup::VAR_PARENTID]
@@ -103,11 +103,11 @@ class backup_qtype_buchungssatz_plugin extends backup_qtype_plugin {
 
         // Set source for options and entries.
         $options->set_source_table(
-            'qtype_buchungssatz_options',
+            'qtype_accounting_options',
             ['questionid' => backup::VAR_PARENTID]
         );
         $entry->set_source_table(
-            'qtype_buchungssatz_entries',
+            'qtype_accounting_entries',
             ['questionid' => backup::VAR_PARENTID],
             'sortorder ASC'
         );

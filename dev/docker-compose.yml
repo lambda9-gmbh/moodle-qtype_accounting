@@ -21,24 +21,24 @@ services:
       - moodledata:/var/www/moodledata
       - behatdata:/var/www/behatdata
       # Mount plugin contents individually so dev/ doesn't leak into the container plugin dir.
-      - ../version.php:/var/www/html/question/type/buchungssatz/version.php
-      - ../questiontype.php:/var/www/html/question/type/buchungssatz/questiontype.php
-      - ../question.php:/var/www/html/question/type/buchungssatz/question.php
-      - ../renderer.php:/var/www/html/question/type/buchungssatz/renderer.php
-      - ../edit_buchungssatz_form.php:/var/www/html/question/type/buchungssatz/edit_buchungssatz_form.php
-      - ../edit_chart.php:/var/www/html/question/type/buchungssatz/edit_chart.php
-      - ../manage_charts.php:/var/www/html/question/type/buchungssatz/manage_charts.php
-      - ../styles.css:/var/www/html/question/type/buchungssatz/styles.css
-      - ../README.md:/var/www/html/question/type/buchungssatz/README.md
-      - ../CHANGES.md:/var/www/html/question/type/buchungssatz/CHANGES.md
-      - ../ajax:/var/www/html/question/type/buchungssatz/ajax
-      - ../amd:/var/www/html/question/type/buchungssatz/amd
-      - ../backup:/var/www/html/question/type/buchungssatz/backup
-      - ../classes:/var/www/html/question/type/buchungssatz/classes
-      - ../db:/var/www/html/question/type/buchungssatz/db
-      - ../lang:/var/www/html/question/type/buchungssatz/lang
-      - ../pix:/var/www/html/question/type/buchungssatz/pix
-      - ../tests:/var/www/html/question/type/buchungssatz/tests
+      - ../version.php:/var/www/html/question/type/accounting/version.php
+      - ../questiontype.php:/var/www/html/question/type/accounting/questiontype.php
+      - ../question.php:/var/www/html/question/type/accounting/question.php
+      - ../renderer.php:/var/www/html/question/type/accounting/renderer.php
+      - ../edit_accounting_form.php:/var/www/html/question/type/accounting/edit_accounting_form.php
+      - ../edit_chart.php:/var/www/html/question/type/accounting/edit_chart.php
+      - ../manage_charts.php:/var/www/html/question/type/accounting/manage_charts.php
+      - ../styles.css:/var/www/html/question/type/accounting/styles.css
+      - ../README.md:/var/www/html/question/type/accounting/README.md
+      - ../CHANGES.md:/var/www/html/question/type/accounting/CHANGES.md
+      - ../ajax:/var/www/html/question/type/accounting/ajax
+      - ../amd:/var/www/html/question/type/accounting/amd
+      - ../backup:/var/www/html/question/type/accounting/backup
+      - ../classes:/var/www/html/question/type/accounting/classes
+      - ../db:/var/www/html/question/type/accounting/db
+      - ../lang:/var/www/html/question/type/accounting/lang
+      - ../pix:/var/www/html/question/type/accounting/pix
+      - ../tests:/var/www/html/question/type/accounting/tests
       - ./docker/config.php:/var/www/html/config.php
     depends_on:
       mariadb:

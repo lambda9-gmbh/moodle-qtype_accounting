@@ -17,14 +17,14 @@
 /**
  * Version information for the Buchungssatz question type.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'qtype_buchungssatz';
+$plugin->component = 'qtype_accounting';
 $plugin->version = 2024010130;
 $plugin->requires = 2022112800; // Moodle 4.1+.
 $plugin->maturity = MATURITY_BETA;

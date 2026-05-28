@@ -5,7 +5,7 @@
  * theme and Bootstrap table styles, especially inside the mobile-layout
  * media queries that convert the entry table into a card view. */
 
-.buchungssatz-entries {
+.accounting-entries {
     margin: 1rem 0;
     border: 1px solid #dee2e6;
     border-radius: 0.25rem;
@@ -13,37 +13,37 @@
     background-color: #f8f9fa;
 }
 
-.buchungssatz-header {
+.accounting-header {
     font-weight: bold;
     border-bottom: 2px solid #dee2e6;
     padding-bottom: 0.5rem;
     margin-bottom: 0.5rem;
 }
 
-.buchungssatz-header-account {
+.accounting-header-account {
     flex: 1 1 0;
     min-width: 100px;
 }
 
-.buchungssatz-header-amount {
+.accounting-header-amount {
     flex: 0 0 100px;
     min-width: 100px;
     text-align: center;
 }
 
-.buchungssatz-soll-header {
+.accounting-debit-header {
     background-color: #d4edda;
     padding: 0.5rem;
     border-radius: 0.25rem 0 0 0;
 }
 
-.buchungssatz-haben-header {
+.accounting-credit-header {
     background-color: #cce5ff;
     padding: 0.5rem;
     border-radius: 0 0.25rem 0 0;
 }
 
-.buchungssatz-subheader {
+.accounting-subheader {
     font-size: 0.875rem;
     color: #6c757d;
     padding: 0.25rem 0;
@@ -51,38 +51,38 @@
     border-bottom: 1px solid #dee2e6;
 }
 
-.buchungssatz-entry {
+.accounting-entry {
     padding: 0.5rem 0;
     border-bottom: 1px dashed #dee2e6;
 }
 
-.buchungssatz-entry:last-child {
+.accounting-entry:last-child {
     border-bottom: none;
 }
 
-.buchungssatz-account {
+.accounting-account {
     flex: 1 1 0;
     min-width: 100px;
 }
 
-.buchungssatz-account-select {
+.accounting-account-select {
     width: 100%;
     min-width: 0;
     max-width: 100%;
     box-sizing: border-box;
 }
 
-.buchungssatz-amount {
+.accounting-amount {
     flex: 0 0 100px;
     min-width: 100px;
 }
 
-.buchungssatz-amount-input {
+.accounting-amount-input {
     text-align: right;
     width: 100%;
 }
 
-.buchungssatz-readonly {
+.accounting-readonly {
     display: block;
     padding: 0.375rem 0.75rem;
     background-color: #e9ecef;
@@ -93,30 +93,30 @@
 }
 
 /* Correct/incorrect feedback styles for student review */
-.buchungssatz-readonly.buchungssatz-correct {
+.accounting-readonly.accounting-correct {
     background-color: #d4edda;
     border: 1px solid #c3e6cb;
 }
 
-.buchungssatz-readonly.buchungssatz-incorrect {
+.accounting-readonly.accounting-incorrect {
     background-color: #f8d7da;
     border: 1px solid #f5c6cb;
 }
 
 /* Explanation shown below incorrect entries */
-.buchungssatz-entry-explanation {
+.accounting-entry-explanation {
     color: #856404;
     border: 1px solid #ffc107;
 }
 
-.buchungssatz-balance {
+.accounting-balance {
     margin-top: 1rem;
     padding: 0.5rem 1rem;
     border-radius: 0.25rem;
 }
 
 /* Correct response display */
-.buchungssatz-correct-response {
+.accounting-correct-response {
     margin-top: 1rem;
     padding: 1rem;
     background-color: #d4edda;
@@ -124,28 +124,28 @@
     border-radius: 0.25rem;
 }
 
-.buchungssatz-solution {
+.accounting-solution {
     margin-top: 0.5rem;
     table-layout: fixed;
     width: 100%;
 }
 
-.buchungssatz-solution th,
-.buchungssatz-solution td {
+.accounting-solution th,
+.accounting-solution td {
     width: 25%;
 }
 
-.buchungssatz-solution th {
+.accounting-solution th {
     background-color: #f8f9fa;
     text-align: center;
 }
 
-.buchungssatz-solution td {
+.accounting-solution td {
     text-align: center;
 }
 
 /* Edit form styles */
-.buchungssatz-entry-form {
+.accounting-entry-form {
     background-color: #fff;
     border: 1px solid #dee2e6;
     border-radius: 0.25rem;
@@ -155,22 +155,22 @@
 
 
 /* T-Account visual style (optional enhanced view) */
-.buchungssatz-t-account {
+.accounting-t-account {
     display: flex;
     border: 2px solid #333;
     margin: 1rem 0;
 }
 
-.buchungssatz-t-account-side {
+.accounting-t-account-side {
     flex: 1;
     padding: 1rem;
 }
 
-.buchungssatz-t-account-soll {
+.accounting-t-account-debit {
     border-right: 2px solid #333;
 }
 
-.buchungssatz-t-account-title {
+.accounting-t-account-title {
     text-align: center;
     font-weight: bold;
     border-bottom: 1px solid #333;
@@ -184,49 +184,49 @@
 
 @media (max-width: 768px) {
     /* Legacy flexbox styles for backwards compatibility */
-    .buchungssatz-header .col-md-6,
-    .buchungssatz-subheader .col-md-3,
-    .buchungssatz-entry .col-md-3 {
+    .accounting-header .col-md-6,
+    .accounting-subheader .col-md-3,
+    .accounting-entry .col-md-3 {
         text-align: center;
         margin-bottom: 0.5rem;
     }
 
-    .buchungssatz-amount {
+    .accounting-amount {
         max-width: 100%;
     }
 
     /* Hide table header on mobile */
-    .buchungssatz-student-table thead,
-    .buchungssatz-student-table colgroup {
+    .accounting-student-table thead,
+    .accounting-student-table colgroup {
         display: none;
     }
 
     /* Transform table to block layout - override table-layout: fixed */
-    .buchungssatz-student-table {
+    .accounting-student-table {
         display: block !important;
         width: 100% !important;
         table-layout: auto !important;
     }
 
-    .buchungssatz-student-table tbody {
+    .accounting-student-table tbody {
         display: block !important;
         width: 100% !important;
     }
 
     /* Only show visible rows as blocks - don't override inline display:none */
-    .buchungssatz-student-table tr {
+    .accounting-student-table tr {
         display: block;
         width: 100% !important;
     }
 
     /* Hidden rows must stay hidden */
-    .buchungssatz-student-table tr[style*="display: none"],
-    .buchungssatz-student-table tr[style*="display:none"] {
+    .accounting-student-table tr[style*="display: none"],
+    .accounting-student-table tr[style*="display:none"] {
         display: none !important;
     }
 
     /* Each row becomes a card - don't use !important on display to allow hiding */
-    .buchungssatz-student-table .buchungssatz-entry-row {
+    .accounting-student-table .accounting-entry-row {
         display: block;
         background: #fff;
         border: 1px solid #dee2e6;
@@ -239,25 +239,25 @@
     }
 
     /* Reset any problematic Select2 containers */
-    .buchungssatz-student-table .select2-container {
+    .accounting-student-table .select2-container {
         position: static !important;
         display: block !important;
         width: 100% !important;
     }
 
-    .buchungssatz-student-table .select2-container--default .select2-selection--single {
+    .accounting-student-table .select2-container--default .select2-selection--single {
         height: auto;
         min-height: 44px;
     }
 
     /* Hide Select2 dropdown wrapper if it exists */
-    .buchungssatz-student-table .select2-container .select2-dropdown {
+    .accounting-student-table .select2-container .select2-dropdown {
         position: absolute;
         z-index: 9999;
     }
 
     /* All cells become block elements - override desktop max-width: 0 hack */
-    .buchungssatz-student-table td {
+    .accounting-student-table td {
         display: block !important;
         width: 100% !important;
         border: none !important;
@@ -267,8 +267,8 @@
         box-sizing: border-box;
     }
 
-    /* Soll section header (label cell) */
-    .buchungssatz-student-table td.buchungssatz-label-cell[data-section="soll"] {
+    /* Debit section header (label cell) */
+    .accounting-student-table td.accounting-label-cell[data-section="debit"] {
         background-color: #d4edda;
         color: #155724;
         font-weight: 700;
@@ -277,20 +277,20 @@
         padding: 0.75rem 1rem;
     }
 
-    .buchungssatz-student-table td.buchungssatz-label-cell[data-section="soll"]::before {
-        content: "Soll";
+    .accounting-student-table td.accounting-label-cell[data-section="debit"]::before {
+        content: "Debit";
     }
 
-    /* Hide original Per text on mobile, show Soll instead */
-    .buchungssatz-student-table td.buchungssatz-label-cell[data-section="soll"] {
+    /* Hide original Per text on mobile, show Debit instead */
+    .accounting-student-table td.accounting-label-cell[data-section="debit"] {
         font-size: 0;
     }
-    .buchungssatz-student-table td.buchungssatz-label-cell[data-section="soll"]::before {
+    .accounting-student-table td.accounting-label-cell[data-section="debit"]::before {
         font-size: 1rem;
     }
 
-    /* Haben section header */
-    .buchungssatz-student-table td.buchungssatz-label-cell[data-section="haben"] {
+    /* Credit section header */
+    .accounting-student-table td.accounting-label-cell[data-section="credit"] {
         background-color: #cce5ff;
         color: #004085;
         font-weight: 700;
@@ -300,26 +300,26 @@
         border-top: 1px solid #dee2e6;
     }
 
-    .buchungssatz-student-table td.buchungssatz-label-cell[data-section="haben"]::before {
-        content: "Haben";
+    .accounting-student-table td.accounting-label-cell[data-section="credit"]::before {
+        content: "Credit";
     }
 
-    .buchungssatz-student-table td.buchungssatz-label-cell[data-section="haben"] {
+    .accounting-student-table td.accounting-label-cell[data-section="credit"] {
         font-size: 0;
     }
-    .buchungssatz-student-table td.buchungssatz-label-cell[data-section="haben"]::before {
+    .accounting-student-table td.accounting-label-cell[data-section="credit"]::before {
         font-size: 1rem;
     }
 
     /* Data cells with labels */
-    .buchungssatz-student-table .buchungssatz-data-cell {
+    .accounting-student-table .accounting-data-cell {
         background: #fff;
         padding: 0.5rem 1rem;
         position: relative;
         z-index: 1;
     }
 
-    .buchungssatz-student-table .buchungssatz-data-cell::before {
+    .accounting-student-table .accounting-data-cell::before {
         content: attr(data-label);
         display: block;
         font-size: 0.75rem;
@@ -329,8 +329,8 @@
     }
 
     /* Force all inputs/selects to be visible */
-    .buchungssatz-student-table select,
-    .buchungssatz-student-table input {
+    .accounting-student-table select,
+    .accounting-student-table input {
         position: relative !important;
         z-index: 2 !important;
         opacity: 1 !important;
@@ -338,15 +338,15 @@
     }
 
     /* Reset any absolutely positioned children */
-    .buchungssatz-student-table td > * {
+    .accounting-student-table td > * {
         position: relative !important;
         max-width: 100% !important;
     }
 
     /* Full-width, touch-friendly inputs */
-    .buchungssatz-student-table .buchungssatz-account-select,
-    .buchungssatz-student-table select.form-control,
-    .buchungssatz-student-table select {
+    .accounting-student-table .accounting-account-select,
+    .accounting-student-table select.form-control,
+    .accounting-student-table select {
         width: 100% !important;
         min-height: 44px;
         font-size: 16px; /* Prevents iOS zoom */
@@ -359,9 +359,9 @@
         padding: 0.5rem;
     }
 
-    .buchungssatz-student-table .buchungssatz-amount-input,
-    .buchungssatz-student-table input.form-control,
-    .buchungssatz-student-table input[type="text"] {
+    .accounting-student-table .accounting-amount-input,
+    .accounting-student-table input.form-control,
+    .accounting-student-table input[type="text"] {
         width: 100% !important;
         min-height: 44px;
         font-size: 16px; /* Prevents iOS zoom */
@@ -373,22 +373,22 @@
     }
 
     /* Select2 mobile fixes */
-    .buchungssatz-student-table .select2-container {
+    .accounting-student-table .select2-container {
         width: 100% !important;
         max-width: 100% !important;
         position: relative !important;
     }
 
-    .buchungssatz-student-table .select2-container .select2-selection {
+    .accounting-student-table .select2-container .select2-selection {
         min-height: 44px;
         font-size: 16px;
     }
 
-    .buchungssatz-student-table .select2-container .select2-selection__rendered {
+    .accounting-student-table .select2-container .select2-selection__rendered {
         line-height: 42px;
     }
 
-    .buchungssatz-student-table .select2-container .select2-selection__arrow {
+    .accounting-student-table .select2-container .select2-selection__arrow {
         height: 42px;
     }
 
@@ -398,7 +398,7 @@
     }
 
     /* Actions cell */
-    .buchungssatz-student-table .buchungssatz-actions-cell {
+    .accounting-student-table .accounting-actions-cell {
         text-align: right;
         padding: 0.75rem 1rem;
         border-top: 1px solid #dee2e6;
@@ -406,34 +406,34 @@
     }
 
     /* Touch-friendly delete button */
-    .buchungssatz-student-table .buchungssatz-delete-entry {
+    .accounting-student-table .accounting-delete-entry {
         min-width: 44px;
         min-height: 44px;
     }
 
     /* Footer with add-entry buttons - display as a row of two full-width buttons */
-    .buchungssatz-controls-footer,
-    .buchungssatz-controls-footer tr {
+    .accounting-controls-footer,
+    .accounting-controls-footer tr {
         display: block !important;
         width: 100% !important;
     }
 
-    .buchungssatz-controls-footer td {
+    .accounting-controls-footer td {
         padding: 0.25rem 0 !important;
     }
 
-    .buchungssatz-controls-footer td:empty {
+    .accounting-controls-footer td:empty {
         display: none !important;
     }
 
-    .buchungssatz-controls-footer .btn {
+    .accounting-controls-footer .btn {
         width: 100%;
         min-height: 44px;
         font-size: 16px;
     }
 
     /* Readonly spans in review mode */
-    .buchungssatz-student-table .buchungssatz-readonly {
+    .accounting-student-table .accounting-readonly {
         display: block;
         width: 100%;
         min-height: 44px;
@@ -443,18 +443,18 @@
     }
 
     /* Correct response table - also transform to cards */
-    .buchungssatz-correct-response .buchungssatz-solution thead {
+    .accounting-correct-response .accounting-solution thead {
         display: none;
     }
 
-    .buchungssatz-correct-response .buchungssatz-solution,
-    .buchungssatz-correct-response .buchungssatz-solution tbody,
-    .buchungssatz-correct-response .buchungssatz-solution tr {
+    .accounting-correct-response .accounting-solution,
+    .accounting-correct-response .accounting-solution tbody,
+    .accounting-correct-response .accounting-solution tr {
         display: block;
         width: 100%;
     }
 
-    .buchungssatz-correct-response .buchungssatz-solution tr {
+    .accounting-correct-response .accounting-solution tr {
         border: 1px solid #c3e6cb;
         border-radius: 8px;
         margin-bottom: 0.5rem;
@@ -462,7 +462,7 @@
         background: #fff;
     }
 
-    .buchungssatz-correct-response .buchungssatz-solution td {
+    .accounting-correct-response .accounting-solution td {
         display: block;
         width: 100%;
         text-align: left;
@@ -470,7 +470,7 @@
         padding: 0.25rem 0;
     }
 
-    .buchungssatz-correct-response .buchungssatz-solution td::before {
+    .accounting-correct-response .accounting-solution td::before {
         content: attr(data-label) ": ";
         font-weight: 600;
     }
@@ -478,11 +478,11 @@
 
 /* Extra small screens */
 @media (max-width: 375px) {
-    .buchungssatz-student-table .buchungssatz-entry-row {
+    .accounting-student-table .accounting-entry-row {
         border-radius: 4px;
     }
 
-    .buchungssatz-student-table td {
+    .accounting-student-table td {
         padding: 0.5rem 0.75rem;
     }
 }
@@ -494,25 +494,25 @@
 }
 
 /* Edit form table styles */
-.buchungssatz-edit-table {
+.accounting-edit-table {
     table-layout: fixed;
     width: 100%;
     margin-bottom: 0;
 }
 
-.buchungssatz-edit-table th,
-.buchungssatz-edit-table td {
+.accounting-edit-table th,
+.accounting-edit-table td {
     vertical-align: middle;
     padding: 0.5rem;
 }
 
-.buchungssatz-edit-table thead th {
+.accounting-edit-table thead th {
     background-color: #e9ecef;
     font-weight: 600;
     text-align: center;
 }
 
-.buchungssatz-edit-label {
+.accounting-edit-label {
     width: 50px;
     text-align: center;
     background-color: #f8f9fa;
@@ -521,30 +521,30 @@
     color: #6c757d;
 }
 
-.buchungssatz-edit-data {
+.accounting-edit-data {
     background-color: #fffef0;
 }
 
-.buchungssatz-edit-data select,
-.buchungssatz-edit-data input {
+.accounting-edit-data select,
+.accounting-edit-data input {
     width: 100%;
 }
 
-.buchungssatz-edit-actions {
+.accounting-edit-actions {
     width: 50px;
     text-align: center;
     background-color: #f8f9fa;
 }
 
-.buchungssatz-entry-row td {
+.accounting-entry-row td {
     border-bottom: none;
 }
 
-.buchungssatz-weight-row {
+.accounting-weight-row {
     background-color: #f8f9fa;
 }
 
-.buchungssatz-weight-row td {
+.accounting-weight-row td {
     padding-top: 0.25rem;
     padding-bottom: 0.5rem;
     border-top: none;
@@ -552,48 +552,48 @@
     color: #6c757d;
 }
 
-.buchungssatz-weight-cell {
+.accounting-weight-cell {
     white-space: nowrap;
 }
 
-.buchungssatz-weight-cell input {
+.accounting-weight-cell input {
     display: inline-block;
     width: 60px;
     text-align: center;
 }
 
-.buchungssatz-delete-entry {
+.accounting-delete-entry {
     padding: 0.25rem 0.5rem;
 }
 
 /* Hide the template element */
-#buchungssatz-entry-template {
+#accounting-entry-template {
     display: none;
 }
 
 /* Student view table styles */
-table.buchungssatz-student-table {
+table.accounting-student-table {
     table-layout: fixed;
     width: 100%;
     margin-bottom: 0;
     border-collapse: collapse;
 }
 
-.buchungssatz-student-table th,
-.buchungssatz-student-table td {
+.accounting-student-table th,
+.accounting-student-table td {
     vertical-align: middle;
     padding: 0.5rem;
     border: 1px solid #dee2e6;
 }
 
-.buchungssatz-student-table thead th {
+.accounting-student-table thead th {
     background-color: #e9ecef;
     font-weight: 600;
     text-align: center;
 }
 
 /* Label cells (Per, an) - narrow fixed width columns */
-.buchungssatz-label-cell {
+.accounting-label-cell {
     text-align: center;
     background-color: #f8f9fa;
     font-weight: normal;
@@ -603,19 +603,19 @@ table.buchungssatz-student-table {
 }
 
 /* Data cells (Account dropdowns, Amount inputs) */
-.buchungssatz-data-cell {
+.accounting-data-cell {
     background-color: #fffef0;
     overflow: hidden;
 }
 
-.buchungssatz-data-cell select,
-.buchungssatz-data-cell input {
+.accounting-data-cell select,
+.accounting-data-cell input {
     width: 100%;
 }
 
 /* Force account select to respect table cell width */
-.buchungssatz-student-table .buchungssatz-account-select,
-.buchungssatz-student-table select.form-control {
+.accounting-student-table .accounting-account-select,
+.accounting-student-table select.form-control {
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
@@ -623,21 +623,21 @@ table.buchungssatz-student-table {
 }
 
 /* Ensure the table cell constrains its content */
-.buchungssatz-student-table td {
+.accounting-student-table td {
     overflow: hidden;
     max-width: 0;
 }
 
 /* Amount inputs should also respect cell width */
-.buchungssatz-student-table .buchungssatz-amount-input,
-.buchungssatz-student-table input.form-control {
+.accounting-student-table .accounting-amount-input,
+.accounting-student-table input.form-control {
     width: 100% !important;
     min-width: 0 !important;
     box-sizing: border-box;
 }
 
 /* Footer row with add-entry buttons below account columns */
-.buchungssatz-controls-footer td {
+.accounting-controls-footer td {
     border: none !important;
     background-color: transparent !important;
     padding-top: 0.75rem !important;
@@ -645,17 +645,17 @@ table.buchungssatz-student-table {
 }
 
 /* Actions cell (delete button) */
-.buchungssatz-actions-cell {
+.accounting-actions-cell {
     text-align: center;
     vertical-align: middle;
     background-color: #f8f9fa;
 }
 
-.buchungssatz-student-table .buchungssatz-entry-row td {
+.accounting-student-table .accounting-entry-row td {
     border-bottom: 1px solid #dee2e6;
 }
 
-.buchungssatz-student-table .buchungssatz-explanation-row td {
+.accounting-student-table .accounting-explanation-row td {
     background-color: #fff3cd;
     color: #856404;
     font-size: 0.9em;
@@ -668,37 +668,37 @@ table.buchungssatz-student-table {
 
 /* Hidden cells for debit-only or credit-only entries.
    Use visibility:hidden to preserve table cell space while hiding content. */
-.buchungssatz-hidden-cell {
+.accounting-hidden-cell {
     visibility: hidden !important;
     border-color: transparent !important;
     background-color: transparent !important;
 }
 
 /* Also hide all content inside hidden cells */
-.buchungssatz-hidden-cell * {
+.accounting-hidden-cell * {
     visibility: hidden !important;
 }
 
 /* Edit table: use display:none for hidden cells to completely remove them */
-.buchungssatz-edit-table td.buchungssatz-hidden-cell,
-.buchungssatz-edit-table .buchungssatz-hidden-cell {
+.accounting-edit-table td.accounting-hidden-cell,
+.accounting-edit-table .accounting-hidden-cell {
     visibility: hidden !important;
 }
 
 /* Mobile: use display:none on mobile since table becomes block layout */
 @media (max-width: 768px) {
-    /* Higher specificity to override .buchungssatz-student-table td rule */
-    .buchungssatz-student-table td.buchungssatz-hidden-cell,
-    td.buchungssatz-hidden-cell {
+    /* Higher specificity to override .accounting-student-table td rule */
+    .accounting-student-table td.accounting-hidden-cell,
+    td.accounting-hidden-cell {
         display: none !important;
     }
 
     /* Button container for mobile - stack buttons */
-    .buchungssatz-controls-footer {
+    .accounting-controls-footer {
         display: block !important;
     }
 
-    .buchungssatz-controls-footer .btn {
+    .accounting-controls-footer .btn {
         width: 100%;
     }
 
@@ -707,8 +707,8 @@ table.buchungssatz-student-table {
        ======================================== */
 
     /* For debit-only entries: The "an" label cell (cell 3) contains the debit delete button.
-       On mobile, transform it to a plain cell at the end of the Soll section, not a Haben header. */
-    .buchungssatz-student-table tr[data-entry-type="debit"] td.buchungssatz-label-cell[data-section="haben"] {
+       On mobile, transform it to a plain cell at the end of the Debit section, not a Credit header. */
+    .accounting-student-table tr[data-entry-type="debit"] td.accounting-label-cell[data-section="credit"] {
         background-color: transparent;
         color: inherit;
         font-weight: normal;
@@ -718,60 +718,60 @@ table.buchungssatz-student-table {
         padding: 0.5rem 1rem;
     }
 
-    /* Remove the "Haben" label text for debit-only entries */
-    .buchungssatz-student-table tr[data-entry-type="debit"] td.buchungssatz-label-cell[data-section="haben"]::before {
+    /* Remove the "Credit" label text for debit-only entries */
+    .accounting-student-table tr[data-entry-type="debit"] td.accounting-label-cell[data-section="credit"]::before {
         content: "" !important;
     }
 
     /* For credit-only entries: Hide the debit delete button inside cell 3 */
-    .buchungssatz-student-table tr[data-entry-type="credit"] .buchungssatz-delete-debit {
+    .accounting-student-table tr[data-entry-type="credit"] .accounting-delete-debit {
         display: none !important;
     }
 
     /* Style the delete buttons for mobile touch */
-    .buchungssatz-student-table .buchungssatz-delete-debit,
-    .buchungssatz-student-table .buchungssatz-delete-credit {
+    .accounting-student-table .accounting-delete-debit,
+    .accounting-student-table .accounting-delete-credit {
         min-width: 44px;
         min-height: 44px;
         padding: 0.5rem 1rem;
     }
 
-    /* For debit-only: move debit delete button to appear at end of Soll section
+    /* For debit-only: move debit delete button to appear at end of Debit section
        by reordering with flexbox if the row uses flex display */
-    .buchungssatz-student-table tr[data-entry-type="debit"] {
+    .accounting-student-table tr[data-entry-type="debit"] {
         display: flex;
         flex-direction: column;
     }
 
     /* For credit-only entries: ensure proper card structure */
-    .buchungssatz-student-table tr[data-entry-type="credit"] {
+    .accounting-student-table tr[data-entry-type="credit"] {
         display: flex;
         flex-direction: column;
     }
 
     /* For both entry types: maintain block order */
-    .buchungssatz-student-table tr[data-entry-type="both"] {
+    .accounting-student-table tr[data-entry-type="both"] {
         display: flex;
         flex-direction: column;
     }
 
     /* Actions cell at the bottom with delete button for credit */
-    .buchungssatz-student-table tr[data-entry-type="credit"] .buchungssatz-actions-cell,
-    .buchungssatz-student-table tr[data-entry-type="both"] .buchungssatz-actions-cell {
+    .accounting-student-table tr[data-entry-type="credit"] .accounting-actions-cell,
+    .accounting-student-table tr[data-entry-type="both"] .accounting-actions-cell {
         order: 10;
     }
 
     /* For debit-only, the "an" cell with debit delete should be at the end of visible cells */
-    .buchungssatz-student-table tr[data-entry-type="debit"] td.buchungssatz-label-cell[data-section="haben"] {
+    .accounting-student-table tr[data-entry-type="debit"] td.accounting-label-cell[data-section="credit"] {
         order: 10;
         background-color: #f8f9fa;
         border-top: 1px solid #dee2e6;
     }
 
-    /* For credit-only entries: Cell 3 (data-section="haben") needs to be visible as header,
-       even though JS adds buchungssatz-hidden-cell to it. Override specifically. */
-    .buchungssatz-student-table tr[data-entry-type="credit"]
-    td.buchungssatz-label-cell[data-section="haben"].buchungssatz-hidden-cell {
+    /* For credit-only entries: Cell 3 (data-section="credit") needs to be visible as header,
+       even though JS adds accounting-hidden-cell to it. Override specifically. */
+    .accounting-student-table tr[data-entry-type="credit"]
+    td.accounting-label-cell[data-section="credit"].accounting-hidden-cell {
         display: block !important;
         background-color: #cce5ff;
         color: #004085;
@@ -779,10 +779,10 @@ table.buchungssatz-student-table {
         font-size: 1rem;
     }
 
-    /* Ensure the ::before content for "Haben" shows for credit-only */
-    .buchungssatz-student-table tr[data-entry-type="credit"]
-    td.buchungssatz-label-cell[data-section="haben"].buchungssatz-hidden-cell::before {
-        content: "Haben" !important;
+    /* Ensure the ::before content for "Credit" shows for credit-only */
+    .accounting-student-table tr[data-entry-type="credit"]
+    td.accounting-label-cell[data-section="credit"].accounting-hidden-cell::before {
+        content: "Credit" !important;
         font-size: 1rem !important;
     }
 }
@@ -792,46 +792,46 @@ table.buchungssatz-student-table {
    ======================================== */
 @media (max-width: 768px) {
     /* Hidden cells in edit table should also use display:none on mobile */
-    .buchungssatz-edit-table td.buchungssatz-hidden-cell {
+    .accounting-edit-table td.accounting-hidden-cell {
         visibility: hidden !important;
     }
 }
 
 /* Sortable table header links */
-.buchungssatz-sort-link {
+.accounting-sort-link {
     text-decoration: none;
     white-space: nowrap;
     color: inherit;
 }
 
-.buchungssatz-sort-link:hover {
+.accounting-sort-link:hover {
     text-decoration: underline;
 }
 
 
 /* CSV import/export section below accounts table */
-.buchungssatz-csv-actions {
+.accounting-csv-actions {
     border-top: 1px solid #dee2e6;
     padding-top: 1rem;
 }
 
 /* Edit-chart CSV import (Moodle filepicker form) — span the full page width. */
-.buchungssatz-csv-import {
+.accounting-csv-import {
     border-top: 1px solid #dee2e6;
     padding-top: 1rem;
 }
 
-.buchungssatz-csv-import .mform .fitem {
+.accounting-csv-import .mform .fitem {
     width: 100%;
 }
 
 /* Collapse the (empty) label column so the filepicker fills the full row.
    Moodle renders the label as <label class="col-md-3 col-form-label"> directly
    inside .fitem, so we target it specifically (including the empty-label case). */
-.buchungssatz-csv-import .mform .fitem > .fitemtitle,
-.buchungssatz-csv-import .mform .fitem > label.col-form-label,
-.buchungssatz-csv-import .mform .fitem > .col-md-3,
-.buchungssatz-csv-import .mform .fitem > label[class*="col-md-"] {
+.accounting-csv-import .mform .fitem > .fitemtitle,
+.accounting-csv-import .mform .fitem > label.col-form-label,
+.accounting-csv-import .mform .fitem > .col-md-3,
+.accounting-csv-import .mform .fitem > label[class*="col-md-"] {
     display: none !important;
     width: 0 !important;
     max-width: 0 !important;
@@ -839,8 +839,8 @@ table.buchungssatz-student-table {
     margin: 0 !important;
 }
 
-.buchungssatz-csv-import .mform .fitem > .felement,
-.buchungssatz-csv-import .mform .fitem > [class*="col-md-"]:not(label) {
+.accounting-csv-import .mform .fitem > .felement,
+.accounting-csv-import .mform .fitem > [class*="col-md-"]:not(label) {
     flex: 0 0 100% !important;
     max-width: 100% !important;
     width: 100% !important;
@@ -848,36 +848,36 @@ table.buchungssatz-student-table {
     padding-left: 0 !important;
 }
 
-.buchungssatz-csv-import .mform .fitem .filemanager,
-.buchungssatz-csv-import .mform .fitem .filepicker {
+.accounting-csv-import .mform .fitem .filemanager,
+.accounting-csv-import .mform .fitem .filepicker {
     width: 100%;
     max-width: 100%;
 }
 
-.buchungssatz-csv-import .mform .fp-btn-add,
-.buchungssatz-csv-import .mform .filepicker-filename {
+.accounting-csv-import .mform .fp-btn-add,
+.accounting-csv-import .mform .filepicker-filename {
     width: 100%;
 }
 
 /* Bottom action row: Back + Export sit side by side, wrap nicely on small screens. */
-.buchungssatz-chart-actions {
+.accounting-chart-actions {
     border-top: 1px solid #dee2e6;
     padding-top: 1rem;
 }
 
 /* Print styles */
 @media print {
-    .buchungssatz-entries {
+    .accounting-entries {
         border: 1px solid #000;
         background-color: #fff;
     }
 
-    .buchungssatz-account-select,
-    .buchungssatz-amount {
+    .accounting-account-select,
+    .accounting-amount {
         border: 1px solid #000;
     }
 
-    .buchungssatz-edit-table {
+    .accounting-edit-table {
         border: 1px solid #000;
     }
 }
@@ -887,46 +887,46 @@ table.buchungssatz-student-table {
    ======================================== */
 
 /* Hide mobile view on desktop */
-.buchungssatz-mobile-view {
+.accounting-mobile-view {
     display: none;
 }
 
 @media (max-width: 768px) {
     /* When JS activates mobile view, hide the table */
-    .buchungssatz-question-container.buchungssatz-mobile-active .buchungssatz-student-table {
+    .accounting-question-container.accounting-mobile-active .accounting-student-table {
         display: none !important;
     }
 
     /* Show mobile view when active */
-    .buchungssatz-question-container.buchungssatz-mobile-active .buchungssatz-mobile-view {
+    .accounting-question-container.accounting-mobile-active .accounting-mobile-view {
         display: block !important;
     }
 
     /* Section styling */
-    .buchungssatz-mobile-section {
+    .accounting-mobile-section {
         margin-bottom: 1.5rem;
     }
 
-    .buchungssatz-mobile-section-header {
+    .accounting-mobile-section-header {
         padding: 0.75rem 1rem;
         border-radius: 0.5rem 0.5rem 0 0;
         font-weight: 700;
         font-size: 1rem;
     }
 
-    .buchungssatz-mobile-debit-header,
-    .buchungssatz-mobile-credit-header {
+    .accounting-mobile-debit-header,
+    .accounting-mobile-credit-header {
         background-color: #e9ecef;
         color: #495057;
     }
 
-    .buchungssatz-mobile-section-header h4 {
+    .accounting-mobile-section-header h4 {
         margin: 0;
         font-size: 1rem;
     }
 
     /* Card styling */
-    .buchungssatz-mobile-card {
+    .accounting-mobile-card {
         background: #fff;
         border: 1px solid #dee2e6;
         border-radius: 8px;
@@ -935,21 +935,21 @@ table.buchungssatz-student-table {
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
-    .buchungssatz-mobile-card[data-side="debit"],
-    .buchungssatz-mobile-card[data-side="credit"] {
+    .accounting-mobile-card[data-side="debit"],
+    .accounting-mobile-card[data-side="credit"] {
         border-left: 4px solid #dee2e6;
     }
 
     /* Field layout within card */
-    .buchungssatz-mobile-field {
+    .accounting-mobile-field {
         margin-bottom: 0.75rem;
     }
 
-    .buchungssatz-mobile-field:last-child {
+    .accounting-mobile-field:last-child {
         margin-bottom: 0;
     }
 
-    .buchungssatz-mobile-field label {
+    .accounting-mobile-field label {
         display: block;
         font-size: 0.75rem;
         color: #6c757d;
@@ -957,8 +957,8 @@ table.buchungssatz-student-table {
         margin-bottom: 0.25rem;
     }
 
-    .buchungssatz-mobile-field select,
-    .buchungssatz-mobile-field input {
+    .accounting-mobile-field select,
+    .accounting-mobile-field input {
         width: 100%;
         min-height: 44px;
         font-size: 16px; /* Prevents iOS zoom */
@@ -970,17 +970,17 @@ table.buchungssatz-student-table {
         appearance: menulist;
     }
 
-    .buchungssatz-mobile-field input {
+    .accounting-mobile-field input {
         -webkit-appearance: none;
         appearance: none;
     }
 
-    .buchungssatz-mobile-field .buchungssatz-amount-input {
+    .accounting-mobile-field .accounting-amount-input {
         text-align: right;
     }
 
     /* Card actions (delete button) */
-    .buchungssatz-mobile-card-actions {
+    .accounting-mobile-card-actions {
         display: flex;
         justify-content: flex-end;
         padding-top: 0.5rem;
@@ -988,13 +988,13 @@ table.buchungssatz-student-table {
         margin-top: 0.75rem;
     }
 
-    .buchungssatz-mobile-card-actions .btn {
+    .accounting-mobile-card-actions .btn {
         min-width: 44px;
         min-height: 44px;
     }
 
     /* Section add button */
-    .buchungssatz-mobile-section > .btn {
+    .accounting-mobile-section > .btn {
         width: 100%;
         min-height: 44px;
         font-size: 16px;
@@ -1002,7 +1002,7 @@ table.buchungssatz-student-table {
     }
 
     /* Readonly spans in mobile cards */
-    .buchungssatz-mobile-card .buchungssatz-readonly {
+    .accounting-mobile-card .accounting-readonly {
         display: block;
         width: 100%;
         min-height: 44px;
@@ -1012,18 +1012,18 @@ table.buchungssatz-student-table {
     }
 
     /* Feedback colors in mobile cards - must override the default background above */
-    .buchungssatz-mobile-card .buchungssatz-readonly.buchungssatz-correct {
+    .accounting-mobile-card .accounting-readonly.accounting-correct {
         background-color: #d4edda;
         border: 1px solid #c3e6cb;
     }
 
-    .buchungssatz-mobile-card .buchungssatz-readonly.buchungssatz-incorrect {
+    .accounting-mobile-card .accounting-readonly.accounting-incorrect {
         background-color: #f8d7da;
         border: 1px solid #f5c6cb;
     }
 
     /* Empty section state */
-    .buchungssatz-mobile-cards:empty::after {
+    .accounting-mobile-cards:empty::after {
         content: '\2014'; /* em-dash */
         display: block;
         text-align: center;

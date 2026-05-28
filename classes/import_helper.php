@@ -14,25 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
-namespace qtype_buchungssatz;
+namespace qtype_accounting;
 
 /**
  * Helper class for importing chart of accounts from a text file.
  *
  * Each non-empty line is one account name (verbatim, the whole line is the name).
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class import_helper {
     /** @var array Known header keywords to skip (lowercase). */
     public const HEADER_KEYWORDS = [
-        'kontoname',
+        'accountname',
         'kontenname',
         'name',
         'bezeichnung',
-        'konto',
+        'account',
         'account',
         'account name',
     ];
@@ -53,7 +53,7 @@ class import_helper {
         $data = self::normalize_encoding($data);
         $lines = preg_split('/\r\n|\r|\n/', trim($data));
         if (empty($lines)) {
-            throw new \Exception(get_string('csvempty', 'qtype_buchungssatz'));
+            throw new \Exception(get_string('csvempty', 'qtype_accounting'));
         }
 
         // Use filename (without extension) as chart name, or fall back to auto-generated name.
@@ -93,7 +93,7 @@ class import_helper {
         }
 
         if (empty($accounts)) {
-            throw new \Exception(get_string('csvnoentries', 'qtype_buchungssatz'));
+            throw new \Exception(get_string('csvnoentries', 'qtype_accounting'));
         }
 
         return [
@@ -139,13 +139,13 @@ class import_helper {
         sort($requiredaccounts);
 
         if ($contextid > 0) {
-            $charts = $DB->get_records('qtype_buchungssatz_charts', ['contextid' => $contextid]);
+            $charts = $DB->get_records('qtype_accounting_charts', ['contextid' => $contextid]);
         } else {
-            $charts = $DB->get_records('qtype_buchungssatz_charts');
+            $charts = $DB->get_records('qtype_accounting_charts');
         }
 
         foreach ($charts as $chart) {
-            $chartaccounts = $DB->get_records('qtype_buchungssatz_accounts', ['chartid' => $chart->id]);
+            $chartaccounts = $DB->get_records('qtype_accounting_accounts', ['chartid' => $chart->id]);
             $chartaccountnames = [];
             foreach ($chartaccounts as $acc) {
                 $chartaccountnames[] = $acc->accountname;

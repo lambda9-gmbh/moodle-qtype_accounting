@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Test helper for qtype_buchungssatz.
+ * Test helper for qtype_accounting.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -26,7 +26,7 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 require_once($CFG->dirroot . '/question/engine/tests/helpers.php');
-require_once($CFG->dirroot . '/question/type/buchungssatz/question.php');
+require_once($CFG->dirroot . '/question/type/accounting/question.php');
 
 /**
  * Test helper class for creating Buchungssatz questions.
@@ -37,11 +37,11 @@ require_once($CFG->dirroot . '/question/type/buchungssatz/question.php');
  *   201 = '8400 Erloese 19% USt'
  *   301 = '4400 Verbindlichkeiten'
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class qtype_buchungssatz_test_helper extends question_test_helper {
+class qtype_accounting_test_helper extends question_test_helper {
     /** @var int Account ID for 1200 Bank. */
     public const ACCOUNT_BANK = 101;
 
@@ -93,10 +93,10 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
      *
      * Example: Bank 1000 / Revenue 1000
      *
-     * @return qtype_buchungssatz_question The test question.
+     * @return qtype_accounting_question The test question.
      */
-    public function make_buchungssatz_question_simple_debit_credit(): qtype_buchungssatz_question {
-        $question = new qtype_buchungssatz_question();
+    public function make_accounting_question_simple_debit_credit(): qtype_accounting_question {
+        $question = new qtype_accounting_question();
 
         $question->id = 1;
         $question->name = 'Simple debit/credit question';
@@ -106,7 +106,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->generalfeedbackformat = FORMAT_HTML;
         $question->defaultmark = 1;
         $question->penalty = 0.3333333;
-        $question->qtype = question_bank::get_qtype('buchungssatz');
+        $question->qtype = question_bank::get_qtype('accounting');
 
         $question->chartofaccountsid = 0;
         $question->allowmultipleentries = 0;
@@ -116,14 +116,14 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
 
         $question->entries = [
             [
-                'sollkontoid' => self::ACCOUNT_BANK,
-                'sollbetrag' => 1000.00,
-                'habenkontoid' => self::ACCOUNT_ERLOESE,
-                'habenbetrag' => 1000.00,
-                'weight_sollkonto' => 1,
-                'weight_sollbetrag' => 1,
-                'weight_habenkonto' => 1,
-                'weight_habenbetrag' => 1,
+                'debitaccountid' => self::ACCOUNT_BANK,
+                'debitamount' => 1000.00,
+                'creditaccountid' => self::ACCOUNT_ERLOESE,
+                'creditamount' => 1000.00,
+                'weight_debitaccount' => 1,
+                'weight_debitamount' => 1,
+                'weight_creditaccount' => 1,
+                'weight_creditamount' => 1,
                 'explanation' => '',
             ],
         ];
@@ -136,10 +136,10 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
      *
      * Example: Split payment - part cash, part bank transfer.
      *
-     * @return qtype_buchungssatz_question The test question.
+     * @return qtype_accounting_question The test question.
      */
-    public function make_buchungssatz_question_multiple_entries(): qtype_buchungssatz_question {
-        $question = new qtype_buchungssatz_question();
+    public function make_accounting_question_multiple_entries(): qtype_accounting_question {
+        $question = new qtype_accounting_question();
 
         $question->id = 2;
         $question->name = 'Multiple entries question';
@@ -149,7 +149,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->generalfeedbackformat = FORMAT_HTML;
         $question->defaultmark = 1;
         $question->penalty = 0.3333333;
-        $question->qtype = question_bank::get_qtype('buchungssatz');
+        $question->qtype = question_bank::get_qtype('accounting');
 
         $question->chartofaccountsid = 0;
         $question->allowmultipleentries = 1;
@@ -160,25 +160,25 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
 
         $question->entries = [
             [
-                'sollkontoid' => self::ACCOUNT_KASSE,
-                'sollbetrag' => 500.00,
-                'habenkontoid' => self::ACCOUNT_ERLOESE,
-                'habenbetrag' => 500.00,
-                'weight_sollkonto' => 1,
-                'weight_sollbetrag' => 1,
-                'weight_habenkonto' => 1,
-                'weight_habenbetrag' => 1,
+                'debitaccountid' => self::ACCOUNT_KASSE,
+                'debitamount' => 500.00,
+                'creditaccountid' => self::ACCOUNT_ERLOESE,
+                'creditamount' => 500.00,
+                'weight_debitaccount' => 1,
+                'weight_debitamount' => 1,
+                'weight_creditaccount' => 1,
+                'weight_creditamount' => 1,
                 'explanation' => 'Cash payment',
             ],
             [
-                'sollkontoid' => self::ACCOUNT_BANK,
-                'sollbetrag' => 500.00,
-                'habenkontoid' => self::ACCOUNT_ERLOESE,
-                'habenbetrag' => 500.00,
-                'weight_sollkonto' => 1,
-                'weight_sollbetrag' => 1,
-                'weight_habenkonto' => 1,
-                'weight_habenbetrag' => 1,
+                'debitaccountid' => self::ACCOUNT_BANK,
+                'debitamount' => 500.00,
+                'creditaccountid' => self::ACCOUNT_ERLOESE,
+                'creditamount' => 500.00,
+                'weight_debitaccount' => 1,
+                'weight_debitamount' => 1,
+                'weight_creditaccount' => 1,
+                'weight_creditamount' => 1,
                 'explanation' => 'Bank transfer',
             ],
         ];
@@ -189,10 +189,10 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
     /**
      * Create a question where debit account is optional (credit-only entry).
      *
-     * @return qtype_buchungssatz_question The test question.
+     * @return qtype_accounting_question The test question.
      */
-    public function make_buchungssatz_question_debit_only_optional(): qtype_buchungssatz_question {
-        $question = new qtype_buchungssatz_question();
+    public function make_accounting_question_debit_only_optional(): qtype_accounting_question {
+        $question = new qtype_accounting_question();
 
         $question->id = 3;
         $question->name = 'Debit optional question';
@@ -202,7 +202,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->generalfeedbackformat = FORMAT_HTML;
         $question->defaultmark = 1;
         $question->penalty = 0.3333333;
-        $question->qtype = question_bank::get_qtype('buchungssatz');
+        $question->qtype = question_bank::get_qtype('accounting');
 
         $question->chartofaccountsid = 0;
         $question->allowmultipleentries = 0;
@@ -212,14 +212,14 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
 
         $question->entries = [
             [
-                'sollkontoid' => null,
-                'sollbetrag' => 0,
-                'habenkontoid' => self::ACCOUNT_VERBINDLICHKEITEN,
-                'habenbetrag' => 250.00,
-                'weight_sollkonto' => 1,
-                'weight_sollbetrag' => 1,
-                'weight_habenkonto' => 1,
-                'weight_habenbetrag' => 1,
+                'debitaccountid' => null,
+                'debitamount' => 0,
+                'creditaccountid' => self::ACCOUNT_VERBINDLICHKEITEN,
+                'creditamount' => 250.00,
+                'weight_debitaccount' => 1,
+                'weight_debitamount' => 1,
+                'weight_creditaccount' => 1,
+                'weight_creditamount' => 1,
                 'explanation' => '',
             ],
         ];
@@ -230,10 +230,10 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
     /**
      * Create a question with custom weights for weighted scoring tests.
      *
-     * @return qtype_buchungssatz_question The test question.
+     * @return qtype_accounting_question The test question.
      */
-    public function make_buchungssatz_question_weighted_entries(): qtype_buchungssatz_question {
-        $question = new qtype_buchungssatz_question();
+    public function make_accounting_question_weighted_entries(): qtype_accounting_question {
+        $question = new qtype_accounting_question();
 
         $question->id = 4;
         $question->name = 'Weighted entries question';
@@ -243,7 +243,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->generalfeedbackformat = FORMAT_HTML;
         $question->defaultmark = 1;
         $question->penalty = 0.3333333;
-        $question->qtype = question_bank::get_qtype('buchungssatz');
+        $question->qtype = question_bank::get_qtype('accounting');
 
         $question->chartofaccountsid = 0;
         $question->allowmultipleentries = 0;
@@ -256,14 +256,14 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         // Custom weights: account has weight 2, amount has weight 1.
         $question->entries = [
             [
-                'sollkontoid' => self::ACCOUNT_BANK,
-                'sollbetrag' => 1000.00,
-                'habenkontoid' => self::ACCOUNT_ERLOESE,
-                'habenbetrag' => 1000.00,
-                'weight_sollkonto' => 2,
-                'weight_sollbetrag' => 1,
-                'weight_habenkonto' => 2,
-                'weight_habenbetrag' => 1,
+                'debitaccountid' => self::ACCOUNT_BANK,
+                'debitamount' => 1000.00,
+                'creditaccountid' => self::ACCOUNT_ERLOESE,
+                'creditamount' => 1000.00,
+                'weight_debitaccount' => 2,
+                'weight_debitamount' => 1,
+                'weight_creditaccount' => 2,
+                'weight_creditamount' => 1,
                 'explanation' => '',
             ],
         ];
@@ -274,10 +274,10 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
     /**
      * Create a question with all-or-nothing grading enabled.
      *
-     * @return qtype_buchungssatz_question The test question.
+     * @return qtype_accounting_question The test question.
      */
-    public function make_buchungssatz_question_all_or_nothing(): qtype_buchungssatz_question {
-        $question = new qtype_buchungssatz_question();
+    public function make_accounting_question_all_or_nothing(): qtype_accounting_question {
+        $question = new qtype_accounting_question();
 
         $question->id = 5;
         $question->name = 'All or nothing question';
@@ -287,7 +287,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->generalfeedbackformat = FORMAT_HTML;
         $question->defaultmark = 1;
         $question->penalty = 0.3333333;
-        $question->qtype = question_bank::get_qtype('buchungssatz');
+        $question->qtype = question_bank::get_qtype('accounting');
 
         $question->chartofaccountsid = 0;
         $question->allowmultipleentries = 0;
@@ -299,14 +299,14 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
 
         $question->entries = [
             [
-                'sollkontoid' => self::ACCOUNT_BANK,
-                'sollbetrag' => 1000.00,
-                'habenkontoid' => self::ACCOUNT_ERLOESE,
-                'habenbetrag' => 1000.00,
-                'weight_sollkonto' => 1,
-                'weight_sollbetrag' => 1,
-                'weight_habenkonto' => 1,
-                'weight_habenbetrag' => 1,
+                'debitaccountid' => self::ACCOUNT_BANK,
+                'debitamount' => 1000.00,
+                'creditaccountid' => self::ACCOUNT_ERLOESE,
+                'creditamount' => 1000.00,
+                'weight_debitaccount' => 1,
+                'weight_debitamount' => 1,
+                'weight_creditaccount' => 1,
+                'weight_creditamount' => 1,
                 'explanation' => '',
             ],
         ];
@@ -319,10 +319,10 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
      *
      * Correct answer: Bank 600 total (can be split as 300+300 or 200+400, etc.)
      *
-     * @return qtype_buchungssatz_question The test question.
+     * @return qtype_accounting_question The test question.
      */
-    public function make_buchungssatz_question_split_amounts(): qtype_buchungssatz_question {
-        $question = new qtype_buchungssatz_question();
+    public function make_accounting_question_split_amounts(): qtype_accounting_question {
+        $question = new qtype_accounting_question();
 
         $question->id = 6;
         $question->name = 'Split amounts question';
@@ -332,7 +332,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->generalfeedbackformat = FORMAT_HTML;
         $question->defaultmark = 1;
         $question->penalty = 0.3333333;
-        $question->qtype = question_bank::get_qtype('buchungssatz');
+        $question->qtype = question_bank::get_qtype('accounting');
 
         $question->chartofaccountsid = 0;
         $question->allowmultipleentries = 1;
@@ -345,14 +345,14 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         // Single entry with total amounts.
         $question->entries = [
             [
-                'sollkontoid' => self::ACCOUNT_BANK,
-                'sollbetrag' => 600.00,
-                'habenkontoid' => self::ACCOUNT_ERLOESE,
-                'habenbetrag' => 600.00,
-                'weight_sollkonto' => 1,
-                'weight_sollbetrag' => 1,
-                'weight_habenkonto' => 1,
-                'weight_habenbetrag' => 1,
+                'debitaccountid' => self::ACCOUNT_BANK,
+                'debitamount' => 600.00,
+                'creditaccountid' => self::ACCOUNT_ERLOESE,
+                'creditamount' => 600.00,
+                'weight_debitaccount' => 1,
+                'weight_debitamount' => 1,
+                'weight_creditaccount' => 1,
+                'weight_creditamount' => 1,
                 'explanation' => '',
             ],
         ];
@@ -365,10 +365,10 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
      *
      * Tests aggregation: two entries to Bank should be aggregated.
      *
-     * @return qtype_buchungssatz_question The test question.
+     * @return qtype_accounting_question The test question.
      */
-    public function make_buchungssatz_question_multiple_same_account(): qtype_buchungssatz_question {
-        $question = new qtype_buchungssatz_question();
+    public function make_accounting_question_multiple_same_account(): qtype_accounting_question {
+        $question = new qtype_accounting_question();
 
         $question->id = 7;
         $question->name = 'Multiple same account question';
@@ -378,7 +378,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->generalfeedbackformat = FORMAT_HTML;
         $question->defaultmark = 1;
         $question->penalty = 0.3333333;
-        $question->qtype = question_bank::get_qtype('buchungssatz');
+        $question->qtype = question_bank::get_qtype('accounting');
 
         $question->chartofaccountsid = 0;
         $question->allowmultipleentries = 1;
@@ -391,25 +391,25 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         // Two entries to the same account.
         $question->entries = [
             [
-                'sollkontoid' => self::ACCOUNT_BANK,
-                'sollbetrag' => 300.00,
-                'habenkontoid' => self::ACCOUNT_ERLOESE,
-                'habenbetrag' => 300.00,
-                'weight_sollkonto' => 1,
-                'weight_sollbetrag' => 1,
-                'weight_habenkonto' => 1,
-                'weight_habenbetrag' => 1,
+                'debitaccountid' => self::ACCOUNT_BANK,
+                'debitamount' => 300.00,
+                'creditaccountid' => self::ACCOUNT_ERLOESE,
+                'creditamount' => 300.00,
+                'weight_debitaccount' => 1,
+                'weight_debitamount' => 1,
+                'weight_creditaccount' => 1,
+                'weight_creditamount' => 1,
                 'explanation' => 'First payment',
             ],
             [
-                'sollkontoid' => self::ACCOUNT_BANK,
-                'sollbetrag' => 200.00,
-                'habenkontoid' => self::ACCOUNT_ERLOESE,
-                'habenbetrag' => 200.00,
-                'weight_sollkonto' => 1,
-                'weight_sollbetrag' => 1,
-                'weight_habenkonto' => 1,
-                'weight_habenbetrag' => 1,
+                'debitaccountid' => self::ACCOUNT_BANK,
+                'debitamount' => 200.00,
+                'creditaccountid' => self::ACCOUNT_ERLOESE,
+                'creditamount' => 200.00,
+                'weight_debitaccount' => 1,
+                'weight_debitamount' => 1,
+                'weight_creditaccount' => 1,
+                'weight_creditamount' => 1,
                 'explanation' => 'Second payment',
             ],
         ];
@@ -422,10 +422,10 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
      *
      * Simple debit/credit entry with extraentrydeduction = 0.05 (5% per extra account).
      *
-     * @return qtype_buchungssatz_question The test question.
+     * @return qtype_accounting_question The test question.
      */
-    public function make_buchungssatz_question_extra_entry_deduction(): qtype_buchungssatz_question {
-        $question = new qtype_buchungssatz_question();
+    public function make_accounting_question_extra_entry_deduction(): qtype_accounting_question {
+        $question = new qtype_accounting_question();
 
         $question->id = 8;
         $question->name = 'Extra entry deduction question';
@@ -435,7 +435,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $question->generalfeedbackformat = FORMAT_HTML;
         $question->defaultmark = 1;
         $question->penalty = 0.3333333;
-        $question->qtype = question_bank::get_qtype('buchungssatz');
+        $question->qtype = question_bank::get_qtype('accounting');
 
         $question->chartofaccountsid = 0;
         $question->allowmultipleentries = 1;
@@ -448,14 +448,14 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
 
         $question->entries = [
             [
-                'sollkontoid' => self::ACCOUNT_BANK,
-                'sollbetrag' => 1000.00,
-                'habenkontoid' => self::ACCOUNT_ERLOESE,
-                'habenbetrag' => 1000.00,
-                'weight_sollkonto' => 1,
-                'weight_sollbetrag' => 1,
-                'weight_habenkonto' => 1,
-                'weight_habenbetrag' => 1,
+                'debitaccountid' => self::ACCOUNT_BANK,
+                'debitamount' => 1000.00,
+                'creditaccountid' => self::ACCOUNT_ERLOESE,
+                'creditamount' => 1000.00,
+                'weight_debitaccount' => 1,
+                'weight_debitamount' => 1,
+                'weight_creditaccount' => 1,
+                'weight_creditamount' => 1,
                 'explanation' => '',
             ],
         ];
@@ -471,7 +471,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
      *
      * @return \stdClass The form data.
      */
-    public function get_buchungssatz_question_form_data(): \stdClass {
+    public function get_accounting_question_form_data(): \stdClass {
         $fromform = new \stdClass();
 
         $fromform->name = 'Default Buchungssatz question';
@@ -485,14 +485,14 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $fromform->maxentries = 5;
 
         // Default entry with minimal data that will be overwritten.
-        $fromform->sollkonto = [self::ACCOUNT_BANK];
-        $fromform->sollbetrag = [1000.00];
-        $fromform->habenkonto = [self::ACCOUNT_ERLOESE];
-        $fromform->habenbetrag = [1000.00];
-        $fromform->weight_sollkonto = [1];
-        $fromform->weight_sollbetrag = [1];
-        $fromform->weight_habenkonto = [1];
-        $fromform->weight_habenbetrag = [1];
+        $fromform->debitaccount = [self::ACCOUNT_BANK];
+        $fromform->debitamount = [1000.00];
+        $fromform->creditaccount = [self::ACCOUNT_ERLOESE];
+        $fromform->creditamount = [1000.00];
+        $fromform->weight_debitaccount = [1];
+        $fromform->weight_debitamount = [1];
+        $fromform->weight_creditaccount = [1];
+        $fromform->weight_creditamount = [1];
 
         return $fromform;
     }
@@ -505,7 +505,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
      *
      * @return \stdClass The form data.
      */
-    public function get_buchungssatz_question_form_data_simple_debit_credit(): \stdClass {
+    public function get_accounting_question_form_data_simple_debit_credit(): \stdClass {
         $fromform = new \stdClass();
 
         $fromform->name = 'Simple debit/credit question';
@@ -518,14 +518,14 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $fromform->allowmultipleentries = 0;
         $fromform->maxentries = 1;
 
-        $fromform->sollkonto = [self::ACCOUNT_BANK];
-        $fromform->sollbetrag = [1000.00];
-        $fromform->habenkonto = [self::ACCOUNT_ERLOESE];
-        $fromform->habenbetrag = [1000.00];
-        $fromform->weight_sollkonto = [1];
-        $fromform->weight_sollbetrag = [1];
-        $fromform->weight_habenkonto = [1];
-        $fromform->weight_habenbetrag = [1];
+        $fromform->debitaccount = [self::ACCOUNT_BANK];
+        $fromform->debitamount = [1000.00];
+        $fromform->creditaccount = [self::ACCOUNT_ERLOESE];
+        $fromform->creditamount = [1000.00];
+        $fromform->weight_debitaccount = [1];
+        $fromform->weight_debitamount = [1];
+        $fromform->weight_creditaccount = [1];
+        $fromform->weight_creditamount = [1];
 
         return $fromform;
     }
@@ -535,7 +535,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
      *
      * @return \stdClass The form data.
      */
-    public function get_buchungssatz_question_form_data_multiple_entries(): \stdClass {
+    public function get_accounting_question_form_data_multiple_entries(): \stdClass {
         $fromform = new \stdClass();
 
         $fromform->name = 'Multiple entries question';
@@ -551,14 +551,14 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $fromform->allowmultipleentries = 1;
         $fromform->maxentries = 5;
 
-        $fromform->sollkonto = [self::ACCOUNT_KASSE, self::ACCOUNT_BANK];
-        $fromform->sollbetrag = [500.00, 500.00];
-        $fromform->habenkonto = [self::ACCOUNT_ERLOESE, self::ACCOUNT_ERLOESE];
-        $fromform->habenbetrag = [500.00, 500.00];
-        $fromform->weight_sollkonto = [1, 1];
-        $fromform->weight_sollbetrag = [1, 1];
-        $fromform->weight_habenkonto = [1, 1];
-        $fromform->weight_habenbetrag = [1, 1];
+        $fromform->debitaccount = [self::ACCOUNT_KASSE, self::ACCOUNT_BANK];
+        $fromform->debitamount = [500.00, 500.00];
+        $fromform->creditaccount = [self::ACCOUNT_ERLOESE, self::ACCOUNT_ERLOESE];
+        $fromform->creditamount = [500.00, 500.00];
+        $fromform->weight_debitaccount = [1, 1];
+        $fromform->weight_debitamount = [1, 1];
+        $fromform->weight_creditaccount = [1, 1];
+        $fromform->weight_creditamount = [1, 1];
 
         return $fromform;
     }
@@ -568,7 +568,7 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
      *
      * @return \stdClass The form data.
      */
-    public function get_buchungssatz_question_form_data_debit_only_optional(): \stdClass {
+    public function get_accounting_question_form_data_debit_only_optional(): \stdClass {
         $fromform = new \stdClass();
 
         $fromform->name = 'Debit optional question';
@@ -581,14 +581,14 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
         $fromform->allowmultipleentries = 0;
         $fromform->maxentries = 1;
 
-        $fromform->sollkonto = [0];
-        $fromform->sollbetrag = [0];
-        $fromform->habenkonto = [self::ACCOUNT_VERBINDLICHKEITEN];
-        $fromform->habenbetrag = [250.00];
-        $fromform->weight_sollkonto = [1];
-        $fromform->weight_sollbetrag = [1];
-        $fromform->weight_habenkonto = [1];
-        $fromform->weight_habenbetrag = [1];
+        $fromform->debitaccount = [0];
+        $fromform->debitamount = [0];
+        $fromform->creditaccount = [self::ACCOUNT_VERBINDLICHKEITEN];
+        $fromform->creditamount = [250.00];
+        $fromform->weight_debitaccount = [1];
+        $fromform->weight_debitamount = [1];
+        $fromform->weight_creditaccount = [1];
+        $fromform->weight_creditamount = [1];
 
         return $fromform;
     }
@@ -596,46 +596,46 @@ class qtype_buchungssatz_test_helper extends question_test_helper {
     /**
      * Create a response array for a simple entry.
      *
-     * Note: The response field names remain as sollkonto_N / habenkonto_N
+     * Note: The response field names remain as debitaccount_N / creditaccount_N
      * (Moodle question engine field names), but the values are integer account IDs.
      *
-     * @param int $sollkontoid Debit account ID (0 for no debit account).
-     * @param float $sollbetrag Debit amount.
-     * @param int $habenkontoid Credit account ID.
-     * @param float $habenbetrag Credit amount.
+     * @param int $debitaccountid Debit account ID (0 for no debit account).
+     * @param float $debitamount Debit amount.
+     * @param int $creditaccountid Credit account ID.
+     * @param float $creditamount Credit amount.
      * @param int $index Entry index (default 0).
      * @return array The response array.
      */
     public static function make_response(
-        int $sollkontoid,
-        float $sollbetrag,
-        int $habenkontoid,
-        float $habenbetrag,
+        int $debitaccountid,
+        float $debitamount,
+        int $creditaccountid,
+        float $creditamount,
         int $index = 0
     ): array {
         return [
-            "sollkonto_{$index}" => $sollkontoid,
-            "sollbetrag_{$index}" => $sollbetrag,
-            "habenkonto_{$index}" => $habenkontoid,
-            "habenbetrag_{$index}" => $habenbetrag,
+            "debitaccount_{$index}" => $debitaccountid,
+            "debitamount_{$index}" => $debitamount,
+            "creditaccount_{$index}" => $creditaccountid,
+            "creditamount_{$index}" => $creditamount,
         ];
     }
 
     /**
      * Create a response array with multiple entries.
      *
-     * Each entry should use 'sollkontoid' and 'habenkontoid' keys with integer values.
+     * Each entry should use 'debitaccountid' and 'creditaccountid' keys with integer values.
      *
-     * @param array $entries Array of entries, each with sollkontoid, sollbetrag, habenkontoid, habenbetrag.
+     * @param array $entries Array of entries, each with debitaccountid, debitamount, creditaccountid, creditamount.
      * @return array The response array.
      */
     public static function make_multi_response(array $entries): array {
         $response = [];
         foreach ($entries as $index => $entry) {
-            $response["sollkonto_{$index}"] = $entry['sollkontoid'] ?? 0;
-            $response["sollbetrag_{$index}"] = $entry['sollbetrag'] ?? 0;
-            $response["habenkonto_{$index}"] = $entry['habenkontoid'] ?? 0;
-            $response["habenbetrag_{$index}"] = $entry['habenbetrag'] ?? 0;
+            $response["debitaccount_{$index}"] = $entry['debitaccountid'] ?? 0;
+            $response["debitamount_{$index}"] = $entry['debitamount'] ?? 0;
+            $response["creditaccount_{$index}"] = $entry['creditaccountid'] ?? 0;
+            $response["creditamount_{$index}"] = $entry['creditamount'] ?? 0;
         }
         return $response;
     }

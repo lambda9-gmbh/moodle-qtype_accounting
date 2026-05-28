@@ -14,11 +14,11 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Shared utility functions for Buchungssatz entry table rendering.
+ * Shared utility functions for accounting entry table rendering.
  *
  * Used by both question.js (student view) and editform.js (teacher view).
  *
- * @module     qtype_buchungssatz/entry_utils
+ * @module     qtype_accounting/entry_utils
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -26,20 +26,20 @@
 define(['jquery'], function ($) {
 
     // CSS class used to hide cells based on entry type.
-    var HIDDEN_CLASS = 'buchungssatz-hidden-cell';
+    var HIDDEN_CLASS = 'accounting-hidden-cell';
 
     /**
      * Column indices for the 7-column entry table.
-     * 0=Per label, 1=Soll Account, 2=Soll Amount, 3=Debit Delete/an,
-     * 4=Haben Account, 5=Haben Amount, 6=Credit Delete.
+     * 0=Per label, 1=Debit Account, 2=Debit Amount, 3=Debit Delete/an,
+     * 4=Credit Account, 5=Credit Amount, 6=Credit Delete.
      */
     var COL = {
         PER: 0,
-        SOLL_ACCOUNT: 1,
-        SOLL_AMOUNT: 2,
+        DEBIT_ACCOUNT: 1,
+        DEBIT_AMOUNT: 2,
         DEBIT_DELETE: 3,
-        HABEN_ACCOUNT: 4,
-        HABEN_AMOUNT: 5,
+        CREDIT_ACCOUNT: 4,
+        CREDIT_AMOUNT: 5,
         CREDIT_DELETE: 6
     };
 
@@ -66,26 +66,26 @@ define(['jquery'], function ($) {
         }
 
         if (entryType === 'debit') {
-            // Hide credit (haben) side.
-            if (cells[COL.HABEN_ACCOUNT]) {
-                cells[COL.HABEN_ACCOUNT].classList.add(HIDDEN_CLASS);
+            // Hide credit (credit) side.
+            if (cells[COL.CREDIT_ACCOUNT]) {
+                cells[COL.CREDIT_ACCOUNT].classList.add(HIDDEN_CLASS);
             }
-            if (cells[COL.HABEN_AMOUNT]) {
-                cells[COL.HABEN_AMOUNT].classList.add(HIDDEN_CLASS);
+            if (cells[COL.CREDIT_AMOUNT]) {
+                cells[COL.CREDIT_AMOUNT].classList.add(HIDDEN_CLASS);
             }
             if (cells[COL.CREDIT_DELETE]) {
                 cells[COL.CREDIT_DELETE].classList.add(HIDDEN_CLASS);
             }
         } else if (entryType === 'credit') {
-            // Hide debit (soll) side.
+            // Hide debit (debit) side.
             if (cells[COL.PER]) {
                 cells[COL.PER].classList.add(HIDDEN_CLASS);
             }
-            if (cells[COL.SOLL_ACCOUNT]) {
-                cells[COL.SOLL_ACCOUNT].classList.add(HIDDEN_CLASS);
+            if (cells[COL.DEBIT_ACCOUNT]) {
+                cells[COL.DEBIT_ACCOUNT].classList.add(HIDDEN_CLASS);
             }
-            if (cells[COL.SOLL_AMOUNT]) {
-                cells[COL.SOLL_AMOUNT].classList.add(HIDDEN_CLASS);
+            if (cells[COL.DEBIT_AMOUNT]) {
+                cells[COL.DEBIT_AMOUNT].classList.add(HIDDEN_CLASS);
             }
             if (cells[COL.DEBIT_DELETE]) {
                 cells[COL.DEBIT_DELETE].classList.add(HIDDEN_CLASS);
@@ -97,8 +97,8 @@ define(['jquery'], function ($) {
     /**
      * Apply visibility classes to a weight row based on entry type.
      *
-     * Weight rows have 7 cells: 0=empty, 1=weight_sollkonto, 2=weight_sollbetrag,
-     * 3=empty, 4=weight_habenkonto, 5=weight_habenbetrag, 6=empty.
+     * Weight rows have 7 cells: 0=empty, 1=weight_debitaccount, 2=weight_debitamount,
+     * 3=empty, 4=weight_creditaccount, 5=weight_creditamount, 6=empty.
      *
      * @param {Element|jQuery|null} weightRow The weight row (tr element), or null.
      * @param {string} entryType The entry type: 'debit', 'credit', or 'both'.
@@ -210,13 +210,13 @@ define(['jquery'], function ($) {
         var cells = el.querySelectorAll('td');
 
         if (side === 'debit') {
-            // Clear soll fields (cells 1 and 2).
-            clearFieldsInCell(cells[COL.SOLL_ACCOUNT]);
-            clearFieldsInCell(cells[COL.SOLL_AMOUNT]);
+            // Clear debit fields (cells 1 and 2).
+            clearFieldsInCell(cells[COL.DEBIT_ACCOUNT]);
+            clearFieldsInCell(cells[COL.DEBIT_AMOUNT]);
         } else if (side === 'credit') {
-            // Clear haben fields (cells 4 and 5).
-            clearFieldsInCell(cells[COL.HABEN_ACCOUNT]);
-            clearFieldsInCell(cells[COL.HABEN_AMOUNT]);
+            // Clear credit fields (cells 4 and 5).
+            clearFieldsInCell(cells[COL.CREDIT_ACCOUNT]);
+            clearFieldsInCell(cells[COL.CREDIT_AMOUNT]);
         }
     }
 
@@ -244,7 +244,7 @@ define(['jquery'], function ($) {
     /**
      * Detect the entry type from field values in a row.
      *
-     * Checks account selects/inputs in the soll and haben columns to determine
+     * Checks account selects/inputs in the debit and credit columns to determine
      * whether the row is 'debit', 'credit', or 'both'.
      *
      * @param {Element|jQuery} row The entry row element.
@@ -256,22 +256,22 @@ define(['jquery'], function ($) {
             return 'both';
         }
         var cells = el.querySelectorAll('td');
-        var sollCell = cells[COL.SOLL_ACCOUNT];
-        var habenCell = cells[COL.HABEN_ACCOUNT];
+        var debitCell = cells[COL.DEBIT_ACCOUNT];
+        var creditCell = cells[COL.CREDIT_ACCOUNT];
 
-        var sollVal = getFieldValue(sollCell);
-        var habenVal = getFieldValue(habenCell);
+        var debitVal = getFieldValue(debitCell);
+        var creditVal = getFieldValue(creditCell);
         // Treat "0" as empty (account ID 0 = no account selected).
-        if (sollVal === '0') {
-            sollVal = ''; }
-        if (habenVal === '0') {
-            habenVal = ''; }
+        if (debitVal === '0') {
+            debitVal = ''; }
+        if (creditVal === '0') {
+            creditVal = ''; }
 
-        if (sollVal && habenVal) {
+        if (debitVal && creditVal) {
             return 'both';
-        } else if (sollVal) {
+        } else if (debitVal) {
             return 'debit';
-        } else if (habenVal) {
+        } else if (creditVal) {
             return 'credit';
         }
         return 'both';
@@ -295,7 +295,7 @@ define(['jquery'], function ($) {
      * Check whether an entry row is empty (both account fields have no value).
      *
      * @param {Element|jQuery} row The entry row (tr element).
-     * @return {boolean} True if both soll and haben account fields are empty.
+     * @return {boolean} True if both debit and credit account fields are empty.
      */
     function isRowEmpty(row) {
         var el = row.jquery ? row[0] : row;
@@ -303,14 +303,14 @@ define(['jquery'], function ($) {
             return false;
         }
         var cells = el.querySelectorAll('td');
-        var sollVal = getFieldValue(cells[COL.SOLL_ACCOUNT]);
-        var habenVal = getFieldValue(cells[COL.HABEN_ACCOUNT]);
+        var debitVal = getFieldValue(cells[COL.DEBIT_ACCOUNT]);
+        var creditVal = getFieldValue(cells[COL.CREDIT_ACCOUNT]);
         // Treat "0" as empty (account ID 0 = no account selected).
-        if (sollVal === '0') {
-            sollVal = ''; }
-        if (habenVal === '0') {
-            habenVal = ''; }
-        return !sollVal && !habenVal;
+        if (debitVal === '0') {
+            debitVal = ''; }
+        if (creditVal === '0') {
+            creditVal = ''; }
+        return !debitVal && !creditVal;
     }
 
     /**

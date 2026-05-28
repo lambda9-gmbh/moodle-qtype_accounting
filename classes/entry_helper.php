@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
-namespace qtype_buchungssatz;
+namespace qtype_accounting;
 
 /**
  * Helper class for shared entry rendering logic between student and teacher views.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -27,18 +27,18 @@ class entry_helper {
     /**
      * Determine the entry type based on which account fields are filled.
      *
-     * @param string $sollkonto The debit account value.
-     * @param string $habenkonto The credit account value.
+     * @param string $debitaccount The debit account value.
+     * @param string $creditaccount The credit account value.
      * @return string The entry type: 'both', 'debit', or 'credit'.
      */
-    public static function determine_entry_type($sollkonto, $habenkonto): string {
-        $hassoll = !empty($sollkonto) && (string)$sollkonto !== '0';
-        $hashaben = !empty($habenkonto) && (string)$habenkonto !== '0';
-        if ($hassoll && $hashaben) {
+    public static function determine_entry_type($debitaccount, $creditaccount): string {
+        $hasdebit = !empty($debitaccount) && (string)$debitaccount !== '0';
+        $hascredit = !empty($creditaccount) && (string)$creditaccount !== '0';
+        if ($hasdebit && $hascredit) {
             return 'both';
-        } else if ($hassoll) {
+        } else if ($hasdebit) {
             return 'debit';
-        } else if ($hashaben) {
+        } else if ($hascredit) {
             return 'credit';
         }
         return 'both';
@@ -51,7 +51,7 @@ class entry_helper {
      * @return array Associative array with 'debit' and 'credit' keys containing CSS class suffixes.
      */
     public static function get_hidden_classes(string $entrytype): array {
-        $hiddenclass = 'buchungssatz-hidden-cell';
+        $hiddenclass = 'accounting-hidden-cell';
         return [
             'debit' => ($entrytype === 'credit') ? ' ' . $hiddenclass : '',
             'credit' => ($entrytype === 'debit') ? ' ' . $hiddenclass : '',
@@ -67,9 +67,9 @@ class entry_helper {
      * @return string The HTML for the delete button.
      */
     public static function render_delete_button(string $side, $index, string $indexattr): string {
-        $cssclass = ($side === 'debit') ? 'buchungssatz-delete-debit' : 'buchungssatz-delete-credit';
-        $titlekey = ($side === 'debit') ? 'soll' : 'haben';
-        $title = get_string($titlekey, 'qtype_buchungssatz');
+        $cssclass = ($side === 'debit') ? 'accounting-delete-debit' : 'accounting-delete-credit';
+        $titlekey = ($side === 'debit') ? 'debit' : 'credit';
+        $title = get_string($titlekey, 'qtype_accounting');
 
         return '<button type="button" class="btn btn-sm btn-outline-danger ' . $cssclass . '" ' .
             $indexattr . '="' . s($index) . '" title="' . s($title) . '">' .

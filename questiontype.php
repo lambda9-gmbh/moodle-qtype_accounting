@@ -17,7 +17,7 @@
 /**
  * Question type class for the Buchungssatz question type.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -31,11 +31,11 @@ require_once($CFG->dirroot . '/question/engine/lib.php');
 /**
  * The Buchungssatz question type.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class qtype_buchungssatz extends question_type {
+class qtype_accounting extends question_type {
     /**
      * Whether this question type can be used for random questions.
      *
@@ -77,10 +77,10 @@ class qtype_buchungssatz extends question_type {
     public function save_question_options($question) {
         global $DB;
 
-        $DB->delete_records('qtype_buchungssatz_options', ['questionid' => $question->id]);
-        $DB->delete_records('qtype_buchungssatz_entries', ['questionid' => $question->id]);
+        $DB->delete_records('qtype_accounting_options', ['questionid' => $question->id]);
+        $DB->delete_records('qtype_accounting_entries', ['questionid' => $question->id]);
 
-        $DB->insert_record('qtype_buchungssatz_options', $this->build_options_record($question));
+        $DB->insert_record('qtype_accounting_options', $this->build_options_record($question));
 
         $arrays = $this->normalize_entry_arrays($question);
         $this->save_entries($question->id, $arrays);
@@ -91,7 +91,7 @@ class qtype_buchungssatz extends question_type {
     }
 
     /**
-     * Build the qtype_buchungssatz_options DB record from the submitted question form data.
+     * Build the qtype_accounting_options DB record from the submitted question form data.
      *
      * @param object $question The question being saved.
      * @return \stdClass Record ready for $DB->insert_record.
@@ -116,12 +116,12 @@ class qtype_buchungssatz extends question_type {
      * back so the indexed lookups below work uniformly.
      *
      * @param object $question The question being saved.
-     * @return array Keyed by field name (sollkonto, sollbetrag, ..., weight_habenbetrag).
+     * @return array Keyed by field name (debitaccount, debitamount, ..., weight_creditamount).
      */
     protected function normalize_entry_arrays($question): array {
         $fields = [
-            'sollkonto', 'sollbetrag', 'habenkonto', 'habenbetrag',
-            'weight_sollkonto', 'weight_sollbetrag', 'weight_habenkonto', 'weight_habenbetrag',
+            'debitaccount', 'debitamount', 'creditaccount', 'creditamount',
+            'weight_debitaccount', 'weight_debitamount', 'weight_creditaccount', 'weight_creditamount',
         ];
         $arrays = [];
         foreach ($fields as $field) {
@@ -134,7 +134,7 @@ class qtype_buchungssatz extends question_type {
     /**
      * Save the correct-answer entry rows for a question.
      *
-     * Iterates the union of indices across sollkonto and habenkonto, skipping rows where
+     * Iterates the union of indices across debitaccount and creditaccount, skipping rows where
      * both account fields are empty, and inserts one record per remaining row.
      *
      * @param int $questionid The question ID.
@@ -142,28 +142,28 @@ class qtype_buchungssatz extends question_type {
      */
     protected function save_entries(int $questionid, array $arrays): void {
         global $DB;
-        $allindices = array_unique(array_merge(array_keys($arrays['sollkonto']), array_keys($arrays['habenkonto'])));
+        $allindices = array_unique(array_merge(array_keys($arrays['debitaccount']), array_keys($arrays['creditaccount'])));
         sort($allindices);
         $sortorder = 0;
         foreach ($allindices as $i) {
-            $sollkontoid = intval($arrays['sollkonto'][$i] ?? 0);
-            $habenkontoid = intval($arrays['habenkonto'][$i] ?? 0);
-            if (empty($sollkontoid) && empty($habenkontoid)) {
+            $debitaccountid = intval($arrays['debitaccount'][$i] ?? 0);
+            $creditaccountid = intval($arrays['creditaccount'][$i] ?? 0);
+            if (empty($debitaccountid) && empty($creditaccountid)) {
                 continue;
             }
             $record = new stdClass();
             $record->questionid = $questionid;
             $record->sortorder = $sortorder++;
-            $record->sollkontoid = $sollkontoid ?: null;
-            $record->sollbetrag = floatval($arrays['sollbetrag'][$i] ?? 0);
-            $record->habenkontoid = $habenkontoid ?: null;
-            $record->habenbetrag = floatval($arrays['habenbetrag'][$i] ?? 0);
-            $record->weight_sollkonto = intval($arrays['weight_sollkonto'][$i] ?? 1);
-            $record->weight_sollbetrag = intval($arrays['weight_sollbetrag'][$i] ?? 1);
-            $record->weight_habenkonto = intval($arrays['weight_habenkonto'][$i] ?? 1);
-            $record->weight_habenbetrag = intval($arrays['weight_habenbetrag'][$i] ?? 1);
+            $record->debitaccountid = $debitaccountid ?: null;
+            $record->debitamount = floatval($arrays['debitamount'][$i] ?? 0);
+            $record->creditaccountid = $creditaccountid ?: null;
+            $record->creditamount = floatval($arrays['creditamount'][$i] ?? 0);
+            $record->weight_debitaccount = intval($arrays['weight_debitaccount'][$i] ?? 1);
+            $record->weight_debitamount = intval($arrays['weight_debitamount'][$i] ?? 1);
+            $record->weight_creditaccount = intval($arrays['weight_creditaccount'][$i] ?? 1);
+            $record->weight_creditamount = intval($arrays['weight_creditamount'][$i] ?? 1);
             $record->explanation = '';
-            $DB->insert_record('qtype_buchungssatz_entries', $record);
+            $DB->insert_record('qtype_accounting_entries', $record);
         }
     }
 
@@ -177,7 +177,7 @@ class qtype_buchungssatz extends question_type {
         global $DB;
 
         $question->options = $DB->get_record(
-            'qtype_buchungssatz_options',
+            'qtype_accounting_options',
             ['questionid' => $question->id]
         );
 
@@ -194,7 +194,7 @@ class qtype_buchungssatz extends question_type {
         }
 
         $question->options->entries = $DB->get_records(
-            'qtype_buchungssatz_entries',
+            'qtype_accounting_entries',
             ['questionid' => $question->id],
             'sortorder ASC'
         );
@@ -225,14 +225,14 @@ class qtype_buchungssatz extends question_type {
         if (!empty($questiondata->options->entries)) {
             foreach ($questiondata->options->entries as $entry) {
                 $question->entries[] = [
-                    'sollkontoid' => $entry->sollkontoid ? (int) $entry->sollkontoid : null,
-                    'sollbetrag' => $entry->sollbetrag,
-                    'habenkontoid' => $entry->habenkontoid ? (int) $entry->habenkontoid : null,
-                    'habenbetrag' => $entry->habenbetrag,
-                    'weight_sollkonto' => $entry->weight_sollkonto ?? 1,
-                    'weight_sollbetrag' => $entry->weight_sollbetrag ?? 1,
-                    'weight_habenkonto' => $entry->weight_habenkonto ?? 1,
-                    'weight_habenbetrag' => $entry->weight_habenbetrag ?? 1,
+                    'debitaccountid' => $entry->debitaccountid ? (int) $entry->debitaccountid : null,
+                    'debitamount' => $entry->debitamount,
+                    'creditaccountid' => $entry->creditaccountid ? (int) $entry->creditaccountid : null,
+                    'creditamount' => $entry->creditamount,
+                    'weight_debitaccount' => $entry->weight_debitaccount ?? 1,
+                    'weight_debitamount' => $entry->weight_debitamount ?? 1,
+                    'weight_creditaccount' => $entry->weight_creditaccount ?? 1,
+                    'weight_creditamount' => $entry->weight_creditamount ?? 1,
                     'explanation' => $entry->explanation ?? '',
                 ];
             }
@@ -242,7 +242,7 @@ class qtype_buchungssatz extends question_type {
         $question->accountsmap = [];
         if ($question->chartofaccountsid > 0) {
             $accounts = $DB->get_records(
-                'qtype_buchungssatz_accounts',
+                'qtype_accounting_accounts',
                 ['chartid' => $question->chartofaccountsid]
             );
             foreach ($accounts as $acc) {
@@ -260,8 +260,8 @@ class qtype_buchungssatz extends question_type {
     public function delete_question($questionid, $contextid): void {
         global $DB;
 
-        $DB->delete_records('qtype_buchungssatz_options', ['questionid' => $questionid]);
-        $DB->delete_records('qtype_buchungssatz_entries', ['questionid' => $questionid]);
+        $DB->delete_records('qtype_accounting_options', ['questionid' => $questionid]);
+        $DB->delete_records('qtype_accounting_entries', ['questionid' => $questionid]);
 
         parent::delete_question($questionid, $contextid);
     }
@@ -292,7 +292,7 @@ class qtype_buchungssatz extends question_type {
      * @return array The extra question fields.
      */
     public function extra_question_fields(): array {
-        return ['qtype_buchungssatz_options', 'chartofaccountsid', 'accountsindropdown', 'numberformat',
+        return ['qtype_accounting_options', 'chartofaccountsid', 'accountsindropdown', 'numberformat',
             'extraentrydeduction', 'allornothinggrading',
             'allowmultipleentries', 'maxentries'];
     }
@@ -310,7 +310,7 @@ class qtype_buchungssatz extends question_type {
      */
     public function export_to_xml($question, qformat_xml $format, $extra = null) {
         $expout = parent::export_to_xml($question, $format, $extra);
-        $handler = new \qtype_buchungssatz\xml_handler();
+        $handler = new \qtype_accounting\xml_handler();
         if (!empty($question->options->entries)) {
             $expout .= $handler->export_entries($question->options->entries, $format);
         }
@@ -335,7 +335,7 @@ class qtype_buchungssatz extends question_type {
         if ($qtype != $this->name()) {
             return false;
         }
-        $handler = new \qtype_buchungssatz\xml_handler();
+        $handler = new \qtype_accounting\xml_handler();
         $extraquestionfields = $this->extra_question_fields();
         array_shift($extraquestionfields); // Remove table name.
         $qo = $handler->import_options($data, $format, $qtype, $extraquestionfields);

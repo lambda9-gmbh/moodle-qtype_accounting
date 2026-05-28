@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
-<ruleset name="qtype_buchungssatz"
+<ruleset name="qtype_accounting"
         xmlns="http://pmd.sf.net/ruleset/1.0.0"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://pmd.sf.net/ruleset/1.0.0 http://pmd.sf.net/ruleset_xml_schema.xsd"
         xsi:noNamespaceSchemaLocation="http://pmd.sf.net/ruleset_xml_schema.xsd">
 
     <description>
-        PHPMD ruleset for qtype_buchungssatz.
+        PHPMD ruleset for qtype_accounting.
 
         PHPUnit test classes (tests/*) and the Moodle upgrade entry point
         (db/upgrade.php) are excluded via the --exclude CLI flag passed by

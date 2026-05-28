@@ -17,7 +17,7 @@
 /**
  * Buchungssatz question definition class.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -25,11 +25,11 @@
 /**
  * Represents a Buchungssatz question.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class qtype_buchungssatz_question extends question_graded_automatically {
+class qtype_accounting_question extends question_graded_automatically {
     /** @var int Chart of accounts ID. */
     public $chartofaccountsid;
 
@@ -63,7 +63,7 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     /**
      * Find the highest entry index present across one or more response arrays.
      *
-     * Scans array keys for patterns like sollkonto_N or habenkonto_N and returns
+     * Scans array keys for patterns like debitaccount_N or creditaccount_N and returns
      * the highest N found, or -1 if no matching keys exist.
      *
      * @param array ...$responses One or more response arrays to scan.
@@ -73,7 +73,7 @@ class qtype_buchungssatz_question extends question_graded_automatically {
         $maxindex = -1;
         foreach ($responses as $response) {
             foreach (array_keys($response) as $key) {
-                if (preg_match('/^(?:sollkonto|habenkonto)_(\d+)$/', $key, $matches)) {
+                if (preg_match('/^(?:debitaccount|creditaccount)_(\d+)$/', $key, $matches)) {
                     $maxindex = max($maxindex, (int)$matches[1]);
                 }
             }
@@ -96,10 +96,10 @@ class qtype_buchungssatz_question extends question_graded_automatically {
         // Use a generous upper bound: number of correct entries + headroom for student additions.
         $maxindex = max(count($this->entries), 1) + 19;
         for ($i = 0; $i <= $maxindex; $i++) {
-            $expected["sollkonto_{$i}"] = PARAM_RAW;
-            $expected["sollbetrag_{$i}"] = PARAM_RAW;
-            $expected["habenkonto_{$i}"] = PARAM_RAW;
-            $expected["habenbetrag_{$i}"] = PARAM_RAW;
+            $expected["debitaccount_{$i}"] = PARAM_RAW;
+            $expected["debitamount_{$i}"] = PARAM_RAW;
+            $expected["creditaccount_{$i}"] = PARAM_RAW;
+            $expected["creditamount_{$i}"] = PARAM_RAW;
         }
 
         return $expected;
@@ -114,10 +114,10 @@ class qtype_buchungssatz_question extends question_graded_automatically {
         $response = [];
 
         foreach ($this->entries as $i => $entry) {
-            $response["sollkonto_{$i}"] = $entry['sollkontoid'] ?? 0;
-            $response["sollbetrag_{$i}"] = $entry['sollbetrag'];
-            $response["habenkonto_{$i}"] = $entry['habenkontoid'] ?? 0;
-            $response["habenbetrag_{$i}"] = $entry['habenbetrag'];
+            $response["debitaccount_{$i}"] = $entry['debitaccountid'] ?? 0;
+            $response["debitamount_{$i}"] = $entry['debitamount'];
+            $response["creditaccount_{$i}"] = $entry['creditaccountid'] ?? 0;
+            $response["creditamount_{$i}"] = $entry['creditamount'];
         }
 
         return $response;
@@ -134,20 +134,20 @@ class qtype_buchungssatz_question extends question_graded_automatically {
         $max = self::get_max_entry_index($response);
 
         for ($i = 0; $i <= $max; $i++) {
-            $sollkontoid = (int)($response["sollkonto_{$i}"] ?? 0);
-            $sollbetrag = $response["sollbetrag_{$i}"] ?? '';
-            $habenkontoid = (int)($response["habenkonto_{$i}"] ?? 0);
-            $habenbetrag = $response["habenbetrag_{$i}"] ?? '';
+            $debitaccountid = (int)($response["debitaccount_{$i}"] ?? 0);
+            $debitamount = $response["debitamount_{$i}"] ?? '';
+            $creditaccountid = (int)($response["creditaccount_{$i}"] ?? 0);
+            $creditamount = $response["creditamount_{$i}"] ?? '';
 
-            if ($sollkontoid > 0 || $habenkontoid > 0) {
-                $sollname = $this->accountsmap[$sollkontoid] ?? '';
-                $habenname = $this->accountsmap[$habenkontoid] ?? '';
+            if ($debitaccountid > 0 || $creditaccountid > 0) {
+                $debitname = $this->accountsmap[$debitaccountid] ?? '';
+                $creditname = $this->accountsmap[$creditaccountid] ?? '';
                 $parts[] = sprintf(
                     "%s %.2f / %s %.2f",
-                    $sollname,
-                    (float)$sollbetrag,
-                    $habenname,
-                    (float)$habenbetrag
+                    $debitname,
+                    (float)$debitamount,
+                    $creditname,
+                    (float)$creditamount
                 );
             }
         }
@@ -165,10 +165,10 @@ class qtype_buchungssatz_question extends question_graded_automatically {
         // Response is complete if any entry has an account filled in.
         $max = self::get_max_entry_index($response);
         for ($i = 0; $i <= $max; $i++) {
-            $sollkontoid = (int)($response["sollkonto_{$i}"] ?? 0);
-            $habenkontoid = (int)($response["habenkonto_{$i}"] ?? 0);
+            $debitaccountid = (int)($response["debitaccount_{$i}"] ?? 0);
+            $creditaccountid = (int)($response["creditaccount_{$i}"] ?? 0);
 
-            if ($sollkontoid > 0 || $habenkontoid > 0) {
+            if ($debitaccountid > 0 || $creditaccountid > 0) {
                 return true;
             }
         }
@@ -193,7 +193,7 @@ class qtype_buchungssatz_question extends question_graded_automatically {
      */
     public function get_validation_error(array $response): string {
         if (!$this->is_complete_response($response)) {
-            return get_string('pleaseenteranswer', 'qtype_buchungssatz');
+            return get_string('pleaseenteranswer', 'qtype_accounting');
         }
         return '';
     }
@@ -208,7 +208,7 @@ class qtype_buchungssatz_question extends question_graded_automatically {
     public function is_same_response(array $prevresponse, array $newresponse): bool {
         $max = self::get_max_entry_index($prevresponse, $newresponse);
         for ($i = 0; $i <= $max; $i++) {
-            $fields = ["sollkonto_{$i}", "sollbetrag_{$i}", "habenkonto_{$i}", "habenbetrag_{$i}"];
+            $fields = ["debitaccount_{$i}", "debitamount_{$i}", "creditaccount_{$i}", "creditamount_{$i}"];
             foreach ($fields as $field) {
                 $prev = $prevresponse[$field] ?? '';
                 $new = $newresponse[$field] ?? '';
@@ -253,7 +253,7 @@ class qtype_buchungssatz_question extends question_graded_automatically {
      * @return float The fraction of correctness (0 to 1).
      */
     protected function calculate_fraction(array $response): float {
-        $scorer = new \qtype_buchungssatz\scorer(
+        $scorer = new \qtype_accounting\scorer(
             $this->extraentrydeduction,
             (bool)$this->allornothinggrading,
             $this->numberformat
@@ -299,19 +299,19 @@ class qtype_buchungssatz_question extends question_graded_automatically {
             $this->dropdownseed = (int) $seed;
         } else {
             // Fallback for attempts started before this feature.
-            $this->dropdownseed = crc32('buchungssatz_' . $this->id);
+            $this->dropdownseed = crc32('accounting_' . $this->id);
         }
     }
 
     /**
-     * Get all unique correct account IDs from all entries (both soll and haben).
+     * Get all unique correct account IDs from all entries (both debit and credit).
      *
      * @return array List of unique account ID integers.
      */
     public function get_all_correct_account_ids(): array {
         $ids = [];
         foreach ($this->entries as $entry) {
-            foreach (['sollkontoid', 'habenkontoid'] as $field) {
+            foreach (['debitaccountid', 'creditaccountid'] as $field) {
                 $val = (int)($entry[$field] ?? 0);
                 if ($val > 0) {
                     $ids[$val] = true;

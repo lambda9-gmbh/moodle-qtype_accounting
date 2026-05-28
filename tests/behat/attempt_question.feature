@@ -1,4 +1,4 @@
-@qtype @qtype_buchungssatz
+@qtype @qtype_accounting
 Feature: Attempt Buchungssatz questions
   As a student
   I need to answer accounting entry questions
@@ -24,7 +24,7 @@ Feature: Attempt Buchungssatz questions
   Scenario: Student can see Buchungssatz question in preview
     Given the following "questions" exist:
       | questioncategory | qtype        | name            | questiontext                                   |
-      | Test questions   | buchungssatz | Simple Question | A customer pays 1000 EUR in cash for services. |
+      | Test questions   | accounting | Simple Question | A customer pays 1000 EUR in cash for services. |
     And I am on the "Simple Question" "core_question > preview" page logged in as "teacher1"
     Then I should see "A customer pays 1000 EUR in cash for services."
     And I should see "Debit"
@@ -34,7 +34,7 @@ Feature: Attempt Buchungssatz questions
   Scenario: Question displays correctly in quiz
     Given the following "questions" exist:
       | questioncategory | qtype        | name            | questiontext                                   |
-      | Test questions   | buchungssatz | Quiz Question   | Record this transaction: Cash sale of 500 EUR. |
+      | Test questions   | accounting | Quiz Question   | Record this transaction: Cash sale of 500 EUR. |
     And the following "activities" exist:
       | activity | name   | course | idnumber |
       | quiz     | Quiz 1 | C1     | quiz1    |
@@ -51,17 +51,17 @@ Feature: Attempt Buchungssatz questions
   Scenario: Student can add additional entry rows
     Given the following "questions" exist:
       | questioncategory | qtype        | name            | questiontext                  |
-      | Test questions   | buchungssatz | Multi Question  | Record multiple transactions. |
+      | Test questions   | accounting | Multi Question  | Record multiple transactions. |
     And I am on the "Multi Question" "core_question > preview" page logged in as "teacher1"
     Then I should see "Add Debit Entry"
     When I click on "Add Debit Entry" "button"
-    Then ".buchungssatz-entry-row" "css_element" should exist
+    Then ".accounting-entry-row" "css_element" should exist
 
   @javascript
   Scenario: Question shows Per and an labels
     Given the following "questions" exist:
       | questioncategory | qtype        | name            | questiontext        |
-      | Test questions   | buchungssatz | Label Question  | Test Per/an labels. |
+      | Test questions   | accounting | Label Question  | Test Per/an labels. |
     And I am on the "Label Question" "core_question > preview" page logged in as "teacher1"
     Then I should see "Per"
     And I should see "to"
@@ -69,19 +69,19 @@ Feature: Attempt Buchungssatz questions
   @javascript
   Scenario: Preview fill in correct response works
     Given the following "questions" exist:
-      | questioncategory | qtype        | name            | questiontext                | sollkonto | sollbetrag | habenkonto | habenbetrag |
-      | Test questions   | buchungssatz | Fill Question   | Test fill correct response. | 1200      | 1000       | 8400       | 1000        |
+      | questioncategory | qtype        | name            | questiontext                | debitaccount | debitamount | creditaccount | creditamount |
+      | Test questions   | accounting | Fill Question   | Test fill correct response. | 1200      | 1000       | 8400       | 1000        |
     And I am on the "Fill Question" "core_question > preview" page logged in as "teacher1"
     When I press "Fill in correct responses"
     # Use CSS selectors for the input fields since exact field names vary
-    Then "input[name*='sollkonto_0'][value='1200']" "css_element" should exist
-    And "input[name*='habenkonto_0'][value='8400']" "css_element" should exist
+    Then "input[name*='debitaccount_0'][value='1200']" "css_element" should exist
+    And "input[name*='creditaccount_0'][value='8400']" "css_element" should exist
 
   @javascript
   Scenario: Student can complete a quiz attempt
     Given the following "questions" exist:
-      | questioncategory | qtype        | name            | questiontext   | sollkonto | sollbetrag | habenkonto | habenbetrag |
-      | Test questions   | buchungssatz | Complete Quiz   | Complete test. | 1200      | 100        | 8400       | 100         |
+      | questioncategory | qtype        | name            | questiontext   | debitaccount | debitamount | creditaccount | creditamount |
+      | Test questions   | accounting | Complete Quiz   | Complete test. | 1200      | 100        | 8400       | 100         |
     And the following "activities" exist:
       | activity | name   | course | idnumber |
       | quiz     | Quiz 1 | C1     | quiz1    |
@@ -91,10 +91,10 @@ Feature: Attempt Buchungssatz questions
     When I am on the "Quiz 1" "mod_quiz > View" page logged in as "student1"
     And I press "Attempt quiz"
     # Fill in the account fields using CSS selectors
-    And I set the field with xpath "//input[contains(@name,'sollkonto_0')]" to "1200"
-    And I set the field with xpath "//input[contains(@name,'sollbetrag_0')]" to "100"
-    And I set the field with xpath "//input[contains(@name,'habenkonto_0')]" to "8400"
-    And I set the field with xpath "//input[contains(@name,'habenbetrag_0')]" to "100"
+    And I set the field with xpath "//input[contains(@name,'debitaccount_0')]" to "1200"
+    And I set the field with xpath "//input[contains(@name,'debitamount_0')]" to "100"
+    And I set the field with xpath "//input[contains(@name,'creditaccount_0')]" to "8400"
+    And I set the field with xpath "//input[contains(@name,'creditamount_0')]" to "100"
     And I press "Finish attempt ..."
     And I press "Submit all and finish"
     And I click on "Submit all and finish" "button" in the "Submit all your answers and finish?" "dialogue"

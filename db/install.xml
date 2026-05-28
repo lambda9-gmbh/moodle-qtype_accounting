@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" PATH="question/type/buchungssatz/db" VERSION="20240101" COMMENT="XMLDB file for Buchungssatz question type" xsi:noNamespaceSchemaLocation="../../../../lib/xmldb/xmldb.xsd">
+<XMLDB xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" PATH="question/type/accounting/db" VERSION="20240101" COMMENT="XMLDB file for Buchungssatz question type" xsi:noNamespaceSchemaLocation="../../../../lib/xmldb/xmldb.xsd">
   <TABLES>
-    <TABLE NAME="qtype_buchungssatz_options" COMMENT="Options for Buchungssatz questions">
+    <TABLE NAME="qtype_accounting_options" COMMENT="Options for Buchungssatz questions">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
@@ -19,19 +19,19 @@
       </KEYS>
     </TABLE>
 
-    <TABLE NAME="qtype_buchungssatz_entries" COMMENT="Correct answer entries for Buchungssatz questions">
+    <TABLE NAME="qtype_accounting_entries" COMMENT="Correct answer entries for Buchungssatz questions">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
         <FIELD NAME="sortorder" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Order of the entry"/>
-        <FIELD NAME="sollkontoid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Foreign key to accounts.id for debit account"/>
-        <FIELD NAME="sollbetrag" TYPE="number" LENGTH="15" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Debit amount"/>
-        <FIELD NAME="habenkontoid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Foreign key to accounts.id for credit account"/>
-        <FIELD NAME="habenbetrag" TYPE="number" LENGTH="15" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Credit amount"/>
-        <FIELD NAME="weight_sollkonto" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Weight for debit account"/>
-        <FIELD NAME="weight_sollbetrag" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Weight for debit amount"/>
-        <FIELD NAME="weight_habenkonto" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Weight for credit account"/>
-        <FIELD NAME="weight_habenbetrag" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Weight for credit amount"/>
+        <FIELD NAME="debitaccountid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Foreign key to accounts.id for debit account"/>
+        <FIELD NAME="debitamount" TYPE="number" LENGTH="15" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Debit amount"/>
+        <FIELD NAME="creditaccountid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Foreign key to accounts.id for credit account"/>
+        <FIELD NAME="creditamount" TYPE="number" LENGTH="15" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Credit amount"/>
+        <FIELD NAME="weight_debitaccount" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Weight for debit account"/>
+        <FIELD NAME="weight_debitamount" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Weight for debit amount"/>
+        <FIELD NAME="weight_creditaccount" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Weight for credit account"/>
+        <FIELD NAME="weight_creditamount" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Weight for credit amount"/>
         <FIELD NAME="explanation" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Teacher explanation for this entry"/>
       </FIELDS>
       <KEYS>
@@ -43,7 +43,7 @@
       </INDEXES>
     </TABLE>
 
-    <TABLE NAME="qtype_buchungssatz_accounts" COMMENT="Chart of accounts for Buchungssatz questions">
+    <TABLE NAME="qtype_accounting_accounts" COMMENT="Chart of accounts for Buchungssatz questions">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="chartid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Chart of accounts group ID"/>
@@ -59,7 +59,7 @@
       </INDEXES>
     </TABLE>
 
-    <TABLE NAME="qtype_buchungssatz_charts" COMMENT="Chart of accounts definitions">
+    <TABLE NAME="qtype_accounting_charts" COMMENT="Chart of accounts definitions">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Name of the chart of accounts (Liste)"/>

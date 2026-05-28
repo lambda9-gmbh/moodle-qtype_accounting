@@ -15,9 +15,9 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Restore routines for qtype_buchungssatz.
+ * Restore routines for qtype_accounting.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -26,13 +26,13 @@
  * Restore plugin class that provides the necessary information to restore Buchungssatz questions.
  *
  * Collects chart data in instance variables, then creates everything in
- * process_buchungssatz_options() which runs after chart elements due to XML ordering.
+ * process_accounting_options() which runs after chart elements due to XML ordering.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
+class restore_qtype_accounting_plugin extends restore_qtype_plugin {
     /** @var string Chart name from the backup XML. */
     protected $chartname = '';
 
@@ -51,19 +51,19 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
         $paths = [];
 
         // Chart data (processed first in XML order).
-        $elepath = $this->get_pathfor('/buchungssatz_chart');
-        $paths[] = new restore_path_element('buchungssatz_chart', $elepath);
+        $elepath = $this->get_pathfor('/accounting_chart');
+        $paths[] = new restore_path_element('accounting_chart', $elepath);
 
-        $elepath = $this->get_pathfor('/buchungssatz_chart/chart_accounts/chart_account');
-        $paths[] = new restore_path_element('buchungssatz_chart_account', $elepath);
+        $elepath = $this->get_pathfor('/accounting_chart/chart_accounts/chart_account');
+        $paths[] = new restore_path_element('accounting_chart_account', $elepath);
 
         // Options (processed after chart data).
-        $elepath = $this->get_pathfor('/buchungssatz_options');
-        $paths[] = new restore_path_element('buchungssatz_options', $elepath);
+        $elepath = $this->get_pathfor('/accounting_options');
+        $paths[] = new restore_path_element('accounting_options', $elepath);
 
         // Entries.
-        $elepath = $this->get_pathfor('/buchungssatz_entries/entry');
-        $paths[] = new restore_path_element('buchungssatz_entry', $elepath);
+        $elepath = $this->get_pathfor('/accounting_entries/entry');
+        $paths[] = new restore_path_element('accounting_entry', $elepath);
 
         return $paths;
     }
@@ -73,7 +73,7 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
      *
      * @param array $data The chart data from backup.
      */
-    public function process_buchungssatz_chart($data) {
+    public function process_accounting_chart($data) {
         $data = (object) $data;
         $this->chartname = $data->name ?? '';
         $this->chartaccounts = [];
@@ -84,7 +84,7 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
      *
      * @param array $data The account data from backup.
      */
-    public function process_buchungssatz_chart_account($data) {
+    public function process_accounting_chart_account($data) {
         $data = (object) $data;
         $this->chartaccounts[] = $data;
     }
@@ -97,7 +97,7 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
      *
      * @param array $data The options data from backup.
      */
-    public function process_buchungssatz_options($data) {
+    public function process_accounting_options($data) {
         global $DB;
 
         $data = (object) $data;
@@ -118,7 +118,7 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
         $data->chartofaccountsid = $this->resolve_chart();
 
         unset($data->id);
-        $DB->insert_record('qtype_buchungssatz_options', $data);
+        $DB->insert_record('qtype_accounting_options', $data);
     }
 
     /**
@@ -129,7 +129,7 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
      *
      * @param array $data The entry data from backup.
      */
-    public function process_buchungssatz_entry($data) {
+    public function process_accounting_entry($data) {
         global $DB;
 
         $data = (object) $data;
@@ -144,7 +144,7 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
         $this->normalize_legacy_entry_fields($data);
         $this->resolve_entry_account_ids($data);
 
-        $DB->insert_record('qtype_buchungssatz_entries', $data);
+        $DB->insert_record('qtype_accounting_entries', $data);
     }
 
     /**
@@ -162,7 +162,7 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
      * @param \stdClass $data Entry data, modified in place.
      */
     protected function default_entry_weights(\stdClass $data): void {
-        foreach (['weight_sollkonto', 'weight_sollbetrag', 'weight_habenkonto', 'weight_habenbetrag'] as $field) {
+        foreach (['weight_debitaccount', 'weight_debitamount', 'weight_creditaccount', 'weight_creditamount'] as $field) {
             if (!isset($data->$field)) {
                 $data->$field = 1;
             }
@@ -182,18 +182,18 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
     }
 
     /**
-     * Convert legacy name-based account fields (sollkonto/habenkonto) to ID-based fields.
+     * Convert legacy name-based account fields (debitaccount/creditaccount) to ID-based fields.
      *
      * @param \stdClass $data Entry data, modified in place.
      */
     protected function resolve_entry_account_ids(\stdClass $data): void {
-        if (isset($data->sollkonto) && !isset($data->sollkontoid)) {
-            $data->sollkontoid = $this->resolve_account_name_to_id($data->sollkonto, $data->questionid);
-            unset($data->sollkonto);
+        if (isset($data->debitaccount) && !isset($data->debitaccountid)) {
+            $data->debitaccountid = $this->resolve_account_name_to_id($data->debitaccount, $data->questionid);
+            unset($data->debitaccount);
         }
-        if (isset($data->habenkonto) && !isset($data->habenkontoid)) {
-            $data->habenkontoid = $this->resolve_account_name_to_id($data->habenkonto, $data->questionid);
-            unset($data->habenkonto);
+        if (isset($data->creditaccount) && !isset($data->creditaccountid)) {
+            $data->creditaccountid = $this->resolve_account_name_to_id($data->creditaccount, $data->questionid);
+            unset($data->creditaccount);
         }
     }
 
@@ -234,7 +234,7 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
         }
 
         // Try to find an existing matching chart in the target course context.
-        $chartid = \qtype_buchungssatz\chart_manager::find_matching_chart_in_context(
+        $chartid = \qtype_accounting\chart_manager::find_matching_chart_in_context(
             $this->chartname,
             $contextid,
             $accountsbyname
@@ -242,9 +242,9 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
 
         if (!$chartid) {
             // Create new chart + accounts.
-            $chartid = \qtype_buchungssatz\chart_manager::create_chart($this->chartname, $contextid);
+            $chartid = \qtype_accounting\chart_manager::create_chart($this->chartname, $contextid);
             foreach ($this->chartaccounts as $acc) {
-                \qtype_buchungssatz\account_manager::add(
+                \qtype_accounting\account_manager::add(
                     $chartid,
                     $acc->accountname,
                     $acc->sortorder ?? 0
@@ -274,13 +274,13 @@ class restore_qtype_buchungssatz_plugin extends restore_qtype_plugin {
             return null;
         }
 
-        $options = $DB->get_record('qtype_buchungssatz_options', ['questionid' => $questionid]);
+        $options = $DB->get_record('qtype_accounting_options', ['questionid' => $questionid]);
         if (!$options || !$options->chartofaccountsid) {
             return null;
         }
 
         $account = $DB->get_record(
-            'qtype_buchungssatz_accounts',
+            'qtype_accounting_accounts',
             ['chartid' => $options->chartofaccountsid, 'accountname' => $accountname]
         );
 

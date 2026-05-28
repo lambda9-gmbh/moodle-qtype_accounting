@@ -17,12 +17,12 @@
 /**
  * Feedback rendering for the Buchungssatz question type.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace qtype_buchungssatz;
+namespace qtype_accounting;
 
 /**
  * Renders the feedback summary alert from a feedback array produced by
@@ -31,7 +31,7 @@ namespace qtype_buchungssatz;
  * Kept separate from feedback_calculator so the calculator stays focused on
  * pure aggregation/comparison and this class on HTML output.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -46,7 +46,7 @@ class feedback_renderer {
      * @return string The HTML for the feedback summary.
      */
     public function render(array $feedback): string {
-        $html = \html_writer::start_div('buchungssatz-feedback-summary mt-3');
+        $html = \html_writer::start_div('accounting-feedback-summary mt-3');
         if ($feedback['all_correct']) {
             $html .= $this->all_correct_alert();
         } else {
@@ -68,7 +68,7 @@ class feedback_renderer {
     protected function all_correct_alert(): string {
         return \html_writer::tag(
             'div',
-            '<i class="fa fa-check-circle"></i> ' . get_string('allcorrect', 'qtype_buchungssatz'),
+            '<i class="fa fa-check-circle"></i> ' . get_string('allcorrect', 'qtype_accounting'),
             ['class' => 'alert alert-success']
         );
     }
@@ -96,7 +96,7 @@ class feedback_renderer {
     protected function side_messages(array $feedback, string $side): array {
         $status = $feedback[$side . '_status'];
         if ($status === 'incorrect') {
-            return [get_string($side . 'incorrect', 'qtype_buchungssatz')];
+            return [get_string($side . 'incorrect', 'qtype_accounting')];
         }
         if ($status !== 'partial') {
             return [];
@@ -104,7 +104,7 @@ class feedback_renderer {
         $key = !empty($feedback['has_extra_' . $side])
             ? $side . 'hasextraaccounts'
             : $side . 'partiallyincorrect';
-        return [get_string($key, 'qtype_buchungssatz')];
+        return [get_string($key, 'qtype_accounting')];
     }
 
     /**

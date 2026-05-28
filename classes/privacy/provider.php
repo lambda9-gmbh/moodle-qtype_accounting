@@ -15,14 +15,14 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Privacy provider for qtype_buchungssatz.
+ * Privacy provider for qtype_accounting.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace qtype_buchungssatz\privacy;
+namespace qtype_accounting\privacy;
 
 use core_privacy\local\metadata\collection;
 use core_privacy\local\metadata\provider as metadata_provider;
@@ -39,7 +39,7 @@ use core_privacy\local\request\userlist;
  * The charts table stores a usermodified field to track who last modified
  * a chart of accounts.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -52,11 +52,11 @@ class provider implements core_userlist_provider, metadata_provider, plugin_prov
      */
     public static function get_metadata(collection $collection): collection {
         $collection->add_database_table(
-            'qtype_buchungssatz_charts',
+            'qtype_accounting_charts',
             [
-                'usermodified' => 'privacy:metadata:qtype_buchungssatz_charts:usermodified',
+                'usermodified' => 'privacy:metadata:qtype_accounting_charts:usermodified',
             ],
-            'privacy:metadata:qtype_buchungssatz_charts'
+            'privacy:metadata:qtype_accounting_charts'
         );
 
         return $collection;
@@ -73,7 +73,7 @@ class provider implements core_userlist_provider, metadata_provider, plugin_prov
 
         $sql = "SELECT c.id
                   FROM {context} c
-                  JOIN {qtype_buchungssatz_charts} ch ON ch.contextid = c.id
+                  JOIN {qtype_accounting_charts} ch ON ch.contextid = c.id
                  WHERE ch.usermodified = :userid";
         $contextlist->add_from_sql($sql, ['userid' => $userid]);
 
@@ -89,7 +89,7 @@ class provider implements core_userlist_provider, metadata_provider, plugin_prov
         $context = $userlist->get_context();
 
         $sql = "SELECT ch.usermodified
-                  FROM {qtype_buchungssatz_charts} ch
+                  FROM {qtype_accounting_charts} ch
                  WHERE ch.contextid = :contextid";
         $userlist->add_from_sql('usermodified', $sql, ['contextid' => $context->id]);
     }
@@ -112,7 +112,7 @@ class provider implements core_userlist_provider, metadata_provider, plugin_prov
     public static function delete_data_for_all_users_in_context(\context $context): void {
         global $DB;
 
-        $DB->set_field('qtype_buchungssatz_charts', 'usermodified', 0, ['contextid' => $context->id]);
+        $DB->set_field('qtype_accounting_charts', 'usermodified', 0, ['contextid' => $context->id]);
     }
 
     /**
@@ -126,7 +126,7 @@ class provider implements core_userlist_provider, metadata_provider, plugin_prov
         $userid = $contextlist->get_user()->id;
         foreach ($contextlist->get_contexts() as $context) {
             $DB->set_field_select(
-                'qtype_buchungssatz_charts',
+                'qtype_accounting_charts',
                 'usermodified',
                 0,
                 'contextid = :contextid AND usermodified = :userid',
@@ -154,7 +154,7 @@ class provider implements core_userlist_provider, metadata_provider, plugin_prov
         $inparams['contextid'] = $context->id;
 
         $DB->set_field_select(
-            'qtype_buchungssatz_charts',
+            'qtype_accounting_charts',
             'usermodified',
             0,
             "contextid = :contextid AND usermodified {$insql}",

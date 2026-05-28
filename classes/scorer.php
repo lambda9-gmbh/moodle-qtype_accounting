@@ -17,21 +17,21 @@
 /**
  * Aggregated weighted scoring for the Buchungssatz question type.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace qtype_buchungssatz;
+namespace qtype_accounting;
 
 /**
  * Computes the fraction of correctness for a student response.
  *
- * Extracted from {@see \qtype_buchungssatz_question} so the question class can stay
+ * Extracted from {@see \qtype_accounting_question} so the question class can stay
  * focused on Moodle question API hooks. The scorer is stateless aside from the
  * extra-entry deduction and all-or-nothing toggles passed in at construction time.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -64,7 +64,7 @@ class scorer {
      * and all-or-nothing toggle.
      *
      * @param array $correctentries The teacher's correct entries.
-     * @param array $response The student response (flat sollkonto_i/sollbetrag_i/... keys).
+     * @param array $response The student response (flat debitaccount_i/debitamount_i/... keys).
      * @return float Fraction in [0, 1].
      */
     public function calculate_fraction(array $correctentries, array $response): float {
@@ -164,20 +164,20 @@ class scorer {
             $this->add_to_side(
                 $aggregated,
                 'debit',
-                (int)($entry['sollkontoid'] ?? 0),
-                (float)($entry['sollbetrag'] ?? 0),
+                (int)($entry['debitaccountid'] ?? 0),
+                (float)($entry['debitamount'] ?? 0),
                 $includeweights,
-                (int)($entry['weight_sollkonto'] ?? 1),
-                (int)($entry['weight_sollbetrag'] ?? 1)
+                (int)($entry['weight_debitaccount'] ?? 1),
+                (int)($entry['weight_debitamount'] ?? 1)
             );
             $this->add_to_side(
                 $aggregated,
                 'credit',
-                (int)($entry['habenkontoid'] ?? 0),
-                (float)($entry['habenbetrag'] ?? 0),
+                (int)($entry['creditaccountid'] ?? 0),
+                (float)($entry['creditamount'] ?? 0),
                 $includeweights,
-                (int)($entry['weight_habenkonto'] ?? 1),
-                (int)($entry['weight_habenbetrag'] ?? 1)
+                (int)($entry['weight_creditaccount'] ?? 1),
+                (int)($entry['weight_creditamount'] ?? 1)
             );
         }
         return $aggregated;
@@ -232,26 +232,26 @@ class scorer {
      * Parse a Moodle response array into structured entry rows.
      *
      * @param array $response The response data.
-     * @return array Entry rows in {sollkontoid, sollbetrag, habenkontoid, habenbetrag} shape.
+     * @return array Entry rows in {debitaccountid, debitamount, creditaccountid, creditamount} shape.
      */
     public function parse_response(array $response): array {
         $entries = [];
         $max = $this->max_response_index($response);
         for ($i = 0; $i <= $max; $i++) {
-            $sollkontoid = (int)($response["sollkonto_{$i}"] ?? 0);
-            $habenkontoid = (int)($response["habenkonto_{$i}"] ?? 0);
-            if ($sollkontoid <= 0 && $habenkontoid <= 0) {
+            $debitaccountid = (int)($response["debitaccount_{$i}"] ?? 0);
+            $creditaccountid = (int)($response["creditaccount_{$i}"] ?? 0);
+            if ($debitaccountid <= 0 && $creditaccountid <= 0) {
                 continue;
             }
             $entries[] = [
-                'sollkontoid' => $sollkontoid,
-                'sollbetrag' => amount_helper::parse_amount(
-                    $response["sollbetrag_{$i}"] ?? '',
+                'debitaccountid' => $debitaccountid,
+                'debitamount' => amount_helper::parse_amount(
+                    $response["debitamount_{$i}"] ?? '',
                     $this->numberformat
                 ),
-                'habenkontoid' => $habenkontoid,
-                'habenbetrag' => amount_helper::parse_amount(
-                    $response["habenbetrag_{$i}"] ?? '',
+                'creditaccountid' => $creditaccountid,
+                'creditamount' => amount_helper::parse_amount(
+                    $response["creditamount_{$i}"] ?? '',
                     $this->numberformat
                 ),
             ];
@@ -260,7 +260,7 @@ class scorer {
     }
 
     /**
-     * Find the highest entry index N present in the response (sollkonto_N / habenkonto_N).
+     * Find the highest entry index N present in the response (debitaccount_N / creditaccount_N).
      *
      * @param array $response The response data.
      * @return int Highest index, or -1 if none.
@@ -268,7 +268,7 @@ class scorer {
     protected function max_response_index(array $response): int {
         $maxindex = -1;
         foreach (array_keys($response) as $key) {
-            if (preg_match('/^(?:sollkonto|habenkonto)_(\d+)$/', $key, $matches)) {
+            if (preg_match('/^(?:debitaccount|creditaccount)_(\d+)$/', $key, $matches)) {
                 $maxindex = max($maxindex, (int)$matches[1]);
             }
         }

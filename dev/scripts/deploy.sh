@@ -19,11 +19,11 @@ echo -e "${YELLOW}Deploying moodle-qtype_accounting to ${REMOTE_HOST}:${REMOTE_D
 # (respects .gitattributes export-ignore, so dev/ tooling is excluded).
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 echo "Packaging plugin from ${REPO_ROOT}..."
-TMP_ARCHIVE="$(mktemp -t buchungssatz.XXXXXX.tar)"
-git -C "$REPO_ROOT" archive --format=tar --prefix=buchungssatz/ HEAD -o "$TMP_ARCHIVE"
+TMP_ARCHIVE="$(mktemp -t accounting.XXXXXX.tar)"
+git -C "$REPO_ROOT" archive --format=tar --prefix=accounting/ HEAD -o "$TMP_ARCHIVE"
 echo "Copying plugin archive to remote..."
-scp "$TMP_ARCHIVE" "${REMOTE_HOST}:${REMOTE_DIR}/buchungssatz.tar"
-ssh "${REMOTE_HOST}" "cd ${REMOTE_DIR} && rm -rf buchungssatz && tar -xf buchungssatz.tar && rm buchungssatz.tar"
+scp "$TMP_ARCHIVE" "${REMOTE_HOST}:${REMOTE_DIR}/accounting.tar"
+ssh "${REMOTE_HOST}" "cd ${REMOTE_DIR} && rm -rf accounting && tar -xf accounting.tar && rm accounting.tar"
 rm -f "$TMP_ARCHIVE"
 
 # Restart docker compose on remote server

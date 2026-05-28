@@ -195,7 +195,7 @@ Access:
 - Moodle: http://localhost:8080
 - phpMyAdmin: http://localhost:8081
 
-The plugin is mounted at `/var/www/html/question/type/buchungssatz`.
+The plugin is mounted at `/var/www/html/question/type/accounting`.
 
 View PHP logs:
 ```bash

@@ -15,21 +15,21 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Account manager for charts of accounts in qtype_buchungssatz.
+ * Account manager for charts of accounts in qtype_accounting.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace qtype_buchungssatz;
+namespace qtype_accounting;
 
 /**
  * CRUD operations for individual accounts inside a chart of accounts.
  *
  * Chart-level operations live in {@see chart_manager}.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -50,7 +50,7 @@ class account_manager {
         $account->accountname = $accountname;
         $account->sortorder = $sortorder;
 
-        return $DB->insert_record('qtype_buchungssatz_accounts', $account);
+        return $DB->insert_record('qtype_accounting_accounts', $account);
     }
 
     /**
@@ -63,7 +63,7 @@ class account_manager {
     public static function get_for_chart(int $chartid, string $sort = 'accountname'): array {
         global $DB;
         return $DB->get_records(
-            'qtype_buchungssatz_accounts',
+            'qtype_accounting_accounts',
             ['chartid' => $chartid],
             $sort
         );
@@ -79,10 +79,10 @@ class account_manager {
     public static function update(int $accountid, string $accountname): bool {
         global $DB;
 
-        $account = $DB->get_record('qtype_buchungssatz_accounts', ['id' => $accountid], '*', MUST_EXIST);
+        $account = $DB->get_record('qtype_accounting_accounts', ['id' => $accountid], '*', MUST_EXIST);
         $account->accountname = $accountname;
 
-        return $DB->update_record('qtype_buchungssatz_accounts', $account);
+        return $DB->update_record('qtype_accounting_accounts', $account);
     }
 
     /**
@@ -93,7 +93,7 @@ class account_manager {
      */
     public static function delete(int $accountid): bool {
         global $DB;
-        return $DB->delete_records('qtype_buchungssatz_accounts', ['id' => $accountid]);
+        return $DB->delete_records('qtype_accounting_accounts', ['id' => $accountid]);
     }
 
     /**
@@ -120,7 +120,7 @@ class account_manager {
 
         // Get existing accounts to avoid duplicates.
         $existing = $DB->get_records_menu(
-            'qtype_buchungssatz_accounts',
+            'qtype_accounting_accounts',
             ['chartid' => $chartid],
             '',
             'accountname, id'

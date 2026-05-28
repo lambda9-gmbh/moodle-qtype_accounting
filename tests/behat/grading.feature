@@ -1,4 +1,4 @@
-@qtype @qtype_buchungssatz
+@qtype @qtype_accounting
 Feature: Grading Buchungssatz questions
   As a student
   I need to answer accounting entry questions and receive accurate grades
@@ -23,8 +23,8 @@ Feature: Grading Buchungssatz questions
   @javascript
   Scenario: Correct answer receives full marks
     Given the following "questions" exist:
-      | questioncategory | qtype        | name           | questiontext               | sollkonto | sollbetrag | habenkonto | habenbetrag |
-      | Test questions   | buchungssatz | Simple booking | Record a cash sale of 500. | 1200      | 500        | 8400       | 500         |
+      | questioncategory | qtype        | name           | questiontext               | debitaccount | debitamount | creditaccount | creditamount |
+      | Test questions   | accounting | Simple booking | Record a cash sale of 500. | 1200      | 500        | 8400       | 500         |
     And the following "activities" exist:
       | activity | name   | course | idnumber |
       | quiz     | Quiz 1 | C1     | quiz1    |
@@ -33,10 +33,10 @@ Feature: Grading Buchungssatz questions
       | Simple booking | 1    |
     When I am on the "Quiz 1" "mod_quiz > View" page logged in as "student1"
     And I press "Attempt quiz"
-    And I set the field with xpath "//input[contains(@name,'sollkonto_0')]" to "1200"
-    And I set the field with xpath "//input[contains(@name,'sollbetrag_0')]" to "500"
-    And I set the field with xpath "//input[contains(@name,'habenkonto_0')]" to "8400"
-    And I set the field with xpath "//input[contains(@name,'habenbetrag_0')]" to "500"
+    And I set the field with xpath "//input[contains(@name,'debitaccount_0')]" to "1200"
+    And I set the field with xpath "//input[contains(@name,'debitamount_0')]" to "500"
+    And I set the field with xpath "//input[contains(@name,'creditaccount_0')]" to "8400"
+    And I set the field with xpath "//input[contains(@name,'creditamount_0')]" to "500"
     And I press "Finish attempt ..."
     And I press "Submit all and finish"
     And I click on "Submit all and finish" "button" in the "Submit all your answers and finish?" "dialogue"
@@ -46,8 +46,8 @@ Feature: Grading Buchungssatz questions
   @javascript
   Scenario: Completely wrong answer receives zero marks
     Given the following "questions" exist:
-      | questioncategory | qtype        | name           | questiontext               | sollkonto | sollbetrag | habenkonto | habenbetrag |
-      | Test questions   | buchungssatz | Simple booking | Record a cash sale of 500. | 1200      | 500        | 8400       | 500         |
+      | questioncategory | qtype        | name           | questiontext               | debitaccount | debitamount | creditaccount | creditamount |
+      | Test questions   | accounting | Simple booking | Record a cash sale of 500. | 1200      | 500        | 8400       | 500         |
     And the following "activities" exist:
       | activity | name   | course | idnumber |
       | quiz     | Quiz 1 | C1     | quiz1    |
@@ -56,10 +56,10 @@ Feature: Grading Buchungssatz questions
       | Simple booking | 1    |
     When I am on the "Quiz 1" "mod_quiz > View" page logged in as "student1"
     And I press "Attempt quiz"
-    And I set the field with xpath "//input[contains(@name,'sollkonto_0')]" to "9999"
-    And I set the field with xpath "//input[contains(@name,'sollbetrag_0')]" to "999"
-    And I set the field with xpath "//input[contains(@name,'habenkonto_0')]" to "9998"
-    And I set the field with xpath "//input[contains(@name,'habenbetrag_0')]" to "999"
+    And I set the field with xpath "//input[contains(@name,'debitaccount_0')]" to "9999"
+    And I set the field with xpath "//input[contains(@name,'debitamount_0')]" to "999"
+    And I set the field with xpath "//input[contains(@name,'creditaccount_0')]" to "9998"
+    And I set the field with xpath "//input[contains(@name,'creditamount_0')]" to "999"
     And I press "Finish attempt ..."
     And I press "Submit all and finish"
     And I click on "Submit all and finish" "button" in the "Submit all your answers and finish?" "dialogue"
@@ -69,8 +69,8 @@ Feature: Grading Buchungssatz questions
   @javascript
   Scenario: Partially correct answer shows partial credit feedback
     Given the following "questions" exist:
-      | questioncategory | qtype        | name           | questiontext               | sollkonto | sollbetrag | habenkonto | habenbetrag |
-      | Test questions   | buchungssatz | Simple booking | Record a cash sale of 500. | 1200      | 500        | 8400       | 500         |
+      | questioncategory | qtype        | name           | questiontext               | debitaccount | debitamount | creditaccount | creditamount |
+      | Test questions   | accounting | Simple booking | Record a cash sale of 500. | 1200      | 500        | 8400       | 500         |
     And the following "activities" exist:
       | activity | name   | course | idnumber |
       | quiz     | Quiz 1 | C1     | quiz1    |
@@ -80,10 +80,10 @@ Feature: Grading Buchungssatz questions
     When I am on the "Quiz 1" "mod_quiz > View" page logged in as "student1"
     And I press "Attempt quiz"
     # Correct debit, wrong credit
-    And I set the field with xpath "//input[contains(@name,'sollkonto_0')]" to "1200"
-    And I set the field with xpath "//input[contains(@name,'sollbetrag_0')]" to "500"
-    And I set the field with xpath "//input[contains(@name,'habenkonto_0')]" to "9999"
-    And I set the field with xpath "//input[contains(@name,'habenbetrag_0')]" to "500"
+    And I set the field with xpath "//input[contains(@name,'debitaccount_0')]" to "1200"
+    And I set the field with xpath "//input[contains(@name,'debitamount_0')]" to "500"
+    And I set the field with xpath "//input[contains(@name,'creditaccount_0')]" to "9999"
+    And I set the field with xpath "//input[contains(@name,'creditamount_0')]" to "500"
     And I press "Finish attempt ..."
     And I press "Submit all and finish"
     And I click on "Submit all and finish" "button" in the "Submit all your answers and finish?" "dialogue"
@@ -113,8 +113,8 @@ Feature: Grading Buchungssatz questions
   @javascript
   Scenario: Question preview shows correct answer structure
     Given the following "questions" exist:
-      | questioncategory | qtype        | name           | questiontext               | sollkonto | sollbetrag | habenkonto | habenbetrag |
-      | Test questions   | buchungssatz | Preview test   | Record a cash sale of 500. | 1200      | 500        | 8400       | 500         |
+      | questioncategory | qtype        | name           | questiontext               | debitaccount | debitamount | creditaccount | creditamount |
+      | Test questions   | accounting | Preview test   | Record a cash sale of 500. | 1200      | 500        | 8400       | 500         |
     And I am on the "Preview test" "core_question > preview" page logged in as "teacher1"
     Then I should see "Debit"
     And I should see "Credit"
@@ -124,8 +124,8 @@ Feature: Grading Buchungssatz questions
   @javascript
   Scenario: Correct answer display shows proper format
     Given the following "questions" exist:
-      | questioncategory | qtype        | name           | questiontext               | sollkonto | sollbetrag | habenkonto | habenbetrag |
-      | Test questions   | buchungssatz | Format test    | Record a cash sale of 500. | 1200      | 500        | 8400       | 500         |
+      | questioncategory | qtype        | name           | questiontext               | debitaccount | debitamount | creditaccount | creditamount |
+      | Test questions   | accounting | Format test    | Record a cash sale of 500. | 1200      | 500        | 8400       | 500         |
     And I am on the "Format test" "core_question > preview" page logged in as "teacher1"
     When I press "Fill in correct responses"
     And I press "Submit and finish"

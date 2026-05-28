@@ -14,24 +14,24 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
-namespace qtype_buchungssatz;
+namespace qtype_accounting;
 
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
-require_once($CFG->dirroot . '/question/type/buchungssatz/questiontype.php');
+require_once($CFG->dirroot . '/question/type/accounting/questiontype.php');
 require_once($CFG->dirroot . '/question/format/xml/format.php');
 
 /**
- * Unit tests for qtype_buchungssatz (question type class).
+ * Unit tests for qtype_accounting (question type class).
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers     \qtype_buchungssatz
+ * @covers     \qtype_accounting
  */
 class questiontype_test extends \advanced_testcase {
-    /** @var \qtype_buchungssatz The question type instance. */
+    /** @var \qtype_accounting The question type instance. */
     protected $qtype;
 
     /**
@@ -39,14 +39,14 @@ class questiontype_test extends \advanced_testcase {
      */
     protected function setUp(): void {
         parent::setUp();
-        $this->qtype = new \qtype_buchungssatz();
+        $this->qtype = new \qtype_accounting();
     }
 
     /**
      * Test the name method.
      */
     public function test_name(): void {
-        $this->assertEquals('buchungssatz', $this->qtype->name());
+        $this->assertEquals('accounting', $this->qtype->name());
     }
 
     /**
@@ -70,7 +70,7 @@ class questiontype_test extends \advanced_testcase {
     public function test_extra_question_fields(): void {
         $fields = $this->qtype->extra_question_fields();
 
-        $this->assertContains('qtype_buchungssatz_options', $fields);
+        $this->assertContains('qtype_accounting_options', $fields);
         $this->assertContains('chartofaccountsid', $fields);
         $this->assertContains('allowmultipleentries', $fields);
         $this->assertContains('maxentries', $fields);
@@ -93,51 +93,51 @@ class questiontype_test extends \advanced_testcase {
             'generalfeedback' => ['text' => '', 'format' => FORMAT_HTML],
             'defaultmark' => 1,
             'penalty' => 0.3333333,
-            'qtype' => 'buchungssatz',
+            'qtype' => 'accounting',
             'chartofaccountsid' => 123,
             'allowmultipleentries' => 1,
             'maxentries' => 10,
-            'sollkonto' => ['1200', '1000'],
-            'sollbetrag' => [1000.00, 500.00],
-            'habenkonto' => ['8400', '8400'],
-            'habenbetrag' => [1000.00, 500.00],
-            'weight_sollkonto' => [2, 1],
-            'weight_sollbetrag' => [1, 1],
-            'weight_habenkonto' => [2, 1],
-            'weight_habenbetrag' => [1, 1],
+            'debitaccount' => ['1200', '1000'],
+            'debitamount' => [1000.00, 500.00],
+            'creditaccount' => ['8400', '8400'],
+            'creditamount' => [1000.00, 500.00],
+            'weight_debitaccount' => [2, 1],
+            'weight_debitamount' => [1, 1],
+            'weight_creditaccount' => [2, 1],
+            'weight_creditamount' => [1, 1],
             'explanation' => ['First entry', 'Second entry'],
         ];
 
         // Save the question.
-        $question = $generator->create_question('buchungssatz', null, $questiondata);
+        $question = $generator->create_question('accounting', null, $questiondata);
 
         // Reload the question.
         $loadedquestion = \question_bank::load_question($question->id);
 
-        $this->assertEquals('buchungssatz', $loadedquestion->qtype->name());
+        $this->assertEquals('accounting', $loadedquestion->qtype->name());
         $this->assertEquals(123, $loadedquestion->chartofaccountsid);
         $this->assertEquals(1, $loadedquestion->allowmultipleentries);
         $this->assertEquals(10, $loadedquestion->maxentries);
         $this->assertCount(2, $loadedquestion->entries);
 
-        // Check first entry. Account fields use the sollkontoid / habenkontoid keys
+        // Check first entry. Account fields use the debitaccountid / creditaccountid keys
         // (the entries array mirrors the DB column names).
-        $this->assertEquals(1200, $loadedquestion->entries[0]['sollkontoid']);
-        $this->assertEquals(1000.00, $loadedquestion->entries[0]['sollbetrag']);
-        $this->assertEquals(8400, $loadedquestion->entries[0]['habenkontoid']);
-        $this->assertEquals(1000.00, $loadedquestion->entries[0]['habenbetrag']);
-        $this->assertEquals(2, $loadedquestion->entries[0]['weight_sollkonto']);
-        $this->assertEquals(1, $loadedquestion->entries[0]['weight_sollbetrag']);
-        $this->assertEquals(2, $loadedquestion->entries[0]['weight_habenkonto']);
-        $this->assertEquals(1, $loadedquestion->entries[0]['weight_habenbetrag']);
+        $this->assertEquals(1200, $loadedquestion->entries[0]['debitaccountid']);
+        $this->assertEquals(1000.00, $loadedquestion->entries[0]['debitamount']);
+        $this->assertEquals(8400, $loadedquestion->entries[0]['creditaccountid']);
+        $this->assertEquals(1000.00, $loadedquestion->entries[0]['creditamount']);
+        $this->assertEquals(2, $loadedquestion->entries[0]['weight_debitaccount']);
+        $this->assertEquals(1, $loadedquestion->entries[0]['weight_debitamount']);
+        $this->assertEquals(2, $loadedquestion->entries[0]['weight_creditaccount']);
+        $this->assertEquals(1, $loadedquestion->entries[0]['weight_creditamount']);
 
         // Check second entry.
-        $this->assertEquals(1000, $loadedquestion->entries[1]['sollkontoid']);
-        $this->assertEquals(500.00, $loadedquestion->entries[1]['sollbetrag']);
-        $this->assertEquals(1, $loadedquestion->entries[1]['weight_sollkonto']);
-        $this->assertEquals(1, $loadedquestion->entries[1]['weight_sollbetrag']);
-        $this->assertEquals(1, $loadedquestion->entries[1]['weight_habenkonto']);
-        $this->assertEquals(1, $loadedquestion->entries[1]['weight_habenbetrag']);
+        $this->assertEquals(1000, $loadedquestion->entries[1]['debitaccountid']);
+        $this->assertEquals(500.00, $loadedquestion->entries[1]['debitamount']);
+        $this->assertEquals(1, $loadedquestion->entries[1]['weight_debitaccount']);
+        $this->assertEquals(1, $loadedquestion->entries[1]['weight_debitamount']);
+        $this->assertEquals(1, $loadedquestion->entries[1]['weight_creditaccount']);
+        $this->assertEquals(1, $loadedquestion->entries[1]['weight_creditamount']);
     }
 
     /**
@@ -159,33 +159,33 @@ class questiontype_test extends \advanced_testcase {
             'generalfeedback' => ['text' => '', 'format' => FORMAT_HTML],
             'defaultmark' => 1,
             'penalty' => 0.3333333,
-            'qtype' => 'buchungssatz',
+            'qtype' => 'accounting',
             'chartofaccountsid' => 0,
             'allowmultipleentries' => 0,
             'maxentries' => 1,
-            'sollkonto' => ['1200'],
-            'sollbetrag' => [1000.00],
-            'habenkonto' => ['8400'],
-            'habenbetrag' => [1000.00],
-            'weight_sollkonto' => [1],
-            'weight_sollbetrag' => [1],
-            'weight_habenkonto' => [1],
-            'weight_habenbetrag' => [1],
+            'debitaccount' => ['1200'],
+            'debitamount' => [1000.00],
+            'creditaccount' => ['8400'],
+            'creditamount' => [1000.00],
+            'weight_debitaccount' => [1],
+            'weight_debitamount' => [1],
+            'weight_creditaccount' => [1],
+            'weight_creditamount' => [1],
             'explanation' => [''],
         ];
 
-        $question = $generator->create_question('buchungssatz', null, $questiondata);
+        $question = $generator->create_question('accounting', null, $questiondata);
 
         // Verify records exist.
-        $this->assertTrue($DB->record_exists('qtype_buchungssatz_options', ['questionid' => $question->id]));
-        $this->assertTrue($DB->record_exists('qtype_buchungssatz_entries', ['questionid' => $question->id]));
+        $this->assertTrue($DB->record_exists('qtype_accounting_options', ['questionid' => $question->id]));
+        $this->assertTrue($DB->record_exists('qtype_accounting_entries', ['questionid' => $question->id]));
 
         // Delete the question.
         question_delete_question($question->id);
 
         // Verify records are deleted.
-        $this->assertFalse($DB->record_exists('qtype_buchungssatz_options', ['questionid' => $question->id]));
-        $this->assertFalse($DB->record_exists('qtype_buchungssatz_entries', ['questionid' => $question->id]));
+        $this->assertFalse($DB->record_exists('qtype_accounting_options', ['questionid' => $question->id]));
+        $this->assertFalse($DB->record_exists('qtype_accounting_entries', ['questionid' => $question->id]));
     }
 
     /**
@@ -206,25 +206,25 @@ class questiontype_test extends \advanced_testcase {
             'generalfeedback' => ['text' => '', 'format' => FORMAT_HTML],
             'defaultmark' => 1,
             'penalty' => 0.3333333,
-            'qtype' => 'buchungssatz',
+            'qtype' => 'accounting',
             'chartofaccountsid' => 0,
             'allowmultipleentries' => 1,
             'maxentries' => 5,
-            'sollkonto' => ['1200', '', '1000'],
-            'sollbetrag' => [1000.00, 0, 500.00],
-            'habenkonto' => ['8400', '', '8400'], // Second entry is empty.
-            'habenbetrag' => [1000.00, 0, 500.00],
-            'weight_sollkonto' => [1, 1, 1],
-            'weight_sollbetrag' => [1, 1, 1],
-            'weight_habenkonto' => [1, 1, 1],
-            'weight_habenbetrag' => [1, 1, 1],
+            'debitaccount' => ['1200', '', '1000'],
+            'debitamount' => [1000.00, 0, 500.00],
+            'creditaccount' => ['8400', '', '8400'], // Second entry is empty.
+            'creditamount' => [1000.00, 0, 500.00],
+            'weight_debitaccount' => [1, 1, 1],
+            'weight_debitamount' => [1, 1, 1],
+            'weight_creditaccount' => [1, 1, 1],
+            'weight_creditamount' => [1, 1, 1],
             'explanation' => ['', '', ''],
         ];
 
-        $question = $generator->create_question('buchungssatz', null, $questiondata);
+        $question = $generator->create_question('accounting', null, $questiondata);
 
         // Should only have 2 entries (skipping the empty one).
-        $entries = $DB->get_records('qtype_buchungssatz_entries', ['questionid' => $question->id]);
+        $entries = $DB->get_records('qtype_accounting_entries', ['questionid' => $question->id]);
         $this->assertCount(2, $entries);
     }
 
@@ -245,7 +245,7 @@ class questiontype_test extends \advanced_testcase {
      * Constructs the nested array format that Moodle's XML parser produces.
      *
      * @param array $options Options fields (chartofaccountsid, allowmultipleentries, etc).
-     * @param array $entries Array of entry arrays with sollkonto, sollbetrag, etc.
+     * @param array $entries Array of entry arrays with debitaccount, debitamount, etc.
      * @param array|null $chartdata Chart data with 'chartname' and 'accounts' keys.
      * @return array The XML data structure.
      */
@@ -255,7 +255,7 @@ class questiontype_test extends \advanced_testcase {
         ?array $chartdata = null
     ): array {
         $data = [
-            '@' => ['type' => 'buchungssatz'],
+            '@' => ['type' => 'accounting'],
             '#' => [
                 'name' => [0 => ['#' => ['text' => [0 => ['#' => 'Imported Question']]]]],
                 'questiontext' => [0 => [
@@ -340,26 +340,26 @@ class questiontype_test extends \advanced_testcase {
             'generalfeedback' => ['text' => '', 'format' => FORMAT_HTML],
             'defaultmark' => 1,
             'penalty' => 0.3333333,
-            'qtype' => 'buchungssatz',
+            'qtype' => 'accounting',
             'chartofaccountsid' => $chartid,
             'allowmultipleentries' => 1,
             'maxentries' => 5,
-            'sollkonto' => [$bankid, $kasseid],
-            'sollbetrag' => [500.00, 300.00],
-            'habenkonto' => [$erloeseid, $erloeseid],
-            'habenbetrag' => [500.00, 300.00],
-            'weight_sollkonto' => [2, 1],
-            'weight_sollbetrag' => [1, 1],
-            'weight_habenkonto' => [2, 1],
-            'weight_habenbetrag' => [1, 1],
+            'debitaccount' => [$bankid, $kasseid],
+            'debitamount' => [500.00, 300.00],
+            'creditaccount' => [$erloeseid, $erloeseid],
+            'creditamount' => [500.00, 300.00],
+            'weight_debitaccount' => [2, 1],
+            'weight_debitamount' => [1, 1],
+            'weight_creditaccount' => [2, 1],
+            'weight_creditamount' => [1, 1],
         ];
 
-        $question = $generator->create_question('buchungssatz', null, $questiondata);
+        $question = $generator->create_question('accounting', null, $questiondata);
 
         // Load question data with options.
         $questionobj = new \stdClass();
         $questionobj->id = $question->id;
-        $questionobj->qtype = 'buchungssatz';
+        $questionobj->qtype = 'accounting';
         $this->qtype->get_question_options($questionobj);
 
         $format = new \qformat_xml();
@@ -370,12 +370,12 @@ class questiontype_test extends \advanced_testcase {
         $this->assertStringContainsString('<entry>', $xml);
 
         // Verify first entry data. Export resolves account IDs to names.
-        $this->assertStringContainsString('<sollkonto>1200 Bank</sollkonto>', $xml);
-        $this->assertStringContainsString('<habenkonto>8400 Erloese</habenkonto>', $xml);
-        $this->assertStringContainsString('<weight_sollkonto>2</weight_sollkonto>', $xml);
+        $this->assertStringContainsString('<debitaccount>1200 Bank</debitaccount>', $xml);
+        $this->assertStringContainsString('<creditaccount>8400 Erloese</creditaccount>', $xml);
+        $this->assertStringContainsString('<weight_debitaccount>2</weight_debitaccount>', $xml);
 
         // Verify second entry data.
-        $this->assertStringContainsString('<sollkonto>1000 Kasse</sollkonto>', $xml);
+        $this->assertStringContainsString('<debitaccount>1000 Kasse</debitaccount>', $xml);
     }
 
     /**
@@ -400,25 +400,25 @@ class questiontype_test extends \advanced_testcase {
             'generalfeedback' => ['text' => '', 'format' => FORMAT_HTML],
             'defaultmark' => 1,
             'penalty' => 0.3333333,
-            'qtype' => 'buchungssatz',
+            'qtype' => 'accounting',
             'chartofaccountsid' => $chartid,
             'allowmultipleentries' => 0,
             'maxentries' => 1,
-            'sollkonto' => ['1200 Bank'],
-            'sollbetrag' => [1000.00],
-            'habenkonto' => ['8400 Erlöse'],
-            'habenbetrag' => [1000.00],
-            'weight_sollkonto' => [1],
-            'weight_sollbetrag' => [1],
-            'weight_habenkonto' => [1],
-            'weight_habenbetrag' => [1],
+            'debitaccount' => ['1200 Bank'],
+            'debitamount' => [1000.00],
+            'creditaccount' => ['8400 Erlöse'],
+            'creditamount' => [1000.00],
+            'weight_debitaccount' => [1],
+            'weight_debitamount' => [1],
+            'weight_creditaccount' => [1],
+            'weight_creditamount' => [1],
         ];
 
-        $question = $generator->create_question('buchungssatz', null, $questiondata);
+        $question = $generator->create_question('accounting', null, $questiondata);
 
         $questionobj = new \stdClass();
         $questionobj->id = $question->id;
-        $questionobj->qtype = 'buchungssatz';
+        $questionobj->qtype = 'accounting';
         $this->qtype->get_question_options($questionobj);
 
         $format = new \qformat_xml();
@@ -447,25 +447,25 @@ class questiontype_test extends \advanced_testcase {
             'generalfeedback' => ['text' => '', 'format' => FORMAT_HTML],
             'defaultmark' => 1,
             'penalty' => 0.3333333,
-            'qtype' => 'buchungssatz',
+            'qtype' => 'accounting',
             'chartofaccountsid' => 0,
             'allowmultipleentries' => 0,
             'maxentries' => 1,
-            'sollkonto' => ['1200'],
-            'sollbetrag' => [1000.00],
-            'habenkonto' => ['8400'],
-            'habenbetrag' => [1000.00],
-            'weight_sollkonto' => [1],
-            'weight_sollbetrag' => [1],
-            'weight_habenkonto' => [1],
-            'weight_habenbetrag' => [1],
+            'debitaccount' => ['1200'],
+            'debitamount' => [1000.00],
+            'creditaccount' => ['8400'],
+            'creditamount' => [1000.00],
+            'weight_debitaccount' => [1],
+            'weight_debitamount' => [1],
+            'weight_creditaccount' => [1],
+            'weight_creditamount' => [1],
         ];
 
-        $question = $generator->create_question('buchungssatz', null, $questiondata);
+        $question = $generator->create_question('accounting', null, $questiondata);
 
         $questionobj = new \stdClass();
         $questionobj->id = $question->id;
-        $questionobj->qtype = 'buchungssatz';
+        $questionobj->qtype = 'accounting';
         $this->qtype->get_question_options($questionobj);
 
         $format = new \qformat_xml();
@@ -485,26 +485,26 @@ class questiontype_test extends \advanced_testcase {
             [
                 [
                     'sortorder' => '0',
-                    'sollkonto' => '1200',
-                    'sollbetrag' => '500',
-                    'habenkonto' => '8400',
-                    'habenbetrag' => '500',
-                    'weight_sollkonto' => '2',
-                    'weight_sollbetrag' => '1',
-                    'weight_habenkonto' => '2',
-                    'weight_habenbetrag' => '1',
+                    'debitaccount' => '1200',
+                    'debitamount' => '500',
+                    'creditaccount' => '8400',
+                    'creditamount' => '500',
+                    'weight_debitaccount' => '2',
+                    'weight_debitamount' => '1',
+                    'weight_creditaccount' => '2',
+                    'weight_creditamount' => '1',
                     'explanation' => '',
                 ],
                 [
                     'sortorder' => '1',
-                    'sollkonto' => '1000',
-                    'sollbetrag' => '300',
-                    'habenkonto' => '8400',
-                    'habenbetrag' => '300',
-                    'weight_sollkonto' => '1',
-                    'weight_sollbetrag' => '1',
-                    'weight_habenkonto' => '1',
-                    'weight_habenbetrag' => '1',
+                    'debitaccount' => '1000',
+                    'debitamount' => '300',
+                    'creditaccount' => '8400',
+                    'creditamount' => '300',
+                    'weight_debitaccount' => '1',
+                    'weight_debitamount' => '1',
+                    'weight_creditaccount' => '1',
+                    'weight_creditamount' => '1',
                     'explanation' => '',
                 ],
             ]
@@ -516,20 +516,20 @@ class questiontype_test extends \advanced_testcase {
         $qo = $this->qtype->import_from_xml($data, $defaultquestion, $format);
 
         $this->assertNotFalse($qo);
-        $this->assertEquals('buchungssatz', $qo->qtype);
+        $this->assertEquals('accounting', $qo->qtype);
 
         // Verify entries were parsed.
-        $this->assertCount(2, $qo->sollkonto);
-        $this->assertEquals('1200', $qo->sollkonto[0]);
-        $this->assertEquals('500', $qo->sollbetrag[0]);
-        $this->assertEquals('8400', $qo->habenkonto[0]);
-        $this->assertEquals('500', $qo->habenbetrag[0]);
-        $this->assertEquals(2, $qo->weight_sollkonto[0]);
-        $this->assertEquals(1, $qo->weight_sollbetrag[0]);
+        $this->assertCount(2, $qo->debitaccount);
+        $this->assertEquals('1200', $qo->debitaccount[0]);
+        $this->assertEquals('500', $qo->debitamount[0]);
+        $this->assertEquals('8400', $qo->creditaccount[0]);
+        $this->assertEquals('500', $qo->creditamount[0]);
+        $this->assertEquals(2, $qo->weight_debitaccount[0]);
+        $this->assertEquals(1, $qo->weight_debitamount[0]);
 
         // Verify second entry.
-        $this->assertEquals('1000', $qo->sollkonto[1]);
-        $this->assertEquals('300', $qo->sollbetrag[1]);
+        $this->assertEquals('1000', $qo->debitaccount[1]);
+        $this->assertEquals('300', $qo->debitamount[1]);
     }
 
     /**
@@ -550,14 +550,14 @@ class questiontype_test extends \advanced_testcase {
             [
                 [
                     'sortorder' => '0',
-                    'sollkonto' => '1200 Bank',
-                    'sollbetrag' => '1000',
-                    'habenkonto' => '8400 Erlöse',
-                    'habenbetrag' => '1000',
-                    'weight_sollkonto' => '1',
-                    'weight_sollbetrag' => '1',
-                    'weight_habenkonto' => '1',
-                    'weight_habenbetrag' => '1',
+                    'debitaccount' => '1200 Bank',
+                    'debitamount' => '1000',
+                    'creditaccount' => '8400 Erlöse',
+                    'creditamount' => '1000',
+                    'weight_debitaccount' => '1',
+                    'weight_debitamount' => '1',
+                    'weight_creditaccount' => '1',
+                    'weight_creditamount' => '1',
                     'explanation' => '',
                 ],
             ],
@@ -607,14 +607,14 @@ class questiontype_test extends \advanced_testcase {
             [
                 [
                     'sortorder' => '0',
-                    'sollkonto' => '1200',
-                    'sollbetrag' => '1000',
-                    'habenkonto' => '8400',
-                    'habenbetrag' => '1000',
-                    'weight_sollkonto' => '1',
-                    'weight_sollbetrag' => '1',
-                    'weight_habenkonto' => '1',
-                    'weight_habenbetrag' => '1',
+                    'debitaccount' => '1200',
+                    'debitamount' => '1000',
+                    'creditaccount' => '8400',
+                    'creditamount' => '1000',
+                    'weight_debitaccount' => '1',
+                    'weight_debitamount' => '1',
+                    'weight_creditaccount' => '1',
+                    'weight_creditamount' => '1',
                     'explanation' => '',
                 ],
             ],
@@ -633,7 +633,7 @@ class questiontype_test extends \advanced_testcase {
     }
 
     /**
-     * Test import_from_xml returns false for non-buchungssatz questions.
+     * Test import_from_xml returns false for non-accounting questions.
      */
     public function test_import_from_xml_wrong_type(): void {
         $data = [
@@ -662,9 +662,9 @@ class questiontype_test extends \advanced_testcase {
         $qo = $this->qtype->import_from_xml($data, $defaultquestion, $format);
 
         $this->assertNotFalse($qo);
-        $this->assertEmpty($qo->sollkonto);
-        $this->assertEmpty($qo->habenkonto);
-        $this->assertEmpty($qo->sollbetrag);
-        $this->assertEmpty($qo->habenbetrag);
+        $this->assertEmpty($qo->debitaccount);
+        $this->assertEmpty($qo->creditaccount);
+        $this->assertEmpty($qo->debitamount);
+        $this->assertEmpty($qo->creditamount);
     }
 }

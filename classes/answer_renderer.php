@@ -17,12 +17,12 @@
 /**
  * Correct-answer display for the Buchungssatz question type.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace qtype_buchungssatz;
+namespace qtype_accounting;
 
 /**
  * Builds the table that shows the correct answer in review mode.
@@ -31,7 +31,7 @@ namespace qtype_buchungssatz;
  * student-facing question form. The renderer's public correct_response()
  * method delegates here.
  *
- * @package    qtype_buchungssatz
+ * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -47,9 +47,9 @@ class answer_renderer {
         if (empty($question->entries)) {
             return '';
         }
-        $html = \html_writer::start_div('buchungssatz-correct-response');
-        $html .= \html_writer::tag('p', get_string('correctansweris', 'qtype_buchungssatz'));
-        $html .= \html_writer::start_tag('table', ['class' => 'table table-bordered buchungssatz-solution']);
+        $html = \html_writer::start_div('accounting-correct-response');
+        $html .= \html_writer::tag('p', get_string('correctansweris', 'qtype_accounting'));
+        $html .= \html_writer::start_tag('table', ['class' => 'table table-bordered accounting-solution']);
         $html .= $this->render_header();
         $html .= $this->render_body($question, $accounts);
         $html .= \html_writer::end_tag('table');
@@ -58,21 +58,21 @@ class answer_renderer {
     }
 
     /**
-     * Render the two-row table header (Soll/Haben + Account/Amount).
+     * Render the two-row table header (Debit/Credit + Account/Amount).
      *
      * @return string The HTML for thead.
      */
     protected function render_header(): string {
         $html = \html_writer::start_tag('thead');
         $html .= \html_writer::start_tag('tr');
-        $html .= \html_writer::tag('th', get_string('soll', 'qtype_buchungssatz'), ['colspan' => 2]);
-        $html .= \html_writer::tag('th', get_string('haben', 'qtype_buchungssatz'), ['colspan' => 2]);
+        $html .= \html_writer::tag('th', get_string('debit', 'qtype_accounting'), ['colspan' => 2]);
+        $html .= \html_writer::tag('th', get_string('credit', 'qtype_accounting'), ['colspan' => 2]);
         $html .= \html_writer::end_tag('tr');
         $html .= \html_writer::start_tag('tr');
-        $html .= \html_writer::tag('th', get_string('account', 'qtype_buchungssatz'));
-        $html .= \html_writer::tag('th', get_string('amount', 'qtype_buchungssatz'));
-        $html .= \html_writer::tag('th', get_string('account', 'qtype_buchungssatz'));
-        $html .= \html_writer::tag('th', get_string('amount', 'qtype_buchungssatz'));
+        $html .= \html_writer::tag('th', get_string('account', 'qtype_accounting'));
+        $html .= \html_writer::tag('th', get_string('amount', 'qtype_accounting'));
+        $html .= \html_writer::tag('th', get_string('account', 'qtype_accounting'));
+        $html .= \html_writer::tag('th', get_string('amount', 'qtype_accounting'));
         $html .= \html_writer::end_tag('tr');
         $html .= \html_writer::end_tag('thead');
         return $html;
@@ -88,13 +88,13 @@ class answer_renderer {
     protected function render_body(object $question, array $accounts): string {
         $numberformat = $question->numberformat ?? 'de';
         $labels = [
-            'soll' => [
-                'account' => get_string('sollkonto', 'qtype_buchungssatz'),
-                'amount' => get_string('sollbetrag', 'qtype_buchungssatz'),
+            'debit' => [
+                'account' => get_string('debitaccount', 'qtype_accounting'),
+                'amount' => get_string('debitamount', 'qtype_accounting'),
             ],
-            'haben' => [
-                'account' => get_string('habenkonto', 'qtype_buchungssatz'),
-                'amount' => get_string('habenbetrag', 'qtype_buchungssatz'),
+            'credit' => [
+                'account' => get_string('creditaccount', 'qtype_accounting'),
+                'amount' => get_string('creditamount', 'qtype_accounting'),
             ],
         ];
         $html = \html_writer::start_tag('tbody');
@@ -111,35 +111,35 @@ class answer_renderer {
     /**
      * Render a single data row showing the correct entry.
      *
-     * @param array $entry The entry record (sollkontoid/sollbetrag/habenkontoid/habenbetrag).
+     * @param array $entry The entry record (debitaccountid/debitamount/creditaccountid/creditamount).
      * @param array $accounts Account records keyed by ID.
      * @param string $numberformat 'de' or 'us'.
      * @param array $labels The per-cell data-label strings.
      * @return string The HTML for one tr.
      */
     protected function render_entry_row(array $entry, array $accounts, string $numberformat, array $labels): string {
-        $sollname = entry_helper::format_account_display_by_id((int)($entry['sollkontoid'] ?? 0), $accounts);
-        $habenname = entry_helper::format_account_display_by_id((int)($entry['habenkontoid'] ?? 0), $accounts);
+        $debitname = entry_helper::format_account_display_by_id((int)($entry['debitaccountid'] ?? 0), $accounts);
+        $creditname = entry_helper::format_account_display_by_id((int)($entry['creditaccountid'] ?? 0), $accounts);
         $html = \html_writer::start_tag('tr');
         $html .= \html_writer::tag(
             'td',
-            s($sollname),
-            ['data-label' => $labels['soll']['account'], 'style' => 'text-align: start;']
+            s($debitname),
+            ['data-label' => $labels['debit']['account'], 'style' => 'text-align: start;']
         );
         $html .= \html_writer::tag(
             'td',
-            $this->format_amount($entry['sollbetrag'], $numberformat),
-            ['data-label' => $labels['soll']['amount'], 'style' => 'text-align: end;']
+            $this->format_amount($entry['debitamount'], $numberformat),
+            ['data-label' => $labels['debit']['amount'], 'style' => 'text-align: end;']
         );
         $html .= \html_writer::tag(
             'td',
-            s($habenname),
-            ['data-label' => $labels['haben']['account'], 'style' => 'text-align: start;']
+            s($creditname),
+            ['data-label' => $labels['credit']['account'], 'style' => 'text-align: start;']
         );
         $html .= \html_writer::tag(
             'td',
-            $this->format_amount($entry['habenbetrag'], $numberformat),
-            ['data-label' => $labels['haben']['amount'], 'style' => 'text-align: end;']
+            $this->format_amount($entry['creditamount'], $numberformat),
+            ['data-label' => $labels['credit']['amount'], 'style' => 'text-align: end;']
         );
         $html .= \html_writer::end_tag('tr');
         return $html;
@@ -152,8 +152,8 @@ class answer_renderer {
      * @return string The HTML for the explanation tr.
      */
     protected function render_explanation_row(string $explanation): string {
-        $body = \html_writer::tag('strong', get_string('explanation', 'qtype_buchungssatz') . ': ') . s($explanation);
-        $html = \html_writer::start_tag('tr', ['class' => 'buchungssatz-explanation-row']);
+        $body = \html_writer::tag('strong', get_string('explanation', 'qtype_accounting') . ': ') . s($explanation);
+        $html = \html_writer::start_tag('tr', ['class' => 'accounting-explanation-row']);
         $html .= \html_writer::tag(
             'td',
             $body,
