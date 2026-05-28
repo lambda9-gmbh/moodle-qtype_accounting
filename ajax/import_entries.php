@@ -45,7 +45,7 @@ require_capability('moodle/question:add', $context);
 header('Content-Type: application/json');
 
 try {
-    $result = import_chart_from_csv($csvdata, $contextid);
+    $result = qtype_accounting_import_chart_from_csv($csvdata, $contextid);
     echo json_encode($result);
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
@@ -58,7 +58,7 @@ try {
  * @param int $contextid The course context ID to scope the chart to.
  * @return array Result with chart info and accounts.
  */
-function import_chart_from_csv(string $csvdata, int $contextid): array {
+function qtype_accounting_import_chart_from_csv(string $csvdata, int $contextid): array {
     global $DB;
 
     // Parse CSV to extract chart name and accounts.

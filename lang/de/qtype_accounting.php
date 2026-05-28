@@ -129,11 +129,6 @@ $string['privacy:metadata:qtype_accounting_charts:usermodified'] = 'Die ID des B
 // Berechtigungen.
 $string['accounting:managecharts'] = 'Kontenpläne verwalten';
 
-// Einstellungen.
-$string['settings'] = 'Buchungssatz-Einstellungen';
-$string['defaultchart'] = 'Standard-Kontenplan';
-$string['defaultchart_desc'] = 'Der Standard-Kontenplan für neue Fragen.';
-
 // Kontenplanverwaltung.
 $string['nocharts'] = 'Es wurden noch keine Kontenpläne erstellt.';
 $string['accounts'] = 'Konten';

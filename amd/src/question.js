@@ -30,7 +30,7 @@ let numberFormat = 'de';
 const decimalPlaces = 2;
 
 // CSS selector for entry rows in the student view.
-var ROW_SELECTOR = '.accounting-entry-row';
+var ROW_SELECTOR = '.qtype_accounting-entry-row';
 
 /**
  * Format all non-empty amount fields in a container.
@@ -38,7 +38,7 @@ var ROW_SELECTOR = '.accounting-entry-row';
  * @param {jQuery} container The question container.
  */
 function formatAllAmountFields(container) {
-    container.find('.accounting-amount-input').each(function () {
+    container.find('.qtype_accounting-amount-input').each(function () {
         var val = $(this).val();
         if (val !== '') {
             $(this).val(EntryUtils.formatNumber(val, numberFormat, decimalPlaces));
@@ -56,7 +56,7 @@ function formatAllAmountFields(container) {
  * @param {jQuery} container The question container.
  */
 function setupResponsiveWidth(container) {
-    var table = container.find('.accounting-student-table')[0];
+    var table = container.find('.qtype_accounting-student-table')[0];
     var containerEl = container[0];
     if (!table || !containerEl) {
         return;
@@ -130,13 +130,13 @@ function init(containerId) {
     let nextEntryIndex = parseInt(container.data('nextindex'), 10) || 1;
     const templateId = container.data('templateid');
     const template = templateId ? document.getElementById(templateId) : null;
-    const tbody = container.find('.accounting-entries')[0];
+    const tbody = container.find('.qtype_accounting-entries')[0];
 
     // Enable searchable dropdowns if Select2 is available (desktop only).
     // On mobile, native selects provide better UX.
     const isMobile = window.innerWidth <= 768;
     if (typeof $.fn.select2 !== 'undefined' && !isMobile) {
-        container.find('.accounting-account-select').select2({
+        container.find('.qtype_accounting-account-select').select2({
             placeholder: M.util.get_string('selectaccount', 'qtype_accounting'),
             allowClear: true,
             width: '100%',
@@ -153,7 +153,7 @@ function init(containerId) {
             return;
         }
         const index = match[1];
-        const row = $(this).closest('.accounting-entry-row');
+        const row = $(this).closest('.qtype_accounting-entry-row');
         const entryType = row.attr('data-entry-type');
         const creditInput = container.find('input[name$="creditamount_' + index + '"]');
 
@@ -164,7 +164,7 @@ function init(containerId) {
     });
 
     // Format amount fields on blur (delegated for cloned rows).
-    container.on('blur', '.accounting-amount-input', function () {
+    container.on('blur', '.qtype_accounting-amount-input', function () {
         const formatted = EntryUtils.formatNumber($(this).val(), numberFormat, decimalPlaces);
         $(this).val(formatted);
     });
@@ -184,25 +184,25 @@ function init(containerId) {
 
     // Add entry button handlers (using delegation so mobile view buttons also work).
     if (allowEdit) {
-        container.on('click', '.accounting-add-debit-entry', function () {
+        container.on('click', '.qtype_accounting-add-debit-entry', function () {
             nextEntryIndex = addEntry(container, template, tbody, nextEntryIndex, 'debit');
             MobileLayout.refreshMobileView(container);
         });
 
-        container.on('click', '.accounting-add-credit-entry', function () {
+        container.on('click', '.qtype_accounting-add-credit-entry', function () {
             nextEntryIndex = addEntry(container, template, tbody, nextEntryIndex, 'credit');
             MobileLayout.refreshMobileView(container);
         });
 
         // Delete debit button handler (using delegation for cloned rows and mobile cards).
-        container.on('click', '.accounting-delete-debit', function () {
+        container.on('click', '.qtype_accounting-delete-debit', function () {
             const entryIndex = $(this).data('entry');
             deleteEntrySide(container, entryIndex, 'debit');
             MobileLayout.refreshMobileView(container);
         });
 
         // Delete credit button handler (using delegation for cloned rows and mobile cards).
-        container.on('click', '.accounting-delete-credit', function () {
+        container.on('click', '.qtype_accounting-delete-credit', function () {
             const entryIndex = $(this).data('entry');
             deleteEntrySide(container, entryIndex, 'credit');
             MobileLayout.refreshMobileView(container);
@@ -303,8 +303,8 @@ function restoreEntryTypes(container) {
 function initSelect2OnRow(row) {
     const isMobile = window.innerWidth <= 768;
     if (typeof $.fn.select2 !== 'undefined' && !isMobile) {
-        row.find('.accounting-account-select').each(function () {
-            if (!$(this).closest('td').hasClass('accounting-hidden-cell') && !$(this).data('select2')) {
+        row.find('.qtype_accounting-account-select').each(function () {
+            if (!$(this).closest('td').hasClass('qtype_accounting-hidden-cell') && !$(this).data('select2')) {
                 $(this).select2({
                     placeholder: M.util.get_string('selectaccount', 'qtype_accounting'),
                     allowClear: true,
@@ -413,11 +413,11 @@ function deleteEntry(container, entryIndex) {
     if (entryRow.length > 0) {
         // Clear the fields.
         entryRow.find('select').val('');
-        entryRow.find('input.accounting-amount-input').val('');
+        entryRow.find('input.qtype_accounting-amount-input').val('');
 
         // Destroy Select2 if active.
         if (typeof $.fn.select2 !== 'undefined') {
-            entryRow.find('.accounting-account-select').each(function () {
+            entryRow.find('.qtype_accounting-account-select').each(function () {
                 if ($(this).data('select2')) {
                     $(this).select2('destroy');
                 }
@@ -432,7 +432,7 @@ function deleteEntry(container, entryIndex) {
         entryRow.css('display', 'none');
 
         // Also hide any associated explanation row.
-        entryRow.next('.accounting-explanation-row').css('display', 'none');
+        entryRow.next('.qtype_accounting-explanation-row').css('display', 'none');
 
         updateDeleteButtons(container);
         EntryUtils.updatePerLabels(container, ROW_SELECTOR);
@@ -487,11 +487,11 @@ function updateDeleteButtons(container) {
     });
 
     if (visibleRows.length <= 1) {
-        container.find('.accounting-delete-debit, .accounting-delete-credit').css('visibility', 'hidden');
+        container.find('.qtype_accounting-delete-debit, .qtype_accounting-delete-credit').css('visibility', 'hidden');
     } else {
         container.find(ROW_SELECTOR).each(function () {
             if ($(this).css('display') !== 'none') {
-                $(this).find('.accounting-delete-debit, .accounting-delete-credit').css('visibility', 'visible');
+                $(this).find('.qtype_accounting-delete-debit, .qtype_accounting-delete-credit').css('visibility', 'visible');
             }
         });
     }

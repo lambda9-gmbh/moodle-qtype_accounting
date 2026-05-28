@@ -233,7 +233,7 @@ class qtype_accounting_edit_form extends question_edit_form {
             'courseId' => $coursecontextid,
             'numberFormat' => $effectiveformat,
         ];
-        $mform->addElement('html', '<script type="application/json" id="accounting-editform-data">' .
+        $mform->addElement('html', '<script type="application/json" id="qtype_accounting-editform-data">' .
             json_encode($jsdata, JSON_HEX_TAG | JSON_HEX_AMP) . '</script>');
 
         $PAGE->requires->string_for_js('err_balancemismatch', 'qtype_accounting');

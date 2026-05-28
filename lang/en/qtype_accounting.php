@@ -129,11 +129,6 @@ $string['privacy:metadata:qtype_accounting_charts:usermodified'] = 'The ID of th
 // Capabilities.
 $string['accounting:managecharts'] = 'Manage charts of accounts';
 
-// Settings.
-$string['settings'] = 'Buchungssatz settings';
-$string['defaultchart'] = 'Default chart of accounts';
-$string['defaultchart_desc'] = 'The default chart of accounts to use for new questions.';
-
 // Chart management.
 $string['nocharts'] = 'No charts of accounts have been created yet.';
 $string['accounts'] = 'Accounts';

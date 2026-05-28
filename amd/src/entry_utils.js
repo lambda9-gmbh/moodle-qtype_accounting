@@ -26,7 +26,7 @@
 define(['jquery'], function ($) {
 
     // CSS class used to hide cells based on entry type.
-    var HIDDEN_CLASS = 'accounting-hidden-cell';
+    var HIDDEN_CLASS = 'qtype_accounting-hidden-cell';
 
     /**
      * Column indices for the 7-column entry table.

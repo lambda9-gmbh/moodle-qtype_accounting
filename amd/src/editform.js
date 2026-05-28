@@ -38,7 +38,7 @@ let numberFormatSelect = null;
 let initialChartId = '0';
 
 // CSS selector for entry rows in the edit form.
-var ROW_SELECTOR = '.accounting-entry-row';
+var ROW_SELECTOR = '.qtype_accounting-entry-row';
 
 /**
  * Initialize the edit form enhancements.
@@ -46,7 +46,7 @@ var ROW_SELECTOR = '.accounting-entry-row';
  */
 function init() {
     // Read configuration from script tag (preferred) or data attribute (fallback).
-    const dataElement = document.getElementById('accounting-editform-data');
+    const dataElement = document.getElementById('qtype_accounting-editform-data');
     let config = {};
     if (dataElement) {
         try {
@@ -155,7 +155,7 @@ function setupNumberFormatChangeHandler() {
             var placeholder = (fmt === 'us') ? '0.00' : '0,00';
 
             // Reformat all amount fields.
-            var amountFields = document.querySelectorAll('.accounting-debitamount, .accounting-creditamount');
+            var amountFields = document.querySelectorAll('.qtype_accounting-debitamount, .qtype_accounting-creditamount');
             amountFields.forEach(function (field) {
                 // Update placeholder.
                 field.placeholder = placeholder;
@@ -181,20 +181,20 @@ function setupDebitaccountChangeHandler() {
         if (!e.target || !e.target.classList) {
             return;
         }
-        if (e.target.classList.contains('accounting-debitaccount')) {
+        if (e.target.classList.contains('qtype_accounting-debitaccount')) {
             const index = e.target.getAttribute('data-index');
             updateDebitamountState(index);
             updateWeightStates(index);
             syncDisplayToHidden(index);
         }
         // Handle creditaccount changes to update weight states.
-        if (e.target.classList.contains('accounting-creditaccount')) {
+        if (e.target.classList.contains('qtype_accounting-creditaccount')) {
             const index = e.target.getAttribute('data-index');
             updateWeightStates(index);
             syncDisplayToHidden(index);
         }
         // Also sync weight fields on change.
-        if (e.target.classList.contains('accounting-weight')) {
+        if (e.target.classList.contains('qtype_accounting-weight')) {
             const index = e.target.getAttribute('data-index');
             syncDisplayToHidden(index);
         }
@@ -206,9 +206,9 @@ function setupDebitaccountChangeHandler() {
         if (!e.target || !e.target.classList) {
             return;
         }
-        if (e.target.classList.contains('accounting-debitamount') ||
-            e.target.classList.contains('accounting-creditamount') ||
-            e.target.classList.contains('accounting-weight')) {
+        if (e.target.classList.contains('qtype_accounting-debitamount') ||
+            e.target.classList.contains('qtype_accounting-creditamount') ||
+            e.target.classList.contains('qtype_accounting-weight')) {
             const index = e.target.getAttribute('data-index');
             syncDisplayToHidden(index);
         }
@@ -220,8 +220,8 @@ function setupDebitaccountChangeHandler() {
         if (!e.target || !e.target.classList) {
             return;
         }
-        if (e.target.classList.contains('accounting-debitamount') ||
-            e.target.classList.contains('accounting-creditamount')) {
+        if (e.target.classList.contains('qtype_accounting-debitamount') ||
+            e.target.classList.contains('qtype_accounting-creditamount')) {
             // Format the display value using the selected number format.
             const fmt = getNumberFormat();
             const formatted = EntryUtils.formatNumber(e.target.value, fmt, 2);
@@ -237,8 +237,8 @@ function setupDebitaccountChangeHandler() {
  * Setup add entry button handlers.
  */
 function setupAddEntryHandler() {
-    const addDebitButton = document.getElementById('accounting-add-debit-entry');
-    const addCreditButton = document.getElementById('accounting-add-credit-entry');
+    const addDebitButton = document.getElementById('qtype_accounting-add-debit-entry');
+    const addCreditButton = document.getElementById('qtype_accounting-add-credit-entry');
 
     if (addDebitButton) {
         addDebitButton.addEventListener('click', function (e) {
@@ -261,7 +261,7 @@ function setupAddEntryHandler() {
 function setupDeleteEntryHandler() {
     document.addEventListener('click', function (e) {
         // Handle delete debit button.
-        const deleteDebitBtn = e.target.closest('.accounting-delete-debit');
+        const deleteDebitBtn = e.target.closest('.qtype_accounting-delete-debit');
         if (deleteDebitBtn) {
             e.preventDefault();
             const index = deleteDebitBtn.getAttribute('data-index');
@@ -270,7 +270,7 @@ function setupDeleteEntryHandler() {
         }
 
         // Handle delete credit button.
-        const deleteCreditBtn = e.target.closest('.accounting-delete-credit');
+        const deleteCreditBtn = e.target.closest('.qtype_accounting-delete-credit');
         if (deleteCreditBtn) {
             e.preventDefault();
             const index = deleteCreditBtn.getAttribute('data-index');
@@ -288,7 +288,7 @@ function setupDeleteEntryHandler() {
  */
 function deleteEntrySide(index, side) {
     const entryRow = document.querySelector(ROW_SELECTOR + '[data-entry-index="' + index + '"]');
-    const weightRow = document.querySelector('.accounting-weight-row[data-entry-index="' + index + '"]');
+    const weightRow = document.querySelector('.qtype_accounting-weight-row[data-entry-index="' + index + '"]');
 
     if (!entryRow) {
         return;
@@ -387,8 +387,8 @@ function validateAccounts() {
         }
 
         var entryType = row.getAttribute('data-entry-type') || 'both';
-        var debitAccount = row.querySelector('.accounting-debitaccount');
-        var creditAccount = row.querySelector('.accounting-creditaccount');
+        var debitAccount = row.querySelector('.qtype_accounting-debitaccount');
+        var creditAccount = row.querySelector('.qtype_accounting-creditaccount');
 
         // Debit side is visible for 'debit' and 'both' entries.
         if (entryType === 'debit' || entryType === 'both') {
@@ -420,7 +420,7 @@ function validateAccounts() {
  */
 function showAccountError(field, stringKey) {
     var errorSpan = document.createElement('span');
-    errorSpan.className = 'accounting-account-error text-danger d-block mt-1';
+    errorSpan.className = 'qtype_accounting-account-error text-danger d-block mt-1';
     errorSpan.style.fontSize = '0.875rem';
     errorSpan.textContent = M.util.get_string(stringKey, 'qtype_accounting');
     field.parentNode.appendChild(errorSpan);
@@ -430,7 +430,7 @@ function showAccountError(field, stringKey) {
  * Clear all inline account validation errors.
  */
 function clearAccountErrors() {
-    var existing = document.querySelectorAll('.accounting-account-error');
+    var existing = document.querySelectorAll('.qtype_accounting-account-error');
     existing.forEach(function (el) {
         el.remove();
     });
@@ -455,8 +455,8 @@ function validateBalance() {
             return;
         }
 
-        var debitField = row.querySelector('.accounting-debitamount');
-        var creditField = row.querySelector('.accounting-creditamount');
+        var debitField = row.querySelector('.qtype_accounting-debitamount');
+        var creditField = row.querySelector('.qtype_accounting-creditamount');
 
         if (debitField && debitField.value) {
             var parsedDebit = parseFloat(EntryUtils.parseNumber(debitField.value));
@@ -486,12 +486,12 @@ function validateBalance() {
  */
 function showBalanceError() {
     clearBalanceError();
-    var table = document.querySelector('.accounting-edit-table');
+    var table = document.querySelector('.qtype_accounting-edit-table');
     if (!table) {
         return;
     }
     var errorDiv = document.createElement('div');
-    errorDiv.id = 'accounting-balance-error';
+    errorDiv.id = 'qtype_accounting-balance-error';
     errorDiv.className = 'alert alert-danger mt-2';
     errorDiv.setAttribute('role', 'alert');
     errorDiv.textContent = M.util.get_string('err_balancemismatch', 'qtype_accounting');
@@ -502,7 +502,7 @@ function showBalanceError() {
  * Clear the balance validation error if present.
  */
 function clearBalanceError() {
-    var existing = document.getElementById('accounting-balance-error');
+    var existing = document.getElementById('qtype_accounting-balance-error');
     if (existing) {
         existing.remove();
     }
@@ -524,7 +524,7 @@ function addEntryRow(entryType) {
 
         // Find the associated weight row.
         const index = incompleteRow.getAttribute('data-entry-index');
-        const weightRow = document.querySelector('.accounting-weight-row[data-entry-index="' + index + '"]');
+        const weightRow = document.querySelector('.qtype_accounting-weight-row[data-entry-index="' + index + '"]');
 
         // Remove hidden-cell classes from both rows.
         EntryUtils.applyEntryTypeVisibility(incompleteRow, 'both');
@@ -538,8 +538,8 @@ function addEntryRow(entryType) {
     }
 
     // No incomplete row to complete, so add a new row.
-    const template = document.getElementById('accounting-entry-template');
-    const tbody = document.getElementById('accounting-entries-body');
+    const template = document.getElementById('qtype_accounting-entry-template');
+    const tbody = document.getElementById('qtype_accounting-entries-body');
 
     if (!template || !tbody) {
         Log.error('Template or tbody not found', {template: template, tbody: tbody});
@@ -563,7 +563,7 @@ function addEntryRow(entryType) {
 
     // Set the entry type on the entry row.
     const entryRow = clone.querySelector(ROW_SELECTOR);
-    const weightRow = clone.querySelector('.accounting-weight-row');
+    const weightRow = clone.querySelector('.qtype_accounting-weight-row');
     if (entryRow) {
         entryRow.setAttribute('data-entry-type', entryType);
     }
@@ -621,7 +621,7 @@ function deleteEntryRow(index) {
     }
 
     const entryRow = document.querySelector(ROW_SELECTOR + '[data-entry-index="' + index + '"]');
-    const weightRow = document.querySelector('.accounting-weight-row[data-entry-index="' + index + '"]');
+    const weightRow = document.querySelector('.qtype_accounting-weight-row[data-entry-index="' + index + '"]');
 
     if (entryRow) {
         entryRow.remove();
@@ -646,7 +646,7 @@ function deleteEntryRow(index) {
  */
 function updateDeleteButtonStates() {
     const allEntryRows = document.querySelectorAll(ROW_SELECTOR);
-    const deleteButtons = document.querySelectorAll('.accounting-delete-debit, .accounting-delete-credit');
+    const deleteButtons = document.querySelectorAll('.qtype_accounting-delete-debit, .qtype_accounting-delete-credit');
     const isOnlyOne = allEntryRows.length <= 1;
 
     deleteButtons.forEach(function (button) {
@@ -711,26 +711,26 @@ function getNumberFormat() {
  */
 function syncDisplayToHidden(index) {
     // Sync account selects.
-    const debitaccountDisplay = document.querySelector('.accounting-debitaccount[data-index="' + index + '"]');
+    const debitaccountDisplay = document.querySelector('.qtype_accounting-debitaccount[data-index="' + index + '"]');
     const debitaccountHidden = getFieldByName('debitaccount[' + index + ']');
     if (debitaccountDisplay && debitaccountHidden) {
         debitaccountHidden.value = debitaccountDisplay.value;
     }
 
-    const creditaccountDisplay = document.querySelector('.accounting-creditaccount[data-index="' + index + '"]');
+    const creditaccountDisplay = document.querySelector('.qtype_accounting-creditaccount[data-index="' + index + '"]');
     const creditaccountHidden = getFieldByName('creditaccount[' + index + ']');
     if (creditaccountDisplay && creditaccountHidden) {
         creditaccountHidden.value = creditaccountDisplay.value;
     }
 
     // Sync amount fields - parse German format to plain numbers for hidden fields.
-    const debitamountDisplay = document.querySelector('.accounting-debitamount[data-index="' + index + '"]');
+    const debitamountDisplay = document.querySelector('.qtype_accounting-debitamount[data-index="' + index + '"]');
     const debitamountHidden = getFieldByName('debitamount[' + index + ']');
     if (debitamountDisplay && debitamountHidden) {
         debitamountHidden.value = EntryUtils.parseNumber(debitamountDisplay.value);
     }
 
-    const creditamountDisplay = document.querySelector('.accounting-creditamount[data-index="' + index + '"]');
+    const creditamountDisplay = document.querySelector('.qtype_accounting-creditamount[data-index="' + index + '"]');
     const creditamountHidden = getFieldByName('creditamount[' + index + ']');
     if (creditamountDisplay && creditamountHidden) {
         creditamountHidden.value = EntryUtils.parseNumber(creditamountDisplay.value);
@@ -739,7 +739,7 @@ function syncDisplayToHidden(index) {
     // Sync weight fields.
     const weightFields = ['debitaccount', 'debitamount', 'creditaccount', 'creditamount'];
     weightFields.forEach(function (field) {
-        const displayField = document.querySelector('.accounting-weight[data-index="' + index + '"][data-field="' + field + '"]');
+        const displayField = document.querySelector('.qtype_accounting-weight[data-index="' + index + '"][data-field="' + field + '"]');
         const hiddenField = getFieldByName('weight_' + field + '[' + index + ']');
         if (displayField && hiddenField) {
             hiddenField.value = displayField.value;
@@ -776,8 +776,8 @@ function updateAccountDropdowns(forceRebuild) {
     lastChartId = chartId;
 
     // Find all debitaccount and creditaccount selects (display fields).
-    const debitSelects = document.querySelectorAll('select.accounting-debitaccount');
-    const creditSelects = document.querySelectorAll('select.accounting-creditaccount');
+    const debitSelects = document.querySelectorAll('select.qtype_accounting-debitaccount');
+    const creditSelects = document.querySelectorAll('select.qtype_accounting-creditaccount');
 
     debitSelects.forEach(function (select) {
         const currentValue = select.value;
@@ -822,8 +822,8 @@ function updateAccountDropdowns(forceRebuild) {
  * @param {string|number} index The entry index.
  */
 function updateDebitamountState(index) {
-    const debitSelect = document.querySelector('select.accounting-debitaccount[data-index="' + index + '"]');
-    const debitAmount = document.querySelector('input.accounting-debitamount[data-index="' + index + '"]');
+    const debitSelect = document.querySelector('select.qtype_accounting-debitaccount[data-index="' + index + '"]');
+    const debitAmount = document.querySelector('input.qtype_accounting-debitamount[data-index="' + index + '"]');
 
     if (debitSelect && debitAmount) {
         const hasAccount = debitSelect.value !== '' && debitSelect.value !== null;
@@ -883,8 +883,8 @@ function setupAllOrNothingHandler() {
  * @param {string|number} index The entry index.
  */
 function updateWeightStates(index) {
-    const debitSelect = document.querySelector('select.accounting-debitaccount[data-index="' + index + '"]');
-    const creditSelect = document.querySelector('select.accounting-creditaccount[data-index="' + index + '"]');
+    const debitSelect = document.querySelector('select.qtype_accounting-debitaccount[data-index="' + index + '"]');
+    const creditSelect = document.querySelector('select.qtype_accounting-creditaccount[data-index="' + index + '"]');
 
     const hasDebitAccount = debitSelect && debitSelect.value !== '' && debitSelect.value !== null;
     const hasCreditAccount = creditSelect && creditSelect.value !== '' && creditSelect.value !== null;
@@ -894,8 +894,8 @@ function updateWeightStates(index) {
     var creditEnabled = hasCreditAccount && !allOrNothingEnabled;
 
     // Update debit weight fields.
-    const weightDebitaccount = document.querySelector('.accounting-weight[data-index="' + index + '"][data-field="debitaccount"]');
-    const weightDebitamount = document.querySelector('.accounting-weight[data-index="' + index + '"][data-field="debitamount"]');
+    const weightDebitaccount = document.querySelector('.qtype_accounting-weight[data-index="' + index + '"][data-field="debitaccount"]');
+    const weightDebitamount = document.querySelector('.qtype_accounting-weight[data-index="' + index + '"][data-field="debitamount"]');
 
     if (weightDebitaccount) {
         weightDebitaccount.disabled = !debitEnabled;
@@ -909,7 +909,7 @@ function updateWeightStates(index) {
     }
 
     // Update credit weight fields.
-    const creditWeightBase = '.accounting-weight[data-index="' + index + '"]';
+    const creditWeightBase = '.qtype_accounting-weight[data-index="' + index + '"]';
     const weightCreditaccount = document.querySelector(creditWeightBase + '[data-field="creditaccount"]');
     const weightCreditamount = document.querySelector(creditWeightBase + '[data-field="creditamount"]');
 

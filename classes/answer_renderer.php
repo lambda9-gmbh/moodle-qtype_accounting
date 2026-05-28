@@ -47,9 +47,9 @@ class answer_renderer {
         if (empty($question->entries)) {
             return '';
         }
-        $html = \html_writer::start_div('accounting-correct-response');
+        $html = \html_writer::start_div('qtype_accounting-correct-response');
         $html .= \html_writer::tag('p', get_string('correctansweris', 'qtype_accounting'));
-        $html .= \html_writer::start_tag('table', ['class' => 'table table-bordered accounting-solution']);
+        $html .= \html_writer::start_tag('table', ['class' => 'table table-bordered qtype_accounting-solution']);
         $html .= $this->render_header();
         $html .= $this->render_body($question, $accounts);
         $html .= \html_writer::end_tag('table');
@@ -153,7 +153,7 @@ class answer_renderer {
      */
     protected function render_explanation_row(string $explanation): string {
         $body = \html_writer::tag('strong', get_string('explanation', 'qtype_accounting') . ': ') . s($explanation);
-        $html = \html_writer::start_tag('tr', ['class' => 'accounting-explanation-row']);
+        $html = \html_writer::start_tag('tr', ['class' => 'qtype_accounting-explanation-row']);
         $html .= \html_writer::tag(
             'td',
             $body,

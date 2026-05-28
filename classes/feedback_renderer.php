@@ -46,7 +46,7 @@ class feedback_renderer {
      * @return string The HTML for the feedback summary.
      */
     public function render(array $feedback): string {
-        $html = \html_writer::start_div('accounting-feedback-summary mt-3');
+        $html = \html_writer::start_div('qtype_accounting-feedback-summary mt-3');
         if ($feedback['all_correct']) {
             $html .= $this->all_correct_alert();
         } else {

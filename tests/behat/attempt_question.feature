@@ -55,7 +55,7 @@ Feature: Attempt Buchungssatz questions
     And I am on the "Multi Question" "core_question > preview" page logged in as "teacher1"
     Then I should see "Add Debit Entry"
     When I click on "Add Debit Entry" "button"
-    Then ".accounting-entry-row" "css_element" should exist
+    Then ".qtype_accounting-entry-row" "css_element" should exist
 
   @javascript
   Scenario: Question shows Per and an labels

@@ -89,4 +89,4 @@ Feature: Create and edit Buchungssatz questions
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
     Then I should see "Add Debit Entry"
     When I click on "Add Debit Entry" "button"
-    Then ".accounting-entry-row" "css_element" should exist
+    Then ".qtype_accounting-entry-row" "css_element" should exist

@@ -30,10 +30,10 @@ define(['jquery'], function ($) {
     var MOBILE_BREAKPOINT = 768;
 
     // CSS class added to container when mobile layout is active.
-    var ACTIVE_CLASS = 'accounting-mobile-active';
+    var ACTIVE_CLASS = 'qtype_accounting-mobile-active';
 
     // Stored row selector from init.
-    var rowSelector = '.accounting-entry-row';
+    var rowSelector = '.qtype_accounting-entry-row';
 
     // Whether the question is readonly (review mode).
     var isReadonly = false;
@@ -96,7 +96,7 @@ define(['jquery'], function ($) {
      */
     function buildMobileView(container) {
         // Find or create the mobile view container.
-        var mobileView = container.find('.accounting-mobile-view');
+        var mobileView = container.find('.qtype_accounting-mobile-view');
         if (mobileView.length === 0) {
             return;
         }
@@ -111,21 +111,21 @@ define(['jquery'], function ($) {
         var addCreditLabel = M.util.get_string('addcreditentry', 'qtype_accounting');
 
         // Create debit section.
-        var debitSection = $('<div class="accounting-mobile-section" data-section="debit">');
+        var debitSection = $('<div class="qtype_accounting-mobile-section" data-section="debit">');
         debitSection.append(
-            '<div class="accounting-mobile-section-header accounting-mobile-debit-header">' +
+            '<div class="qtype_accounting-mobile-section-header qtype_accounting-mobile-debit-header">' +
             '<h4>' + debitLabel + '</h4></div>'
         );
-        var debitCards = $('<div class="accounting-mobile-cards">');
+        var debitCards = $('<div class="qtype_accounting-mobile-cards">');
         debitSection.append(debitCards);
 
         // Create credit section.
-        var creditSection = $('<div class="accounting-mobile-section" data-section="credit">');
+        var creditSection = $('<div class="qtype_accounting-mobile-section" data-section="credit">');
         creditSection.append(
-            '<div class="accounting-mobile-section-header accounting-mobile-credit-header">' +
+            '<div class="qtype_accounting-mobile-section-header qtype_accounting-mobile-credit-header">' +
             '<h4>' + creditLabel + '</h4></div>'
         );
-        var creditCards = $('<div class="accounting-mobile-cards">');
+        var creditCards = $('<div class="qtype_accounting-mobile-cards">');
         creditSection.append(creditCards);
 
         // Iterate visible entry rows and create cards.
@@ -155,11 +155,11 @@ define(['jquery'], function ($) {
         // Add buttons (only in edit mode).
         if (!isReadonly) {
             debitSection.append(
-                '<button type="button" class="btn btn-secondary accounting-add-debit-entry">' +
+                '<button type="button" class="btn btn-secondary qtype_accounting-add-debit-entry">' +
                 addDebitLabel + '</button>'
             );
             creditSection.append(
-                '<button type="button" class="btn btn-secondary accounting-add-credit-entry">' +
+                '<button type="button" class="btn btn-secondary qtype_accounting-add-credit-entry">' +
                 addCreditLabel + '</button>'
             );
         }
@@ -198,10 +198,10 @@ define(['jquery'], function ($) {
             ? M.util.get_string('debit', 'qtype_accounting')
             : M.util.get_string('credit', 'qtype_accounting');
 
-        var card = $('<div class="accounting-mobile-card" data-entry="' + entryIndex +
+        var card = $('<div class="qtype_accounting-mobile-card" data-entry="' + entryIndex +
             '" data-side="' + side + '" role="group" aria-label="' + sideLabel + ' ' + (parseInt(entryIndex, 10) + 1) + '">');
 
-        var cardBody = $('<div class="accounting-mobile-card-body">');
+        var cardBody = $('<div class="qtype_accounting-mobile-card-body">');
 
         if (isReadonly) {
             // Readonly mode: clone display spans.
@@ -217,8 +217,8 @@ define(['jquery'], function ($) {
 
         // Add delete button in edit mode.
         if (!isReadonly) {
-            var deleteClass = (side === 'debit') ? 'accounting-delete-debit' : 'accounting-delete-credit';
-            var actionsDiv = $('<div class="accounting-mobile-card-actions">');
+            var deleteClass = (side === 'debit') ? 'qtype_accounting-delete-debit' : 'qtype_accounting-delete-credit';
+            var actionsDiv = $('<div class="qtype_accounting-mobile-card-actions">');
             actionsDiv.append(
                 '<button type="button" class="btn btn-sm btn-outline-danger ' + deleteClass +
                 '" data-entry="' + entryIndex + '" title="' + sideLabel + '">' +
@@ -238,14 +238,14 @@ define(['jquery'], function ($) {
      * @return {jQuery} The field wrapper element.
      */
     function createReadonlyField(label, cell) {
-        var field = $('<div class="accounting-mobile-field">');
+        var field = $('<div class="qtype_accounting-mobile-field">');
         field.append('<label>' + label + '</label>');
 
-        var span = cell.find('.accounting-readonly').first();
+        var span = cell.find('.qtype_accounting-readonly').first();
         if (span.length) {
             field.append(span.clone());
         } else {
-            field.append('<span class="accounting-readonly"></span>');
+            field.append('<span class="qtype_accounting-readonly"></span>');
         }
 
         return field;
@@ -259,14 +259,14 @@ define(['jquery'], function ($) {
      * @return {jQuery} The field wrapper element.
      */
     function createProxyAccountField(label, cell) {
-        var field = $('<div class="accounting-mobile-field">');
+        var field = $('<div class="qtype_accounting-mobile-field">');
         field.append('<label>' + label + '</label>');
 
         var realSelect = cell.find('select').first();
         if (realSelect.length === 0) {
             // Text input fallback (no accounts available).
             var realInput = cell.find('input').first();
-            var proxyInput = $('<input type="text" class="form-control accounting-mobile-proxy">')
+            var proxyInput = $('<input type="text" class="form-control qtype_accounting-mobile-proxy">')
                 .val(realInput.val())
                 .attr('placeholder', realInput.attr('placeholder') || '')
                 .attr('aria-label', label);
@@ -283,7 +283,7 @@ define(['jquery'], function ($) {
         var proxySelect = realSelect.clone()
             .removeAttr('name')
             .removeAttr('id')
-            .addClass('accounting-mobile-proxy')
+            .addClass('qtype_accounting-mobile-proxy')
             .attr('aria-label', label);
 
         // Remove any Select2 artifacts from the clone.
@@ -311,13 +311,13 @@ define(['jquery'], function ($) {
      * @return {jQuery} The field wrapper element.
      */
     function createProxyAmountField(label, cell) {
-        var field = $('<div class="accounting-mobile-field">');
+        var field = $('<div class="qtype_accounting-mobile-field">');
         field.append('<label>' + label + '</label>');
 
         var realInput = cell.find('input').first();
         var placeholder = (numberFormat === 'us') ? '0.00' : '0,00';
 
-        var proxyInput = $('<input type="text" class="form-control accounting-mobile-proxy accounting-amount-input">')
+        var proxyInput = $('<input type="text" class="form-control qtype_accounting-mobile-proxy qtype_accounting-amount-input">')
             .val(realInput.val())
             .attr('placeholder', placeholder)
             .attr('inputmode', 'decimal')
@@ -330,7 +330,7 @@ define(['jquery'], function ($) {
 
         // Also sync on blur (after formatting by the existing blur handler in question.js).
         proxyInput.on('blur', function () {
-            // The amount formatting handler in question.js fires on .accounting-amount-input blur.
+            // The amount formatting handler in question.js fires on .qtype_accounting-amount-input blur.
             // After formatting, sync the formatted value to the real input.
             setTimeout(function () {
                 realInput.val(proxyInput.val());
@@ -348,7 +348,7 @@ define(['jquery'], function ($) {
      */
     function destroyMobileView(container) {
         container.removeClass(ACTIVE_CLASS);
-        var mobileView = container.find('.accounting-mobile-view');
+        var mobileView = container.find('.qtype_accounting-mobile-view');
         mobileView.empty().hide();
     }
 

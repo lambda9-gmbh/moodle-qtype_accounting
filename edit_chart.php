@@ -359,7 +359,7 @@ if (!empty($accounts)) {
 }
 
 // CSV import section — full-width Moodle filepicker form.
-echo html_writer::start_div('accounting-csv-import mt-4');
+echo html_writer::start_div('qtype_accounting-csv-import mt-4');
 echo $OUTPUT->heading(get_string('importchart', 'qtype_accounting'), 3);
 $importform->display();
 echo html_writer::end_div();
@@ -367,7 +367,7 @@ echo html_writer::end_div();
 // Bottom action row: Back button on the left, Export button next to it.
 $exporturl = new moodle_url($baseurl, ['action' => 'export', 'sesskey' => sesskey()]);
 echo html_writer::start_div(
-    'accounting-chart-actions d-flex flex-wrap justify-content-center align-items-center mt-4 mb-3',
+    'qtype_accounting-chart-actions d-flex flex-wrap justify-content-center align-items-center mt-4 mb-3',
     ['style' => 'gap: 0.5rem;']
 );
 echo html_writer::link($manageurl, '&laquo; ' . get_string('managecharts', 'qtype_accounting'), [

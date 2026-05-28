@@ -53,9 +53,9 @@ class entries_table_builder {
         array $existingentries,
         string $numberformat = 'de'
     ): string {
-        $html = '<table class="table table-bordered accounting-edit-table" id="accounting-entries-table">';
+        $html = '<table class="table table-bordered qtype_accounting-edit-table" id="qtype_accounting-entries-table">';
         $html .= $this->build_thead();
-        $html .= '<tbody id="accounting-entries-body">';
+        $html .= '<tbody id="qtype_accounting-entries-body">';
         for ($i = 0; $i < $entrycount; $i++) {
             $entry = $existingentries[$i] ?? null;
             $html .= $this->build_entry_rows(
@@ -72,7 +72,7 @@ class entries_table_builder {
         $html .= '</table>';
 
         // Template for new rows (hidden, used by JavaScript).
-        $html .= '<template id="accounting-entry-template">';
+        $html .= '<template id="qtype_accounting-entry-template">';
         $html .= $this->build_entry_rows(
             '__INDEX__',
             $debitaccountoptions,
@@ -99,17 +99,17 @@ class entries_table_builder {
         $amountstr = get_string('amount', 'qtype_accounting');
         $html = '<thead>';
         $html .= '<tr>';
-        $html .= '<th class="accounting-edit-label"></th>';
+        $html .= '<th class="qtype_accounting-edit-label"></th>';
         $html .= '<th colspan="2" class="text-center">' . $debitstr . '</th>';
-        $html .= '<th class="accounting-edit-label"></th>';
+        $html .= '<th class="qtype_accounting-edit-label"></th>';
         $html .= '<th colspan="2" class="text-center">' . $creditstr . '</th>';
-        $html .= '<th class="accounting-edit-actions"></th>';
+        $html .= '<th class="qtype_accounting-edit-actions"></th>';
         $html .= '</tr>';
         $html .= '<tr>';
-        $html .= '<th class="accounting-edit-label">' . $perstr . '</th>';
+        $html .= '<th class="qtype_accounting-edit-label">' . $perstr . '</th>';
         $html .= '<th>' . $accountstr . '</th>';
         $html .= '<th>' . $amountstr . '</th>';
-        $html .= '<th class="accounting-edit-label">' . $anstr . '</th>';
+        $html .= '<th class="qtype_accounting-edit-label">' . $anstr . '</th>';
         $html .= '<th>' . $accountstr . '</th>';
         $html .= '<th>' . $amountstr . '</th>';
         $html .= '<th></th>';
@@ -126,15 +126,15 @@ class entries_table_builder {
     protected function build_footer(): string {
         $adddebitentrystr = get_string('adddebitentry', 'qtype_accounting');
         $addcreditentrystr = get_string('addcreditentry', 'qtype_accounting');
-        $html = '<tfoot class="accounting-controls-footer">';
+        $html = '<tfoot class="qtype_accounting-controls-footer">';
         $html .= '<tr>';
         $html .= '<td></td>'; // Per label column.
-        $html .= '<td><button type="button" class="btn btn-secondary btn-sm accounting-add-debit-entry"'
-            . ' id="accounting-add-debit-entry">+ ' . $adddebitentrystr . '</button></td>';
+        $html .= '<td><button type="button" class="btn btn-secondary btn-sm qtype_accounting-add-debit-entry"'
+            . ' id="qtype_accounting-add-debit-entry">+ ' . $adddebitentrystr . '</button></td>';
         $html .= '<td></td>'; // Debit Amount column.
         $html .= '<td></td>'; // The 'an' label column.
-        $html .= '<td><button type="button" class="btn btn-secondary btn-sm accounting-add-credit-entry"'
-            . ' id="accounting-add-credit-entry">+ ' . $addcreditentrystr . '</button></td>';
+        $html .= '<td><button type="button" class="btn btn-secondary btn-sm qtype_accounting-add-credit-entry"'
+            . ' id="qtype_accounting-add-credit-entry">+ ' . $addcreditentrystr . '</button></td>';
         $html .= '<td></td>'; // Credit Amount column.
         $html .= '<td></td>'; // Actions column.
         $html .= '</tr>';
@@ -206,33 +206,33 @@ class entries_table_builder {
         $placeholder = ($numberformat === 'us') ? '0.00' : '0,00';
 
         $debitselecthtml = '<select name="debitaccount_display[' . $index . ']"'
-            . ' class="form-control accounting-debitaccount" data-index="' . $index . '">';
+            . ' class="form-control qtype_accounting-debitaccount" data-index="' . $index . '">';
         $debitselecthtml .= entry_helper::build_account_options($debitaccountoptions, (string)$debitaccount, '');
         $debitselecthtml .= '</select>';
         $creditselecthtml = '<select name="creditaccount_display[' . $index . ']"'
-            . ' class="form-control accounting-creditaccount" data-index="' . $index . '">';
+            . ' class="form-control qtype_accounting-creditaccount" data-index="' . $index . '">';
         $creditselecthtml .= entry_helper::build_account_options($creditaccountoptions, (string)$creditaccount, '');
         $creditselecthtml .= '</select>';
 
-        $html = '<tr class="accounting-entry-row" data-entry-index="'
+        $html = '<tr class="qtype_accounting-entry-row" data-entry-index="'
             . $index . '" data-entry-type="' . $entrytype . '">';
-        $html .= '<td class="accounting-edit-label' . $debithidden . '"></td>';
-        $html .= '<td class="accounting-edit-data' . $debithidden . '">' . $debitselecthtml . '</td>';
-        $html .= '<td class="accounting-edit-data' . $debithidden . '">';
+        $html .= '<td class="qtype_accounting-edit-label' . $debithidden . '"></td>';
+        $html .= '<td class="qtype_accounting-edit-data' . $debithidden . '">' . $debitselecthtml . '</td>';
+        $html .= '<td class="qtype_accounting-edit-data' . $debithidden . '">';
         $html .= '<input type="text" name="debitamount_display[' . $index . ']" value="' . s($debitamount) . '" ';
-        $html .= 'class="form-control accounting-debitamount" data-index="' . $index
+        $html .= 'class="form-control qtype_accounting-debitamount" data-index="' . $index
             . '" placeholder="' . $placeholder . '">';
         $html .= '</td>';
-        $html .= '<td class="accounting-edit-label' . $debithidden . '">';
+        $html .= '<td class="qtype_accounting-edit-label' . $debithidden . '">';
         $html .= entry_helper::render_delete_button('debit', $index, 'data-index');
         $html .= '</td>';
-        $html .= '<td class="accounting-edit-data' . $credithidden . '">' . $creditselecthtml . '</td>';
-        $html .= '<td class="accounting-edit-data' . $credithidden . '">';
+        $html .= '<td class="qtype_accounting-edit-data' . $credithidden . '">' . $creditselecthtml . '</td>';
+        $html .= '<td class="qtype_accounting-edit-data' . $credithidden . '">';
         $html .= '<input type="text" name="creditamount_display[' . $index . ']" value="' . s($creditamount) . '" ';
-        $html .= 'class="form-control accounting-creditamount" data-index="' . $index
+        $html .= 'class="form-control qtype_accounting-creditamount" data-index="' . $index
             . '" placeholder="' . $placeholder . '">';
         $html .= '</td>';
-        $html .= '<td class="accounting-edit-actions' . $credithidden . '">';
+        $html .= '<td class="qtype_accounting-edit-actions' . $credithidden . '">';
         $html .= entry_helper::render_delete_button('credit', $index, 'data-index');
         $html .= '</td>';
         $html .= '</tr>';
@@ -259,9 +259,9 @@ class entries_table_builder {
             'creditamount' => (int)($entry->weight_creditamount ?? 1),
         ];
 
-        $html = '<tr class="accounting-weight-row" data-entry-index="' . $index . '">';
+        $html = '<tr class="qtype_accounting-weight-row" data-entry-index="' . $index . '">';
         $html .= '<td class="' . trim($debithidden) . '"></td>';
-        $html .= '<td class="accounting-weight-cell' . $debithidden . '">';
+        $html .= '<td class="qtype_accounting-weight-cell' . $debithidden . '">';
         $html .= $weightstr . ': ' . $this->build_weight_select(
             'weight_debitaccount_display[' . $index . ']',
             $weights['debitaccount'],
@@ -272,7 +272,7 @@ class entries_table_builder {
             $html .= $this->build_weight_tooltip($weightstr);
         }
         $html .= '</td>';
-        $html .= '<td class="accounting-weight-cell' . $debithidden . '">';
+        $html .= '<td class="qtype_accounting-weight-cell' . $debithidden . '">';
         $html .= $weightstr . ': ' . $this->build_weight_select(
             'weight_debitamount_display[' . $index . ']',
             $weights['debitamount'],
@@ -281,7 +281,7 @@ class entries_table_builder {
         );
         $html .= '</td>';
         $html .= '<td class="' . trim($debithidden) . '"></td>';
-        $html .= '<td class="accounting-weight-cell' . $credithidden . '">';
+        $html .= '<td class="qtype_accounting-weight-cell' . $credithidden . '">';
         $html .= $weightstr . ': ' . $this->build_weight_select(
             'weight_creditaccount_display[' . $index . ']',
             $weights['creditaccount'],
@@ -289,7 +289,7 @@ class entries_table_builder {
             'creditaccount'
         );
         $html .= '</td>';
-        $html .= '<td class="accounting-weight-cell' . $credithidden . '">';
+        $html .= '<td class="qtype_accounting-weight-cell' . $credithidden . '">';
         $html .= $weightstr . ': ' . $this->build_weight_select(
             'weight_creditamount_display[' . $index . ']',
             $weights['creditamount'],
@@ -331,7 +331,7 @@ class entries_table_builder {
         if ($selectedvalue < 1 || $selectedvalue > 3) {
             $selectedvalue = 1;
         }
-        $html = '<select name="' . $name . '" class="form-control accounting-weight" ';
+        $html = '<select name="' . $name . '" class="form-control qtype_accounting-weight" ';
         $html .= 'data-index="' . $index . '" data-field="' . $field . '" style="width: auto; display: inline-block;">';
         for ($i = 1; $i <= 3; $i++) {
             $selected = ($i === $selectedvalue) ? ' selected' : '';

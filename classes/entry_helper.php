@@ -51,7 +51,7 @@ class entry_helper {
      * @return array Associative array with 'debit' and 'credit' keys containing CSS class suffixes.
      */
     public static function get_hidden_classes(string $entrytype): array {
-        $hiddenclass = 'accounting-hidden-cell';
+        $hiddenclass = 'qtype_accounting-hidden-cell';
         return [
             'debit' => ($entrytype === 'credit') ? ' ' . $hiddenclass : '',
             'credit' => ($entrytype === 'debit') ? ' ' . $hiddenclass : '',
@@ -67,7 +67,7 @@ class entry_helper {
      * @return string The HTML for the delete button.
      */
     public static function render_delete_button(string $side, $index, string $indexattr): string {
-        $cssclass = ($side === 'debit') ? 'accounting-delete-debit' : 'accounting-delete-credit';
+        $cssclass = ($side === 'debit') ? 'qtype_accounting-delete-debit' : 'qtype_accounting-delete-credit';
         $titlekey = ($side === 'debit') ? 'debit' : 'credit';
         $title = get_string($titlekey, 'qtype_accounting');
 

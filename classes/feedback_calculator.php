@@ -65,12 +65,12 @@ class feedback_calculator {
             $row = ['debitaccount' => '', 'debitamount' => '', 'creditaccount' => '', 'creditamount' => ''];
 
             if ($debitaccountid > 0 && isset($accountstatus['debit'][$debitaccountid])) {
-                $row['debitaccount'] = 'accounting-' . $accountstatus['debit'][$debitaccountid]['account'];
-                $row['debitamount'] = 'accounting-' . $accountstatus['debit'][$debitaccountid]['amount'];
+                $row['debitaccount'] = 'qtype_accounting-' . $accountstatus['debit'][$debitaccountid]['account'];
+                $row['debitamount'] = 'qtype_accounting-' . $accountstatus['debit'][$debitaccountid]['amount'];
             }
             if ($creditaccountid > 0 && isset($accountstatus['credit'][$creditaccountid])) {
-                $row['creditaccount'] = 'accounting-' . $accountstatus['credit'][$creditaccountid]['account'];
-                $row['creditamount'] = 'accounting-' . $accountstatus['credit'][$creditaccountid]['amount'];
+                $row['creditaccount'] = 'qtype_accounting-' . $accountstatus['credit'][$creditaccountid]['account'];
+                $row['creditamount'] = 'qtype_accounting-' . $accountstatus['credit'][$creditaccountid]['amount'];
             }
             $feedbackmap[$i] = $row;
         }
