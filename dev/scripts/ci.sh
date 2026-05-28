@@ -1,5 +1,5 @@
 #!/bin/bash
-# Unified CI for the qtype_buchungssatz plugin.
+# Unified CI for the qtype_accounting plugin.
 #
 # Runs PHPUnit + Behat first, then all moodle-plugin-ci checks.
 # Fail-fast: the first failing step aborts the script with a non-zero exit
@@ -150,7 +150,7 @@ run() {
 # Call phpmd directly so we can pass --exclude (moodle-plugin-ci's phpmd
 # subcommand does not expose that flag).
 run_phpmd() {
-    echo " RUN  PHP Mess Detector on qtype_buchungssatz"
+    echo " RUN  PHP Mess Detector on qtype_accounting"
     docker exec -w "${MOODLE_DIR}" "${CONTAINER}" bash -c \
         "${PHPMD_BIN} ${PLUGIN_PATH} text ${PLUGIN_PATH}/.phpmd.xml --exclude ${PHPMD_EXCLUDES} --ignore-violations-on-exit"
 }

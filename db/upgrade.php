@@ -189,13 +189,31 @@ function xmldb_qtype_accounting_upgrade($oldversion) {
         }
 
         // Add weight_debitamount field.
-        $field = new xmldb_field('weight_debitamount', XMLDB_TYPE_INTEGER, '5', null, XMLDB_NOTNULL, null, '1', 'weight_debitaccount');
+        $field = new xmldb_field(
+            'weight_debitamount',
+            XMLDB_TYPE_INTEGER,
+            '5',
+            null,
+            XMLDB_NOTNULL,
+            null,
+            '1',
+            'weight_debitaccount'
+        );
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
 
         // Add weight_creditaccount field.
-        $field = new xmldb_field('weight_creditaccount', XMLDB_TYPE_INTEGER, '5', null, XMLDB_NOTNULL, null, '1', 'weight_debitamount');
+        $field = new xmldb_field(
+            'weight_creditaccount',
+            XMLDB_TYPE_INTEGER,
+            '5',
+            null,
+            XMLDB_NOTNULL,
+            null,
+            '1',
+            'weight_debitamount'
+        );
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }

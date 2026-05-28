@@ -26,15 +26,17 @@ namespace qtype_accounting;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class import_helper {
-    /** @var array Known header keywords to skip (lowercase). */
+    /** @var array Known header keywords to skip (lowercase). User-supplied CSV headers
+     *             may be in English or German — list both to remain language-agnostic. */
     public const HEADER_KEYWORDS = [
         'accountname',
-        'kontenname',
-        'name',
-        'bezeichnung',
-        'account',
-        'account',
         'account name',
+        'account',
+        'name',
+        'kontoname',
+        'kontenname',
+        'konto',
+        'bezeichnung',
     ];
 
     /**

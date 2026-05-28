@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run tests for the qtype_buchungssatz plugin.
+# Run tests for the qtype_accounting plugin.
 #
 # Auto-initializes and auto-reinstalls the PHPUnit / Behat test environments
 # when they are missing or outdated (e.g. after a plugin upgrade or container
@@ -84,26 +84,26 @@ ensure_selenium() {
 # Run PHPUnit tests.
 run_phpunit() {
     echo "========================================"
-    echo "Running PHPUnit tests for qtype_buchungssatz..."
+    echo "Running PHPUnit tests for qtype_accounting..."
     echo "========================================"
 
     ensure_phpunit_ready || return 1
 
-    in_moodle "php admin/tool/phpunit/cli/util.php --run --testsuite=qtype_buchungssatz_testsuite"
+    in_moodle "php admin/tool/phpunit/cli/util.php --run --testsuite=qtype_accounting_testsuite"
 }
 
 # Run Behat tests. Retries once if Behat reports the environment as outdated
 # mid-run (this can happen if plugin code changed since the last init).
 run_behat() {
     echo "========================================"
-    echo "Running Behat tests for qtype_buchungssatz..."
+    echo "Running Behat tests for qtype_accounting..."
     echo "========================================"
 
     ensure_selenium
     ensure_behat_ready || return 1
 
     local output rc
-    output=$(in_moodle "php admin/tool/behat/cli/run.php --tags=@qtype_buchungssatz" 2>&1)
+    output=$(in_moodle "php admin/tool/behat/cli/run.php --tags=@qtype_accounting" 2>&1)
     rc=$?
     echo "${output}"
 
@@ -111,7 +111,7 @@ run_behat() {
         echo ""
         echo "Behat reported the test site is outdated. Reinstalling and retrying..."
         init_behat
-        in_moodle "php admin/tool/behat/cli/run.php --tags=@qtype_buchungssatz"
+        in_moodle "php admin/tool/behat/cli/run.php --tags=@qtype_accounting"
         rc=$?
     fi
 

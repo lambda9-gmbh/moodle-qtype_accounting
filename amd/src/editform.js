@@ -893,7 +893,7 @@ function updateWeightStates(index) {
     var debitEnabled = hasDebitAccount && !allOrNothingEnabled;
     var creditEnabled = hasCreditAccount && !allOrNothingEnabled;
 
-    // Update debit (debit) weight fields.
+    // Update debit weight fields.
     const weightDebitaccount = document.querySelector('.accounting-weight[data-index="' + index + '"][data-field="debitaccount"]');
     const weightDebitamount = document.querySelector('.accounting-weight[data-index="' + index + '"][data-field="debitamount"]');
 
@@ -908,9 +908,10 @@ function updateWeightStates(index) {
         weightDebitamount.style.cursor = debitEnabled ? '' : 'not-allowed';
     }
 
-    // Update credit (credit) weight fields.
-    const weightCreditaccount = document.querySelector('.accounting-weight[data-index="' + index + '"][data-field="creditaccount"]');
-    const weightCreditamount = document.querySelector('.accounting-weight[data-index="' + index + '"][data-field="creditamount"]');
+    // Update credit weight fields.
+    const creditWeightBase = '.accounting-weight[data-index="' + index + '"]';
+    const weightCreditaccount = document.querySelector(creditWeightBase + '[data-field="creditaccount"]');
+    const weightCreditamount = document.querySelector(creditWeightBase + '[data-field="creditamount"]');
 
     if (weightCreditaccount) {
         weightCreditaccount.disabled = !creditEnabled;
