@@ -29,9 +29,13 @@ services:
       - ../edit_chart.php:/var/www/html/question/type/accounting/edit_chart.php
       - ../manage_charts.php:/var/www/html/question/type/accounting/manage_charts.php
       - ../styles.css:/var/www/html/question/type/accounting/styles.css
-      - ../README.md:/var/www/html/question/type/accounting/README.md
-      - ../CHANGES.md:/var/www/html/question/type/accounting/CHANGES.md
-      - ../LICENSE:/var/www/html/question/type/accounting/LICENSE
+      # README.md, CHANGES.md, LICENSE are NOT bind-mounted. macOS Docker Desktop's
+      # filesystem layer occasionally returns a stale filesize() for single-file
+      # bind mounts immediately after the host file is written, which trips
+      # Symfony Filesystem::copy() during moodle-plugin-ci's grunt backup step
+      # ("Failed to copy the whole content … (N of M bytes copied)"). These three
+      # files are not needed at runtime; ci.sh's sync_static_files() copies them
+      # into the container's writable layer before any check that needs them.
       - ../.phpcs.xml.dist:/var/www/html/question/type/accounting/.phpcs.xml.dist
       - ../.phpmd.xml:/var/www/html/question/type/accounting/.phpmd.xml
       - ../amd:/var/www/html/question/type/accounting/amd

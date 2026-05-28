@@ -23,6 +23,7 @@ set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+PLUGIN_ROOT="$(dirname "$PROJECT_DIR")"
 
 CONTAINER="accounting-moodle"
 PLUGIN_PATH="/var/www/html/question/type/accounting"
@@ -141,6 +142,22 @@ cd /opt/moodle-cs && composer install --no-interaction --no-progress --quiet"
 
 # Run bootstrap before any subcommand needs it. Cheap when nothing is missing.
 ensure_tooling
+
+# Copy static text files (README.md, CHANGES.md, LICENSE) from the host into the
+# container's plugin dir. We deliberately do NOT bind-mount these as single
+# files: macOS Docker Desktop occasionally returns a stale filesize() for
+# single-file bind mounts immediately after a host write, which trips Symfony
+# Filesystem::copy() inside moodle-plugin-ci's grunt backup step. Copying via
+# `docker cp` puts a fresh inode on the container's writable layer where the
+# cache race can't happen. Re-run on every ci.sh invocation so edits flow.
+sync_static_files() {
+    for f in README.md CHANGES.md LICENSE; do
+        if [ -f "${PLUGIN_ROOT}/${f}" ]; then
+            docker cp "${PLUGIN_ROOT}/${f}" "${CONTAINER}:${PLUGIN_PATH}/${f}" >/dev/null
+        fi
+    done
+}
+sync_static_files
 
 # Run a moodle-plugin-ci subcommand inside the container.
 run() {
