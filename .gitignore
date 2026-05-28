@@ -1,9 +1,10 @@
 # Docker volumes (data is in Docker volumes, not local)
-docker/data/
+dev/docker/data/
 
 # Environment files with secrets
-docker/.env
+dev/docker/.env
 .env
+dev/.env
 .env.local
 .env.*.local
 
@@ -36,7 +37,7 @@ composer.lock
 *.phar
 
 # Moodle generated files
-plugin/version.hash
+version.hash
 /moodledata/
 /config.php
 

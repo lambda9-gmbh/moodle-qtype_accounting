@@ -20,7 +20,25 @@ services:
     volumes:
       - moodledata:/var/www/moodledata
       - behatdata:/var/www/behatdata
-      - ./plugin:/var/www/html/question/type/buchungssatz
+      # Mount plugin contents individually so dev/ doesn't leak into the container plugin dir.
+      - ../version.php:/var/www/html/question/type/buchungssatz/version.php
+      - ../questiontype.php:/var/www/html/question/type/buchungssatz/questiontype.php
+      - ../question.php:/var/www/html/question/type/buchungssatz/question.php
+      - ../renderer.php:/var/www/html/question/type/buchungssatz/renderer.php
+      - ../edit_buchungssatz_form.php:/var/www/html/question/type/buchungssatz/edit_buchungssatz_form.php
+      - ../edit_chart.php:/var/www/html/question/type/buchungssatz/edit_chart.php
+      - ../manage_charts.php:/var/www/html/question/type/buchungssatz/manage_charts.php
+      - ../styles.css:/var/www/html/question/type/buchungssatz/styles.css
+      - ../README.md:/var/www/html/question/type/buchungssatz/README.md
+      - ../CHANGES.md:/var/www/html/question/type/buchungssatz/CHANGES.md
+      - ../ajax:/var/www/html/question/type/buchungssatz/ajax
+      - ../amd:/var/www/html/question/type/buchungssatz/amd
+      - ../backup:/var/www/html/question/type/buchungssatz/backup
+      - ../classes:/var/www/html/question/type/buchungssatz/classes
+      - ../db:/var/www/html/question/type/buchungssatz/db
+      - ../lang:/var/www/html/question/type/buchungssatz/lang
+      - ../pix:/var/www/html/question/type/buchungssatz/pix
+      - ../tests:/var/www/html/question/type/buchungssatz/tests
       - ./docker/config.php:/var/www/html/config.php
     depends_on:
       mariadb:

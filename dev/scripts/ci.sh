@@ -11,7 +11,7 @@
 #   ./ci.sh test phpunit          # PHPUnit only
 #   ./ci.sh test behat            # Behat only
 #   ./ci.sh checks                # Lint/static-analysis set only (no tests)
-#   ./ci.sh codecheck             # phpcs via plugin/.phpcs.xml.dist (moodle + moodle-extra)
+#   ./ci.sh codecheck             # phpcs via .phpcs.xml.dist (moodle + moodle-extra)
 #   ./ci.sh codecheck fix         # phpcbf auto-fix, then re-run phpcs
 #   ./ci.sh codecheck summary     # phpcs summary report
 #   ./ci.sh codecheck <path>      # phpcs on a specific path inside the plugin
@@ -155,7 +155,7 @@ run_phpmd() {
         "${PHPMD_BIN} ${PLUGIN_PATH} text ${PLUGIN_PATH}/.phpmd.xml --exclude ${PHPMD_EXCLUDES} --ignore-violations-on-exit"
 }
 
-# Stricter phpcs run using plugin/.phpcs.xml.dist (moodle + moodle-extra,
+# Stricter phpcs run using .phpcs.xml.dist (moodle + moodle-extra,
 # amd/build/ excluded). Used by the `codecheck` subcommand.
 run_phpcs_direct() {
     docker exec "${CONTAINER}" bash -c "cd ${PLUGIN_PATH} && ${PHPCS} --extensions=php,js --no-colors $*"

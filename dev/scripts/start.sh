@@ -9,7 +9,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 echo "Starting Moodle development environment..."
 echo "First run will build the image and may take several minutes."
 
-cd "$PROJECT_DIR/docker"
+cd "$PROJECT_DIR"
 
 # Build and start containers
 docker compose --profile testing up -d --build
@@ -57,6 +57,6 @@ echo ""
 echo "Plugin Location (after install):"
 echo "  Site administration > Plugins > Local plugins"
 echo ""
-echo "To stop: ./scripts/stop.sh"
-echo "To view logs: ./scripts/logs.sh"
+echo "To stop: ./dev/scripts/stop.sh"
+echo "To view logs: ./dev/scripts/logs.sh"
 echo "============================================"
