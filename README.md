@@ -4,7 +4,7 @@ A Moodle question type for practising double-entry bookkeeping. Students record 
 
 Developed for **Hochschule Flensburg** by **lambda9**.
 
-> **Plugin name:** `qtype_accounting` &nbsp;•&nbsp; **Current release:** 0.1.0 (beta) &nbsp;•&nbsp; **License:** GNU GPL v3 or later
+> **Plugin name:** `qtype_accounting` &nbsp;•&nbsp; **Current release:** 1.0.0 (stable) &nbsp;•&nbsp; **License:** GNU GPL v3 or later
 
 ---
 
@@ -84,7 +84,7 @@ After submission, every field is highlighted individually — green for correct,
 
 ## Requirements
 
-- **Moodle 4.5 LTS** or later (build `2024100700`+).
+- **Moodle 4.5 LTS** or later (build `2024100700`+). Verified against branches **4.5 LTS through 5.1**.
 - **PHP 8.1** or later (8.2 recommended).
 - A supported database — verified against **MariaDB 10.11** and **PostgreSQL 16**.
 

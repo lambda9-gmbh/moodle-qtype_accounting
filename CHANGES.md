@@ -5,6 +5,20 @@ All notable changes to the `qtype_accounting` plugin are documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-05-28
+
+Stable release. No functional changes since `0.1.0`; promoted to `MATURITY_STABLE` and considered ready for production use.
+
+### Changed
+- Maturity raised from `MATURITY_BETA` to `MATURITY_STABLE`.
+- Declared `$plugin->supported = [405, 501]` — verified against Moodle 4.5 LTS through 5.1.
+- All in-tree code, comments, and identifiers normalised to English.
+- CSS selectors namespaced under `.qtype_accounting-*` to prevent collisions with other plugins or themes.
+- Repository licensing aligned: `LICENSE` is the GPL v3 text; per-file headers reference GPL v3 or later.
+
+### Fixed
+- CI grunt step on macOS Docker Desktop hosts: static text files (`README.md`, `CHANGES.md`, `LICENSE`) are no longer single-file bind-mounted into the container — they were tripping a stale-`filesize()` race in Symfony's `Filesystem::copy()` used by `moodle-plugin-ci grunt`'s backup step. `dev/scripts/ci.sh` now syncs them into the container's writable layer on every run.
+
 ## [0.1.0] - 2026-05-13
 
 Initial public release.
