@@ -739,7 +739,9 @@ function syncDisplayToHidden(index) {
     // Sync weight fields.
     const weightFields = ['debitaccount', 'debitamount', 'creditaccount', 'creditamount'];
     weightFields.forEach(function (field) {
-        const displayField = document.querySelector('.qtype_accounting-weight[data-index="' + index + '"][data-field="' + field + '"]');
+        const displayField = document.querySelector(
+            '.qtype_accounting-weight[data-index="' + index + '"][data-field="' + field + '"]'
+        );
         const hiddenField = getFieldByName('weight_' + field + '[' + index + ']');
         if (displayField && hiddenField) {
             hiddenField.value = displayField.value;
@@ -833,7 +835,7 @@ function updateDebitamountState(index) {
         if (hasAccount) {
             debitAmount.title = '';
         } else {
-            Str.get_string('selectDebitAccountFirst', 'qtype_accounting').then(function (str) {
+            Str.get_string('selectdebitaccountfirst', 'qtype_accounting').then(function (str) {
                 debitAmount.title = str;
             });
             debitAmount.value = '';
@@ -894,8 +896,12 @@ function updateWeightStates(index) {
     var creditEnabled = hasCreditAccount && !allOrNothingEnabled;
 
     // Update debit weight fields.
-    const weightDebitaccount = document.querySelector('.qtype_accounting-weight[data-index="' + index + '"][data-field="debitaccount"]');
-    const weightDebitamount = document.querySelector('.qtype_accounting-weight[data-index="' + index + '"][data-field="debitamount"]');
+    const weightDebitaccount = document.querySelector(
+        '.qtype_accounting-weight[data-index="' + index + '"][data-field="debitaccount"]'
+    );
+    const weightDebitamount = document.querySelector(
+        '.qtype_accounting-weight[data-index="' + index + '"][data-field="debitamount"]'
+    );
 
     if (weightDebitaccount) {
         weightDebitaccount.disabled = !debitEnabled;

@@ -1,0 +1,49 @@
+# Postgres override for the dev stack.
+#
+# Usage:
+#   docker compose -f dev/docker-compose.yml -f dev/docker-compose.pgsql.yml up -d
+#   docker compose -f dev/docker-compose.yml -f dev/docker-compose.pgsql.yml down
+#
+# Or use the helper scripts:
+#   ./dev/scripts/start-pgsql.sh
+#   ./dev/scripts/stop-pgsql.sh
+#
+# This file only adds a postgres service and rewires the moodle container's
+# DB env + depends_on. MariaDB and phpMyAdmin from the base compose stay up
+# (harmless; they just sit idle). To run a pure-Postgres stack, stop those
+# two services manually after `up`, or scale them to 0.
+services:
+  moodle:
+    environment:
+      - MOODLE_WWWROOT=${MOODLE_WWWROOT:-http://localhost:8080}
+      - MOODLE_SSLPROXY=${MOODLE_SSLPROXY:-}
+      - MOODLE_DOCKER_DBTYPE=pgsql
+      - MOODLE_DOCKER_DBHOST=postgres
+      - MOODLE_DOCKER_DBNAME=${POSTGRES_DB:-moodle}
+      - MOODLE_DOCKER_DBUSER=${POSTGRES_USER:-moodle}
+      - MOODLE_DOCKER_DBPASS=${POSTGRES_PASSWORD:-moodle_password}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16
+    container_name: accounting-postgres
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-moodle}
+      - POSTGRES_USER=${POSTGRES_USER:-moodle}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-moodle_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-pgsql:/docker-entrypoint-initdb.d
+    networks:
+      - accounting-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-moodle} -d ${POSTGRES_DB:-moodle}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+volumes:
+  postgres_data:

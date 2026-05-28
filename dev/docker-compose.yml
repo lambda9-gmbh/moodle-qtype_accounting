@@ -34,7 +34,6 @@ services:
       - ../LICENSE:/var/www/html/question/type/accounting/LICENSE
       - ../.phpcs.xml.dist:/var/www/html/question/type/accounting/.phpcs.xml.dist
       - ../.phpmd.xml:/var/www/html/question/type/accounting/.phpmd.xml
-      - ../ajax:/var/www/html/question/type/accounting/ajax
       - ../amd:/var/www/html/question/type/accounting/amd
       - ../backup:/var/www/html/question/type/accounting/backup
       - ../classes:/var/www/html/question/type/accounting/classes

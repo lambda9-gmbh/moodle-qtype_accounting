@@ -3,19 +3,30 @@ unset($CFG);
 global $CFG;
 $CFG = new stdClass();
 
-$CFG->dbtype    = 'mariadb';
+// Read DB settings from the env, with MariaDB defaults to preserve the
+// historic single-stack behaviour. The docker-compose.pgsql.yml override
+// flips these to pgsql/postgres without touching this file.
+$dbtype = getenv('MOODLE_DOCKER_DBTYPE') ?: 'mariadb';
+$dbhost = getenv('MOODLE_DOCKER_DBHOST') ?: 'mariadb';
+$dbname = getenv('MOODLE_DOCKER_DBNAME') ?: 'moodle';
+$dbuser = getenv('MOODLE_DOCKER_DBUSER') ?: 'moodle';
+$dbpass = getenv('MOODLE_DOCKER_DBPASS') ?: 'moodle_password';
+
+$CFG->dbtype    = $dbtype;
 $CFG->dblibrary = 'native';
-$CFG->dbhost    = 'mariadb';
-$CFG->dbname    = 'moodle';
-$CFG->dbuser    = 'moodle';
-$CFG->dbpass    = 'moodle_password';
+$CFG->dbhost    = $dbhost;
+$CFG->dbname    = $dbname;
+$CFG->dbuser    = $dbuser;
+$CFG->dbpass    = $dbpass;
 $CFG->prefix    = 'mdl_';
-$CFG->dboptions = array(
+$CFG->dboptions = [
     'dbpersist' => 0,
-    'dbport' => 3306,
+    'dbport' => $dbtype === 'pgsql' ? 5432 : 3306,
     'dbsocket' => '',
-    'dbcollation' => 'utf8mb4_unicode_ci',
-);
+];
+if ($dbtype !== 'pgsql') {
+    $CFG->dboptions['dbcollation'] = 'utf8mb4_unicode_ci';
+}
 
 $CFG->wwwroot   = getenv('MOODLE_WWWROOT');
 $CFG->sslproxy  = filter_var(getenv('MOODLE_SSLPROXY'), FILTER_VALIDATE_BOOLEAN);
@@ -24,15 +35,16 @@ $CFG->admin     = 'admin';
 
 $CFG->directorypermissions = 0777;
 
-// PHPUnit test configuration.
+// PHPUnit test configuration. Reuses the same engine/host/user/pass
+// so PHPUnit hits whichever DB the container is wired up to.
 $CFG->phpunit_prefix = 'phpu_';
 $CFG->phpunit_dataroot = '/var/www/moodledata_phpu';
-$CFG->phpunit_dbtype    = 'mariadb';
+$CFG->phpunit_dbtype    = $dbtype;
 $CFG->phpunit_dblibrary = 'native';
-$CFG->phpunit_dbhost    = 'mariadb';
+$CFG->phpunit_dbhost    = $dbhost;
 $CFG->phpunit_dbname    = 'moodle_test';
-$CFG->phpunit_dbuser    = 'moodle';
-$CFG->phpunit_dbpass    = 'moodle_password';
+$CFG->phpunit_dbuser    = $dbuser;
+$CFG->phpunit_dbpass    = $dbpass;
 
 // Behat test configuration.
 // Note: behat_wwwroot must be different from wwwroot and accessible from Selenium container.

@@ -170,8 +170,8 @@ $string['csvinvalidformat'] = 'Could not parse the account data. Each line shoul
 $string['csvnoentries'] = 'No valid entries found in CSV data.';
 $string['importedchart'] = 'Imported Chart';
 $string['importedchartdesc'] = 'Chart of accounts imported from CSV data.';
-$string['autoCalculatedFromFractions'] = 'Auto-calculated from the sum of entry points';
-$string['selectDebitAccountFirst'] = 'Please select a debit account first';
+$string['autocalculatedfromfractions'] = 'Auto-calculated from the sum of entry points';
+$string['selectdebitaccountfirst'] = 'Please select a debit account first';
 $string['distributegradesequally'] = 'Distribute equally';
 
 // Chart import from CSV.

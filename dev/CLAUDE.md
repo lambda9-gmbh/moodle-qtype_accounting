@@ -1,243 +1,205 @@
-# moodle-qtype_accounting - Moodle Question Type: Buchungssatz
+# qtype_accounting — Moodle Question Type: Accounting Entry (Buchungssatz)
 
-## Project Overview
+Internal developer notes. Not shipped: `dev/` is `export-ignore`d in `.gitattributes`.
 
-This is a **Moodle Question Type Plugin** (`qtype_buchungssatz`) for teaching accounting/bookkeeping. It allows instructors to create questions where students must enter accounting entries (Buchungssätze) with debit (Soll) and credit (Haben) accounts and amounts.
+The plugin lets instructors author accounting journal-entry questions (Buchungssätze) where students pick debit/credit accounts from a course-scoped chart of accounts and enter amounts. Developed for **Hochschule Flensburg** by **lambda9**.
 
-The plugin is developed for **Hochschule Flensburg** by **lambda9**.
+## Coding standards
 
-## Coding Standards
+Follows the [Moodle Coding Style Guide](https://moodledev.io/general/development/policies/codingstyle), enforced by:
+- `.phpcs.xml.dist` — rules `moodle` + `moodle-extra` (via `moodlehq/moodle-cs`).
+- `.phpmd.xml` — code-size + design + naming + unused-code rules, with a few opt-outs documented inline.
+- ESLint + Stylelint via `moodle-plugin-ci grunt`.
 
-**IMPORTANT:** This project follows the [Moodle Coding Style Guide](https://moodledev.io/general/development/policies/codingstyle).
+Key conventions:
+- `@package qtype_accounting`, `@copyright`, `@license` on every file and class.
+- `defined('MOODLE_INTERNAL') || die();` on every PHP file that doesn't bootstrap via `config.php`.
+- 4-space indent, `else if` (not `elseif`), short array `[]`, no closing `?>`.
+- Class names: lowercase + underscores (`qtype_accounting_renderer`).
+- Lang keys: all lowercase, no camelCase.
+- CSS selectors: `qtype_accounting-*` prefix (the frankenstyle component name).
 
-Key requirements:
-- All classes must have PHPDoc with `@package`, `@copyright`, `@license` tags
-- All methods must have PHPDoc with descriptive `@param` and `@return` tags
-- Use 4-space indentation
-- Use `else if` (not `elseif`)
-- Use short array syntax `[]`
-- Class names: lowercase with underscores (e.g., `qtype_buchungssatz_renderer`)
-- No closing `?>` tag in PHP files
+## Plugin metadata
 
-## Directory Structure
+- Component: `qtype_accounting`
+- Requires: Moodle 4.5 LTS (`$plugin->requires = 2024100700`)
+- Maturity: `MATURITY_BETA`
+- Release: `0.1.0`
+- License: GNU GPLv3-or-later
+
+## Repository layout
 
 ```
-plugin/                          # The Moodle plugin (qtype_buchungssatz)
+moodle-qtype_accounting/                  # Unpacks to question/type/accounting/ in Moodle
 ├── amd/
-│   ├── src/                     # JavaScript source files
-│   │   ├── question.js          # Student quiz interaction
-│   │   └── editform.js          # Edit form functionality
-│   └── build/                   # Generated .min.js files (gitignored)
-├── backup/moodle2/              # Backup/restore functionality
-├── classes/
-│   ├── chart_manager.php        # Chart of accounts CRUD operations
-│   └── privacy/provider.php     # GDPR privacy provider
+│   ├── src/                              # ES-module sources
+│   │   ├── editform.js                   # Question authoring UI
+│   │   ├── entry_utils.js                # Shared entry helpers
+│   │   ├── mobile_layout.js              # Mobile card layout
+│   │   └── question.js                   # Student quiz interaction
+│   └── build/                            # Minified output (committed; rebuilt via grunt)
+├── backup/moodle2/                       # Backup + restore handlers
+├── classes/                              # PSR-4 autoloaded under qtype_accounting\
+│   ├── account_manager.php               # Account CRUD
+│   ├── account_provider.php              # Dropdown filtering + seeded shuffle
+│   ├── amount_helper.php                 # Number-format parsing/formatting
+│   ├── answer_renderer.php               # Renders the "correct answer" block
+│   ├── chart_manager.php                 # Chart CRUD + CSV import/export
+│   ├── entries_table_builder.php         # Edit-form entry table HTML
+│   ├── entry_helper.php                  # Shared entry-row helpers
+│   ├── entry_validator.php               # Edit-form validation
+│   ├── feedback_calculator.php           # Per-entry feedback computation
+│   ├── feedback_renderer.php             # Student-side feedback HTML
+│   ├── import_helper.php                 # CSV parsing utilities
+│   ├── privacy/provider.php              # GDPR provider (usermodified only)
+│   ├── scorer.php                        # Aggregation-based weighted scoring
+│   └── xml_handler.php                   # Moodle XML import/export
 ├── db/
-│   ├── access.php               # Capability definitions
-│   ├── install.xml              # Database schema
-│   └── upgrade.php              # Database upgrades
+│   ├── access.php                        # qtype/accounting:managecharts capability
+│   ├── install.xml                       # XMLDB schema
+│   └── upgrade.php                       # xmldb_qtype_accounting_upgrade()
 ├── lang/
-│   ├── en/qtype_buchungssatz.php  # English strings
-│   └── de/qtype_buchungssatz.php  # German strings
-├── pix/
-│   └── icon.svg                 # Question type icon (§ symbol)
-├── ajax/
-│   ├── get_accounts.php         # AJAX endpoint for accounts
-│   └── import_entries.php       # AJAX endpoint for CSV import
-├── edit_buchungssatz_form.php   # Question editing form
-├── question.php                 # Question definition class
-├── questiontype.php             # Question type class
-├── renderer.php                 # Question rendering
-├── manage_charts.php            # Chart management page
-├── edit_chart.php               # Chart editing page
-├── styles.css                   # Plugin styles
-└── version.php                  # Plugin version
-
-docker/                          # Docker development environment
-├── docker-compose.yml           # Moodle + MariaDB + phpMyAdmin
-├── Dockerfile                   # Moodle container
-└── config.php                   # Moodle configuration
+│   ├── en/qtype_accounting.php           # English (shipped)
+│   └── de/qtype_accounting.php           # German (export-ignored; ship via AMOS)
+├── pix/icon.svg                          # Question type icon
+├── tests/
+│   ├── behat/                            # Acceptance tests
+│   │   ├── attempt_question.feature
+│   │   ├── behat_qtype_accounting.php
+│   │   ├── create_question.feature
+│   │   └── grading.feature
+│   ├── generator/lib.php                 # Test data generator
+│   ├── account_manager_test.php
+│   ├── chart_manager_test.php
+│   ├── helper.php
+│   ├── import_helper_test.php
+│   ├── question_test.php
+│   └── questiontype_test.php
+├── edit_accounting_form.php              # qtype_accounting_edit_form (question authoring)
+├── edit_chart.php                        # Per-chart edit page (manages accounts in one chart)
+├── manage_charts.php                     # Course-scoped chart list / upload / delete
+├── question.php                          # qtype_accounting_question (question_graded_automatically)
+├── questiontype.php                      # qtype_accounting (question_type)
+├── renderer.php                          # qtype_accounting_renderer
+├── styles.css                            # .qtype_accounting-* rules
+├── version.php
+├── README.md
+├── CHANGES.md
+├── LICENSE
+├── .gitattributes                        # Marks dev/, lang/de/, .idea/, .claude/ export-ignore
+├── .phpcs.xml.dist                       # moodle + moodle-extra ruleset
+└── .phpmd.xml
 ```
 
-## Key Concepts
+Notable absences (intentional):
+- No `settings.php` — the plugin has no admin settings.
+- No `ajax/` — earlier endpoints were dead code; chart import now goes through Moodle's filepicker form in `manage_charts.php` / `edit_chart.php`.
+- No `db/services.php` / `classes/external/` — no external web service surface.
+- No mustache templates — all output via `html_writer` / direct HTML strings in the renderer.
 
-### Terminology (German Accounting)
-- **Buchungssatz** = Accounting entry / Journal entry
-- **Soll** = Debit (left side of T-account)
-- **Haben** = Credit (right side of T-account)
-- **Konto** = Account
-- **Betrag** = Amount
-- **Kontenrahmen** = Chart of accounts (e.g., SKR03)
+## Database schema
 
-### Question Structure
-A Buchungssatz question consists of:
-1. Question text describing a business transaction
-2. One or more correct answer entries, each with:
-   - Debit account (Sollkonto) - optional
-   - Debit amount (Sollbetrag)
-   - Credit account (Habenkonto) - required
-   - Credit amount (Habenbetrag)
-   - Fraction (points for this entry)
+All tables are frankenstyle-prefixed `qtype_accounting_`:
 
-### Grading
-- Total points = sum of all entry fractions
-- Student entries are matched against correct entries
-- Partial credit is awarded for partially correct answers
-- Account matching is case-insensitive
-- Amount matching has 0.01 tolerance for floating point
+| Table | Purpose | Key fields |
+|---|---|---|
+| `qtype_accounting_charts` | Chart of accounts definitions, scoped to a context | `id`, `name`, `contextid`, `timecreated`, `timemodified`, `usermodified` |
+| `qtype_accounting_accounts` | Individual accounts inside a chart | `id`, `chartid`, `accountname`, `sortorder` |
+| `qtype_accounting_options` | Per-question settings | `id`, `questionid`, `chartofaccountsid`, `accountsindropdown`, `numberformat`, `extraentrydeduction`, `allornothinggrading`, `allowmultipleentries`, `maxentries` |
+| `qtype_accounting_entries` | Correct-answer rows | `id`, `questionid`, `sortorder`, `debitaccountid`, `debitamount`, `creditaccountid`, `creditamount`, `weight_debit/credit_account/amount`, `explanation` |
 
-## Plugin Version
+Charts live at a **course context**; capability `qtype/accounting:managecharts` is required to edit them. The chart-of-accounts ID is referenced from `qtype_accounting_options.chartofaccountsid`.
 
-- Component: `qtype_buchungssatz`
-- Requires: Moodle 4.1+ (2022112800)
-- Maturity: Alpha
-- Release: 0.1.0
+## Grading model
 
-## Database Tables
+`classes/scorer.php` implements an **aggregation-based weighted score** (called from `question.php::calculate_fraction`):
 
-### qtype_buchungssatz_charts
-Charts of accounts definitions.
-- `id`, `name`, `description`, `contextid`, `timecreated`, `timemodified`, `usermodified`
+1. Aggregate correct entries by `(side, account)` — summing amounts and per-field weights.
+2. Aggregate the student's response by `(side, account)` — summing amounts.
+3. For each correct `(side, account)` pair, award the account weight if the student named it, and award the amount weight if the summed amount is within 0.01 of the correct sum.
+4. Apply per-extra-account deduction (`extraentrydeduction` option, configurable; floored at 0).
+5. If `allornothinggrading` is on, snap to {0, 1}.
 
-### qtype_buchungssatz_accounts
-Individual accounts within a chart.
-- `id`, `chartid`, `accountnumber`, `accountname`, `accounttype`, `sortorder`
-- Account types: `asset`, `liability`, `equity`, `revenue`, `expense`
+Account matching is case-insensitive on `accountname` (via the account_id lookup). Amount tolerance: 0.01.
 
-### qtype_buchungssatz_options
-Question-specific options.
-- `id`, `questionid`, `chartofaccountsid`, `allowmultipleentries`, `maxentries`
+## Frontend (AMD modules)
 
-### qtype_buchungssatz_entries
-Correct answer entries for questions.
-- `id`, `questionid`, `sortorder`, `sollkonto`, `sollbetrag`, `habenkonto`, `habenbetrag`, `fraction`
+Wired into PHP via `$PAGE->requires->js_call_amd('qtype_accounting/<module>', 'init', […])`:
 
-## Key Files
+- **`question/init(containerId)`** — student quiz: add/delete entry rows, copy debit amount to credit amount, integrate with Select2 (if the theme provides it), apply mobile card layout via `mobile_layout`.
+- **`editform/init()`** — authoring form: populate account dropdowns from selected chart, auto-calculate total grade from per-entry fractions, sync per-field weight visibility, CSV import wiring.
+- `entry_utils` — pure helpers reused by both above.
+- `mobile_layout` — viewport-based switching between table view and card view.
 
-### question.php
-Defines the `qtype_buchungssatz_question` class:
-- `get_expected_data()` - Defines response field names
-- `grade_response()` - Grades student responses
-- `calculate_fraction()` - Calculates correctness percentage
-- `entries_match()` - Compares student entry to correct entry
+Build: `./dev/scripts/build.sh` minifies `amd/src/*.js` to `amd/build/*.min.js` via `terser`. During dev, `$CFG->cachejs = false;` in `dev/docker/config.php` lets Moodle serve `amd/src/` directly.
 
-### questiontype.php
-Defines the `qtype_buchungssatz` class:
-- `save_question_options()` - Saves question to database
-- `get_question_options()` - Loads question from database
-- `initialise_question_instance()` - Populates question object
+## Dev environment
 
-### renderer.php
-Defines the `qtype_buchungssatz_renderer` class:
-- `formulation_and_controls()` - Renders the question for students
-- `render_header_row()` - Renders Soll/Haben header with Account/Amount subheaders
-- `render_entry_row()` - Renders input fields for one entry
-- `correct_response()` - Renders the correct answer display
+The Docker stack lives in `dev/`. Two flavours:
 
-### edit_buchungssatz_form.php
-Defines the question editing form:
-- Uses Moodle's `repeat_elements()` for dynamic entry fields
-- JavaScript for dynamic account dropdowns based on selected chart
-- CSV import functionality for bulk entry creation
+**MariaDB (default):**
+```bash
+./dev/scripts/start.sh        # mariadb + moodle + phpmyadmin + selenium
+./dev/scripts/stop.sh
+./dev/scripts/reset.sh        # destroys volumes
+```
 
-## AMD JavaScript Modules
+**PostgreSQL (for cross-DB testing — required by the Moodle plugin contribution checklist):**
+```bash
+./dev/scripts/start-pgsql.sh  # postgres + moodle + selenium
+./dev/scripts/stop-pgsql.sh
+./dev/scripts/reset-pgsql.sh
+```
 
-### amd/src/question.js
-Handles student quiz interaction:
-- `init(containerId, accounts, maxEntries, allowEdit)` - Initialize question UI
-- `addEntry()` - Show next hidden entry row
-- `deleteEntry()` - Hide and clear an entry row
-- Auto-copies debit amount to credit amount for convenience
-- Integrates with Select2 for searchable dropdowns if available
+The `pgsql` stack overlays `docker-compose.pgsql.yml` on the base compose; `dev/docker/config.php` reads `MOODLE_DOCKER_DBTYPE/HOST/NAME/USER/PASS` from the container env, so the same image works for both.
 
-### amd/src/editform.js
-Handles the question editing form (defined inline in `edit_buchungssatz_form.php`):
-- Dynamic account dropdown population based on selected chart
-- Auto-calculation of total points from entry fractions
-- Debit amount field disabled when no debit account selected
-- CSV import functionality
-- Auto-refresh accounts when returning from chart management
+Container paths:
+- Moodle source: `/var/www/html` (the chosen `MOODLE_VERSION` is downloaded into this dir at image-build time).
+- Plugin: `/var/www/html/question/type/accounting`, populated by per-file/per-directory bind mounts from the host repo (see `dev/docker-compose.yml`). **Caveat:** `sed -i.bak ... && rm .bak` on host replaces the inode and orphans the container's single-file bind mounts; restart the container after such edits (`docker restart accounting-moodle`).
+- Moodledata: `/var/www/moodledata` (named volume).
+- Behatdata: `/var/www/behatdata` (named volume).
+- moodle-plugin-ci: `/opt/moodle-plugin-ci`.
+- moodle-cs (phpcs ruleset): `/opt/moodle-cs`.
 
-## AMD JavaScript Build
+Services:
+- Moodle (Apache + PHP 8.2 by default): http://localhost:8080
+- phpMyAdmin (MariaDB stack only): http://localhost:8081
+- Selenium (for Behat): http://localhost:4444 (VNC at 7900)
+- MariaDB: `mariadb:3306` inside the docker network
+- Postgres: `postgres:5432` inside the docker network
 
-The `amd/build/` directory is gitignored. To build:
+## Test + CI scripts
 
 ```bash
-./scripts/build.sh
+./dev/scripts/test.sh                # PHPUnit + Behat
+./dev/scripts/test.sh phpunit
+./dev/scripts/test.sh behat
+
+./dev/scripts/ci.sh                  # Full CI: tests + all moodle-plugin-ci checks
+./dev/scripts/ci.sh checks           # Lint/static analysis only
+./dev/scripts/ci.sh codecheck        # phpcs (moodle + moodle-extra)
+./dev/scripts/ci.sh codecheck fix    # phpcbf auto-fix
+./dev/scripts/ci.sh phpcs            # moodle-plugin-ci phpcs
+./dev/scripts/ci.sh phpmd
+./dev/scripts/ci.sh phpdoc
+./dev/scripts/ci.sh grunt            # eslint + stylelint + gherkinlint
+./dev/scripts/ci.sh all              # default check set + phpcpd
+
+./dev/scripts/build.sh               # Minify amd/src → amd/build
+./dev/scripts/logs.sh                # docker compose logs -f
+./dev/scripts/purge-cache.sh         # admin/cli/purge_caches.php
 ```
 
-This minifies `src/*.js` to `build/*.min.js` using terser (if available). Install terser with `npm install -g terser` for proper minification.
+## Common gotchas
 
-For development, you can also set `$CFG->cachejs = false;` in Moodle's config.php to load directly from `amd/src/`.
+- **After PHP changes**, purge caches (`./dev/scripts/purge-cache.sh`) — Moodle aggressively caches plugin discovery + autoloader maps.
+- **After JS source changes**, either run `./dev/scripts/build.sh` to rebuild `amd/build/` or set `$CFG->cachejs = false;`. Behat in particular reads `amd/build/`.
+- **After DB schema changes**, bump `$plugin->version` and add a step to `db/upgrade.php`. Don't edit `install.xml` without a matching upgrade step (CI checks this).
+- **Behat `attempt_question.feature`** depends on the renderer applying `.qtype_accounting-entry-row` to entry `<tr>`s — keep that class name in sync if you ever rename selectors.
+- **Single-file bind mounts** in `dev/docker-compose.yml` pin to inodes; tools that unlink+recreate files (sed -i.bak, some editors) leave the container holding a deleted handle. Restart `accounting-moodle` if Moodle suddenly can't find a top-level plugin file.
 
-## CSV Import Feature
+## Working agreements with Claude
 
-The plugin supports importing accounting entries from CSV files.
-
-**Supported formats:**
-- Full: `Debit Account, Debit Name, Debit Amount, Credit Account, Credit Name, Credit Amount`
-- Compact: `Debit Account, Debit Amount, Credit Account, Credit Amount`
-
-**Delimiters:** Tab, semicolon, or comma
-**Number format:** German format supported (1.234,56)
-
-The import creates a new chart of accounts if needed and populates entry fields automatically.
-
-## Docker Development Environment
-
-Start the environment:
-```bash
-cd docker
-docker-compose up -d
-```
-
-Access:
-- Moodle: http://localhost:8080
-- phpMyAdmin: http://localhost:8081
-
-The plugin is mounted at `/var/www/html/question/type/accounting`.
-
-View PHP logs:
-```bash
-docker logs -f accounting-moodle
-```
-
-## Common Development Tasks
-
-### After modifying JavaScript
-Run the build script to update minified files:
-```bash
-./plugin/amd/build.sh
-```
-
-### After modifying database schema
-Increment version in `version.php` and run Moodle's upgrade.
-
-### Purge Moodle caches
-Navigate to Site Administration > Development > Purge caches, or use:
-```bash
-docker exec accounting-moodle php admin/cli/purge_caches.php
-```
-
-## Important Notes
-
-- **Debit (Soll) account is optional** - Only Credit (Haben) account is required for an entry
-- **Entry deletion** uses Moodle's built-in `repeat_elements()` delete functionality
-- **Points auto-calculation** - The question's total points equals sum of entry fractions
-- **Account display** shows "number - name" format (e.g., "1200 - Bank") in review mode
-- **MAX_STUDENT_ENTRIES = 20** - Students can add up to 20 entries per question
-
-## Student Quiz Display
-
-The quiz display shows:
-1. Two-row header:
-   - Row 1: "Soll" (Debit) | "Haben" (Credit)
-   - Row 2: "Account" | "Amount" | "Account" | "Amount"
-2. Entry rows with dropdowns for accounts and number inputs for amounts
-3. Add/Delete buttons for managing entries
-4. Correct answer display shows account number + name (e.g., "1200 - Bank")
-
-## Planning
-
-- When creating a plan, always ask if something is unclear
-- Keep your plan clean and concise, but understandable
+- When creating a plan, surface anything unclear before writing code.
+- Keep plans tight; one or two lines per step.
+- Don't restate what the diff already says.

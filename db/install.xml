@@ -1,57 +1,61 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" PATH="question/type/accounting/db" VERSION="20240101" COMMENT="XMLDB file for Buchungssatz question type" xsi:noNamespaceSchemaLocation="../../../../lib/xmldb/xmldb.xsd">
+<XMLDB xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" PATH="question/type/accounting/db" VERSION="20240101" COMMENT="XMLDB schema for the qtype_accounting (Accounting Entry / Buchungssatz) question type." xsi:noNamespaceSchemaLocation="../../../../lib/xmldb/xmldb.xsd">
   <TABLES>
-    <TABLE NAME="qtype_accounting_options" COMMENT="Options for Buchungssatz questions">
+    <TABLE NAME="qtype_accounting_options" COMMENT="Per-question settings: chart selection, decoy count, number format, grading flags.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
-        <FIELD NAME="chartofaccountsid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Reference to chart of accounts"/>
-        <FIELD NAME="accountsindropdown" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Number of accounts to show in dropdown (0 = all)"/>
-        <FIELD NAME="numberformat" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="de" SEQUENCE="false" COMMENT="Number format: de (1.234,56) or us (1,234.56)"/>
-        <FIELD NAME="extraentrydeduction" TYPE="number" LENGTH="10" DECIMALS="7" NOTNULL="false" SEQUENCE="false" COMMENT="Fraction deducted per extra entry (0.0 to 1.0)"/>
-        <FIELD NAME="allornothinggrading" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="If 1, only full or zero marks (no partial credit)"/>
-        <FIELD NAME="allowmultipleentries" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Allow multiple booking entries"/>
-        <FIELD NAME="maxentries" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="5" SEQUENCE="false" COMMENT="Maximum number of entries allowed"/>
+        <FIELD NAME="chartofaccountsid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references qtype_accounting_charts.id"/>
+        <FIELD NAME="accountsindropdown" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Number of decoy accounts shown in dropdowns alongside correct ones (0 = show entire chart)"/>
+        <FIELD NAME="numberformat" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="de" SEQUENCE="false" COMMENT="Display number format: de (1.234,56) or us (1,234.56)"/>
+        <FIELD NAME="extraentrydeduction" TYPE="number" LENGTH="10" DECIMALS="7" NOTNULL="false" SEQUENCE="false" COMMENT="Fraction (0.0 to 1.0) deducted per extra account named that is not in the correct answer"/>
+        <FIELD NAME="allornothinggrading" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="If 1, the question grades 0 or full marks only (no partial credit)"/>
+        <FIELD NAME="allowmultipleentries" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="If 1, students may submit multiple booking entries (compound bookings)"/>
+        <FIELD NAME="maxentries" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="5" SEQUENCE="false" COMMENT="Maximum number of entries the student may add per question"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="questionid" TYPE="foreign-unique" FIELDS="questionid" REFTABLE="question" REFFIELDS="id"/>
+        <KEY NAME="chartofaccountsid" TYPE="foreign" FIELDS="chartofaccountsid" REFTABLE="qtype_accounting_charts" REFFIELDS="id"/>
       </KEYS>
     </TABLE>
 
-    <TABLE NAME="qtype_accounting_entries" COMMENT="Correct answer entries for Buchungssatz questions">
+    <TABLE NAME="qtype_accounting_entries" COMMENT="Correct-answer rows for accounting entry questions; one row per journal entry, with per-field weights.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
-        <FIELD NAME="sortorder" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Order of the entry"/>
-        <FIELD NAME="debitaccountid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Foreign key to accounts.id for debit account"/>
+        <FIELD NAME="sortorder" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Display order of the entry within the question"/>
+        <FIELD NAME="debitaccountid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Foreign key references qtype_accounting_accounts.id (debit side)"/>
         <FIELD NAME="debitamount" TYPE="number" LENGTH="15" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Debit amount"/>
-        <FIELD NAME="creditaccountid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Foreign key to accounts.id for credit account"/>
+        <FIELD NAME="creditaccountid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Foreign key references qtype_accounting_accounts.id (credit side)"/>
         <FIELD NAME="creditamount" TYPE="number" LENGTH="15" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Credit amount"/>
-        <FIELD NAME="weight_debitaccount" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Weight for debit account"/>
-        <FIELD NAME="weight_debitamount" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Weight for debit amount"/>
-        <FIELD NAME="weight_creditaccount" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Weight for credit account"/>
-        <FIELD NAME="weight_creditamount" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Weight for credit amount"/>
-        <FIELD NAME="explanation" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Teacher explanation for this entry"/>
+        <FIELD NAME="weight_debitaccount" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Grading weight for the debit account (1-3)"/>
+        <FIELD NAME="weight_debitamount" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Grading weight for the debit amount (1-3)"/>
+        <FIELD NAME="weight_creditaccount" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Grading weight for the credit account (1-3)"/>
+        <FIELD NAME="weight_creditamount" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Grading weight for the credit amount (1-3)"/>
+        <FIELD NAME="explanation" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Optional teacher explanation shown to the student in the correct-answer view"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="questionid" TYPE="foreign" FIELDS="questionid" REFTABLE="question" REFFIELDS="id"/>
+        <KEY NAME="debitaccountid" TYPE="foreign" FIELDS="debitaccountid" REFTABLE="qtype_accounting_accounts" REFFIELDS="id"/>
+        <KEY NAME="creditaccountid" TYPE="foreign" FIELDS="creditaccountid" REFTABLE="qtype_accounting_accounts" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
         <INDEX NAME="questionid-sortorder" UNIQUE="false" FIELDS="questionid, sortorder"/>
       </INDEXES>
     </TABLE>
 
-    <TABLE NAME="qtype_accounting_accounts" COMMENT="Chart of accounts for Buchungssatz questions">
+    <TABLE NAME="qtype_accounting_accounts" COMMENT="Individual accounts that make up a chart of accounts.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="chartid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Chart of accounts group ID"/>
-        <FIELD NAME="accountname" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Account name"/>
-        <FIELD NAME="sortorder" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Display order"/>
+        <FIELD NAME="chartid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references qtype_accounting_charts.id"/>
+        <FIELD NAME="accountname" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Display name of the account (typically number + name, e.g. '1200 Bank')"/>
+        <FIELD NAME="sortorder" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Display order within the chart"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="chartid" TYPE="foreign" FIELDS="chartid" REFTABLE="qtype_accounting_charts" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
         <INDEX NAME="chartid-accountname" UNIQUE="true" FIELDS="chartid, accountname"/>
@@ -59,14 +63,14 @@
       </INDEXES>
     </TABLE>
 
-    <TABLE NAME="qtype_accounting_charts" COMMENT="Chart of accounts definitions">
+    <TABLE NAME="qtype_accounting_charts" COMMENT="Course-scoped chart of accounts definitions.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Name of the chart of accounts (Liste)"/>
-        <FIELD NAME="contextid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Context where this chart is available"/>
-        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-        <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Display name of the chart"/>
+        <FIELD NAME="contextid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Context (typically CONTEXT_COURSE) where this chart is available"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Unix timestamp when the chart was created"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Unix timestamp of the last modification"/>
+        <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="ID of the user who last modified the chart"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

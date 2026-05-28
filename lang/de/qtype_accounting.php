@@ -170,8 +170,8 @@ $string['csvinvalidformat'] = 'Die Kontodaten konnten nicht verarbeitet werden. 
 $string['csvnoentries'] = 'Keine gültigen Buchungen in den CSV-Daten gefunden.';
 $string['importedchart'] = 'Importierter Kontenplan';
 $string['importedchartdesc'] = 'Kontenplan aus CSV-Daten importiert.';
-$string['autoCalculatedFromFractions'] = 'Automatisch berechnet aus der Summe der Punktzahlen';
-$string['selectDebitAccountFirst'] = 'Bitte zuerst ein Sollkonto auswählen';
+$string['autocalculatedfromfractions'] = 'Automatisch berechnet aus der Summe der Punktzahlen';
+$string['selectdebitaccountfirst'] = 'Bitte zuerst ein Sollkonto auswählen';
 $string['distributegradesequally'] = 'Gleichmäßig verteilen';
 
 // Kontenplan-Import aus CSV.
