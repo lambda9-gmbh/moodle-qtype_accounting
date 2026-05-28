@@ -11,7 +11,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${YELLOW}Deploying MoFT to ${REMOTE_HOST}:${REMOTE_DIR}${NC}"
+echo -e "${YELLOW}Deploying moodle-qtype_accounting to ${REMOTE_HOST}:${REMOTE_DIR}${NC}"
 
 # Copy plugin folder.
 # Script lives in dev/scripts/, so the plugin source is two levels up (the repo root).

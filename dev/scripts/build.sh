@@ -2,18 +2,18 @@
 # Build script for AMD JavaScript files.
 #
 # Runs Moodle's own grunt-based AMD pipeline (Babel ES6 -> AMD define + minify)
-# inside the moft-moodle container. The previous terser-only approach left
+# inside the accounting-moodle container. The previous terser-only approach left
 # raw `import` statements in build/*.min.js, which RequireJS cannot execute
 # and which breaks Moodle's JS pipeline site-wide.
 #
-# Requirements (one-time setup inside the moft-moodle container):
+# Requirements (one-time setup inside the accounting-moodle container):
 #   - Node.js (matching Moodle's package.json engines field, currently >=22 <23)
 #   - npm install run in /var/www/html
 # After those exist, this script is the only thing needed to rebuild.
 
 set -e
 
-CONTAINER="moft-moodle"
+CONTAINER="accounting-moodle"
 PLUGIN_PATH="/var/www/html/question/type/buchungssatz"
 
 echo "========================================"

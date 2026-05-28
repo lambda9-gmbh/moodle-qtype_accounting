@@ -1,4 +1,4 @@
-# MoFT - Moodle Question Type: Buchungssatz
+# moodle-qtype_accounting - Moodle Question Type: Buchungssatz
 
 ## Project Overview
 
@@ -199,7 +199,7 @@ The plugin is mounted at `/var/www/html/question/type/buchungssatz`.
 
 View PHP logs:
 ```bash
-docker logs -f moft-moodle
+docker logs -f accounting-moodle
 ```
 
 ## Common Development Tasks
@@ -216,7 +216,7 @@ Increment version in `version.php` and run Moodle's upgrade.
 ### Purge Moodle caches
 Navigate to Site Administration > Development > Purge caches, or use:
 ```bash
-docker exec moft-moodle php admin/cli/purge_caches.php
+docker exec accounting-moodle php admin/cli/purge_caches.php
 ```
 
 ## Important Notes

@@ -6,7 +6,7 @@ services:
       args:
         - PHP_VERSION=${PHP_VERSION:-8.2}
         - MOODLE_VERSION=${MOODLE_VERSION:-MOODLE_405_STABLE}
-    container_name: moft-moodle
+    container_name: accounting-moodle
     ports:
       - "${MOODLE_PORT:-8080}:80"
     environment:
@@ -44,11 +44,11 @@ services:
       mariadb:
         condition: service_healthy
     networks:
-      - moft-network
+      - accounting-network
 
   mariadb:
     image: mariadb:10.11
-    container_name: moft-mariadb
+    container_name: accounting-mariadb
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root_password}
       - MYSQL_DATABASE=${MYSQL_DATABASE:-moodle}
@@ -58,7 +58,7 @@ services:
       - mariadb_data:/var/lib/mysql
       - ./init:/docker-entrypoint-initdb.d
     networks:
-      - moft-network
+      - accounting-network
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
@@ -68,7 +68,7 @@ services:
 
   phpmyadmin:
     image: phpmyadmin:5
-    container_name: moft-phpmyadmin
+    container_name: accounting-phpmyadmin
     ports:
       - "${PHPMYADMIN_PORT:-8081}:80"
     environment:
@@ -78,17 +78,17 @@ services:
     depends_on:
       - mariadb
     networks:
-      - moft-network
+      - accounting-network
 
   selenium:
     image: selenium/standalone-firefox:latest
-    container_name: moft-selenium
+    container_name: accounting-selenium
     ports:
       - "${SELENIUM_PORT:-4444}:4444"
       - "${SELENIUM_VNC_PORT:-7900}:7900"
     shm_size: '2gb'
     networks:
-      - moft-network
+      - accounting-network
 
 volumes:
   moodledata:
@@ -96,5 +96,5 @@ volumes:
   behatdata:
 
 networks:
-  moft-network:
+  accounting-network:
     driver: bridge

@@ -319,7 +319,7 @@ Test: iPhone SE, iPhone 12 Pro, iPad
 ### Manual Test Commands
 ```bash
 # Purge Moodle cache after changes
-docker exec moft-moodle php admin/cli/purge_caches.php
+docker exec accounting-moodle php admin/cli/purge_caches.php
 
 # Build JavaScript
 ./scripts/build.sh

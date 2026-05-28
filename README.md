@@ -1,4 +1,4 @@
-# MoFT-BuSa - Moodle Question Type: Buchungssatz
+# moodle-qtype_accounting-BuSa - Moodle Question Type: Buchungssatz
 
 A Moodle question type plugin for practicing accounting entries (Buchungssätze). Students select accounts from a chart of accounts (Kontenplan) and enter debit/credit amounts.
 
@@ -71,7 +71,7 @@ After Moodle installation, go to **Site administration > Notifications** to trig
 ## Project Structure
 
 ```
-MoFT/
+moodle-qtype_accounting/
 ├── plugin/                              # Moodle qtype plugin
 │   ├── amd/
 │   │   ├── src/                         # JavaScript ES modules
@@ -109,7 +109,6 @@ MoFT/
 │   ├── question.php                     # Question definition class
 │   ├── questiontype.php                 # Question type class
 │   ├── renderer.php                     # Question renderer
-│   ├── settings.php                     # Admin settings
 │   ├── styles.css                       # CSS styles
 │   └── version.php                      # Plugin version
 ├── docker/                              # Docker development environment
@@ -226,7 +225,7 @@ After PHP changes, purge Moodle caches:
 ```bash
 ./scripts/purge-cache.sh
 # or
-docker exec moft-moodle php admin/cli/purge_caches.php
+docker exec accounting-moodle php admin/cli/purge_caches.php
 ```
 
 ## Database Tables

@@ -8,3 +8,8 @@ dev/                      export-ignore
 .phpmd.xml                export-ignore
 .idea/                    export-ignore
 .claude/                  export-ignore
+
+# German strings are kept in the repo for local testing only.
+# Moodle plugins must ship English-only; translations belong in AMOS
+# (https://lang.moodle.org). Excluded from the release ZIP.
+lang/de/                  export-ignore
