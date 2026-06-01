@@ -247,7 +247,7 @@ To contribute a translation, please use the official Moodle translation tool at 
 ## Bug reports and support
 
 - **Issues:** please file bug reports and feature requests against the project's issue tracker.
-- **Contact:** <tausch-nebel@hs-flensburg.de>.
+- **Contact:** <info@lambda9.de>.
 
 When reporting a bug, please include:
 
@@ -386,4 +386,4 @@ the Free Software Foundation, either version 3 of the License, or
 
 Developed for **Hochschule Flensburg** by **lambda9**.
 
-Contact: <tausch-nebel@hs-flensburg.de>
+Contact: <info@lambda9.de>
