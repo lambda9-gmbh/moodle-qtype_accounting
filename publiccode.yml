@@ -1,0 +1,170 @@
+# This repository adheres to the publiccode.yml standard by including this
+# metadata file that makes public software easily discoverable.
+# More info at https://github.com/publiccodeyml/publiccode.yml
+
+publiccodeYmlVersion: "0.5"
+
+name: Accounting Entry (Buchungssatz) for Moodle
+url: "https://github.com/lambda9-gmbh/moodle-qtype_accounting.git"
+landingURL: "https://github.com/lambda9-gmbh/moodle-qtype_accounting"
+releaseDate: "2026-05-28"
+softwareVersion: 1.0.0
+developmentStatus: stable
+softwareType: addon
+logo: pix/icon.svg
+
+platforms:
+  - web
+
+categories:
+  - educational-content
+
+usedBy:
+  - Hochschule Flensburg
+
+organisation:
+  name: lambda9 GmbH
+  uri: "https://lambda9.de"
+
+intendedAudience:
+  scope:
+    - education
+
+dependsOn:
+  open:
+    - name: Moodle
+      versionMin: "4.5"
+    - name: PHP
+      versionMin: "8.1"
+    - name: MariaDB
+      versionMin: "10.11"
+      optional: true
+    - name: PostgreSQL
+      versionMin: "16"
+      optional: true
+
+legal:
+  license: GPL-3.0-or-later
+  mainCopyrightOwner: Hochschule Flensburg / lambda9
+
+maintenance:
+  type: internal
+  contacts:
+    - name: Benjamin Klink
+      email: bkl@lambda9.de
+      affiliation: lambda9 GmbH
+
+localisation:
+  localisationReady: true
+  availableLanguages:
+    - en
+    - de
+
+description:
+  en:
+    localisedName: Accounting Entry
+    genericName: Moodle question type
+    shortDescription: >-
+      Moodle question type for practising double-entry bookkeeping with
+      course-scoped charts of accounts and weighted partial-credit grading.
+    longDescription: |
+      The Accounting Entry question type lets Moodle teachers
+      assess double-entry bookkeeping directly in a quiz. Students record one
+      or more journal entries by picking debit and credit accounts from a
+      course-scoped chart of accounts and entering amounts. Compound bookings
+      (for example, split-VAT entries) are supported through multiple
+      correct-answer rows per question.
+
+      Grading is per-field and configurable. Each of the four fields — Debit
+      Account, Debit Amount, Credit Account, Credit Amount — has an
+      independent weight that drives partial credit. Teachers can switch the
+      question to all-or-nothing grading, apply a configurable percentage
+      penalty per extra account a student names that is not in the correct
+      answer, and choose between German (1.234,56) and US (1,234.56) number
+      formats. The scorer aggregates entries by account on each side so the
+      order in which a student types their entries does not affect the score.
+
+      Charts of accounts are managed inside Moodle, scoped to each course.
+      Teachers can create charts manually, upload them as UTF-8 or
+      Windows-1252 CSV files, edit and reorder accounts, and download charts
+      again as CSV. Optional decoy accounts can be added to the student-facing
+      dropdowns to discourage process-of-elimination guessing. Questions and
+      their referenced chart of accounts are preserved across Moodle's
+      standard question import/export and course backup/restore flows.
+
+      The plugin is built for Moodle 4.5 LTS and later, has been verified
+      against Moodle 4.5 LTS through 5.1, and runs on both MariaDB and
+      PostgreSQL. It has no external service dependencies. It was developed
+      for Hochschule Flensburg by lambda9.
+    features:
+      - Two-sided journal entry table with Debit and Credit columns
+      - Per-field weighting for partial-credit grading
+      - Optional all-or-nothing grading mode
+      - Configurable penalty for extra accounts the student names
+      - Course-scoped charts of accounts managed inside Moodle
+      - CSV import and export of charts of accounts (UTF-8 / Windows-1252)
+      - Optional decoy accounts in account dropdowns
+      - Searchable account dropdowns where Select2 is available
+      - Per-field colour feedback after submission, with side-level summary
+      - Toggle between German and US number formats
+      - Moodle XML question import/export with embedded chart of accounts
+      - Course backup and restore support
+    screenshots:
+      - docs/screenshots/edit-question.png
+      - docs/screenshots/student-attempt.png
+      - docs/screenshots/feedback.png
+  de:
+    localisedName: Buchungssatz (Accounting Entry)
+    genericName: Moodle-Fragetyp
+    shortDescription: >-
+      Moodle-Fragetyp zum Üben von Buchungssätzen mit kursbezogenen
+      Kontenrahmen und gewichteter Teilbewertung.
+    longDescription: |
+      Der Fragetyp „Buchungssatz“ ermöglicht die
+      Prüfung der doppelten Buchführung direkt in einem Moodle-Test.
+      Studierende erfassen einen oder mehrere Buchungssätze, indem sie
+      Soll- und Habenkonten aus einem kursbezogenen Kontenrahmen
+      auswählen und die jeweiligen Beträge eintragen. Auch zusammengesetzte
+      Buchungssätze (zum Beispiel mit aufgeteilter Vorsteuer) werden über
+      mehrere Antwortzeilen unterstützt.
+
+      Die Bewertung erfolgt feldweise und ist konfigurierbar. Die vier
+      Felder Sollkonto, Sollbetrag, Habenkonto und Habenbetrag erhalten
+      jeweils eine unabhängige Gewichtung, die in die Teilpunktberechnung
+      einfließt. Lehrende können stattdessen eine Alles-oder-Nichts-Wertung
+      aktivieren, einen prozentualen Abzug pro zusätzlich genanntem
+      falschen Konto festlegen und zwischen deutschem (1.234,56) und
+      amerikanischem (1,234.56) Zahlenformat wählen. Der Scorer
+      aggregiert die Antworten pro Konto und Seite, sodass die
+      Reihenfolge der Eingaben keinen Einfluss auf das Ergebnis hat.
+
+      Kontenrahmen werden direkt in Moodle verwaltet und sind dem
+      jeweiligen Kurs zugeordnet. Sie können manuell angelegt, als
+      UTF-8- oder Windows-1252-CSV-Datei hochgeladen, bearbeitet,
+      umsortiert und wieder als CSV exportiert werden. Optionale
+      Ablenkungskonten in den Auswahllisten erschweren das Raten nach
+      dem Ausschlussprinzip. Fragen und die zugehörigen Kontenrahmen
+      bleiben beim Moodle-Import/-Export und beim Kurs-Backup
+      erhalten.
+
+      Das Plugin ist für Moodle 4.5 LTS und neuer entwickelt, gegen
+      Moodle 4.5 LTS bis 5.1 verifiziert und läuft sowohl auf MariaDB
+      als auch auf PostgreSQL. Externe Dienste werden nicht benötigt.
+      Entwickelt wurde es für die Hochschule Flensburg von lambda9.
+    features:
+      - Zweispaltige Buchungsmaske (Soll / Haben)
+      - Feldweise Gewichtung für Teilbewertung
+      - Optionale Alles-oder-Nichts-Bewertung
+      - Konfigurierbarer Abzug für zusätzliche falsche Konten
+      - Kursbezogene Kontenrahmen, direkt in Moodle verwaltet
+      - CSV-Import und -Export von Kontenrahmen (UTF-8 / Windows-1252)
+      - Optionale Ablenkungskonten in den Kontoauswahllisten
+      - Suchbare Kontoauswahl wenn Select2 verfügbar ist
+      - Feldweise Farbrückmeldung nach Abgabe inklusive Seitenfazit
+      - Umschaltbares deutsches und amerikanisches Zahlenformat
+      - Moodle-XML-Import/-Export inklusive eingebettetem Kontenrahmen
+      - Unterstützung für Moodle-Backup und -Restore
+    screenshots:
+      - docs/screenshots/edit-question.png
+      - docs/screenshots/student-attempt.png
+      - docs/screenshots/feedback.png
