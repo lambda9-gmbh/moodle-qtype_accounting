@@ -43,6 +43,91 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
     protected $accountidmap = [];
 
     /**
+     * Convert custom backup elements into question data for restore identity comparison.
+     *
+     * @param array $backupdata Parsed question backup data.
+     * @return \stdClass Question data with portable chart and account references.
+     */
+    public static function convert_backup_to_questiondata(array $backupdata): \stdClass {
+        $questiondata = parent::convert_backup_to_questiondata($backupdata);
+        $plugin = $backupdata['plugin_qtype_accounting_question'] ?? [];
+        $options = (object) ($plugin['accounting_options'][0] ?? []);
+        $options->entries = array_map(
+            fn($entry) => (object) $entry,
+            $plugin['accounting_entries']['entry'] ?? []
+        );
+        $chart = $plugin['accounting_chart'][0] ?? [];
+        $accounts = array_map(fn($account) => (object) $account, $chart['chart_accounts']['chart_account'] ?? []);
+        $questiondata->options = self::prepare_identity_options($options, $chart['name'] ?? '', $accounts);
+        return $questiondata;
+    }
+
+    /**
+     * Compare portable chart and account data instead of database IDs that change during restore.
+     *
+     * @param \stdClass $questiondata Question data from a backup or the database.
+     * @param array $excludefields Paths excluded by the identity hash caller.
+     * @return \stdClass Normalised question data.
+     */
+    public static function remove_excluded_question_data(\stdClass $questiondata, array $excludefields = []): \stdClass {
+        $questiondata = clone $questiondata;
+        if (!isset($questiondata->options->chartname)) {
+            $options = $questiondata->options;
+            $chartid = (int) ($options->chartofaccountsid ?? 0);
+            $chart = $chartid ? \qtype_accounting\chart_manager::get_chart($chartid) : false;
+            $accounts = $chart ? \qtype_accounting\account_manager::get_for_chart($chartid) : [];
+            $questiondata->options = self::prepare_identity_options($options, $chart->name ?? '', $accounts);
+        }
+        return parent::remove_excluded_question_data($questiondata, $excludefields);
+    }
+
+    /**
+     * Build the same identity representation for backup and database options without modifying either.
+     *
+     * @param \stdClass $options Accounting options and answer entries.
+     * @param string $chartname Chart name.
+     * @param array $accounts Chart accounts, including their source IDs.
+     * @return \stdClass Options using account names and portable chart contents.
+     */
+    private static function prepare_identity_options(\stdClass $options, string $chartname, array $accounts): \stdClass {
+        $options = clone $options;
+        $options->chartname = $chartname;
+        $options->chartaccounts = [];
+        $accountnames = [];
+        foreach ($accounts as $account) {
+            $accountnames[$account->id] = $account->accountname;
+            $options->chartaccounts[] = (object) [
+                'accountname' => $account->accountname,
+                'sortorder' => $account->sortorder ?? 0,
+            ];
+        }
+        $options->entries = array_map(function ($entry) use ($accountnames) {
+            $entry = clone $entry;
+            foreach (['debitaccount', 'creditaccount'] as $field) {
+                $idfield = $field . 'id';
+                $entry->$idfield = $accountnames[$entry->$idfield ?? 0] ?? ($entry->$field ?? null);
+                unset($entry->$field);
+            }
+            foreach (['weight_debitaccount', 'weight_debitamount', 'weight_creditaccount', 'weight_creditamount'] as $field) {
+                $entry->$field = $entry->$field ?? 1;
+            }
+            $entry->explanation = $entry->explanation ?? '';
+            unset($entry->fraction);
+            return $entry;
+        }, $options->entries ?? []);
+        return $options;
+    }
+
+    /**
+     * Exclude internal IDs from question identity comparison.
+     *
+     * @return array Paths to fields omitted from the identity hash.
+     */
+    protected function define_excluded_identity_hash_fields(): array {
+        return ['/options/chartofaccountsid', '/options/entries/id', '/options/entries/questionid'];
+    }
+
+    /**
      * Returns the paths to be handled by the plugin at question level.
      *
      * @return array
