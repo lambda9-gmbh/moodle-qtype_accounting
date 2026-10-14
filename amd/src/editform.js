@@ -26,6 +26,7 @@ import * as Str from 'core/str';
 import Log from 'core/log';
 import {call as ajaxCall} from 'core/ajax';
 import * as EntryUtils from 'qtype_accounting/entry_utils';
+import {init as initChartOverlay} from 'qtype_accounting/chart_overlay';
 
 // Module-level state.
 let accountsByChart = {};
@@ -88,7 +89,8 @@ function init() {
 
     // Setup event handlers.
     setupChartChangeHandler();
-    setupChartRefreshHandler(config.courseId);
+    const refreshCharts = createChartRefreshCallback(config.courseId);
+    initChartOverlay(refreshCharts);
     setupNumberFormatChangeHandler();
     setupDebitaccountChangeHandler();
     setupAddEntryHandler();
@@ -147,18 +149,18 @@ function setupChartChangeHandler() {
 }
 
 /**
- * Refresh chart and account options on demand, keeping the question form in place.
+ * Create the refresh callback used when chart management closes, keeping the question form in place.
  *
  * @param {number} courseId Course ID.
+ * @returns {Function|null} Refresh callback, or null outside a course.
  */
-function setupChartRefreshHandler(courseId) {
-    const button = document.getElementById('qtype_accounting-refresh-charts');
+function createChartRefreshCallback(courseId) {
     const status = document.getElementById('qtype_accounting-refresh-status');
-    if (!button || !chartSelect || !courseId) {
-        return;
+    if (!status || !chartSelect || !courseId) {
+        return null;
     }
-    button.addEventListener('click', async function() {
-        button.disabled = true;
+    let pendingRefresh = Promise.resolve();
+    const refresh = async function() {
         status.textContent = '';
         try {
             const messages = await Str.get_strings([
@@ -201,10 +203,14 @@ function setupChartRefreshHandler(courseId) {
         } catch (error) {
             Log.error('Failed to refresh accounting charts', error);
             status.textContent = ' ' + await Str.get_string('refreshchartsfailed', 'qtype_accounting');
-        } finally {
-            button.disabled = false;
         }
-    });
+    };
+    // Queue refreshes when overlays are closed before an earlier refresh completes.
+    const refreshCharts = () => {
+        pendingRefresh = pendingRefresh.then(refresh, refresh);
+        return pendingRefresh;
+    };
+    return refreshCharts;
 }
 
 /**

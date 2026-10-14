@@ -61,6 +61,7 @@ $chartid = optional_param('chartid', 0, PARAM_INT);
 $sort = optional_param('sort', 'name', PARAM_ALPHA);
 $dir = optional_param('dir', 'ASC', PARAM_ALPHA);
 $returnurl = optional_param('returnurl', '', PARAM_LOCALURL);
+$embedded = optional_param('embedded', false, PARAM_BOOL);
 
 $course = get_course($courseid);
 require_login($course);
@@ -68,12 +69,18 @@ $context = context_course::instance($course->id);
 require_capability('qtype/accounting:managecharts', $context);
 
 $baseurl = new moodle_url('/question/type/accounting/manage_charts.php', ['courseid' => $courseid]);
+if ($embedded) {
+    $baseurl->param('embedded', 1);
+}
 if ($returnurl !== '') {
     $baseurl->param('returnurl', $returnurl);
 }
 $PAGE->set_url($baseurl);
 $PAGE->set_context($context);
-$PAGE->set_pagelayout('incourse');
+$PAGE->set_pagelayout($embedded ? 'embedded' : 'incourse');
+if ($embedded) {
+    $PAGE->add_body_class('qtype_accounting-chart-embedded');
+}
 $PAGE->set_title(get_string('managecharts', 'qtype_accounting'));
 $PAGE->set_heading($course->fullname);
 
@@ -129,6 +136,9 @@ if ($data = $createform->get_data()) {
         'courseid' => $courseid,
         'chartid' => $newchartid,
     ]);
+    if ($embedded) {
+        $editurl->param('embedded', 1);
+    }
     if ($returnurl !== '') {
         $editurl->param('returnurl', $returnurl);
     }
@@ -219,6 +229,9 @@ if (empty($charts)) {
             'courseid' => $courseid,
             'chartid' => $chart->id,
         ]);
+        if ($embedded) {
+            $editurl->param('embedded', 1);
+        }
         if ($returnurl !== '') {
             $editurl->param('returnurl', $returnurl);
         }

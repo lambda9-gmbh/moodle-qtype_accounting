@@ -76,7 +76,7 @@ After submission, every field is highlighted individually — green for correct,
 - **Decoy accounts in dropdowns** — "Number of additional accounts in selection list" controls how many random extra accounts appear alongside the correct ones. `0` shows the entire chart.
 - **Number format toggle** — `1,234.56` (US) or `1.234,56` (DE).
 - Course-scoped charts of accounts, manageable directly from the question form.
-- Chart management opens in a new tab. Return to the question and use **Refresh charts of accounts** to update the dropdowns while keeping unsaved entries. Removed selections are flagged for replacement before saving.
+- Chart management opens in a large overlay. Choose **Done** to return to the question; chart and account dropdowns refresh automatically while keeping unsaved question entries. Removed selections are flagged for replacement before saving. Unfinished chart edits require confirmation before closing.
 - Create charts of accounts directly in Moodle, or import and export CSV files (one account per line; UTF-8 or Windows-1252).
 - Question import and export through Moodle's standard XML format, with the embedded chart of accounts travelling with the question.
 - Backup and restore as part of a course's question bank.

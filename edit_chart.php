@@ -60,6 +60,7 @@ $action = optional_param('action', '', PARAM_ALPHA);
 $accountid = optional_param('accountid', 0, PARAM_INT);
 $editaccount = optional_param('editaccount', 0, PARAM_INT);
 $returnurl = optional_param('returnurl', '', PARAM_LOCALURL);
+$embedded = optional_param('embedded', false, PARAM_BOOL);
 
 $course = get_course($courseid);
 require_login($course);
@@ -83,10 +84,17 @@ $baseurl = new moodle_url('/question/type/accounting/edit_chart.php', [
 if ($returnurl !== '') {
     $baseurl->param('returnurl', $returnurl);
 }
+if ($embedded) {
+    $manageurl->param('embedded', 1);
+    $baseurl->param('embedded', 1);
+}
 
 $PAGE->set_url($baseurl);
 $PAGE->set_context($context);
-$PAGE->set_pagelayout('incourse');
+$PAGE->set_pagelayout($embedded ? 'embedded' : 'incourse');
+if ($embedded) {
+    $PAGE->add_body_class('qtype_accounting-chart-embedded');
+}
 $PAGE->set_title(get_string('editchart', 'qtype_accounting') . ': ' . format_string($chart->name));
 $PAGE->set_heading($course->fullname);
 
@@ -259,7 +267,7 @@ if ($tsort === 'accountname') {
 $accounts = account_manager::get_for_chart($chartid, $sortorder);
 
 // Heading row with add-account form on the right.
-echo html_writer::start_div('d-flex justify-content-between align-items-center mb-3');
+echo html_writer::start_div('qtype_accounting-account-toolbar d-flex flex-wrap justify-content-between align-items-center mb-3');
 echo $OUTPUT->heading(get_string('editaccounts', 'qtype_accounting') . ' (' . count($accounts) . ')', 3, 'mb-0');
 
 $addurl = new moodle_url($baseurl, ['action' => 'addaccount']);

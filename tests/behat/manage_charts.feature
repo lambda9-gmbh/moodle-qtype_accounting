@@ -20,7 +20,7 @@ Feature: Manage charts of accounts
     And I set the field "Accounting Entry" to "1"
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
     And I click on "Manage chart of accounts" "link"
-    And I switch to a second window
+    And I switch to "qtype_accounting-chart-frame" iframe
 
   Scenario: Create a chart directly and add accounts without uploading a file
     When I set the field "Chart name" to "Manual chart"

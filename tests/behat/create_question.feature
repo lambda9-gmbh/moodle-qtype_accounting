@@ -165,7 +165,7 @@ Feature: Create and edit Buchungssatz questions
       | #,###.00 | 12.50  |
 
   @javascript
-  Scenario: Refresh chart options after managing accounts in a new tab
+  Scenario: Closing chart management refreshes options and preserves the unsaved question
     Given the accounting chart "Main" with accounts "Bank, Cash" exists in course "Course 1"
     And I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."
@@ -180,7 +180,8 @@ Feature: Create and edit Buchungssatz questions
     And I set the field "creditaccount_display[0]" to "Cash"
     And I set the field "creditamount_display[0]" to "100"
     And I click on "Manage chart of accounts" "link"
-    And I switch to a second window
+    Then ".qtype_accounting-chart-overlay" "css_element" should be visible
+    When I switch to "qtype_accounting-chart-frame" iframe
     Then I should see "Main"
     And I should not see "Save and continue"
     When I click on "Main" "link"
@@ -188,9 +189,8 @@ Feature: Create and edit Buchungssatz questions
     And I press "Save changes"
     And I set the field "accountname" to "Inventory"
     And I press "Add Account"
-    And I switch to the main window
-    Then the field "Chart of Accounts" matches value "Main"
-    When I press "Refresh charts of accounts"
+    And I switch to the main frame
+    And I press "Done"
     Then I should see "Charts of accounts updated."
     And the field "Chart of Accounts" matches value "Renamed"
     And the field "Question name" matches value "Unsaved accounting question"
@@ -200,11 +200,13 @@ Feature: Create and edit Buchungssatz questions
     And the field "debitamount_display[0]" matches value "100,00"
     And the field "creditamount_display[0]" matches value "100,00"
     When I set the field "creditaccount_display[0]" to "Inventory"
-    And I switch to a second window
+    And I click on "Manage chart of accounts" "link"
+    And I switch to "qtype_accounting-chart-frame" iframe
+    And I click on "Renamed" "link"
     And I click on "Delete" "link" in the "Bank" "table_row"
     And I press "Continue"
-    And I switch to the main window
-    And I press "Refresh charts of accounts"
+    And I switch to the main frame
+    And I press "Done"
     Then I should see "A selected chart or account is no longer available."
     And the field "debitaccount_display[0]" matches value "Bank"
     And the field "debitamount_display[0]" matches value "100,00"
@@ -212,21 +214,85 @@ Feature: Create and edit Buchungssatz questions
     Then the field "debitaccount_display[0]" matches value "Bank"
     And the field "debitamount_display[0]" matches value "100,00"
     When I set the field "debitaccount_display[0]" to "Cash"
-    And I press "Refresh charts of accounts"
+    And I click on "Manage chart of accounts" "link"
+    And I switch to "qtype_accounting-chart-frame" iframe
+    And I switch to the main frame
+    And I press "Done"
     Then I should see "Charts of accounts updated."
     And the field "debitamount_display[0]" matches value "100,00"
-    When I switch to a second window
-    And I click on "Manage Charts of Accounts" "link"
+    When I click on "Manage chart of accounts" "link"
+    And I switch to "qtype_accounting-chart-frame" iframe
     And I click on "Delete" "link" in the "Renamed" "table_row"
     And I press "Delete chart"
-    And I switch to the main window
-    And I press "Refresh charts of accounts"
+    And I switch to the main frame
+    And I press "Done"
     Then I should see "A selected chart or account is no longer available."
     And the field "Chart of Accounts" matches value "Renamed"
     And the field "debitaccount_display[0]" matches value "Cash"
     And the field "debitamount_display[0]" matches value "100,00"
     Given the accounting chart "Additional" with accounts "New account" exists in course "Course 1"
-    When I press "Refresh charts of accounts"
+    When I click on "Manage chart of accounts" "link"
+    And I switch to "qtype_accounting-chart-frame" iframe
+    And I switch to the main frame
+    And I press "Done"
     And I set the field "Chart of Accounts" to "Additional"
     And I set the field "debitaccount_display[0]" to "New account"
     Then the field "Chart of Accounts" matches value "Additional"
+
+  @javascript
+  Scenario: Closing the overlay protects unfinished edits and keeps already saved changes
+    Given the accounting chart "Main" with accounts "Bank, Cash" exists in course "Course 1"
+    And I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
+    When I press "Create a new question ..."
+    And I set the field "Accounting Entry" to "1"
+    And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
+    And I set the field "Question name" to "Unsaved accounting question"
+    And I set the field "Chart of Accounts" to "Main"
+    And I click on "Manage chart of accounts" "link"
+    And I switch to "qtype_accounting-chart-frame" iframe
+    And I click on "Main" "link"
+    And I set the field "chartname" to "Saved rename"
+    And I press "Save changes"
+    And I set the field "accountname" to "Unfinished account"
+    And I switch to the main frame
+    And I press "Done"
+    Then I should see "Unsaved chart changes"
+    When I click on "Cancel" "button" in the "Unsaved chart changes" "dialogue"
+    And I switch to "qtype_accounting-chart-frame" iframe
+    Then the field "accountname" matches value "Unfinished account"
+    When I switch to the main frame
+    And I press "Done"
+    And I click on "Discard unsaved edits" "button" in the "Unsaved chart changes" "dialogue"
+    Then I should see "Charts of accounts updated."
+    And the field "Chart of Accounts" matches value "Saved rename"
+    And the field "Question name" matches value "Unsaved accounting question"
+    When I click on "Manage chart of accounts" "link"
+    And I switch to "qtype_accounting-chart-frame" iframe
+    And I click on "Saved rename" "link"
+    Then I should not see "Unfinished account"
+    When I switch to the main frame
+    And I click on "Close" "button" in the "Manage chart of accounts" "dialogue"
+    Then I should see "Charts of accounts updated."
+    And the field "Question name" matches value "Unsaved accounting question"
+
+  @javascript
+  Scenario: Create a chart in the overlay and select it after closing
+    Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
+    When I press "Create a new question ..."
+    And I set the field "Accounting Entry" to "1"
+    And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
+    And I click on "Manage chart of accounts" "link"
+    And I switch to "qtype_accounting-chart-frame" iframe
+    And I set the field "Chart name" to "New chart"
+    And I press "Create chart of accounts"
+    Then I should see "New chart"
+    When I set the field "accountname" to "New account"
+    And I press "Add Account"
+    And I click on "Manage Charts of Accounts" "link"
+    Then I should see "New chart"
+    When I switch to the main frame
+    And I press "Done"
+    Then I should see "Charts of accounts updated."
+    When I set the field "Chart of Accounts" to "New chart"
+    And I set the field "debitaccount_display[0]" to "New account"
+    Then the field "debitaccount_display[0]" matches value "New account"

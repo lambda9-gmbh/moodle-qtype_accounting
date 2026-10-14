@@ -140,8 +140,6 @@ class qtype_accounting_edit_form extends question_edit_form {
      * @param \MoodleQuickForm $mform The form being built.
      */
     protected function add_chart_section($mform): void {
-        global $OUTPUT;
-
         $charts = $this->get_available_charts();
         $select = $mform->createElement(
             'select',
@@ -162,15 +160,7 @@ class qtype_accounting_edit_form extends question_edit_form {
         ];
         $coursecontext = $this->context->get_course_context(false);
         if ($coursecontext) {
-            $elements[] = $mform->createElement('html', html_writer::tag(
-                'button',
-                $OUTPUT->pix_icon('i/reload', '') . get_string('refreshcharts', 'qtype_accounting'),
-                [
-                    'type' => 'button',
-                    'id' => 'qtype_accounting-refresh-charts',
-                    'class' => 'btn btn-secondary btn-sm mx-2',
-                ]
-            ) . html_writer::span('', '', [
+            $elements[] = $mform->createElement('html', html_writer::span('', 'mx-2', [
                 'id' => 'qtype_accounting-refresh-status',
                 'role' => 'status',
                 'aria-live' => 'polite',
@@ -192,6 +182,7 @@ class qtype_accounting_edit_form extends question_edit_form {
             'managecharts_link',
             '',
             html_writer::link($manageurl, get_string('managechartslink', 'qtype_accounting'), [
+                'id' => 'qtype_accounting-manage-charts',
                 'target' => '_blank',
                 'rel' => 'noopener',
             ])

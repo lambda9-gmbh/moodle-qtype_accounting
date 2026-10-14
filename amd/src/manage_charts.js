@@ -49,7 +49,7 @@ export const init = () => {
                     form.appendChild(input);
                 });
                 document.body.appendChild(form);
-                form.submit();
+                form.requestSubmit();
                 return;
             }).catch(() => {
                 // Cancelling or dismissing the modal leaves the chart unchanged.
