@@ -24,11 +24,13 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+// Hidden helper page for creating and uploading site charts; it is reached from the settings page.
 $ADMIN->add('qtypesettings', new admin_externalpage(
     'qtype_accounting_sitecharts',
     get_string('sitecharts', 'qtype_accounting'),
     new moodle_url('/question/type/accounting/manage_charts.php'),
-    'qtype/accounting:managecharts'
+    'moodle/site:config',
+    true
 ));
 
 if ($ADMIN->fulltree) {
@@ -62,4 +64,11 @@ if ($ADMIN->fulltree) {
         get_string('accountsonlyexception_desc', 'qtype_accounting'),
         0
     ));
+
+    $settings->add(new admin_setting_heading(
+        'qtype_accounting/sitechartsheading',
+        get_string('sitecharts', 'qtype_accounting'),
+        get_string('sitecharts_desc', 'qtype_accounting')
+    ));
+    $settings->add(new \qtype_accounting\admin\setting_sitecharts());
 }

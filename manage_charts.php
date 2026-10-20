@@ -90,6 +90,8 @@ if ($courseid) {
     admin_externalpage_setup('qtype_accounting_sitecharts', '', $baseurl->params(), $baseurl);
     $context = context_system::instance();
 }
+// Site charts are listed on the plugin's settings page, so actions return there.
+$doneurl = $courseid ? $baseurl : new moodle_url('/admin/settings.php', ['section' => 'qtypesettingaccounting']);
 
 // Handle delete action.
 if ($action === 'delete' && $chartid) {
@@ -101,7 +103,7 @@ if ($action === 'delete' && $chartid) {
     if (data_submitted() && optional_param('confirm', 0, PARAM_BOOL)) {
         require_sesskey();
         chart_manager::delete_chart($chartid);
-        redirect($baseurl, get_string('chartdeleted', 'qtype_accounting'), null, \core\output\notification::NOTIFY_SUCCESS);
+        redirect($doneurl, get_string('chartdeleted', 'qtype_accounting'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
 
     // Show confirmation page.
@@ -113,7 +115,7 @@ if ($action === 'delete' && $chartid) {
             get_string('deletechart', 'qtype_accounting'),
             'post'
         ),
-        $baseurl
+        $doneurl
     );
     echo $OUTPUT->footer();
     exit;
@@ -189,25 +191,25 @@ if ($data = $uploadform->get_data()) {
             if (!empty($result['errors'])) {
                 $msg .= ' ' . get_string('witherrors', 'qtype_accounting') . ': ' . implode(', ', $result['errors']);
             }
-            redirect($baseurl, $msg, null, \core\output\notification::NOTIFY_SUCCESS);
+            redirect($doneurl, $msg, null, \core\output\notification::NOTIFY_SUCCESS);
         } else {
             $msg = get_string('chartimportfailed', 'qtype_accounting');
             if (!empty($result['errors'])) {
                 $msg .= ': ' . implode(', ', $result['errors']);
             }
-            redirect($baseurl, $msg, null, \core\output\notification::NOTIFY_ERROR);
+            redirect($doneurl, $msg, null, \core\output\notification::NOTIFY_ERROR);
         }
     } else {
-        redirect($baseurl, get_string('csvfilerequired', 'qtype_accounting'), null, \core\output\notification::NOTIFY_ERROR);
+        redirect($doneurl, get_string('csvfilerequired', 'qtype_accounting'), null, \core\output\notification::NOTIFY_ERROR);
     }
 }
 
 // Display the page.
 $PAGE->requires->js_call_amd('qtype_accounting/manage_charts', 'init');
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string($courseid ? 'managecharts' : 'sitecharts', 'qtype_accounting'));
+echo $OUTPUT->heading(get_string($courseid ? 'managecharts' : 'sitecharts_add', 'qtype_accounting'));
 if (!$courseid) {
-    echo html_writer::tag('p', get_string('sitecharts_desc', 'qtype_accounting'));
+    echo html_writer::link($doneurl, '&laquo; ' . get_string('sitecharts', 'qtype_accounting'));
 }
 
 // Create and upload sections.
@@ -217,12 +219,12 @@ $createform->display();
 echo $OUTPUT->heading(get_string('uploadchartcsv', 'qtype_accounting'), 3);
 $uploadform->display();
 
-// Charts table.
-$charts = chart_manager::get_charts_for_context($context->id, $sort, $dir);
+// Charts table. Site charts are listed on the settings page instead.
+$charts = $courseid ? chart_manager::get_charts_for_context($context->id, $sort, $dir) : [];
 
-if (empty($charts)) {
+if (empty($charts) && $courseid) {
     echo html_writer::tag('p', get_string('nocharts', 'qtype_accounting'), ['class' => 'alert alert-info']);
-} else {
+} else if ($charts) {
     // Build sortable table headers.
     $oppositedir = ($dir === 'ASC') ? 'DESC' : 'ASC';
 

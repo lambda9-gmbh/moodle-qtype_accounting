@@ -213,6 +213,7 @@ $string['selectdebitaccountfirst'] = 'Bitte zuerst ein Sollkonto auswählen';
 $string['settings_grading'] = 'Bewertung';
 $string['sitechart_suffix'] = '{$a} (Website-Standard)';
 $string['sitecharts'] = 'Standard-Kontenpläne der Website';
+$string['sitecharts_add'] = 'Standard-Kontenplan erstellen oder hochladen';
 $string['sitecharts_course_desc'] = 'Diese Kontenpläne stellt die Administration bereit; sie können in jeder Frage ausgewählt werden. Sie lassen sich hier nicht ändern. Kopieren Sie einen Kontenplan in diesen Kurs, um ihn anzupassen.';
 $string['sitecharts_desc'] = 'Hier erstellte oder hochgeladene Kontenpläne stehen Lehrkräften in allen Kursen zur Auswahl. Lehrkräfte können weiterhin eigene Kontenpläne in ihren Kursen erstellen oder hochladen.';
 $string['strictpairs'] = 'Punkte-Modus: Punkte nur für vollständig richtige Paare';
