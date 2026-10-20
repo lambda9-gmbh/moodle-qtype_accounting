@@ -89,10 +89,11 @@ class entries_table_builder {
         array $existingentries,
         string $numberformat = 'de'
     ): string {
+        $hideper = (string)get_config('qtype_accounting', 'showpercolumn') === '0' ? ' qtype_accounting-hideper' : '';
         $html = \html_writer::start_tag(
             'table',
             [
-                'class' => 'table table-bordered qtype_accounting-edit-table',
+                'class' => 'table table-bordered qtype_accounting-edit-table' . $hideper,
                 'id' => 'qtype_accounting-entries-table',
             ]
         );

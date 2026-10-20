@@ -66,6 +66,19 @@ if ($ADMIN->fulltree) {
     ));
 
     $settings->add(new admin_setting_heading(
+        'qtype_accounting/displayheading',
+        get_string('settings_display', 'qtype_accounting'),
+        ''
+    ));
+
+    $settings->add(new admin_setting_configcheckbox(
+        'qtype_accounting/showpercolumn',
+        get_string('showpercolumn', 'qtype_accounting'),
+        get_string('showpercolumn_desc', 'qtype_accounting'),
+        1
+    ));
+
+    $settings->add(new admin_setting_heading(
         'qtype_accounting/sitechartsheading',
         get_string('sitecharts', 'qtype_accounting'),
         get_string('sitecharts_desc', 'qtype_accounting')

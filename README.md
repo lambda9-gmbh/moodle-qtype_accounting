@@ -135,7 +135,7 @@ for the app theme, and submits explicit native hidden fields for every answer.
 1. Place the plugin source so that `version.php` sits at `<moodledir>/question/type/accounting/version.php`.
 2. As a site administrator, visit **Site administration → Notifications**. Moodle will detect the new plugin and run `install.xml`.
 
-The settings page (**Site administration → Plugins → Question types → Accounting Entry**) sets the default grading mode and the site-wide grading rules for points mode (see [Grading model](#grading-model)) and manages the site charts of accounts (see [Site charts of accounts](#site-charts-of-accounts)). All other configuration is per question, and course charts of accounts are scoped to courses.
+The settings page (**Site administration → Plugins → Question types → Accounting Entry**) sets the default grading mode and the site-wide grading rules for points mode (see [Grading model](#grading-model)), controls whether the leading "Dr." / "Per" label column of the booking table is shown (default: shown), and manages the site charts of accounts (see [Site charts of accounts](#site-charts-of-accounts)). All other configuration is per question, and course charts of accounts are scoped to courses.
 
 ---
 
