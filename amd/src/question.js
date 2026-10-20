@@ -46,70 +46,6 @@ function formatAllAmountFields(container) {
 }
 
 /**
- * Set up responsive table width that breaks out of theme constraints.
- *
- * Calculates available width from the Moodle drawers container and
- * subtracts the table container's left offset. Watches for drawer
- * open/close via MutationObserver and window resize.
- *
- * @param {jQuery} container The question container.
- */
-function setupResponsiveWidth(container) {
-    let table = container.find('.qtype_accounting-student-table')[0];
-    let containerEl = container[0];
-    if (!table || !containerEl) {
-        return;
-    }
-
-    let drawers = document.querySelector('.drawers.drag-container');
-    if (!drawers) {
-        return;
-    }
-
-    let padding = 50;
-
-    /** Recalculate and apply table width. */
-    function updateWidth() {
-        if (window.innerWidth <= 768) {
-            table.style.removeProperty('--qtype-accounting-table-width');
-            return;
-        }
-        let containerRect = containerEl.getBoundingClientRect();
-        let rightEdge;
-
-        // When the right drawer is open, use its left edge as the boundary.
-        let rightDrawer = drawers.querySelector('[data-region="right-hand-drawer"]');
-        if (rightDrawer && rightDrawer.offsetWidth > 0) {
-            rightEdge = rightDrawer.getBoundingClientRect().left;
-        } else {
-            rightEdge = drawers.getBoundingClientRect().right;
-        }
-
-        let availableWidth = rightEdge - containerRect.left - padding;
-        if (availableWidth > 0) {
-            table.style.setProperty('--qtype-accounting-table-width', availableWidth + 'px');
-        }
-    }
-
-    // Initial calculation.
-    updateWidth();
-
-    /** Recalculate after a short delay to let the layout settle. */
-    function deferredUpdateWidth() {
-        setTimeout(updateWidth, 300);
-    }
-
-    // Watch for drawer open/close via Moodle's custom events.
-    document.addEventListener('theme_boost/drawers:shown', deferredUpdateWidth);
-    document.addEventListener('theme_boost/drawers:hidden', deferredUpdateWidth);
-    document.addEventListener('theme_boost/drawers:show', deferredUpdateWidth);
-    document.addEventListener('theme_boost/drawers:hide', deferredUpdateWidth);
-
-    // Also update on window resize.
-    window.addEventListener('resize', updateWidth);
-}
-
-/**
  * Initialize the question interface.
  *
  * @param {string} containerId The ID of the question container.
@@ -165,9 +101,6 @@ function init(containerId) {
             formatAllAmountFields(container);
         }, 500);
     });
-
-    // Make the table responsive to drawer open/close and window resize.
-    setupResponsiveWidth(container);
 
     // Add entry button handlers (using delegation so mobile view buttons also work).
     if (allowEdit) {

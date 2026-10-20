@@ -29,6 +29,9 @@ import $ from 'jquery';
 // Breakpoint for mobile layout (must match CSS).
 let MOBILE_BREAKPOINT = 768;
 
+// Below this question width the entry table does not fit, e.g. next to open drawers.
+const COMPACT_WIDTH = 600;
+
 // CSS class added to container when mobile layout is active.
 let ACTIVE_CLASS = 'qtype_accounting-mobile-active';
 
@@ -36,10 +39,20 @@ let ACTIVE_CLASS = 'qtype_accounting-mobile-active';
 const questionSettings = new WeakMap();
 
 /**
+ * Whether the card view should be used for a question.
+ *
+ * @param {jQuery} container The question container element.
+ * @return {boolean} True for narrow viewports or narrow question containers.
+ */
+function isCompact(container) {
+    return window.innerWidth <= MOBILE_BREAKPOINT || container[0].clientWidth < COMPACT_WIDTH;
+}
+
+/**
  * Initialize mobile layout management.
  *
- * Sets up a resize listener and builds the mobile view if the viewport
- * is already at mobile width.
+ * Watches the viewport and the question width and builds the mobile view if the
+ * question is already too narrow for the table.
  *
  * @param {jQuery} container The question container element.
  * @param {string} selector CSS selector for entry rows.
@@ -49,27 +62,31 @@ function init(container, selector, readonly) {
     const settings = {selector, readonly, numberFormat: container.data('numberformat') || 'de', resizeTimer: null};
     questionSettings.set(container[0], settings);
 
-    // Set up resize handler.
-    $(window).on('resize', function() {
+    // Re-check on window resizes and on width changes of the question, e.g. when drawers open.
+    const scheduleResize = function() {
         clearTimeout(settings.resizeTimer);
         settings.resizeTimer = setTimeout(function() {
             handleResize(container);
-        }, 300);
-    });
+        }, 150);
+    };
+    $(window).on('resize', scheduleResize);
+    if (typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(scheduleResize).observe(container[0]);
+    }
 
-    // Build mobile view if already at mobile width.
-    if (window.innerWidth <= MOBILE_BREAKPOINT) {
+    // Build mobile view if already too narrow.
+    if (isCompact(container)) {
         buildMobileView(container);
     }
 }
 
 /**
- * Handle window resize to toggle between mobile and desktop layouts.
+ * Handle viewport and question resizes to toggle between mobile and desktop layouts.
  *
  * @param {jQuery} container The question container element.
  */
 function handleResize(container) {
-    let isMobile = window.innerWidth <= MOBILE_BREAKPOINT;
+    let isMobile = isCompact(container);
     let isActive = container.hasClass(ACTIVE_CLASS);
 
     if (isMobile && !isActive) {
