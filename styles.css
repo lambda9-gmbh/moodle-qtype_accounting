@@ -657,6 +657,13 @@ table.qtype_accounting-student-table {
     vertical-align: middle;
 }
 
+/* Narrow padding so the delete buttons fit the "an" and actions columns. */
+.qtype_accounting-student-table td.qtype_accounting-label-cell,
+.qtype_accounting-student-table td.qtype_accounting-actions-cell {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+}
+
 /* Data cells (Account dropdowns, Amount inputs) */
 .qtype_accounting-data-cell {
     background-color: var(--bs-body-bg, #fffef0);
@@ -1108,8 +1115,9 @@ table.qtype_accounting-student-table {
     width: 120px;
 }
 
+.qtype_accounting-col-label.qtype_accounting-col-label-actions,
 .qtype_accounting-col-actions {
-    width: 50px;
+    width: 56px;
 }
 
 .qtype_accounting-amount-display {

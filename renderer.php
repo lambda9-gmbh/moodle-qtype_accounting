@@ -288,8 +288,10 @@ class qtype_accounting_renderer extends qtype_renderer {
         $html .= \html_writer::empty_tag('col', ['class' => 'qtype_accounting-col-account']);
         // Column 3: Debit Amount (wider for numbers like 12.000,55).
         $html .= \html_writer::empty_tag('col', ['class' => 'qtype_accounting-col-amount']);
-        // Column 4: an label (narrow).
-        $html .= \html_writer::empty_tag('col', ['class' => 'qtype_accounting-col-label']);
+        // Column 4: an label (narrow); in edit mode it also holds the debit delete button.
+        $html .= \html_writer::empty_tag('col', [
+            'class' => 'qtype_accounting-col-label' . ($showactions ? ' qtype_accounting-col-label-actions' : ''),
+        ]);
         // Column 5: Credit Account (flexible).
         $html .= \html_writer::empty_tag('col', ['class' => 'qtype_accounting-col-account']);
         // Column 6: Credit Amount (wider for numbers like 12.000,55).
