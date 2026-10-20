@@ -206,7 +206,7 @@ class xml_handler {
             return;
         }
         [$accountsbyname, $accountslist] = $this->parse_xml_accounts($xmlaccounts, $format);
-        $chartid = chart_manager::find_matching_chart_in_context($chartname, $contextid, $accountsbyname);
+        $chartid = chart_manager::find_matching_chart($chartname, $contextid, $accountsbyname);
         if (!$chartid) {
             $chartid = chart_manager::create_chart($chartname, $contextid);
             foreach ($accountslist as $acc) {

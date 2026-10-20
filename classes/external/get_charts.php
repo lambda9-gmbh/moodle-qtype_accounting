@@ -21,7 +21,6 @@ use core_external\external_function_parameters;
 use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
-use core_external\util;
 use qtype_accounting\chart_manager;
 
 /**
@@ -44,7 +43,7 @@ class get_charts extends external_api {
     }
 
     /**
-     * Get charts and accounts available in the requested course.
+     * Get charts and accounts available in the requested course, including the site charts.
      *
      * @param int $courseid Course ID.
      * @return array Chart records with their accounts.
@@ -59,7 +58,7 @@ class get_charts extends external_api {
         self::validate_context($context);
         require_capability('qtype/accounting:managecharts', $context);
 
-        $charts = chart_manager::get_charts_for_context($context->id);
+        $charts = chart_manager::get_available_charts((int)$context->id);
         if (!$charts) {
             return [];
         }
@@ -78,7 +77,7 @@ class get_charts extends external_api {
         foreach ($charts as $chart) {
             $result[] = [
                 'id' => $chart->id,
-                'name' => util::format_string($chart->name, $context),
+                'name' => chart_manager::get_display_name($chart, $context),
                 'accounts' => $accountsbychart[$chart->id] ?? [],
             ];
         }

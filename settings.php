@@ -24,6 +24,13 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$ADMIN->add('qtypesettings', new admin_externalpage(
+    'qtype_accounting_sitecharts',
+    get_string('sitecharts', 'qtype_accounting'),
+    new moodle_url('/question/type/accounting/manage_charts.php'),
+    'qtype/accounting:managecharts'
+));
+
 if ($ADMIN->fulltree) {
     $settings->add(new admin_setting_heading(
         'qtype_accounting/gradingheading',
