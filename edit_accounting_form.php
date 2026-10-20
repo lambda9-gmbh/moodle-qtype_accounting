@@ -89,6 +89,8 @@ class qtype_accounting_edit_form extends question_edit_form {
      * @param \MoodleQuickForm $mform The form being built.
      */
     protected function add_grading_section($mform): void {
+        $this->add_grading_mode($mform);
+
         $deductionoptions = [
             '0.0' => get_string('none'),
             '1.0' => '100%',
@@ -131,6 +133,41 @@ class qtype_accounting_edit_form extends question_edit_form {
         );
         $mform->setDefault('allornothinggrading', 0);
         $mform->addHelpButton('allornothinggrading', 'allornothinggrading', 'qtype_accounting');
+    }
+
+    /**
+     * Add the grading-mode selector (percent or points), preselected from the site default.
+     *
+     * In points mode the default mark is calculated from the correct answer when saving,
+     * so the default mark field is replaced by an explanation.
+     *
+     * @param \MoodleQuickForm $mform The form being built.
+     */
+    protected function add_grading_mode($mform): void {
+        $mform->addElement('select', 'gradingmode', get_string('gradingmode', 'qtype_accounting'), [
+            \qtype_accounting\scorer::GRADINGMODE_PERCENT => get_string('gradingmode_percent', 'qtype_accounting'),
+            \qtype_accounting\scorer::GRADINGMODE_POINTS => get_string('gradingmode_points', 'qtype_accounting'),
+        ]);
+        $mform->setDefault(
+            'gradingmode',
+            \qtype_accounting\scorer::normalise_grading_mode(get_config('qtype_accounting', 'defaultgradingmode') ?: null)
+        );
+        $mform->addHelpButton('gradingmode', 'gradingmode', 'qtype_accounting');
+
+        $strict = (bool)get_config('qtype_accounting', 'strictpairs');
+        $mform->addElement(
+            'static',
+            'gradingmode_pointsinfo',
+            '',
+            html_writer::div(
+                get_string($strict ? 'gradingmode_points_info_strict' : 'gradingmode_points_info', 'qtype_accounting'),
+                // The marker class lets styles.css hide the then irrelevant weight selectors.
+                $strict ? 'qtype_accounting-strictpairs' : ''
+            )
+        );
+        $mform->hideIf('gradingmode_pointsinfo', 'gradingmode', 'neq', \qtype_accounting\scorer::GRADINGMODE_POINTS);
+        // The default mark is hidden by styles.css in points mode: hideIf would also disable it,
+        // so it would not be submitted and fail its required rule.
     }
 
     /**
@@ -537,6 +574,9 @@ class qtype_accounting_edit_form extends question_edit_form {
             $question->options->extraentrydeduction ?? '0.0'
         );
         $question->allornothinggrading = $question->options->allornothinggrading ?? 0;
+        if (!empty($question->options->gradingmode)) {
+            $question->gradingmode = $question->options->gradingmode;
+        }
     }
 
     /**

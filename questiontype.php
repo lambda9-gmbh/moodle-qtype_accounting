@@ -79,6 +79,45 @@ class qtype_accounting extends question_type {
     }
 
     /**
+     * Save a question; in points mode the default mark is derived from the correct answer.
+     *
+     * @param object $question The question being saved.
+     * @param object $form The submitted form data.
+     * @return object The saved question.
+     */
+    public function save_question($question, $form) {
+        $gradingmode = \qtype_accounting\scorer::normalise_grading_mode($form->gradingmode ?? null);
+        if ($gradingmode === \qtype_accounting\scorer::GRADINGMODE_POINTS) {
+            $points = $this->count_points($form);
+            if ($points > 0) {
+                $form->defaultmark = $points;
+            }
+        }
+        return parent::save_question($question, $form);
+    }
+
+    /**
+     * Count the points a fully correct answer earns, based on submitted entry arrays.
+     *
+     * @param object $form The submitted form data.
+     * @return int The maximum points.
+     */
+    protected function count_points($form): int {
+        $arrays = $this->normalize_entry_arrays($form);
+        $entries = [];
+        foreach (array_keys($arrays['debitaccount'] + $arrays['creditaccount']) as $i) {
+            $entries[] = [
+                'debitaccountid' => (int)($arrays['debitaccount'][$i] ?? 0),
+                'debitamount' => (string)($arrays['debitamount'][$i] ?? '0'),
+                'creditaccountid' => (int)($arrays['creditaccount'][$i] ?? 0),
+                'creditamount' => (string)($arrays['creditamount'][$i] ?? '0'),
+            ];
+        }
+        $scorer = new \qtype_accounting\scorer(null, false, 'us', \qtype_accounting\scorer::GRADINGMODE_POINTS);
+        return $scorer->max_points($entries);
+    }
+
+    /**
      * Save the question-type specific options.
      *
      * @param object $question The question being saved.
@@ -124,6 +163,7 @@ class qtype_accounting extends question_type {
         $options->allornothinggrading = $question->allornothinggrading ?? 0;
         $options->allowmultipleentries = $question->allowmultipleentries ?? 1;
         $options->maxentries = $question->maxentries ?? 5;
+        $options->gradingmode = \qtype_accounting\scorer::normalise_grading_mode($question->gradingmode ?? null);
         return $options;
     }
 
@@ -228,6 +268,9 @@ class qtype_accounting extends question_type {
         $question->allornothinggrading = $questiondata->options->allornothinggrading ?? 0;
         $question->allowmultipleentries = $questiondata->options->allowmultipleentries ?? 1;
         $question->maxentries = $questiondata->options->maxentries ?? 5;
+        $question->gradingmode = \qtype_accounting\scorer::normalise_grading_mode($questiondata->options->gradingmode ?? null);
+        $question->strictpairs = (bool)get_config('qtype_accounting', 'strictpairs');
+        $question->accountsonlyexception = (bool)get_config('qtype_accounting', 'accountsonlyexception');
         $question->entries = [];
 
         if (!empty($questiondata->options->entries)) {
@@ -305,7 +348,7 @@ class qtype_accounting extends question_type {
     public function extra_question_fields(): array {
         return ['qtype_accounting_options', 'chartofaccountsid', 'accountsindropdown', 'numberformat',
             'extraentrydeduction', 'allornothinggrading',
-            'allowmultipleentries', 'maxentries'];
+            'allowmultipleentries', 'maxentries', 'gradingmode'];
     }
 
     /**
