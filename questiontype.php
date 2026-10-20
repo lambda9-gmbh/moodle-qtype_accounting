@@ -164,6 +164,11 @@ class qtype_accounting extends question_type {
         $options->allowmultipleentries = $question->allowmultipleentries ?? 1;
         $options->maxentries = $question->maxentries ?? 5;
         $options->gradingmode = \qtype_accounting\scorer::normalise_grading_mode($question->gradingmode ?? null);
+        $points = $options->gradingmode === \qtype_accounting\scorer::GRADINGMODE_POINTS;
+        if ($points && isset($question->extraentrydeductionpoints)) {
+            // The edit form offers the deduction in points in points mode; XML import uses extraentrydeduction.
+            $options->extraentrydeduction = $question->extraentrydeductionpoints;
+        }
         return $options;
     }
 

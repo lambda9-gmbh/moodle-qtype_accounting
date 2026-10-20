@@ -227,7 +227,7 @@ Each question uses one of two grading modes. The site default is set in **Site a
 - **Points** — every correct `(side, account)` pair (account plus its amount) is worth one point. The question's default mark is set to the number of pairs when the question is saved.
   - With the site setting **Points mode: only fully correct pairs earn points** (default: on), a pair earns its point only if both the account and the amount are correct; weights are ignored and hidden in the editor.
   - With the setting off, the pair's point is split between account and amount according to their weights.
-  - Penalties for extra accounts and **No partial credit** apply as in the percentage mode.
+  - The deduction for extra accounts is chosen in points (e.g. 0.5 points per extra account) and subtracted from the earned points; the result cannot go below 0. **No partial credit** applies as in the percentage mode.
 
 ### Correct accounts without amounts
 

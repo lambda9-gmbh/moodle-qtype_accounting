@@ -299,6 +299,28 @@ final class questiontype_test extends \advanced_testcase {
     }
 
     /**
+     * The deduction field of the active grading mode is stored.
+     */
+    public function test_deduction_saved_for_grading_mode(): void {
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category();
+        $common = [
+            'category' => $category->id,
+            'debitaccount' => ['1200'],
+            'debitamount' => ['100'],
+            'creditaccount' => ['8400'],
+            'creditamount' => ['100'],
+            'extraentrydeduction' => '0.25',
+            'extraentrydeductionpoints' => '1.5',
+        ];
+        $points = $generator->create_question('accounting', null, $common + ['gradingmode' => 'points']);
+        $percent = $generator->create_question('accounting', null, $common + ['gradingmode' => 'percent']);
+        $this->assertEquals(1.5, \question_bank::load_question($points->id)->extraentrydeduction);
+        $this->assertEquals(0.25, \question_bank::load_question($percent->id)->extraentrydeduction);
+    }
+
+    /**
      * Test deleting a question removes all related data.
      */
     public function test_delete_question(): void {

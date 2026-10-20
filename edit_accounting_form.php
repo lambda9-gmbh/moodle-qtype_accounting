@@ -30,6 +30,9 @@
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_accounting_edit_form extends question_edit_form {
+    /** @var string[] Options for the points deduction per extra account in points mode. */
+    protected const DEDUCTION_POINTS = ['0.0', '0.25', '0.5', '0.75', '1.0', '1.5', '2.0', '3.0'];
+
     /**
      * Add question-type specific form fields.
      *
@@ -122,6 +125,23 @@ class qtype_accounting_edit_form extends question_edit_form {
         );
         $mform->setDefault('extraentrydeduction', '0.0');
         $mform->addHelpButton('extraentrydeduction', 'extraentrydeduction', 'qtype_accounting');
+        $mform->hideIf('extraentrydeduction', 'gradingmode', 'eq', \qtype_accounting\scorer::GRADINGMODE_POINTS);
+
+        // In points mode the deduction is a number of points per extra account.
+        $pointsoptions = [];
+        foreach (self::DEDUCTION_POINTS as $key) {
+            $pointsoptions[$key] = (float)$key == 0 ? get_string('none') :
+                get_string('extraentrydeductionpoints_option', 'qtype_accounting', format_float((float)$key, -1));
+        }
+        $mform->addElement(
+            'select',
+            'extraentrydeductionpoints',
+            get_string('extraentrydeductionpoints', 'qtype_accounting'),
+            $pointsoptions
+        );
+        $mform->setDefault('extraentrydeductionpoints', '0.0');
+        $mform->addHelpButton('extraentrydeductionpoints', 'extraentrydeductionpoints', 'qtype_accounting');
+        $mform->hideIf('extraentrydeductionpoints', 'gradingmode', 'neq', \qtype_accounting\scorer::GRADINGMODE_POINTS);
 
         $mform->addElement(
             'advcheckbox',
@@ -570,9 +590,11 @@ class qtype_accounting_edit_form extends question_edit_form {
             $question->accountsindropdown = get_string('all');
         }
         $question->numberformat = $question->options->numberformat ?? 'de';
-        $question->extraentrydeduction = $this->closest_deduction_key(
-            $question->options->extraentrydeduction ?? '0.0'
-        );
+        $deduction = $question->options->extraentrydeduction ?? '0.0';
+        $points = ($question->options->gradingmode ?? '') === \qtype_accounting\scorer::GRADINGMODE_POINTS;
+        // The stored deduction is a fraction in percent mode and a number of points in points mode.
+        $question->extraentrydeduction = $points ? '0.0' : $this->closest_deduction_key($deduction);
+        $question->extraentrydeductionpoints = $points ? $this->closest_key($deduction, self::DEDUCTION_POINTS) : '0.0';
         $question->allornothinggrading = $question->options->allornothinggrading ?? 0;
         if (!empty($question->options->gradingmode)) {
             $question->gradingmode = $question->options->gradingmode;
@@ -589,6 +611,17 @@ class qtype_accounting_edit_form extends question_edit_form {
         $deductionkeys = ['0.0', '1.0', '0.9', '0.8333333', '0.8', '0.75', '0.7', '0.6666667',
             '0.6', '0.5', '0.4', '0.3333333', '0.3', '0.25', '0.2', '0.1666667',
             '0.1428571', '0.125', '0.1111111', '0.1', '0.05'];
+        return $this->closest_key($value, $deductionkeys);
+    }
+
+    /**
+     * Find the select-option key whose float value is closest to a given value.
+     *
+     * @param string|float $value The DB value to match.
+     * @param string[] $deductionkeys The select-option keys.
+     * @return string The closest matching key.
+     */
+    protected function closest_key($value, array $deductionkeys): string {
         $bestkey = '0.0';
         $bestdiff = PHP_FLOAT_MAX;
         $dbval = (float)$value;

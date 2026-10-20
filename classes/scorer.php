@@ -41,7 +41,7 @@ class scorer {
     /** @var string Point grading: one point per account-amount pair. */
     public const GRADINGMODE_POINTS = 'points';
 
-    /** @var float Points deducted per extra account (0 = no deduction). */
+    /** @var float Deduction per extra account: a fraction in percent mode, points in points mode (0 = none). */
     protected $extraentrydeduction;
     /** @var bool If true, anything less than full credit is zeroed. */
     protected $allornothinggrading;
@@ -57,7 +57,7 @@ class scorer {
     /**
      * Construct a scorer with the question's grading-behaviour toggles.
      *
-     * @param float|null $extraentrydeduction Per-extra-account penalty (null/0 disables).
+     * @param float|null $extraentrydeduction Per-extra-account penalty: a fraction, or points in points mode (null/0 disables).
      * @param bool $allornothinggrading True to apply the all-or-nothing toggle.
      * @param string $numberformat 'de' or 'us' for parsing student amount inputs.
      * @param string $gradingmode One of the GRADINGMODE_* constants.
@@ -142,7 +142,7 @@ class scorer {
             return 0;
         }
         $fraction = ($debit['earned'] + $credit['earned']) / $totalweight;
-        $fraction = $this->apply_extra_entry_deduction($fraction, $correctaggregated, $studentaggregated);
+        $fraction = $this->apply_extra_entry_deduction($fraction, $totalweight, $correctaggregated, $studentaggregated);
         return $this->apply_all_or_nothing($fraction);
     }
 
@@ -241,13 +241,17 @@ class scorer {
     /**
      * Apply the extra-entry-per-account deduction if configured.
      *
+     * In points mode the deduction is a number of points, subtracted from the earned points.
+     *
      * @param float $fraction Fraction earned so far.
+     * @param float $total Total weight, or the maximum points in points mode.
      * @param array $correctaggregated Aggregated correct entries, keyed by side.
      * @param array $studentaggregated Aggregated student entries, keyed by side.
      * @return float The (possibly reduced) fraction, never below 0.
      */
     protected function apply_extra_entry_deduction(
         float $fraction,
+        float $total,
         array $correctaggregated,
         array $studentaggregated
     ): float {
@@ -262,7 +266,11 @@ class scorer {
                 }
             }
         }
-        return max(0, $fraction - $extracount * (float)$this->extraentrydeduction);
+        $deduction = (float)$this->extraentrydeduction;
+        if ($this->gradingmode === self::GRADINGMODE_POINTS) {
+            $deduction /= $total;
+        }
+        return max(0, $fraction - $extracount * $deduction);
     }
 
     /**

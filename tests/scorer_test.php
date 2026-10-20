@@ -153,6 +153,26 @@ final class scorer_test extends \basic_testcase {
     }
 
     /**
+     * Points mode deducts points per extra account from the earned points, never below zero.
+     */
+    public function test_points_deduction_per_extra_account(): void {
+        $correct = [[self::BANK, '1000', self::SALES, '1500'], [self::CASH, '500', 0, '']];
+        // One extra account on the credit side.
+        $oneextra = $this->response(array_merge($correct, [[0, '', self::BANK, '0']]));
+        $scorer = new scorer(0.5, false, 'us', scorer::GRADINGMODE_POINTS);
+        $this->assertEqualsWithDelta(2.5 / 3, $scorer->calculate_fraction($this->compound_entries(), $oneextra), 0.0001);
+
+        // Two extra accounts at 2 points each would go below zero.
+        $twoextra = $this->response(array_merge($correct, [[0, '', self::BANK, '0'], [self::SALES, '0', 0, '']]));
+        $scorer = new scorer(2.0, false, 'us', scorer::GRADINGMODE_POINTS);
+        $this->assertEqualsWithDelta(0.0, $scorer->calculate_fraction($this->compound_entries(), $twoextra), 0.0001);
+
+        // In percent mode the same value is a fraction of the whole question.
+        $scorer = new scorer(0.5, false, 'us', scorer::GRADINGMODE_PERCENT);
+        $this->assertEqualsWithDelta(0.5, $scorer->calculate_fraction($this->compound_entries(), $oneextra), 0.0001);
+    }
+
+    /**
      * The percentage mode keeps the weighted calculation over all fields.
      */
     public function test_percent_mode_unchanged(): void {
