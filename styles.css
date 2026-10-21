@@ -1113,7 +1113,7 @@ table.qtype_accounting-student-table {
 
 .qtype_accounting-col-amount {
     /* The input's minimum width plus the cell padding and border. */
-    width: calc(var(--qtype-accounting-amount-width, 120px) + 1rem + 1px);
+    width: calc(var(--qtype-accounting-amount-width, 120px) + 1rem + 1px + var(--qtype-accounting-currency-width, 0px));
 }
 
 .qtype_accounting-col-label.qtype_accounting-col-label-actions,
@@ -1160,4 +1160,20 @@ form:has(#id_gradingmode option[value="points"]:checked):has(.qtype_accounting-s
 .qtype_accounting-hideper > tbody > tr > :first-child,
 .qtype_accounting-hideper > tfoot > tr > :first-child {
     display: none;
+}
+
+/* Currency symbol after the amount inputs. */
+.qtype_accounting-amount-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.qtype_accounting-amount-group > .qtype_accounting-amount-input {
+    flex: 1 1 auto;
+}
+
+.qtype_accounting-currency {
+    flex: 0 0 auto;
+    white-space: nowrap;
 }

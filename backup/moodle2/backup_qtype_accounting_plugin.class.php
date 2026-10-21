@@ -61,7 +61,7 @@ class backup_qtype_accounting_plugin extends backup_qtype_plugin {
             ['chartofaccountsid', 'accountsindropdown', 'numberformat',
              'extraentrydeduction', 'allornothinggrading',
             'allowmultipleentries',
-            'maxentries', 'gradingmode']
+            'maxentries', 'gradingmode', 'currency']
         );
 
         // Entries with current weight fields and explanation.

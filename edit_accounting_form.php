@@ -53,7 +53,7 @@ class qtype_accounting_edit_form extends question_edit_form {
     }
 
     /**
-     * Add the display-options section: accountsindropdown + numberformat.
+     * Add the display-options section: accountsindropdown + numberformat + currency.
      *
      * @param \MoodleQuickForm $mform The form being built.
      * @return string The default number format ('de' or 'us'), so callers can derive the effective format.
@@ -88,6 +88,15 @@ class qtype_accounting_edit_form extends question_edit_form {
         $defaultformat = ($decsep === ',') ? 'de' : 'us';
         $mform->setDefault('numberformat', $defaultformat);
         $mform->addHelpButton('numberformat', 'numberformat', 'qtype_accounting');
+
+        $mform->addElement(
+            'select',
+            'currency',
+            get_string('currency', 'qtype_accounting'),
+            \qtype_accounting\currency_helper::get_options()
+        );
+        $mform->setDefault('currency', \qtype_accounting\currency_helper::get_default());
+        $mform->addHelpButton('currency', 'currency', 'qtype_accounting');
         return $defaultformat;
     }
 
@@ -587,6 +596,7 @@ class qtype_accounting_edit_form extends question_edit_form {
             $question->accountsindropdown = get_string('all');
         }
         $question->numberformat = $question->options->numberformat ?? 'de';
+        $question->currency = \qtype_accounting\currency_helper::normalise($question->options->currency ?? null);
         $deduction = $question->options->extraentrydeduction ?? '0.0';
         $points = ($question->options->gradingmode ?? '') === \qtype_accounting\scorer::GRADINGMODE_POINTS;
         // The stored deduction is a fraction in percent mode and a number of points in points mode.

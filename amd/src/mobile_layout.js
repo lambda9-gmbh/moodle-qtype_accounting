@@ -59,7 +59,14 @@ function isCompact(container) {
  * @param {boolean} readonly Whether the question is in readonly mode.
  */
 function init(container, selector, readonly) {
-    const settings = {selector, readonly, numberFormat: container.data('numberformat') || 'de', resizeTimer: null};
+    const settings = {
+        selector,
+        readonly,
+        numberFormat: container.data('numberformat') || 'de',
+        // Currency symbol shown after the amount inputs ('' for none).
+        currencySymbol: String(container.data('currencysymbol') || ''),
+        resizeTimer: null,
+    };
     questionSettings.set(container[0], settings);
 
     // Re-check on window resizes and on width changes of the question, e.g. when drawers open.
@@ -228,7 +235,7 @@ function createMobileCard($row, side, entryIndex, settings) {
     } else {
         // Edit mode: create proxy inputs.
         cardBody.append(createProxyAccountField(accountLabel, accountCell));
-        cardBody.append(createProxyAmountField(amountLabel, amountCell, settings.numberFormat));
+        cardBody.append(createProxyAmountField(amountLabel, amountCell, settings.numberFormat, settings.currencySymbol));
     }
 
     card.append(cardBody);
@@ -322,9 +329,10 @@ function createProxyAccountField(label, cell) {
  * @param {string} label The field label text.
  * @param {jQuery} cell The original table cell containing the real input.
  * @param {string} numberFormat Amount format for this question.
+ * @param {string} currencySymbol Currency symbol shown after the input ('' for none).
  * @return {jQuery} The field wrapper element.
  */
-function createProxyAmountField(label, cell, numberFormat) {
+function createProxyAmountField(label, cell, numberFormat, currencySymbol) {
     let field = $('<div class="qtype_accounting-mobile-field">');
     field.append('<label>' + label + '</label>');
 
@@ -351,7 +359,13 @@ function createProxyAmountField(label, cell, numberFormat) {
         }, 0);
     });
 
-    field.append(proxyInput);
+    if (currencySymbol) {
+        const group = $('<div class="qtype_accounting-amount-group">').append(proxyInput);
+        group.append($('<span class="qtype_accounting-currency" aria-hidden="true">').text(currencySymbol));
+        field.append(group);
+    } else {
+        field.append(proxyInput);
+    }
     return field;
 }
 

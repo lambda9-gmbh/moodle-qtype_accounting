@@ -169,6 +169,7 @@ class qtype_accounting extends question_type {
             // The edit form offers the deduction in points in points mode; XML import uses extraentrydeduction.
             $options->extraentrydeduction = $question->extraentrydeductionpoints;
         }
+        $options->currency = \qtype_accounting\currency_helper::normalise($question->currency ?? null);
         return $options;
     }
 
@@ -276,6 +277,7 @@ class qtype_accounting extends question_type {
         $question->gradingmode = \qtype_accounting\scorer::normalise_grading_mode($questiondata->options->gradingmode ?? null);
         $question->strictpairs = (bool)get_config('qtype_accounting', 'strictpairs');
         $question->accountsonlyexception = (bool)get_config('qtype_accounting', 'accountsonlyexception');
+        $question->currency = \qtype_accounting\currency_helper::normalise($questiondata->options->currency ?? null);
         $question->entries = [];
 
         if (!empty($questiondata->options->entries)) {
@@ -353,7 +355,7 @@ class qtype_accounting extends question_type {
     public function extra_question_fields(): array {
         return ['qtype_accounting_options', 'chartofaccountsid', 'accountsindropdown', 'numberformat',
             'extraentrydeduction', 'allornothinggrading',
-            'allowmultipleentries', 'maxentries', 'gradingmode'];
+            'allowmultipleentries', 'maxentries', 'gradingmode', 'currency'];
     }
 
     /**

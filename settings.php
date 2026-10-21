@@ -94,6 +94,14 @@ if ($ADMIN->fulltree) {
         1
     ));
 
+    $settings->add(new admin_setting_configselect(
+        'qtype_accounting/defaultcurrency',
+        get_string('defaultcurrency', 'qtype_accounting'),
+        get_string('defaultcurrency_desc', 'qtype_accounting'),
+        \qtype_accounting\currency_helper::DEFAULT_CURRENCY,
+        \qtype_accounting\currency_helper::get_options()
+    ));
+
     $settings->add(new admin_setting_heading(
         'qtype_accounting/sitechartsheading',
         get_string('sitecharts', 'qtype_accounting'),
