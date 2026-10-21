@@ -78,6 +78,15 @@ if ($ADMIN->fulltree) {
         1
     ));
 
+    $settings->add(new admin_setting_configtext(
+        'qtype_accounting/amountminwidth',
+        get_string('amountminwidth', 'qtype_accounting'),
+        get_string('amountminwidth_desc', 'qtype_accounting'),
+        \qtype_accounting\amount_helper::DEFAULT_MIN_WIDTH,
+        PARAM_INT,
+        5
+    ));
+
     $settings->add(new admin_setting_heading(
         'qtype_accounting/sitechartsheading',
         get_string('sitecharts', 'qtype_accounting'),

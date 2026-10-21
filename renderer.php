@@ -149,6 +149,8 @@ class qtype_accounting_renderer extends qtype_renderer {
             'table',
             [
                 'class' => 'table table-bordered qtype_accounting-student-table' . $hideper,
+                // The amount columns fit an input of the configured minimum width (site setting amountminwidth).
+                'style' => '--qtype-accounting-amount-width: ' . \qtype_accounting\amount_helper::get_min_width() . 'px;',
             ]
         );
         $html .= $this->render_colgroup(!$options->readonly);

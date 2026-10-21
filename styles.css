@@ -1112,7 +1112,8 @@ table.qtype_accounting-student-table {
 }
 
 .qtype_accounting-col-amount {
-    width: 120px;
+    /* The input's minimum width plus the cell padding and border. */
+    width: calc(var(--qtype-accounting-amount-width, 120px) + 1rem + 1px);
 }
 
 .qtype_accounting-col-label.qtype_accounting-col-label-actions,
