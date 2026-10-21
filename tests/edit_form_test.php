@@ -543,6 +543,7 @@ final class edit_form_test extends \advanced_testcase {
                 $category,
                 new \core_question\local\bank\question_edit_contexts($bankcontext)
             );
+            $form->set_data($question);
             $dom = new \DOMDocument();
             @$dom->loadHTML($form->render());
             return new \DOMXPath($dom);
