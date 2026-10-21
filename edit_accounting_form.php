@@ -59,15 +59,20 @@ class qtype_accounting_edit_form extends question_edit_form {
      * @return string The default number format ('de' or 'us'), so callers can derive the effective format.
      */
     protected function add_display_options_section($mform): string {
-        $mform->addElement(
-            'text',
-            'accountsindropdown',
-            get_string('accountsindropdown', 'qtype_accounting'),
-            ['size' => 5, 'placeholder' => get_string('all')]
-        );
+        if ((string)get_config('qtype_accounting', 'showaccountsindropdown') === '0') {
+            // Hidden by the site setting; a saved value is kept, new questions show the entire chart.
+            $mform->addElement('hidden', 'accountsindropdown', get_string('all'));
+        } else {
+            $mform->addElement(
+                'text',
+                'accountsindropdown',
+                get_string('accountsindropdown', 'qtype_accounting'),
+                ['size' => 5, 'placeholder' => get_string('all')]
+            );
+            $mform->setDefault('accountsindropdown', get_string('all'));
+            $mform->addHelpButton('accountsindropdown', 'accountsindropdown', 'qtype_accounting');
+        }
         $mform->setType('accountsindropdown', PARAM_RAW_TRIMMED);
-        $mform->setDefault('accountsindropdown', get_string('all'));
-        $mform->addHelpButton('accountsindropdown', 'accountsindropdown', 'qtype_accounting');
 
         $numberformatoptions = [
             'de' => get_string('numberformat_de', 'qtype_accounting'),

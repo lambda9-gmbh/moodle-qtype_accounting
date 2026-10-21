@@ -87,6 +87,13 @@ if ($ADMIN->fulltree) {
         5
     ));
 
+    $settings->add(new admin_setting_configcheckbox(
+        'qtype_accounting/showaccountsindropdown',
+        get_string('showaccountsindropdown', 'qtype_accounting'),
+        get_string('showaccountsindropdown_desc', 'qtype_accounting'),
+        1
+    ));
+
     $settings->add(new admin_setting_heading(
         'qtype_accounting/sitechartsheading',
         get_string('sitecharts', 'qtype_accounting'),
