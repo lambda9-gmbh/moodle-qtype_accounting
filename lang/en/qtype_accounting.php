@@ -58,6 +58,9 @@ $string['deleteentry'] = 'Delete';
 // Account fields.
 $string['per'] = 'Dr.';
 $string['an'] = 'Cr.';
+$string['settings_display'] = 'Display';
+$string['amountminwidth'] = 'Minimum width of amount fields';
+$string['amountminwidth_desc'] = 'Minimum width of the amount input fields in the booking table, in pixels.';
 $string['debit'] = 'Debit';
 $string['credit'] = 'Credit';
 $string['account'] = 'Account';

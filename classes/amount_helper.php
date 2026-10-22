@@ -24,6 +24,19 @@ namespace qtype_accounting;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class amount_helper {
+    /** @var int Default minimum width of an amount input in pixels (site setting amountminwidth). */
+    public const DEFAULT_MIN_WIDTH = 175;
+
+    /**
+     * Get the minimum width of an amount input from the site setting.
+     *
+     * @return int Width in pixels; the default if the setting is missing or not positive.
+     */
+    public static function get_min_width(): int {
+        $width = (int)get_config('qtype_accounting', 'amountminwidth');
+        return $width > 0 ? $width : self::DEFAULT_MIN_WIDTH;
+    }
+
     /**
      * Parse an amount string to a float using the known number format.
      *

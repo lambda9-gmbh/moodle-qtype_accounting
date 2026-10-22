@@ -275,19 +275,20 @@ class qtype_accounting_renderer extends qtype_renderer {
      * @return string The HTML colgroup element.
      */
     protected function render_colgroup(bool $showactions = false): string {
+        $amountwidth = 'calc(' . \qtype_accounting\amount_helper::get_min_width() . 'px + 1rem + 1px)';
         $html = '<colgroup>';
         // Column 1: Per label (narrow).
         $html .= '<col style="width: 40px;">';
         // Column 2: Debit Account (flexible).
         $html .= '<col style="width: auto;">';
-        // Column 3: Debit Amount (wider for numbers like 12.000,55).
-        $html .= '<col style="width: 120px;">';
+        // Column 3: Debit Amount; the input gets the configured minimum width plus the cell padding.
+        $html .= '<col style="width: ' . $amountwidth . ';">';
         // Column 4: an label (narrow).
         $html .= '<col style="width: 40px;">';
         // Column 5: Credit Account (flexible).
         $html .= '<col style="width: auto;">';
-        // Column 6: Credit Amount (wider for numbers like 12.000,55).
-        $html .= '<col style="width: 120px;">';
+        // Column 6: Credit Amount.
+        $html .= '<col style="width: ' . $amountwidth . ';">';
         if ($showactions) {
             // Column 7: Actions/Delete button (narrow).
             $html .= '<col style="width: 50px;">';

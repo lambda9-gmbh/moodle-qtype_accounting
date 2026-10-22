@@ -58,6 +58,9 @@ $string['deleteentry'] = 'Löschen';
 // Kontenfelder.
 $string['per'] = 'Per';
 $string['an'] = 'an';
+$string['settings_display'] = 'Darstellung';
+$string['amountminwidth'] = 'Mindestbreite der Betragsfelder';
+$string['amountminwidth_desc'] = 'Mindestbreite der Eingabefelder für Beträge in der Buchungstabelle, in Pixeln.';
 $string['debit'] = 'Soll';
 $string['credit'] = 'Haben';
 $string['account'] = 'Konto';
