@@ -107,7 +107,7 @@ The plugin has no external service dependencies. It does not require Composer, N
 1. Place the plugin source so that `version.php` sits at `<moodledir>/question/type/accounting/version.php`.
 2. As a site administrator, visit **Site administration → Notifications**. Moodle will detect the new plugin and run `install.xml`.
 
-The plugin has no admin settings page — all configuration is per-question, and charts of accounts are scoped to courses.
+The settings page (**Site administration → Plugins → Question types → Accounting Entry**) controls whether the leading "Dr." / "Per" label column of the booking table is shown to students and in the question editor (default: shown). All other configuration is per question, and charts of accounts are scoped to courses.
 
 ---
 

@@ -143,7 +143,8 @@ class qtype_accounting_renderer extends qtype_renderer {
         int $visiblerows,
         string $templateid
     ): string {
-        $html = '<table class="table table-bordered qtype_accounting-student-table">';
+        $hideper = (string)get_config('qtype_accounting', 'showpercolumn') === '0' ? ' qtype_accounting-hideper' : '';
+        $html = '<table class="table table-bordered qtype_accounting-student-table' . $hideper . '">';
         $html .= $this->render_colgroup(!$options->readonly);
         $html .= $this->render_header_row(!$options->readonly);
         $html .= '<tbody class="qtype_accounting-entries">';

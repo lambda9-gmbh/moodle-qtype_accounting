@@ -58,6 +58,9 @@ $string['deleteentry'] = 'Löschen';
 // Kontenfelder.
 $string['per'] = 'Per';
 $string['an'] = 'an';
+$string['settings_display'] = 'Darstellung';
+$string['showpercolumn'] = 'Spalte „Per“ anzeigen';
+$string['showpercolumn_desc'] = 'Zeigt die erste Beschriftungsspalte („Per“) der Buchungstabelle für Schülerinnen und Schüler und im Frageeditor an. Wenn deaktiviert, wird die Spalte ausgeblendet.';
 $string['debit'] = 'Soll';
 $string['credit'] = 'Haben';
 $string['account'] = 'Konto';

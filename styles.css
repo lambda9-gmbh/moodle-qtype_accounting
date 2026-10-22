@@ -1025,3 +1025,11 @@ table.qtype_accounting-student-table {
         padding: 1rem;
     }
 }
+
+/* Site setting showpercolumn off: hide the leading "Per" column. The cells stay in the DOM for the JS. */
+.qtype_accounting-hideper > colgroup > col:first-child,
+.qtype_accounting-hideper > thead > tr > :first-child,
+.qtype_accounting-hideper > tbody > tr > :first-child,
+.qtype_accounting-hideper > tfoot > tr > :first-child {
+    display: none;
+}

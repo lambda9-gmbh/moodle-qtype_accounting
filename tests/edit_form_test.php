@@ -64,6 +64,19 @@ final class edit_form_test extends \advanced_testcase {
     }
 
     /**
+     * Disabling the site setting showpercolumn marks the editor table so that styles.css hides the "Per" column.
+     */
+    public function test_show_per_column_setting(): void {
+        $this->resetAfterTest();
+        $build = fn() => (new entries_table_builder())->build_table(['' => 'Select'], ['' => 'Select'], 1, [], 'de');
+        $this->assertStringNotContainsString('qtype_accounting-hideper', $build());
+        set_config('showpercolumn', 1, 'qtype_accounting');
+        $this->assertStringNotContainsString('qtype_accounting-hideper', $build());
+        set_config('showpercolumn', 0, 'qtype_accounting');
+        $this->assertStringContainsString('qtype_accounting-edit-table qtype_accounting-hideper', $build());
+    }
+
+    /**
      * Rendering saved one-sided entries must not add an amount on the absent side.
      */
     public function test_saved_one_sided_entry_keeps_absent_amount_empty(): void {

@@ -58,6 +58,9 @@ $string['deleteentry'] = 'Delete';
 // Account fields.
 $string['per'] = 'Dr.';
 $string['an'] = 'Cr.';
+$string['settings_display'] = 'Display';
+$string['showpercolumn'] = 'Show the "Dr." column';
+$string['showpercolumn_desc'] = 'Show the leading label column ("Dr.") of the booking table to students and in the question editor. If disabled, the column is hidden.';
 $string['debit'] = 'Debit';
 $string['credit'] = 'Credit';
 $string['account'] = 'Account';

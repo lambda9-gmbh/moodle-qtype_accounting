@@ -89,7 +89,9 @@ class entries_table_builder {
         array $existingentries,
         string $numberformat = 'de'
     ): string {
-        $html = '<table class="table table-bordered qtype_accounting-edit-table" id="qtype_accounting-entries-table">';
+        $hideper = (string)get_config('qtype_accounting', 'showpercolumn') === '0' ? ' qtype_accounting-hideper' : '';
+        $html = '<table class="table table-bordered qtype_accounting-edit-table' . $hideper
+            . '" id="qtype_accounting-entries-table">';
         $html .= $this->build_thead();
         $html .= '<tbody id="qtype_accounting-entries-body">';
         for ($i = 0; $i < $entrycount; $i++) {
