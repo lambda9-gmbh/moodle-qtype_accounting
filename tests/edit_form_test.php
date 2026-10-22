@@ -31,6 +31,7 @@ require_once($CFG->dirroot . '/question/type/accounting/edit_accounting_form.php
  * @covers     \qtype_accounting_edit_form::get_all_accounts_by_chart
  * @covers     \qtype_accounting_edit_form::validate_available_accounts
  * @covers     \qtype_accounting_edit_form::definition_after_data
+ * @covers     \qtype_accounting_edit_form::add_display_options_section
  * @covers     \qtype_accounting\entry_validator
  * @covers     \qtype_accounting\entries_table_builder
  */
@@ -175,6 +176,66 @@ final class edit_form_test extends \advanced_testcase {
         $this->assertSame($zero, $xpath->evaluate('string(//input[@name="creditamount_display[2]"]/@value)'));
         $rows = $xpath->query('//tbody[@id="qtype_accounting-entries-body"]/tr[contains(@class, "entry-row")]');
         $this->assertSame(3, $rows->length);
+    }
+
+    /**
+     * The site setting showaccountsindropdown hides the option but keeps a saved value.
+     */
+    public function test_show_accounts_in_dropdown_setting(): void {
+        global $PAGE, $USER;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $PAGE->set_url('/question/bank/editquestion/question.php');
+        $course = $this->getDataGenerator()->create_course();
+        if (\core_component::get_component_directory('mod_qbank') === null) {
+            $bankcontext = \context_course::instance($course->id);
+        } else {
+            $qbank = $this->getDataGenerator()->create_module('qbank', ['course' => $course->id]);
+            $bankcontext = \context_module::instance($qbank->cmid);
+        }
+        $category = $this->getDataGenerator()->get_plugin_generator('core_question')
+            ->create_question_category(['contextid' => $bankcontext->id]);
+        $chartid = chart_manager::create_chart('Main', \context_course::instance($course->id)->id);
+        $render = function () use ($bankcontext, $category, $chartid, $USER): \DOMXPath {
+            $question = (object)[
+                'qtype' => 'accounting',
+                'contextid' => $bankcontext->id,
+                'createdby' => $USER->id,
+                'category' => $category->id,
+                'questiontext' => '',
+                'generalfeedback' => '',
+                'formoptions' => (object)['mustbeusable' => false, 'repeatelements' => true],
+                'options' => (object)[
+                    'chartofaccountsid' => $chartid,
+                    'accountsindropdown' => 3,
+                    'numberformat' => 'de',
+                    'entries' => [],
+                ],
+            ];
+            $form = new \qtype_accounting_edit_form(
+                new \moodle_url('/question/bank/editquestion/question.php'),
+                $question,
+                $category,
+                new \core_question\local\bank\question_edit_contexts($bankcontext)
+            );
+            $form->set_data($question);
+            $dom = new \DOMDocument();
+            @$dom->loadHTML($form->render());
+            return new \DOMXPath($dom);
+        };
+
+        $xpath = $render();
+        $this->assertSame('text', $xpath->evaluate('string(//input[@name="accountsindropdown"]/@type)'));
+        $this->assertSame('3', $xpath->evaluate('string(//input[@name="accountsindropdown"]/@value)'));
+
+        set_config('showaccountsindropdown', 0, 'qtype_accounting');
+        $xpath = $render();
+        $this->assertSame('hidden', $xpath->evaluate('string(//input[@name="accountsindropdown"]/@type)'));
+        $this->assertSame('3', $xpath->evaluate('string(//input[@name="accountsindropdown"]/@value)'));
+        $this->assertStringNotContainsString(
+            get_string('accountsindropdown', 'qtype_accounting'),
+            $xpath->document->saveHTML()
+        );
     }
 
     /**

@@ -58,6 +58,9 @@ $string['deleteentry'] = 'Delete';
 // Account fields.
 $string['per'] = 'Dr.';
 $string['an'] = 'Cr.';
+$string['settings_display'] = 'Display';
+$string['showaccountsindropdown'] = 'Show "Number of additional accounts in selection list"';
+$string['showaccountsindropdown_desc'] = 'Offer the option "Number of additional accounts in selection list" in the question editor. If disabled, the option is hidden: new questions show the entire chart of accounts, existing questions keep their saved value.';
 $string['debit'] = 'Debit';
 $string['credit'] = 'Credit';
 $string['account'] = 'Account';

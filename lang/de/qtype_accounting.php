@@ -58,6 +58,9 @@ $string['deleteentry'] = 'Löschen';
 // Kontenfelder.
 $string['per'] = 'Per';
 $string['an'] = 'an';
+$string['settings_display'] = 'Darstellung';
+$string['showaccountsindropdown'] = 'Option „Anzahl zusätzlicher Konten in der Auswahlliste“ anzeigen';
+$string['showaccountsindropdown_desc'] = 'Bietet im Frageeditor die Option „Anzahl zusätzlicher Konten in der Auswahlliste“ an. Wenn deaktiviert, wird die Option ausgeblendet: Neue Fragen zeigen den gesamten Kontenrahmen, bestehende Fragen behalten ihren gespeicherten Wert.';
 $string['debit'] = 'Soll';
 $string['credit'] = 'Haben';
 $string['account'] = 'Konto';
