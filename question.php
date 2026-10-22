@@ -114,10 +114,13 @@ class qtype_accounting_question extends question_graded_automatically {
         $response = [];
 
         foreach ($this->entries as $i => $entry) {
+            // Amounts must use the question's number format, as student input does.
             $response["debitaccount_{$i}"] = $entry['debitaccountid'] ?? 0;
-            $response["debitamount_{$i}"] = $entry['debitamount'];
+            $response["debitamount_{$i}"] = empty($entry['debitaccountid']) ? '' :
+                \qtype_accounting\amount_helper::format_amount_for_input((float)$entry['debitamount'], $this->numberformat);
             $response["creditaccount_{$i}"] = $entry['creditaccountid'] ?? 0;
-            $response["creditamount_{$i}"] = $entry['creditamount'];
+            $response["creditamount_{$i}"] = empty($entry['creditaccountid']) ? '' :
+                \qtype_accounting\amount_helper::format_amount_for_input((float)$entry['creditamount'], $this->numberformat);
         }
 
         return $response;

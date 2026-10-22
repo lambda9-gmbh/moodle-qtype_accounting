@@ -51,4 +51,17 @@ class amount_helper {
 
         return (float)$value;
     }
+
+    /**
+     * Format an amount the way a student would type it in the given number format.
+     *
+     * No thousands separator is used, so the result round-trips through {@see parse_amount()}.
+     *
+     * @param float $value The amount.
+     * @param string $format The number format: 'de' (German) or 'us' (US).
+     * @return string The formatted amount, e.g. '1000,00' (de) or '1000.00' (us).
+     */
+    public static function format_amount_for_input(float $value, string $format = 'de'): string {
+        return number_format($value, 2, $format === 'us' ? '.' : ',', '');
+    }
 }
