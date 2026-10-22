@@ -645,6 +645,13 @@ table.qtype_accounting-student-table {
     background-color: #f8f9fa;
 }
 
+/* Narrow padding so the delete buttons fit the "an" and actions columns. */
+.qtype_accounting-student-table td.qtype_accounting-label-cell,
+.qtype_accounting-student-table td.qtype_accounting-actions-cell {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+}
+
 .qtype_accounting-student-table .qtype_accounting-entry-row td {
     border-bottom: 1px solid #dee2e6;
 }

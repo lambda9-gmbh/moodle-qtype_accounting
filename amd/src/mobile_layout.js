@@ -149,6 +149,13 @@ define(['jquery'], function ($) {
             }
         });
 
+        // Each side keeps at least one entry.
+        [debitCards, creditCards].forEach(function(cards) {
+            if (cards.children().length <= 1) {
+                cards.find('.qtype_accounting-mobile-card-actions').hide();
+            }
+        });
+
         mobileView.append(debitSection);
         mobileView.append(creditSection);
 

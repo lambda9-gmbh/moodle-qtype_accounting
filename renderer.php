@@ -282,15 +282,15 @@ class qtype_accounting_renderer extends qtype_renderer {
         $html .= '<col style="width: auto;">';
         // Column 3: Debit Amount (wider for numbers like 12.000,55).
         $html .= '<col style="width: 120px;">';
-        // Column 4: an label (narrow).
-        $html .= '<col style="width: 40px;">';
+        // Column 4: an label (narrow); in edit mode it also holds the debit delete button.
+        $html .= '<col style="width: ' . ($showactions ? 56 : 40) . 'px;">';
         // Column 5: Credit Account (flexible).
         $html .= '<col style="width: auto;">';
         // Column 6: Credit Amount (wider for numbers like 12.000,55).
         $html .= '<col style="width: 120px;">';
         if ($showactions) {
             // Column 7: Actions/Delete button (narrow).
-            $html .= '<col style="width: 50px;">';
+            $html .= '<col style="width: 56px;">';
         }
         $html .= '</colgroup>';
 

@@ -372,6 +372,11 @@ function deleteEntrySide(index, side) {
         return;
     }
 
+    // Each side keeps at least one entry.
+    if (EntryUtils.countSideRows(document, ROW_SELECTOR, side) <= 1) {
+        return;
+    }
+
     const currentType = entryRow.getAttribute('data-entry-type') || 'both';
 
     if (currentType === 'both') {
@@ -389,6 +394,7 @@ function deleteEntrySide(index, side) {
         clearHiddenFieldsForSide(index, side);
 
         EntryUtils.updatePerLabels(document, ROW_SELECTOR);
+        updateDeleteButtonStates();
     } else if ((currentType === 'debit' && side === 'debit') ||
                (currentType === 'credit' && side === 'credit')) {
         // Row only has this side - delete the entire row.
@@ -746,25 +752,34 @@ function deleteEntryRow(index) {
 
 /**
  * Update the enabled/disabled state of all delete buttons.
- * Disable delete buttons when only one entry remains.
+ * Disable the delete buttons of a side when it has only one entry left.
  */
 function updateDeleteButtonStates() {
-    const allEntryRows = document.querySelectorAll(ROW_SELECTOR);
-    const deleteButtons = document.querySelectorAll('.qtype_accounting-delete-debit, .qtype_accounting-delete-credit');
-    const isOnlyOne = allEntryRows.length <= 1;
-
-    deleteButtons.forEach(function (button) {
-        button.disabled = isOnlyOne;
-        if (isOnlyOne) {
-            button.classList.add('disabled');
-            button.style.opacity = '0.5';
-            button.style.cursor = 'not-allowed';
-        } else {
-            button.classList.remove('disabled');
-            button.style.opacity = '';
-            button.style.cursor = '';
-        }
+    ['debit', 'credit'].forEach(function(side) {
+        const isOnlyOne = EntryUtils.countSideRows(document, ROW_SELECTOR, side) <= 1;
+        document.querySelectorAll('.qtype_accounting-delete-' + side).forEach(function(button) {
+            setDeleteButtonState(button, isOnlyOne);
+        });
     });
+}
+
+/**
+ * Enable or disable one delete button.
+ *
+ * @param {HTMLElement} button The delete button.
+ * @param {boolean} isOnlyOne Whether its side has only one entry left.
+ */
+function setDeleteButtonState(button, isOnlyOne) {
+    button.disabled = isOnlyOne;
+    if (isOnlyOne) {
+        button.classList.add('disabled');
+        button.style.opacity = '0.5';
+        button.style.cursor = 'not-allowed';
+    } else {
+        button.classList.remove('disabled');
+        button.style.opacity = '';
+        button.style.cursor = '';
+    }
 }
 
 /**

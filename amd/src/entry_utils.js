@@ -171,6 +171,26 @@ define(['jquery'], function ($) {
     }
 
     /**
+     * Count the visible entry rows that show the given side.
+     *
+     * @param {Element|jQuery} container The container element.
+     * @param {string} rowSelector The CSS selector for entry rows.
+     * @param {string} side 'debit' or 'credit'.
+     * @return {number} The number of rows with this side.
+     */
+    function countSideRows(container, rowSelector, side) {
+        var el = container.jquery ? container[0] : container;
+        var count = 0;
+        el.querySelectorAll(rowSelector).forEach(function(row) {
+            var type = row.getAttribute('data-entry-type') || 'both';
+            if (row.style.display !== 'none' && (type === 'both' || type === side)) {
+                count++;
+            }
+        });
+        return count;
+    }
+
+    /**
      * Update "Per" labels so it only appears on the first visible debit entry.
      *
      * @param {Element|jQuery} container The container element.
@@ -377,6 +397,7 @@ define(['jquery'], function ($) {
         applyEntryTypeVisibility: applyEntryTypeVisibility,
         applyWeightRowVisibility: applyWeightRowVisibility,
         findIncompleteRow: findIncompleteRow,
+        countSideRows: countSideRows,
         updatePerLabels: updatePerLabels,
         clearEntrySideFields: clearEntrySideFields,
         detectEntryType: detectEntryType,
