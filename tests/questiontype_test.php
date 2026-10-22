@@ -74,6 +74,45 @@ class questiontype_test extends \advanced_testcase {
         $this->assertContains('chartofaccountsid', $fields);
         $this->assertContains('allowmultipleentries', $fields);
         $this->assertContains('maxentries', $fields);
+        $this->assertContains('currency', $fields);
+    }
+
+    /**
+     * The currency is saved per question; missing, unknown and legacy empty values use the site default.
+     */
+    public function test_currency_defaults_to_site_setting(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        set_config('defaultcurrency', 'GBP', 'qtype_accounting');
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category();
+        $create = fn(array $extra) => $generator->create_question('accounting', null, $extra + [
+            'category' => $category->id,
+            'name' => 'Currency test',
+            'questiontext' => ['text' => 'Test', 'format' => FORMAT_HTML],
+            'generalfeedback' => ['text' => '', 'format' => FORMAT_HTML],
+            'defaultmark' => 1,
+            'penalty' => 0.3333333,
+            'qtype' => 'accounting',
+            'chartofaccountsid' => 0,
+            'debitaccount' => [],
+            'creditaccount' => [],
+        ]);
+
+        $usd = $create(['currency' => 'USD']);
+        $this->assertSame('USD', $DB->get_field('qtype_accounting_options', 'currency', ['questionid' => $usd->id]));
+        $this->assertSame('USD', \question_bank::load_question($usd->id)->currency);
+
+        $missing = $create([]);
+        $this->assertSame('GBP', $DB->get_field('qtype_accounting_options', 'currency', ['questionid' => $missing->id]));
+        $unknown = $create(['currency' => 'XYZ']);
+        $this->assertSame('GBP', $DB->get_field('qtype_accounting_options', 'currency', ['questionid' => $unknown->id]));
+
+        // Questions saved before the currency existed show the symbol of the current site default.
+        $DB->set_field('qtype_accounting_options', 'currency', null, ['questionid' => $missing->id]);
+        set_config('defaultcurrency', 'CHF', 'qtype_accounting');
+        \question_bank::notify_question_edited($missing->id);
+        $this->assertSame('CHF', \question_bank::load_question($missing->id)->currency);
     }
 
     /**

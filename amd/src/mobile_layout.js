@@ -44,6 +44,9 @@ define(['jquery'], function ($) {
     // Number format for amount placeholders.
     var numberFormat = 'de';
 
+    // Currency symbol shown after the amount inputs ('' for none).
+    var currencySymbol = '';
+
     /**
      * Initialize mobile layout management.
      *
@@ -58,6 +61,7 @@ define(['jquery'], function ($) {
         rowSelector = selector;
         isReadonly = readonly;
         numberFormat = container.data('numberformat') || 'de';
+        currencySymbol = String(container.data('currencysymbol') || '');
 
         // Set up resize handler.
         $(window).on('resize', function () {
@@ -337,7 +341,13 @@ define(['jquery'], function ($) {
             }, 0);
         });
 
-        field.append(proxyInput);
+        if (currencySymbol) {
+            var group = $('<div class="qtype_accounting-amount-group">').append(proxyInput);
+            group.append($('<span class="qtype_accounting-currency" aria-hidden="true">').text(currencySymbol));
+            field.append(group);
+        } else {
+            field.append(proxyInput);
+        }
         return field;
     }
 

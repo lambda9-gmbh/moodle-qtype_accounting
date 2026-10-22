@@ -1025,3 +1025,19 @@ table.qtype_accounting-student-table {
         padding: 1rem;
     }
 }
+
+/* Currency symbol after the amount inputs. */
+.qtype_accounting-amount-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.qtype_accounting-amount-group > .qtype_accounting-amount-input {
+    flex: 1 1 auto;
+}
+
+.qtype_accounting-currency {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}

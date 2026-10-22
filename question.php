@@ -48,6 +48,9 @@ class qtype_accounting_question extends question_graded_automatically {
     /** @var int Maximum number of entries. */
     public $maxentries;
 
+    /** @var string Currency key whose symbol is shown after the amount fields. */
+    public $currency;
+
     /** @var array The correct answer entries. */
     public $entries = [];
 

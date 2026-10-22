@@ -87,6 +87,7 @@ class answer_renderer {
      */
     protected function render_body(object $question, array $accounts): string {
         $numberformat = $question->numberformat ?? 'de';
+        $currencysymbol = currency_helper::get_symbol($question->currency ?? null);
         $labels = [
             'debit' => [
                 'account' => get_string('debitaccount', 'qtype_accounting'),
@@ -99,7 +100,7 @@ class answer_renderer {
         ];
         $html = \html_writer::start_tag('tbody');
         foreach ($question->entries as $entry) {
-            $html .= $this->render_entry_row($entry, $accounts, $numberformat, $labels);
+            $html .= $this->render_entry_row($entry, $accounts, $numberformat, $labels, $currencysymbol);
             if (!empty($entry['explanation'])) {
                 $html .= $this->render_explanation_row($entry['explanation']);
             }
@@ -115,9 +116,16 @@ class answer_renderer {
      * @param array $accounts Account records keyed by ID.
      * @param string $numberformat 'de' or 'us'.
      * @param array $labels The per-cell data-label strings.
+     * @param string $currencysymbol Currency symbol shown after non-empty amounts ('' for none).
      * @return string The HTML for one tr.
      */
-    protected function render_entry_row(array $entry, array $accounts, string $numberformat, array $labels): string {
+    protected function render_entry_row(
+        array $entry,
+        array $accounts,
+        string $numberformat,
+        array $labels,
+        string $currencysymbol = ''
+    ): string {
         $debitname = entry_helper::format_account_display_by_id((int)($entry['debitaccountid'] ?? 0), $accounts);
         $creditname = entry_helper::format_account_display_by_id((int)($entry['creditaccountid'] ?? 0), $accounts);
         $html = \html_writer::start_tag('tr');
@@ -128,7 +136,7 @@ class answer_renderer {
         );
         $html .= \html_writer::tag(
             'td',
-            $this->format_amount($entry['debitamount'], $numberformat),
+            $this->format_amount_with_symbol($entry['debitamount'], $numberformat, $currencysymbol),
             ['data-label' => $labels['debit']['amount'], 'style' => 'text-align: end;']
         );
         $html .= \html_writer::tag(
@@ -138,7 +146,7 @@ class answer_renderer {
         );
         $html .= \html_writer::tag(
             'td',
-            $this->format_amount($entry['creditamount'], $numberformat),
+            $this->format_amount_with_symbol($entry['creditamount'], $numberformat, $currencysymbol),
             ['data-label' => $labels['credit']['amount'], 'style' => 'text-align: end;']
         );
         $html .= \html_writer::end_tag('tr');
@@ -161,6 +169,22 @@ class answer_renderer {
         );
         $html .= \html_writer::end_tag('tr');
         return $html;
+    }
+
+    /**
+     * Format an amount for display and append the currency symbol to non-empty amounts.
+     *
+     * @param float $amount The amount value.
+     * @param string $format 'de' or 'us'.
+     * @param string $currencysymbol Currency symbol ('' for none).
+     * @return string HTML-safe amount or '' if effectively zero.
+     */
+    protected function format_amount_with_symbol(float $amount, string $format, string $currencysymbol): string {
+        $formatted = $this->format_amount($amount, $format);
+        if ($formatted === '' || $currencysymbol === '') {
+            return $formatted;
+        }
+        return $formatted . "\u{00A0}" . s($currencysymbol);
     }
 
     /**

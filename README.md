@@ -75,6 +75,7 @@ After submission, every field is highlighted individually — green for correct,
 - **Deduction for extra entries** — configurable percentage penalty per extra account the student names that isn't part of the correct answer; each side is counted independently, score is floored at 0.
 - **Decoy accounts in dropdowns** — "Number of additional accounts in selection list" controls how many random extra accounts appear alongside the correct ones. `0` shows the entire chart.
 - **Number format toggle** — `1,234.56` (US) or `1.234,56` (DE).
+- **Currency symbol** — €, $, £, CHF or none after the amount fields; the site default is preselected.
 - Course-scoped charts of accounts, manageable directly from the question form.
 - Chart management opens in a new tab. Return to the question and use **Refresh charts of accounts** to update the dropdowns while keeping unsaved entries. Removed selections are flagged for replacement before saving.
 - Create charts of accounts directly in Moodle, or import and export CSV files (one account per line; UTF-8 or Windows-1252).
@@ -107,7 +108,7 @@ The plugin has no external service dependencies. It does not require Composer, N
 1. Place the plugin source so that `version.php` sits at `<moodledir>/question/type/accounting/version.php`.
 2. As a site administrator, visit **Site administration → Notifications**. Moodle will detect the new plugin and run `install.xml`.
 
-The plugin has no admin settings page — all configuration is per-question, and charts of accounts are scoped to courses.
+The settings page (**Site administration → Plugins → Question types → Accounting Entry**) sets the default currency whose symbol is shown after the amount fields (default: €); each question can choose its own currency. All other configuration is per question, and charts of accounts are scoped to courses.
 
 ---
 
@@ -138,6 +139,7 @@ The question form follows Moodle's standard layout. The accounting-specific sect
 | Chart of Accounts | *(none)* | The chart students will pick accounts from. Required. |
 | Number of additional accounts in selection list | `0` | Decoys per dropdown. `0` = show all accounts from the chart; `n` = correct account plus `n` random ones. |
 | Number format | `1.234,56` (DE) | Decimal/thousands separators shown to students. |
+| Currency | Site default (€) | Currency symbol shown after the amount fields, or no symbol. |
 | Deduction for extra entries | None | Percentage subtracted per extra account the student names that isn't in the correct answer. |
 | No partial credit | Off | If on, the question grades 0 or full marks only. |
 

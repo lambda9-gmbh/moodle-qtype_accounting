@@ -106,6 +106,7 @@ class qtype_accounting extends question_type {
         $options->allornothinggrading = $question->allornothinggrading ?? 0;
         $options->allowmultipleentries = $question->allowmultipleentries ?? 1;
         $options->maxentries = $question->maxentries ?? 5;
+        $options->currency = \qtype_accounting\currency_helper::normalise($question->currency ?? null);
         return $options;
     }
 
@@ -191,6 +192,7 @@ class qtype_accounting extends question_type {
             $question->options->allornothinggrading = 0;
             $question->options->allowmultipleentries = 1;
             $question->options->maxentries = 5;
+            $question->options->currency = null;
         }
 
         $question->options->entries = $DB->get_records(
@@ -220,6 +222,7 @@ class qtype_accounting extends question_type {
         $question->allornothinggrading = $questiondata->options->allornothinggrading ?? 0;
         $question->allowmultipleentries = $questiondata->options->allowmultipleentries ?? 1;
         $question->maxentries = $questiondata->options->maxentries ?? 5;
+        $question->currency = \qtype_accounting\currency_helper::normalise($questiondata->options->currency ?? null);
         $question->entries = [];
 
         if (!empty($questiondata->options->entries)) {
@@ -294,7 +297,7 @@ class qtype_accounting extends question_type {
     public function extra_question_fields(): array {
         return ['qtype_accounting_options', 'chartofaccountsid', 'accountsindropdown', 'numberformat',
             'extraentrydeduction', 'allornothinggrading',
-            'allowmultipleentries', 'maxentries'];
+            'allowmultipleentries', 'maxentries', 'currency'];
     }
 
     /**

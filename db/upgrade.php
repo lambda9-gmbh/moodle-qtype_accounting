@@ -409,5 +409,15 @@ function xmldb_qtype_accounting_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2024010130, 'qtype', 'accounting');
     }
 
+    if ($oldversion < 2026102102) {
+        // Existing questions keep an empty currency and show the symbol of the site default.
+        $table = new xmldb_table('qtype_accounting_options');
+        $field = new xmldb_field('currency', XMLDB_TYPE_CHAR, '10', null, null, null, null, 'maxentries');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026102102, 'qtype', 'accounting');
+    }
+
     return true;
 }
