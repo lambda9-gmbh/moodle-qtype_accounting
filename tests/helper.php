@@ -594,6 +594,23 @@ class qtype_accounting_test_helper extends question_test_helper {
     }
 
     /**
+     * Get a context in which questions can be stored for the given course.
+     *
+     * Since Moodle 5.0 questions live in question bank module instances instead of
+     * the course context, so a mod_qbank instance is created where available.
+     *
+     * @param \stdClass $course The course.
+     * @return \context The question bank context.
+     */
+    public static function get_question_bank_context(\stdClass $course): \context {
+        if (\core_component::get_component_directory('mod_qbank') === null) {
+            return \context_course::instance($course->id);
+        }
+        $qbank = \testing_util::get_data_generator()->create_module('qbank', ['course' => $course->id]);
+        return \context_module::instance($qbank->cmid);
+    }
+
+    /**
      * Create a response array for a simple entry.
      *
      * Note: The response field names remain as debitaccount_N / creditaccount_N

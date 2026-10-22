@@ -188,7 +188,7 @@ Feature: Create and edit Buchungssatz questions
     And I press "Save changes"
     And I set the field "accountname" to "Inventory"
     And I press "Add Account"
-    And I switch to the main window
+    And I switch to the accounting question editor window
     Then the field "Chart of Accounts" matches value "Main"
     When I press "Refresh charts of accounts"
     Then I should see "Charts of accounts updated."
@@ -203,7 +203,7 @@ Feature: Create and edit Buchungssatz questions
     And I switch to a second window
     And I click on "Delete" "link" in the "Bank" "table_row"
     And I press "Continue"
-    And I switch to the main window
+    And I switch to the accounting question editor window
     And I press "Refresh charts of accounts"
     Then I should see "A selected chart or account is no longer available."
     And the field "debitaccount_display[0]" matches value "Bank"
@@ -219,7 +219,7 @@ Feature: Create and edit Buchungssatz questions
     And I click on "Manage Charts of Accounts" "link"
     And I click on "Delete" "link" in the "Renamed" "table_row"
     And I press "Delete chart"
-    And I switch to the main window
+    And I switch to the accounting question editor window
     And I press "Refresh charts of accounts"
     Then I should see "A selected chart or account is no longer available."
     And the field "Chart of Accounts" matches value "Renamed"

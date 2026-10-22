@@ -52,4 +52,24 @@ class behat_qtype_accounting extends behat_base {
             \qtype_accounting\account_manager::add($chartid, trim($account));
         }
     }
+
+    /**
+     * Switch back to the window that shows the question editor.
+     *
+     * The chart management link opens in a new tab. Selecting the editor by URL avoids
+     * relying on the driver's notion of the main window, which differs between Moodle versions.
+     *
+     * @When /^I switch to the accounting question editor window$/
+     * @throws ExpectationException If no window shows the question editor.
+     */
+    public function i_switch_to_the_accounting_question_editor_window(): void {
+        $session = $this->getSession();
+        foreach ($session->getWindowNames() as $name) {
+            $session->switchToWindow($name);
+            if (strpos($session->getCurrentUrl(), '/question/bank/editquestion/question.php') !== false) {
+                return;
+            }
+        }
+        throw new ExpectationException('No window shows the question editor.', $session);
+    }
 }

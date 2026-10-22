@@ -223,19 +223,19 @@ $renameurl = new moodle_url($baseurl, ['action' => 'rename']);
 echo html_writer::start_tag('form', [
     'method' => 'post',
     'action' => $renameurl->out(false),
-    'class' => 'form-inline mb-4',
+    'class' => 'd-flex flex-wrap align-items-center mb-4',
 ]);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
 echo html_writer::tag('label', get_string('chartname', 'qtype_accounting') . ': ', [
     'for' => 'chartname',
-    'class' => 'mr-2',
+    'class' => 'me-2',
 ]);
 echo html_writer::empty_tag('input', [
     'type' => 'text',
     'id' => 'chartname',
     'name' => 'chartname',
     'value' => $chart->name,
-    'class' => 'form-control mr-2',
+    'class' => 'form-control w-auto me-2',
     'size' => 40,
 ]);
 echo html_writer::empty_tag('input', [
@@ -266,14 +266,14 @@ $addurl = new moodle_url($baseurl, ['action' => 'addaccount']);
 echo html_writer::start_tag('form', [
     'method' => 'post',
     'action' => $addurl->out(false),
-    'class' => 'form-inline',
+    'class' => 'd-flex flex-wrap align-items-center',
 ]);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
 echo html_writer::empty_tag('input', [
     'type' => 'text',
     'name' => 'accountname',
     'placeholder' => get_string('accountname', 'qtype_accounting'),
-    'class' => 'form-control mr-2',
+    'class' => 'form-control w-auto me-2',
     'size' => 30,
     'required' => 'required',
 ]);
@@ -332,7 +332,7 @@ if (!empty($accounts)) {
             $savebtn = html_writer::empty_tag('input', [
                 'type' => 'submit',
                 'value' => get_string('savechanges'),
-                'class' => 'btn btn-sm btn-primary mr-1',
+                'class' => 'btn btn-sm btn-primary me-1',
                 'form' => $formid,
             ]);
             $cancelbtn = html_writer::link($baseurl, get_string('cancel'), ['class' => 'btn btn-sm btn-secondary']);

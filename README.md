@@ -296,6 +296,10 @@ Both stacks serve Moodle at <http://localhost:8080>. The Postgres stack overlays
 
 The container ships `moodle-cs` and `moodle-plugin-ci` ready to run.
 
+### GitHub Actions
+
+`.github/workflows/ci.yml` runs the same `moodle-plugin-ci` checks (lint, phpcs, phpdoc, validate, savepoints, mustache, grunt, PHPUnit, Behat) on every push and pull request against Moodle 4.5 LTS, 5.0 and 5.1 with PostgreSQL and MariaDB.
+
 ### Building the AMD modules
 
 ```bash

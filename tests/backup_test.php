@@ -20,6 +20,7 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 require_once($CFG->dirroot . '/backup/tests/backup_restore_base_testcase.php');
+require_once($CFG->dirroot . '/question/type/accounting/tests/helper.php');
 
 /**
  * Regression tests for accounting question backup and restore.
@@ -48,7 +49,8 @@ final class backup_test extends \core_backup_backup_restore_base_testcase {
         account_manager::add($chartid, '1000 Cash', 2);
 
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
-        $category = $generator->create_question_category(['contextid' => $context->id]);
+        $bankcontext = \qtype_accounting_test_helper::get_question_bank_context($course);
+        $category = $generator->create_question_category(['contextid' => $bankcontext->id]);
         // Two questions share the chart; the second contains one-sided compound booking rows.
         foreach (['Sale', 'Compound sale'] as $name) {
             $compound = $name === 'Compound sale';
@@ -103,8 +105,9 @@ final class backup_test extends \core_backup_backup_restore_base_testcase {
                    JOIN {question_versions} v ON v.questionid = q.id
                    JOIN {question_bank_entries} b ON b.id = v.questionbankentryid
                    JOIN {question_categories} c ON c.id = b.questioncategoryid
-                  WHERE c.contextid = ? AND q.qtype = ?",
-                [$targetcontext->id, 'accounting']
+                  JOIN {context} ctx ON ctx.id = c.contextid
+                  WHERE (ctx.id = ? OR ctx.path LIKE ?) AND q.qtype = ?",
+                [$targetcontext->id, $targetcontext->path . '/%', 'accounting']
             );
             $this->assertCount(2, $questions);
             foreach ($questions as $question) {

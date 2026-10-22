@@ -21,6 +21,7 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 require_once($CFG->dirroot . '/question/type/edit_question_form.php');
 require_once($CFG->dirroot . '/question/type/accounting/edit_accounting_form.php');
+require_once($CFG->dirroot . '/question/type/accounting/tests/helper.php');
 
 /**
  * Tests for the accounting editing form's account data.
@@ -95,13 +96,14 @@ final class edit_form_test extends \advanced_testcase {
         $PAGE->set_url('/question/bank/editquestion/question.php');
         $course = $this->getDataGenerator()->create_course();
         $context = \context_course::instance($course->id);
+        $bankcontext = \qtype_accounting_test_helper::get_question_bank_context($course);
         $category = $this->getDataGenerator()->get_plugin_generator('core_question')
-            ->create_question_category(['contextid' => $context->id]);
+            ->create_question_category(['contextid' => $bankcontext->id]);
         $chartid = chart_manager::create_chart('Main', $context->id);
         $bank = account_manager::add($chartid, 'Bank');
         $cash = account_manager::add($chartid, 'Cash');
         $submitted = [
-            'category' => $category->id . ',' . $context->id,
+            'category' => $category->id . ',' . $bankcontext->id,
             'name' => 'Missing amounts',
             'questiontext' => ['text' => 'Record the transaction.', 'format' => FORMAT_HTML],
             'defaultmark' => 1,
@@ -117,7 +119,7 @@ final class edit_form_test extends \advanced_testcase {
         \qtype_accounting_edit_form::mock_submit($submitted);
         $question = (object)[
             'qtype' => 'accounting',
-            'contextid' => $context->id,
+            'contextid' => $bankcontext->id,
             'createdby' => $USER->id,
             'category' => $category->id,
             'questiontext' => '',
@@ -142,7 +144,7 @@ final class edit_form_test extends \advanced_testcase {
             new \moodle_url('/question/bank/editquestion/question.php'),
             $question,
             $category,
-            new \core_question\local\bank\question_edit_contexts($context)
+            new \core_question\local\bank\question_edit_contexts($bankcontext)
         );
         $this->assertFalse($form->is_validated());
         $html = $form->render();
