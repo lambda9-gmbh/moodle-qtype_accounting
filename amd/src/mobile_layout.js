@@ -29,6 +29,9 @@ define(['jquery'], function ($) {
     // Breakpoint for mobile layout (must match CSS).
     var MOBILE_BREAKPOINT = 768;
 
+    // Below this question width the entry table does not fit, e.g. next to open drawers.
+    var COMPACT_WIDTH = 600;
+
     // CSS class added to container when mobile layout is active.
     var ACTIVE_CLASS = 'qtype_accounting-mobile-active';
 
@@ -38,17 +41,24 @@ define(['jquery'], function ($) {
     // Whether the question is readonly (review mode).
     var isReadonly = false;
 
-    // Debounce timer for resize handler.
-    var resizeTimer = null;
-
     // Number format for amount placeholders.
     var numberFormat = 'de';
 
     /**
+     * Whether the card view should be used for a question.
+     *
+     * @param {jQuery} container The question container element.
+     * @return {boolean} True for narrow viewports or narrow question containers.
+     */
+    function isCompact(container) {
+        return window.innerWidth <= MOBILE_BREAKPOINT || container[0].clientWidth < COMPACT_WIDTH;
+    }
+
+    /**
      * Initialize mobile layout management.
      *
-     * Sets up a resize listener and builds the mobile view if the viewport
-     * is already at mobile width.
+     * Watches the viewport and the question width and builds the mobile view if the
+     * question is already too narrow for the table.
      *
      * @param {jQuery} container The question container element.
      * @param {string} selector CSS selector for entry rows.
@@ -59,16 +69,21 @@ define(['jquery'], function ($) {
         isReadonly = readonly;
         numberFormat = container.data('numberformat') || 'de';
 
-        // Set up resize handler.
-        $(window).on('resize', function () {
+        // Re-check on window resizes and on width changes of the question, e.g. when drawers open.
+        var resizeTimer = null;
+        var scheduleResize = function() {
             clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(function () {
+            resizeTimer = setTimeout(function() {
                 handleResize(container);
-            }, 300);
-        });
+            }, 150);
+        };
+        $(window).on('resize', scheduleResize);
+        if (typeof ResizeObserver !== 'undefined') {
+            new ResizeObserver(scheduleResize).observe(container[0]);
+        }
 
-        // Build mobile view if already at mobile width.
-        if (window.innerWidth <= MOBILE_BREAKPOINT) {
+        // Build mobile view if already too narrow.
+        if (isCompact(container)) {
             buildMobileView(container);
         }
     }
@@ -79,7 +94,7 @@ define(['jquery'], function ($) {
      * @param {jQuery} container The question container element.
      */
     function handleResize(container) {
-        var isMobile = window.innerWidth <= MOBILE_BREAKPOINT;
+        var isMobile = isCompact(container);
         var isActive = container.hasClass(ACTIVE_CLASS);
 
         if (isMobile && !isActive) {

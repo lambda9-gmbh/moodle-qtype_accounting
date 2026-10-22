@@ -885,143 +885,142 @@ table.qtype_accounting-student-table {
     display: none;
 }
 
-@media (max-width: 768px) {
-    /* When JS activates mobile view, hide the table */
-    .qtype_accounting-question-container.qtype_accounting-mobile-active .qtype_accounting-student-table {
-        display: none !important;
-    }
+/* The card view is activated by JS whenever the question is too narrow for the table. */
+/* When JS activates mobile view, hide the table */
+.qtype_accounting-question-container.qtype_accounting-mobile-active .qtype_accounting-student-table {
+    display: none !important;
+}
 
-    /* Show mobile view when active */
-    .qtype_accounting-question-container.qtype_accounting-mobile-active .qtype_accounting-mobile-view {
-        display: block !important;
-    }
+/* Show mobile view when active */
+.qtype_accounting-question-container.qtype_accounting-mobile-active .qtype_accounting-mobile-view {
+    display: block !important;
+}
 
-    /* Section styling */
-    .qtype_accounting-mobile-section {
-        margin-bottom: 1.5rem;
-    }
+/* Section styling */
+.qtype_accounting-mobile-section {
+    margin-bottom: 1.5rem;
+}
 
-    .qtype_accounting-mobile-section-header {
-        padding: 0.75rem 1rem;
-        border-radius: 0.5rem 0.5rem 0 0;
-        font-weight: 700;
-        font-size: 1rem;
-    }
+.qtype_accounting-mobile-section-header {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+    font-weight: 700;
+    font-size: 1rem;
+}
 
-    .qtype_accounting-mobile-debit-header,
-    .qtype_accounting-mobile-credit-header {
-        background-color: #e9ecef;
-        color: #495057;
-    }
+.qtype_accounting-mobile-debit-header,
+.qtype_accounting-mobile-credit-header {
+    background-color: #e9ecef;
+    color: #495057;
+}
 
-    .qtype_accounting-mobile-section-header h4 {
-        margin: 0;
-        font-size: 1rem;
-    }
+.qtype_accounting-mobile-section-header h4 {
+    margin: 0;
+    font-size: 1rem;
+}
 
-    /* Card styling */
-    .qtype_accounting-mobile-card {
-        background: #fff;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        margin-bottom: 0.75rem;
-        padding: 1rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
+/* Card styling */
+.qtype_accounting-mobile-card {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
 
-    .qtype_accounting-mobile-card[data-side="debit"],
-    .qtype_accounting-mobile-card[data-side="credit"] {
-        border-left: 4px solid #dee2e6;
-    }
+.qtype_accounting-mobile-card[data-side="debit"],
+.qtype_accounting-mobile-card[data-side="credit"] {
+    border-left: 4px solid #dee2e6;
+}
 
-    /* Field layout within card */
-    .qtype_accounting-mobile-field {
-        margin-bottom: 0.75rem;
-    }
+/* Field layout within card */
+.qtype_accounting-mobile-field {
+    margin-bottom: 0.75rem;
+}
 
-    .qtype_accounting-mobile-field:last-child {
-        margin-bottom: 0;
-    }
+.qtype_accounting-mobile-field:last-child {
+    margin-bottom: 0;
+}
 
-    .qtype_accounting-mobile-field label {
-        display: block;
-        font-size: 0.75rem;
-        color: #6c757d;
-        font-weight: 500;
-        margin-bottom: 0.25rem;
-    }
+.qtype_accounting-mobile-field label {
+    display: block;
+    font-size: 0.75rem;
+    color: #6c757d;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
 
-    .qtype_accounting-mobile-field select,
-    .qtype_accounting-mobile-field input {
-        width: 100%;
-        min-height: 44px;
-        font-size: 16px; /* Prevents iOS zoom */
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        padding: 0.5rem;
-        background-color: #fff;
-        -webkit-appearance: menulist;
-        appearance: menulist;
-    }
+.qtype_accounting-mobile-field select,
+.qtype_accounting-mobile-field input {
+    width: 100%;
+    min-height: 44px;
+    font-size: 16px; /* Prevents iOS zoom */
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 0.5rem;
+    background-color: #fff;
+    -webkit-appearance: menulist;
+    appearance: menulist;
+}
 
-    .qtype_accounting-mobile-field input {
-        -webkit-appearance: none;
-        appearance: none;
-    }
+.qtype_accounting-mobile-field input {
+    -webkit-appearance: none;
+    appearance: none;
+}
 
-    .qtype_accounting-mobile-field .qtype_accounting-amount-input {
-        text-align: right;
-    }
+.qtype_accounting-mobile-field .qtype_accounting-amount-input {
+    text-align: right;
+}
 
-    /* Card actions (delete button) */
-    .qtype_accounting-mobile-card-actions {
-        display: flex;
-        justify-content: flex-end;
-        padding-top: 0.5rem;
-        border-top: 1px solid #f0f0f0;
-        margin-top: 0.75rem;
-    }
+/* Card actions (delete button) */
+.qtype_accounting-mobile-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 0.5rem;
+    border-top: 1px solid #f0f0f0;
+    margin-top: 0.75rem;
+}
 
-    .qtype_accounting-mobile-card-actions .btn {
-        min-width: 44px;
-        min-height: 44px;
-    }
+.qtype_accounting-mobile-card-actions .btn {
+    min-width: 44px;
+    min-height: 44px;
+}
 
-    /* Section add button */
-    .qtype_accounting-mobile-section > .btn {
-        width: 100%;
-        min-height: 44px;
-        font-size: 16px;
-        margin-top: 0.5rem;
-    }
+/* Section add button */
+.qtype_accounting-mobile-section > .btn {
+    width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+    margin-top: 0.5rem;
+}
 
-    /* Readonly spans in mobile cards */
-    .qtype_accounting-mobile-card .qtype_accounting-readonly {
-        display: block;
-        width: 100%;
-        min-height: 44px;
-        padding: 0.75rem;
-        background-color: #f8f9fa;
-        border-radius: 4px;
-    }
+/* Readonly spans in mobile cards */
+.qtype_accounting-mobile-card .qtype_accounting-readonly {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.75rem;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}
 
-    /* Feedback colors in mobile cards - must override the default background above */
-    .qtype_accounting-mobile-card .qtype_accounting-readonly.qtype_accounting-correct {
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
-    }
+/* Feedback colors in mobile cards - must override the default background above */
+.qtype_accounting-mobile-card .qtype_accounting-readonly.qtype_accounting-correct {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+}
 
-    .qtype_accounting-mobile-card .qtype_accounting-readonly.qtype_accounting-incorrect {
-        background-color: #f8d7da;
-        border: 1px solid #f5c6cb;
-    }
+.qtype_accounting-mobile-card .qtype_accounting-readonly.qtype_accounting-incorrect {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+}
 
-    /* Empty section state */
-    .qtype_accounting-mobile-cards:empty::after {
-        content: '\2014'; /* em-dash */
-        display: block;
-        text-align: center;
-        color: #adb5bd;
-        padding: 1rem;
-    }
+/* Empty section state */
+.qtype_accounting-mobile-cards:empty::after {
+    content: '\2014'; /* em-dash */
+    display: block;
+    text-align: center;
+    color: #adb5bd;
+    padding: 1rem;
 }
