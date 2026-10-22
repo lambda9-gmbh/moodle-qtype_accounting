@@ -38,9 +38,27 @@ $string['accountsindropdown_help'] = 'The number of random additional accounts t
 $string['numberformat'] = 'Number format';
 $string['extraentrydeduction'] = 'Deduction for extra entries';
 $string['extraentrydeduction_help'] = 'Percentage deducted per extra account the student uses that is not part of the correct answer. Each side (debit/credit) is counted independently. Set to "None" for no deduction. The score cannot go below 0.';
+$string['extraentrydeductionpoints'] = 'Deduction for extra entries (points)';
+$string['extraentrydeductionpoints_help'] = 'Points deducted per extra account the student uses that is not part of the correct answer. Each side (debit/credit) is counted independently. The score cannot go below 0 points.';
+$string['extraentrydeductionpoints_option'] = '{$a} point(s) per extra account';
 $string['allornothinggrading'] = 'No partial credit';
 $string['allornothinggrading_help'] = 'If enabled, the student only receives marks if all booking entries are completely correct. If there is any error (even just one amount), the entire question is graded as 0 points.';
 $string['allornothinggrading_notice'] = 'Note: No partial credit is awarded for this question. All entries must be completely correct to receive marks.';
+$string['accountsonlyexception'] = 'Points mode: one point for correct accounts without amounts';
+$string['accountsonlyexception_desc'] = 'If enabled, a student who names exactly the correct accounts on both sides (none missing, none extra) but enters no amounts at all receives one point in points mode, instead of no points when only fully correct pairs count. The teacher\'s correct answer always contains accounts and amounts.';
+$string['defaultgradingmode'] = 'Default grading mode';
+$string['defaultgradingmode_desc'] = 'Grading mode preselected for new accounting questions. Teachers can change it per question.';
+$string['gradingmode'] = 'Grading mode';
+$string['gradingmode_help'] = 'Percentage: account and amount of every entry are weighted (weights 1-3) and the result is a percentage of the default mark.
+
+Points: every account-amount pair of the correct answer is worth one point. The default mark is set automatically to the number of pairs. Depending on the site settings, a pair only earns its point if both account and amount are correct.';
+$string['gradingmode_percent'] = 'Percentage (weighted)';
+$string['gradingmode_points'] = 'Points (one point per account-amount pair)';
+$string['gradingmode_points_info'] = 'The default mark is calculated from the correct answer when saving: one point per account-amount pair. If only the account or only the amount is correct, the pair earns a share of its point according to the weights.';
+$string['gradingmode_points_info_strict'] = 'The default mark is calculated from the correct answer when saving: one point per account-amount pair. A pair only earns its point if both account and amount are correct, so weights are not used.';
+$string['settings_grading'] = 'Grading';
+$string['strictpairs'] = 'Points mode: only fully correct pairs earn points';
+$string['strictpairs_desc'] = 'If enabled, an account-amount pair in points mode earns its point only if both the account and the amount are correct; otherwise neither earns anything. If disabled, the point is split between account and amount according to the weights.';
 $string['numberformat_help'] = 'Choose the format for decimal and thousand separators. Either #,###.00 or #.###,00';
 $string['numberformat_de'] = '#.###,00';
 $string['numberformat_us'] = '#,###.00';

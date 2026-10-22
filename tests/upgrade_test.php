@@ -118,7 +118,9 @@ final class upgrade_test extends \advanced_testcase {
             }
             $this->assertFalse($DB->get_manager()->field_exists($table, new \xmldb_field('debitaccount')));
             $this->assertFalse($DB->get_manager()->field_exists($table, new \xmldb_field('creditaccount')));
-            $this->assertEquals(2024010130, get_config('qtype_accounting', 'version'));
+            // Later upgrade steps run as well, so the final savepoint is at least the migration's one.
+            $this->assertGreaterThanOrEqual(2024010130, (int) get_config('qtype_accounting', 'version'));
+            $this->assertTrue($DB->get_manager()->field_exists('qtype_accounting_options', 'gradingmode'));
         } finally {
             $this->remove_legacy_columns($table);
         }

@@ -12,6 +12,7 @@
         <FIELD NAME="allornothinggrading" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="If 1, the question grades 0 or full marks only (no partial credit)"/>
         <FIELD NAME="allowmultipleentries" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="If 1, students may submit multiple booking entries (compound bookings)"/>
         <FIELD NAME="maxentries" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="5" SEQUENCE="false" COMMENT="Maximum number of entries the student may add per question"/>
+        <FIELD NAME="gradingmode" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="percent" SEQUENCE="false" COMMENT="Grading mode: percent (weighted fraction) or points (one point per account-amount pair)"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

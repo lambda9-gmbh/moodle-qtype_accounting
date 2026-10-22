@@ -141,6 +141,75 @@ class questiontype_test extends \advanced_testcase {
     }
 
     /**
+     * Provide grading modes with the expected default mark after saving.
+     *
+     * @return array
+     */
+    public static function grading_mode_default_mark_provider(): array {
+        return [
+            'percent keeps the entered mark' => ['percent', false, ['1000', '500'], 4.0],
+            'points: one point per pair' => ['points', false, ['1000', '500'], 3.0],
+            'points: the exception does not change the maximum' => ['points', true, ['1000', '500'], 3.0],
+            'old XML without a mode' => ['', false, ['1000', '500'], 4.0],
+        ];
+    }
+
+    /**
+     * In points mode the default mark is derived from the correct answer.
+     *
+     * @dataProvider grading_mode_default_mark_provider
+     * @param string $mode Submitted grading mode.
+     * @param bool $accountsonly Site setting accountsonlyexception.
+     * @param array $amounts Debit amounts of the two entries (credit is the aggregated Sales account).
+     * @param float $expectedmark Expected default mark.
+     */
+    public function test_grading_mode_sets_default_mark(
+        string $mode,
+        bool $accountsonly,
+        array $amounts,
+        float $expectedmark
+    ): void {
+        $this->resetAfterTest();
+        set_config('accountsonlyexception', (int)$accountsonly, 'qtype_accounting');
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category();
+        $question = $generator->create_question('accounting', null, [
+            'category' => $category->id,
+            'defaultmark' => 4,
+            'gradingmode' => $mode,
+            'debitaccount' => ['1200', '1000'],
+            'debitamount' => $amounts,
+            'creditaccount' => ['8400', '8400'],
+            'creditamount' => ['1000', '500'],
+        ]);
+        $loaded = \question_bank::load_question($question->id);
+        $this->assertEquals($expectedmark, $loaded->defaultmark);
+        $this->assertSame($mode === 'points' ? 'points' : 'percent', $loaded->gradingmode);
+    }
+
+    /**
+     * The deduction field of the active grading mode is stored.
+     */
+    public function test_deduction_saved_for_grading_mode(): void {
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category();
+        $common = [
+            'category' => $category->id,
+            'debitaccount' => ['1200'],
+            'debitamount' => ['100'],
+            'creditaccount' => ['8400'],
+            'creditamount' => ['100'],
+            'extraentrydeduction' => '0.25',
+            'extraentrydeductionpoints' => '1.5',
+        ];
+        $points = $generator->create_question('accounting', null, $common + ['gradingmode' => 'points']);
+        $percent = $generator->create_question('accounting', null, $common + ['gradingmode' => 'percent']);
+        $this->assertEquals(1.5, \question_bank::load_question($points->id)->extraentrydeduction);
+        $this->assertEquals(0.25, \question_bank::load_question($percent->id)->extraentrydeduction);
+    }
+
+    /**
      * Test deleting a question removes all related data.
      */
     public function test_delete_question(): void {

@@ -54,6 +54,15 @@ class qtype_accounting_question extends question_graded_automatically {
     /** @var bool If true, only full or zero marks (no partial credit). */
     public $allornothinggrading;
 
+    /** @var string Grading mode: 'percent' or 'points'. */
+    public $gradingmode = \qtype_accounting\scorer::GRADINGMODE_PERCENT;
+
+    /** @var bool Points mode: no partial point for a pair with a wrong account or amount (site setting). */
+    public $strictpairs = true;
+
+    /** @var bool Points mode: correct accounts without any amounts earn one point (site setting). */
+    public $accountsonlyexception = false;
+
     /** @var int|null Random seed for deterministic dropdown filtering. */
     public $dropdownseed;
 
@@ -256,7 +265,10 @@ class qtype_accounting_question extends question_graded_automatically {
         $scorer = new \qtype_accounting\scorer(
             $this->extraentrydeduction,
             (bool)$this->allornothinggrading,
-            $this->numberformat
+            $this->numberformat,
+            (string)$this->gradingmode,
+            (bool)$this->strictpairs,
+            (bool)$this->accountsonlyexception
         );
         return $scorer->calculate_fraction($this->entries, $response);
     }

@@ -36,24 +36,71 @@ namespace qtype_accounting;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class scorer {
-    /** @var float Points deducted per extra account (0 = no deduction). */
+    /** @var string Weighted grading: account and amount weights yield a percentage. */
+    public const GRADINGMODE_PERCENT = 'percent';
+    /** @var string Point grading: one point per account-amount pair. */
+    public const GRADINGMODE_POINTS = 'points';
+
+    /** @var float Deduction per extra account: a fraction in percent mode, points in points mode (0 = none). */
     protected $extraentrydeduction;
     /** @var bool If true, anything less than full credit is zeroed. */
     protected $allornothinggrading;
     /** @var string Number format ('de' or 'us') used to parse student amounts. */
     protected $numberformat;
+    /** @var string Grading mode, one of the GRADINGMODE_* constants. */
+    protected $gradingmode;
+    /** @var bool Points mode: a pair only earns its point if account and amount are both right. */
+    protected $strictpairs;
+    /** @var bool Points mode: a response with exactly the correct accounts but no amounts earns one point. */
+    protected $accountsonlyexception;
 
     /**
      * Construct a scorer with the question's grading-behaviour toggles.
      *
-     * @param float|null $extraentrydeduction Per-extra-account penalty (null/0 disables).
+     * @param float|null $extraentrydeduction Per-extra-account penalty: a fraction, or points in points mode (null/0 disables).
      * @param bool $allornothinggrading True to apply the all-or-nothing toggle.
      * @param string $numberformat 'de' or 'us' for parsing student amount inputs.
+     * @param string $gradingmode One of the GRADINGMODE_* constants.
+     * @param bool $strictpairs Points mode: no partial point for a pair with a wrong account or amount.
+     * @param bool $accountsonlyexception Points mode: award one point for exactly the correct accounts without amounts.
      */
-    public function __construct($extraentrydeduction, bool $allornothinggrading, string $numberformat) {
+    public function __construct(
+        $extraentrydeduction,
+        bool $allornothinggrading,
+        string $numberformat,
+        string $gradingmode = self::GRADINGMODE_PERCENT,
+        bool $strictpairs = true,
+        bool $accountsonlyexception = false
+    ) {
         $this->extraentrydeduction = $extraentrydeduction;
         $this->allornothinggrading = $allornothinggrading;
         $this->numberformat = $numberformat;
+        $this->gradingmode = self::normalise_grading_mode($gradingmode);
+        $this->strictpairs = $strictpairs;
+        $this->accountsonlyexception = $accountsonlyexception;
+    }
+
+    /**
+     * Map any stored or submitted value to a valid grading mode.
+     *
+     * @param string|null $gradingmode The raw value.
+     * @return string One of the GRADINGMODE_* constants; percent for unknown values.
+     */
+    public static function normalise_grading_mode(?string $gradingmode): string {
+        return $gradingmode === self::GRADINGMODE_POINTS ? self::GRADINGMODE_POINTS : self::GRADINGMODE_PERCENT;
+    }
+
+    /**
+     * The number of points a fully correct answer earns in points mode.
+     *
+     * One point per account-amount pair (accounts aggregated per side).
+     *
+     * @param array $correctentries The teacher's correct entries.
+     * @return int The maximum points.
+     */
+    public function max_points(array $correctentries): int {
+        $aggregated = $this->aggregate_entries($correctentries, false);
+        return count($aggregated['debit']) + count($aggregated['credit']);
     }
 
     /**
@@ -71,18 +118,31 @@ class scorer {
         if (empty($correctentries)) {
             return 0;
         }
+        $studententries = $this->parse_response($response);
         $correctaggregated = $this->aggregate_entries($correctentries, true);
-        $studentaggregated = $this->aggregate_entries($this->parse_response($response), false);
+        $studentaggregated = $this->aggregate_entries($studententries, false);
 
-        $debit = $this->score_side($correctaggregated['debit'], $studentaggregated['debit']);
-        $credit = $this->score_side($correctaggregated['credit'], $studentaggregated['credit']);
+        if ($this->gradingmode === self::GRADINGMODE_POINTS) {
+            $debit = $this->score_side_points($correctaggregated['debit'], $studentaggregated['debit']);
+            $credit = $this->score_side_points($correctaggregated['credit'], $studentaggregated['credit']);
+            $accountsonly = !$this->has_amounts($studententries)
+                && $this->accounts_match_exactly($correctaggregated, $studentaggregated);
+            if ($this->accountsonlyexception && $accountsonly) {
+                // Exactly the correct accounts without any amounts earn at least one point.
+                $debit['earned'] = max($debit['earned'] + $credit['earned'], 1);
+                $credit['earned'] = 0;
+            }
+        } else {
+            $debit = $this->score_side($correctaggregated['debit'], $studentaggregated['debit']);
+            $credit = $this->score_side($correctaggregated['credit'], $studentaggregated['credit']);
+        }
 
         $totalweight = $debit['total'] + $credit['total'];
         if ($totalweight == 0) {
             return 0;
         }
         $fraction = ($debit['earned'] + $credit['earned']) / $totalweight;
-        $fraction = $this->apply_extra_entry_deduction($fraction, $correctaggregated, $studentaggregated);
+        $fraction = $this->apply_extra_entry_deduction($fraction, $totalweight, $correctaggregated, $studentaggregated);
         return $this->apply_all_or_nothing($fraction);
     }
 
@@ -110,15 +170,86 @@ class scorer {
     }
 
     /**
+     * Score one side in points mode: one point per account-amount pair.
+     *
+     * With strict pairs, a pair only earns its point if account and amount are both correct.
+     * Otherwise the point is split between account and amount according to their weights.
+     *
+     * @param array $correctside Aggregated correct entries for this side, keyed by account ID.
+     * @param array $studentside Aggregated student entries for this side, keyed by account ID.
+     * @return array ['earned' => float, 'total' => float]
+     */
+    protected function score_side_points(array $correctside, array $studentside): array {
+        $earned = 0;
+        $total = 0;
+        foreach ($correctside as $accountid => $correctdata) {
+            $total++;
+            if (!isset($studentside[$accountid])) {
+                continue;
+            }
+            $amountcorrect = $this->amounts_equal($studentside[$accountid]['amount'], $correctdata['amount']);
+            if ($this->strictpairs) {
+                $earned += $amountcorrect ? 1 : 0;
+                continue;
+            }
+            $weightsum = $correctdata['weight_account'] + $correctdata['weight_amount'];
+            $earned += $correctdata['weight_account'] / $weightsum;
+            if ($amountcorrect) {
+                $earned += $correctdata['weight_amount'] / $weightsum;
+            }
+        }
+        return ['earned' => $earned, 'total' => $total];
+    }
+
+    /**
+     * Whether any parsed student entry contains a non-zero amount.
+     *
+     * @param array $studententries Entries from parse_response().
+     * @return bool
+     */
+    protected function has_amounts(array $studententries): bool {
+        foreach ($studententries as $entry) {
+            if (!$this->amounts_equal($entry['debitamount'], 0) || !$this->amounts_equal($entry['creditamount'], 0)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether the student named exactly the correct accounts on both sides.
+     *
+     * @param array $correctaggregated Aggregated correct entries, keyed by side.
+     * @param array $studentaggregated Aggregated student entries, keyed by side.
+     * @return bool
+     */
+    protected function accounts_match_exactly(array $correctaggregated, array $studentaggregated): bool {
+        foreach (['debit', 'credit'] as $side) {
+            $correct = array_keys($correctaggregated[$side]);
+            $student = array_keys($studentaggregated[$side]);
+            sort($correct);
+            sort($student);
+            if ($correct !== $student) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Apply the extra-entry-per-account deduction if configured.
      *
+     * In points mode the deduction is a number of points, subtracted from the earned points.
+     *
      * @param float $fraction Fraction earned so far.
+     * @param float $total Total weight, or the maximum points in points mode.
      * @param array $correctaggregated Aggregated correct entries, keyed by side.
      * @param array $studentaggregated Aggregated student entries, keyed by side.
      * @return float The (possibly reduced) fraction, never below 0.
      */
     protected function apply_extra_entry_deduction(
         float $fraction,
+        float $total,
         array $correctaggregated,
         array $studentaggregated
     ): float {
@@ -133,7 +264,11 @@ class scorer {
                 }
             }
         }
-        return max(0, $fraction - $extracount * (float)$this->extraentrydeduction);
+        $deduction = (float)$this->extraentrydeduction;
+        if ($this->gradingmode === self::GRADINGMODE_POINTS) {
+            $deduction /= $total;
+        }
+        return max(0, $fraction - $extracount * $deduction);
     }
 
     /**

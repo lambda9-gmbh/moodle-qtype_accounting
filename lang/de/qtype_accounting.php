@@ -38,9 +38,27 @@ $string['accountsindropdown_help'] = 'Die Anzahl der zufälligen zusätzlichen K
 $string['numberformat'] = 'Zahlenformat';
 $string['extraentrydeduction'] = 'Abzug für überflüssige Konten und Werte';
 $string['extraentrydeduction_help'] = 'Prozentualer Abzug pro zusätzlichem Konto, das der Studierende verwendet und nicht in der Musterlösung vorkommt. Jede Seite (Soll/Haben) wird unabhängig gezählt. Auf "Keine" setzen für keinen Abzug. Die Punktzahl kann nicht unter 0 fallen.';
+$string['extraentrydeductionpoints'] = 'Abzug für überflüssige Konten (Punkte)';
+$string['extraentrydeductionpoints_help'] = 'Punktabzug pro zusätzlichem Konto, das nicht in der Musterlösung vorkommt. Jede Seite (Soll/Haben) wird unabhängig gezählt. Die Punktzahl kann nicht unter 0 fallen.';
+$string['extraentrydeductionpoints_option'] = '{$a} Punkt(e) je überflüssigem Konto';
 $string['allornothinggrading'] = 'Keine Teilpunkte vergeben';
 $string['allornothinggrading_help'] = 'Wenn aktiviert, erhält der Studierende nur dann Punkte, wenn alle Buchungseinträge vollständig korrekt sind. Bei einem Fehler (auch nur bei einem Betrag) wird die gesamte Frage mit 0 Punkten bewertet.';
 $string['allornothinggrading_notice'] = 'Hinweis: Für diese Frage werden keine Teilpunkte vergeben. Alle Eingaben müssen vollständig korrekt sein, um Punkte zu erhalten.';
+$string['accountsonlyexception'] = 'Punkte-Modus: ein Punkt für richtige Konten ohne Beträge';
+$string['accountsonlyexception_desc'] = 'Wenn aktiviert, erhalten Schülerinnen und Schüler im Punkte-Modus einen Punkt, wenn sie auf beiden Seiten genau die richtigen Konten nennen (keins fehlt, keins zu viel), aber keine Beträge eintragen – statt keinem Punkt, wenn nur vollständig richtige Paare zählen. Die Musterlösung der Lehrkraft enthält immer Konten und Beträge.';
+$string['defaultgradingmode'] = 'Standard-Bewertungsart';
+$string['defaultgradingmode_desc'] = 'Bewertungsart, die bei neuen Buchungssatz-Fragen vorausgewählt ist. Lehrkräfte können sie je Frage ändern.';
+$string['gradingmode'] = 'Bewertungsart';
+$string['gradingmode_help'] = 'Prozent: Konto und Betrag jedes Eintrags werden gewichtet (Gewichte 1-3), das Ergebnis ist ein Prozentsatz der erreichbaren Punkte.
+
+Punkte: Jedes Konto-Betrag-Paar der Musterlösung ist einen Punkt wert. Die erreichbare Punktzahl wird automatisch auf die Anzahl der Paare gesetzt. Je nach Website-Einstellung gibt es den Punkt eines Paares nur, wenn Konto und Betrag richtig sind.';
+$string['gradingmode_percent'] = 'Prozent (gewichtet)';
+$string['gradingmode_points'] = 'Punkte (ein Punkt je Konto-Betrag-Paar)';
+$string['gradingmode_points_info'] = 'Die erreichbare Punktzahl wird beim Speichern aus der Musterlösung berechnet: ein Punkt je Konto-Betrag-Paar. Ist nur das Konto oder nur der Betrag richtig, gibt es einen Teil des Punktes entsprechend der Gewichtung.';
+$string['gradingmode_points_info_strict'] = 'Die erreichbare Punktzahl wird beim Speichern aus der Musterlösung berechnet: ein Punkt je Konto-Betrag-Paar. Den Punkt gibt es nur, wenn Konto und Betrag richtig sind; Gewichte werden daher nicht verwendet.';
+$string['settings_grading'] = 'Bewertung';
+$string['strictpairs'] = 'Punkte-Modus: Punkte nur für vollständig richtige Paare';
+$string['strictpairs_desc'] = 'Wenn aktiviert, gibt es im Punkte-Modus den Punkt für ein Konto-Betrag-Paar nur, wenn Konto und Betrag richtig sind; sonst gibt es weder für das Konto noch für den Betrag einen Punkt. Wenn deaktiviert, wird der Punkt entsprechend der Gewichtung auf Konto und Betrag aufgeteilt.';
 $string['numberformat_help'] = 'Wähle das Format für das Dezimal- und das Tausendertrennzeichen. Entweder #.###,00 oder #,###.00';
 $string['numberformat_de'] = '#.###,00';
 $string['numberformat_us'] = '#,###.00';

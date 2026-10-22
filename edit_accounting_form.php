@@ -30,6 +30,9 @@
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_accounting_edit_form extends question_edit_form {
+    /** @var string[] Options for the points deduction per extra account in points mode. */
+    protected const DEDUCTION_POINTS = ['0.0', '0.25', '0.5', '0.75', '1.0', '1.5', '2.0', '3.0'];
+
     /**
      * Add question-type specific form fields.
      *
@@ -90,6 +93,8 @@ class qtype_accounting_edit_form extends question_edit_form {
      * @param \MoodleQuickForm $mform The form being built.
      */
     protected function add_grading_section($mform): void {
+        $this->add_grading_mode($mform);
+
         $deductionoptions = [
             '0.0' => get_string('none'),
             '1.0' => '100%',
@@ -121,6 +126,23 @@ class qtype_accounting_edit_form extends question_edit_form {
         );
         $mform->setDefault('extraentrydeduction', '0.0');
         $mform->addHelpButton('extraentrydeduction', 'extraentrydeduction', 'qtype_accounting');
+        $mform->hideIf('extraentrydeduction', 'gradingmode', 'eq', \qtype_accounting\scorer::GRADINGMODE_POINTS);
+
+        // In points mode the deduction is a number of points per extra account.
+        $pointsoptions = [];
+        foreach (self::DEDUCTION_POINTS as $key) {
+            $pointsoptions[$key] = (float)$key == 0 ? get_string('none') :
+                get_string('extraentrydeductionpoints_option', 'qtype_accounting', format_float((float)$key, -1));
+        }
+        $mform->addElement(
+            'select',
+            'extraentrydeductionpoints',
+            get_string('extraentrydeductionpoints', 'qtype_accounting'),
+            $pointsoptions
+        );
+        $mform->setDefault('extraentrydeductionpoints', '0.0');
+        $mform->addHelpButton('extraentrydeductionpoints', 'extraentrydeductionpoints', 'qtype_accounting');
+        $mform->hideIf('extraentrydeductionpoints', 'gradingmode', 'neq', \qtype_accounting\scorer::GRADINGMODE_POINTS);
 
         $mform->addElement(
             'advcheckbox',
@@ -132,6 +154,41 @@ class qtype_accounting_edit_form extends question_edit_form {
         );
         $mform->setDefault('allornothinggrading', 0);
         $mform->addHelpButton('allornothinggrading', 'allornothinggrading', 'qtype_accounting');
+    }
+
+    /**
+     * Add the grading-mode selector (percent or points), preselected from the site default.
+     *
+     * In points mode the default mark is calculated from the correct answer when saving,
+     * so the default mark field is replaced by an explanation.
+     *
+     * @param \MoodleQuickForm $mform The form being built.
+     */
+    protected function add_grading_mode($mform): void {
+        $mform->addElement('select', 'gradingmode', get_string('gradingmode', 'qtype_accounting'), [
+            \qtype_accounting\scorer::GRADINGMODE_PERCENT => get_string('gradingmode_percent', 'qtype_accounting'),
+            \qtype_accounting\scorer::GRADINGMODE_POINTS => get_string('gradingmode_points', 'qtype_accounting'),
+        ]);
+        $mform->setDefault(
+            'gradingmode',
+            \qtype_accounting\scorer::normalise_grading_mode(get_config('qtype_accounting', 'defaultgradingmode') ?: null)
+        );
+        $mform->addHelpButton('gradingmode', 'gradingmode', 'qtype_accounting');
+
+        $strict = (bool)get_config('qtype_accounting', 'strictpairs');
+        $mform->addElement(
+            'static',
+            'gradingmode_pointsinfo',
+            '',
+            html_writer::div(
+                get_string($strict ? 'gradingmode_points_info_strict' : 'gradingmode_points_info', 'qtype_accounting'),
+                // The marker class lets styles.css hide the then irrelevant weight selectors.
+                $strict ? 'qtype_accounting-strictpairs' : ''
+            )
+        );
+        $mform->hideIf('gradingmode_pointsinfo', 'gradingmode', 'neq', \qtype_accounting\scorer::GRADINGMODE_POINTS);
+        // The default mark is hidden by styles.css in points mode: hideIf would also disable it,
+        // so it would not be submitted and fail its required rule.
     }
 
     /**
@@ -459,10 +516,15 @@ class qtype_accounting_edit_form extends question_edit_form {
         $question->chartofaccountsid = $question->options->chartofaccountsid ?? 0;
         $question->accountsindropdown = $question->options->accountsindropdown ?? 0;
         $question->numberformat = $question->options->numberformat ?? 'de';
-        $question->extraentrydeduction = $this->closest_deduction_key(
-            $question->options->extraentrydeduction ?? '0.0'
-        );
+        $deduction = $question->options->extraentrydeduction ?? '0.0';
+        $points = ($question->options->gradingmode ?? '') === \qtype_accounting\scorer::GRADINGMODE_POINTS;
+        // The stored deduction is a fraction in percent mode and a number of points in points mode.
+        $question->extraentrydeduction = $points ? '0.0' : $this->closest_deduction_key($deduction);
+        $question->extraentrydeductionpoints = $points ? $this->closest_key($deduction, self::DEDUCTION_POINTS) : '0.0';
         $question->allornothinggrading = $question->options->allornothinggrading ?? 0;
+        if (!empty($question->options->gradingmode)) {
+            $question->gradingmode = $question->options->gradingmode;
+        }
     }
 
     /**
@@ -475,6 +537,17 @@ class qtype_accounting_edit_form extends question_edit_form {
         $deductionkeys = ['0.0', '1.0', '0.9', '0.8333333', '0.8', '0.75', '0.7', '0.6666667',
             '0.6', '0.5', '0.4', '0.3333333', '0.3', '0.25', '0.2', '0.1666667',
             '0.1428571', '0.125', '0.1111111', '0.1', '0.05'];
+        return $this->closest_key($value, $deductionkeys);
+    }
+
+    /**
+     * Find the select-option key whose float value is closest to a given value.
+     *
+     * @param string|float $value The DB value to match.
+     * @param string[] $deductionkeys The select-option keys.
+     * @return string The closest matching key.
+     */
+    protected function closest_key($value, array $deductionkeys): string {
         $bestkey = '0.0';
         $bestdiff = PHP_FLOAT_MAX;
         $dbval = (float)$value;

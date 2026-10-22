@@ -1025,3 +1025,13 @@ table.qtype_accounting-student-table {
         padding: 1rem;
     }
 }
+
+/* Points mode derives the default mark from the correct answer. */
+form:has(#id_gradingmode option[value="points"]:checked) #fitem_id_defaultmark {
+    display: none;
+}
+
+/* Points mode with strict pairs ignores the per-field weights. */
+form:has(#id_gradingmode option[value="points"]:checked):has(.qtype_accounting-strictpairs) .qtype_accounting-weight-row {
+    display: none;
+}

@@ -107,7 +107,7 @@ The plugin has no external service dependencies. It does not require Composer, N
 1. Place the plugin source so that `version.php` sits at `<moodledir>/question/type/accounting/version.php`.
 2. As a site administrator, visit **Site administration → Notifications**. Moodle will detect the new plugin and run `install.xml`.
 
-The plugin has no admin settings page — all configuration is per-question, and charts of accounts are scoped to courses.
+The admin settings page (**Site administration → Plugins → Question types → Accounting Entry**) sets the default grading mode and the site-wide grading rules for points mode (see [Grading model](#grading-model)). All other configuration is per question, and charts of accounts are scoped to courses.
 
 ---
 
@@ -178,6 +178,20 @@ CSV files may be UTF-8 or Windows-1252 (Excel's default); a UTF-8 BOM, if presen
    - The **amount weight** is awarded if the student's summed amount for that pair is within `0.01` of the correct sum.
 4. **Apply penalties.** Subtract the configured percentage per extra account the student named that isn't in the correct answer (each side counted independently). Final score is floored at 0.
 5. **All-or-nothing.** If **No partial credit** is enabled, snap the result to 0 or 1.
+
+### Grading modes
+
+Each question uses one of two grading modes. The site default is set in **Site administration → Plugins → Question types → Accounting Entry**; teachers can change it per question.
+
+- **Percentage (weighted)** — the flow above. The result is a fraction of the question's default mark.
+- **Points** — every correct `(side, account)` pair (account plus its amount) is worth one point. The question's default mark is set to the number of pairs when the question is saved.
+  - With the site setting **Points mode: only fully correct pairs earn points** (default: on), a pair earns its point only if both the account and the amount are correct; weights are ignored and hidden in the editor.
+  - With the setting off, the pair's point is split between account and amount according to their weights.
+  - The deduction for extra accounts is chosen in points (e.g. 0.5 points per extra account) and subtracted from the earned points; the result cannot go below 0. **No partial credit** applies as in the percentage mode.
+
+### Correct accounts without amounts
+
+The teacher's correct answer always contains accounts and amounts. If the site setting **Points mode: one point for correct accounts without amounts** is enabled, a student who names exactly the correct accounts on both sides (none missing, none extra) but enters no amounts at all receives one point in points mode. Without the setting, such an answer earns nothing when only fully correct pairs count. If the weighted split already yields more than one point, the higher value is kept; **No partial credit** still applies.
 
 Notes:
 
