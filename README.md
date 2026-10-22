@@ -107,7 +107,7 @@ The plugin has no external service dependencies. It does not require Composer, N
 1. Place the plugin source so that `version.php` sits at `<moodledir>/question/type/accounting/version.php`.
 2. As a site administrator, visit **Site administration → Notifications**. Moodle will detect the new plugin and run `install.xml`.
 
-The plugin has no admin settings page — all configuration is per-question, and charts of accounts are scoped to courses.
+The settings page (**Site administration → Plugins → Question types → Accounting Entry**) manages the site charts of accounts (see [Site charts of accounts](#site-charts-of-accounts)); all other configuration is per question.
 
 ---
 
@@ -164,6 +164,14 @@ On the management page you can:
 - **Delete** a chart (with confirmation).
 
 CSV files may be UTF-8 or Windows-1252 (Excel's default); a UTF-8 BOM, if present, is stripped automatically.
+
+### Site charts of accounts
+
+Administrators can provide standard charts for all courses on the plugin's settings page (**Site administration → Plugins → Question types → Accounting Entry**). It lists the site charts with edit, download and delete actions; **Create or upload a site chart of accounts** opens the same create and upload forms as in a course. Managing site charts requires `moodle/site:config`.
+
+Site charts appear in every question form after the course's own charts, marked as *(site default)*. In a course they are read-only: the course management page lists them with **Download** and **Copy to this course**, so teachers can adapt a copy. Teachers can still create and upload their own course charts.
+
+When questions are restored or imported, a matching chart in the target course is reused first, then a matching site chart; otherwise a course chart is created.
 
 ---
 

@@ -408,25 +408,17 @@ class qtype_accounting_edit_form extends question_edit_form {
     }
 
     /**
-     * Get available charts of accounts.
+     * Get available charts of accounts: the course's own charts and the site charts.
      *
      * @return array The available charts keyed by ID.
      */
     protected function get_available_charts(): array {
-        global $DB;
-
         $charts = [0 => get_string('nochartselected', 'qtype_accounting')];
 
         $coursecontext = $this->context->get_course_context(false);
-        if ($coursecontext) {
-            $records = $DB->get_records(
-                'qtype_accounting_charts',
-                ['contextid' => $coursecontext->id],
-                'name ASC'
-            );
-            foreach ($records as $record) {
-                $charts[$record->id] = $record->name;
-            }
+        $records = \qtype_accounting\chart_manager::get_available_charts($coursecontext ? (int)$coursecontext->id : null);
+        foreach ($records as $record) {
+            $charts[$record->id] = \qtype_accounting\chart_manager::get_display_name($record, $this->context, false);
         }
 
         return $charts;

@@ -121,6 +121,66 @@ class chart_manager {
     }
 
     /**
+     * Whether a chart is a site-wide default chart managed by the administrator.
+     *
+     * @param \stdClass $chart The chart record.
+     * @return bool True if the chart belongs to the system context.
+     */
+    public static function is_site_chart(\stdClass $chart): bool {
+        return (int)$chart->contextid === (int)\context_system::instance()->id;
+    }
+
+    /**
+     * Get the charts a question in the given course may use: the course's own charts and the site charts.
+     *
+     * Course charts come first, then site charts; each group is sorted by name.
+     *
+     * @param int|null $coursecontextid The course context ID, or null outside a course (site charts only).
+     * @return array The chart records keyed by ID.
+     */
+    public static function get_available_charts(?int $coursecontextid): array {
+        global $DB;
+
+        $systemcontextid = (int)\context_system::instance()->id;
+        $contextids = array_unique(array_filter([(int)$coursecontextid, $systemcontextid]));
+        [$insql, $params] = $DB->get_in_or_equal($contextids, SQL_PARAMS_NAMED);
+        $params['syscontextid'] = $systemcontextid;
+        return $DB->get_records_sql(
+            "SELECT *
+               FROM {qtype_accounting_charts}
+              WHERE contextid $insql
+           ORDER BY CASE WHEN contextid = :syscontextid THEN 1 ELSE 0 END, name ASC, id ASC",
+            $params
+        );
+    }
+
+    /**
+     * Get a display name for a chart, marking site charts.
+     *
+     * @param \stdClass $chart The chart record.
+     * @param \context $context The context used for formatting.
+     * @param bool $escape False for form select options, which QuickForm escapes itself.
+     * @return string The formatted name.
+     */
+    public static function get_display_name(\stdClass $chart, \context $context, bool $escape = true): string {
+        $name = format_string($chart->name, true, ['context' => $context, 'escape' => $escape]);
+        return self::is_site_chart($chart) ? get_string('sitechart_suffix', 'qtype_accounting', $name) : $name;
+    }
+
+    /**
+     * Find a chart that contains the given accounts, preferring the target context over site charts.
+     *
+     * @param string $name Chart name to search for.
+     * @param int $contextid Target context ID (usually the course context).
+     * @param array $accounts Array of account data keyed by account name.
+     * @return int|null Chart ID if a matching chart is found, null otherwise.
+     */
+    public static function find_matching_chart(string $name, int $contextid, array $accounts): ?int {
+        return self::find_matching_chart_in_context($name, $contextid, $accounts)
+            ?? self::find_matching_chart_in_context($name, (int)\context_system::instance()->id, $accounts);
+    }
+
+    /**
      * Find a chart by name within a context.
      *
      * @param string $name Chart name.

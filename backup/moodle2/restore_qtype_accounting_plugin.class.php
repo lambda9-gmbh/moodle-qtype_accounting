@@ -249,8 +249,8 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
             ];
         }
 
-        // Try to find an existing matching chart in the target course context.
-        $chartid = \qtype_accounting\chart_manager::find_matching_chart_in_context(
+        // Try to find an existing matching chart in the target course context or among the site charts.
+        $chartid = \qtype_accounting\chart_manager::find_matching_chart(
             $this->chartname,
             $contextid,
             $accountsbyname

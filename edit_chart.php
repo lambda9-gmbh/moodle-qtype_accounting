@@ -54,47 +54,60 @@ class qtype_accounting_chart_account_import_form extends moodleform {
     }
 }
 
-$courseid = required_param('courseid', PARAM_INT);
+$courseid = optional_param('courseid', 0, PARAM_INT);
 $chartid = required_param('chartid', PARAM_INT);
 $action = optional_param('action', '', PARAM_ALPHA);
 $accountid = optional_param('accountid', 0, PARAM_INT);
 $editaccount = optional_param('editaccount', 0, PARAM_INT);
 $returnurl = optional_param('returnurl', '', PARAM_LOCALURL);
 
-$course = get_course($courseid);
-require_login($course);
-$context = context_course::instance($course->id);
-require_capability('qtype/accounting:managecharts', $context);
+// Without a course, a site chart is edited from the plugin's settings page.
+$urlparams = $courseid ? ['courseid' => $courseid] : [];
+if ($courseid) {
+    $manageurl = new moodle_url('/question/type/accounting/manage_charts.php', $urlparams);
+    if ($returnurl !== '') {
+        $manageurl->param('returnurl', $returnurl);
+    }
+} else {
+    $manageurl = new moodle_url('/admin/settings.php', ['section' => 'qtypesettingaccounting']);
+}
+$baseurl = new moodle_url('/question/type/accounting/edit_chart.php', $urlparams + ['chartid' => $chartid]);
+if ($returnurl !== '') {
+    $baseurl->param('returnurl', $returnurl);
+}
 
-// Verify chart belongs to this course context.
+if ($courseid) {
+    $course = get_course($courseid);
+    require_login($course);
+    $context = context_course::instance($course->id);
+    require_capability('qtype/accounting:managecharts', $context);
+} else {
+    require_once($CFG->libdir . '/adminlib.php');
+    admin_externalpage_setup('qtype_accounting_sitecharts', '', $baseurl->params(), $baseurl);
+    $context = context_system::instance();
+}
+
+// Verify chart belongs to this context.
 $chart = chart_manager::get_chart($chartid);
 if (!$chart || (int)$chart->contextid !== (int)$context->id) {
     throw new moodle_exception('chartnotfound', 'qtype_accounting');
 }
 
-$manageurl = new moodle_url('/question/type/accounting/manage_charts.php', ['courseid' => $courseid]);
-if ($returnurl !== '') {
-    $manageurl->param('returnurl', $returnurl);
+if ($courseid) {
+    $PAGE->set_url($baseurl);
+    $PAGE->set_context($context);
+    $PAGE->set_pagelayout('incourse');
+    $PAGE->set_heading($course->fullname);
 }
-$baseurl = new moodle_url('/question/type/accounting/edit_chart.php', [
-    'courseid' => $courseid,
-    'chartid' => $chartid,
-]);
-if ($returnurl !== '') {
-    $baseurl->param('returnurl', $returnurl);
-}
-
-$PAGE->set_url($baseurl);
-$PAGE->set_context($context);
-$PAGE->set_pagelayout('incourse');
 $PAGE->set_title(get_string('editchart', 'qtype_accounting') . ': ' . format_string($chart->name));
-$PAGE->set_heading($course->fullname);
 
-// Breadcrumbs.
-$PAGE->navbar->add(
-    get_string('managecharts', 'qtype_accounting'),
-    $manageurl
-);
+// Breadcrumbs. On the admin page the site charts entry is already part of the navigation.
+if ($courseid) {
+    $PAGE->navbar->add(
+        get_string('managecharts', 'qtype_accounting'),
+        $manageurl
+    );
+}
 $PAGE->navbar->add(format_string($chart->name));
 
 // Handle rename.
@@ -370,7 +383,7 @@ echo html_writer::start_div(
     'qtype_accounting-chart-actions d-flex flex-wrap justify-content-center align-items-center mt-4 mb-3',
     ['style' => 'gap: 0.5rem;']
 );
-echo html_writer::link($manageurl, '&laquo; ' . get_string('managecharts', 'qtype_accounting'), [
+echo html_writer::link($manageurl, '&laquo; ' . get_string($courseid ? 'managecharts' : 'sitecharts', 'qtype_accounting'), [
     'class' => 'btn btn-primary',
 ]);
 echo html_writer::link($exporturl, get_string('exportaccounts', 'qtype_accounting'), [

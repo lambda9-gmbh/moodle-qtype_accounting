@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Manage charts of accounts for a course.
+ * Manage charts of accounts for a course, or the site charts when no course is given.
  *
  * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
@@ -55,27 +55,36 @@ class qtype_accounting_chart_upload_form extends moodleform {
     }
 }
 
-$courseid = required_param('courseid', PARAM_INT);
+$courseid = optional_param('courseid', 0, PARAM_INT);
 $action = optional_param('action', '', PARAM_ALPHA);
 $chartid = optional_param('chartid', 0, PARAM_INT);
 $sort = optional_param('sort', 'name', PARAM_ALPHA);
 $dir = optional_param('dir', 'ASC', PARAM_ALPHA);
 $returnurl = optional_param('returnurl', '', PARAM_LOCALURL);
 
-$course = get_course($courseid);
-require_login($course);
-$context = context_course::instance($course->id);
-require_capability('qtype/accounting:managecharts', $context);
-
-$baseurl = new moodle_url('/question/type/accounting/manage_charts.php', ['courseid' => $courseid]);
+// Without a course, the site charts offered to every course are managed.
+$urlparams = $courseid ? ['courseid' => $courseid] : [];
+$baseurl = new moodle_url('/question/type/accounting/manage_charts.php', $urlparams);
 if ($returnurl !== '') {
     $baseurl->param('returnurl', $returnurl);
 }
-$PAGE->set_url($baseurl);
-$PAGE->set_context($context);
-$PAGE->set_pagelayout('incourse');
-$PAGE->set_title(get_string('managecharts', 'qtype_accounting'));
-$PAGE->set_heading($course->fullname);
+if ($courseid) {
+    $course = get_course($courseid);
+    require_login($course);
+    $context = context_course::instance($course->id);
+    require_capability('qtype/accounting:managecharts', $context);
+    $PAGE->set_url($baseurl);
+    $PAGE->set_context($context);
+    $PAGE->set_pagelayout('incourse');
+    $PAGE->set_title(get_string('managecharts', 'qtype_accounting'));
+    $PAGE->set_heading($course->fullname);
+} else {
+    require_once($CFG->libdir . '/adminlib.php');
+    admin_externalpage_setup('qtype_accounting_sitecharts', '', $baseurl->params(), $baseurl);
+    $context = context_system::instance();
+}
+// Site charts are listed on the plugin's settings page, so actions return there.
+$doneurl = $courseid ? $baseurl : new moodle_url('/admin/settings.php', ['section' => 'qtypesettingaccounting']);
 
 // Handle delete action.
 if ($action === 'delete' && $chartid) {
@@ -87,7 +96,7 @@ if ($action === 'delete' && $chartid) {
     if (data_submitted() && optional_param('confirm', 0, PARAM_BOOL)) {
         require_sesskey();
         chart_manager::delete_chart($chartid);
-        redirect($baseurl, get_string('chartdeleted', 'qtype_accounting'), null, \core\output\notification::NOTIFY_SUCCESS);
+        redirect($doneurl, get_string('chartdeleted', 'qtype_accounting'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
 
     // Show confirmation page.
@@ -99,16 +108,16 @@ if ($action === 'delete' && $chartid) {
             get_string('deletechart', 'qtype_accounting'),
             'post'
         ),
-        $baseurl
+        $doneurl
     );
     echo $OUTPUT->footer();
     exit;
 }
 
-// Handle export action.
+// Handle export action. Site charts can be exported from every course.
 if ($action === 'export' && $chartid) {
     $chart = chart_manager::get_chart($chartid);
-    if (!$chart || (int)$chart->contextid !== (int)$context->id) {
+    if (!$chart || ((int)$chart->contextid !== (int)$context->id && !chart_manager::is_site_chart($chart))) {
         throw new moodle_exception('chartnotfound', 'qtype_accounting');
     }
 
@@ -121,14 +130,26 @@ if ($action === 'export' && $chartid) {
     exit;
 }
 
+// Copy a site chart into the course so that teachers can adapt it.
+if ($action === 'copysite' && $chartid && $courseid) {
+    require_sesskey();
+    $chart = chart_manager::get_chart($chartid);
+    if (!$chart || !chart_manager::is_site_chart($chart)) {
+        throw new moodle_exception('chartnotfound', 'qtype_accounting');
+    }
+    $newchartid = chart_manager::duplicate_chart($chartid, $context->id);
+    $editurl = new moodle_url('/question/type/accounting/edit_chart.php', $urlparams + ['chartid' => $newchartid]);
+    if ($returnurl !== '') {
+        $editurl->param('returnurl', $returnurl);
+    }
+    redirect($editurl, get_string('chartcopied', 'qtype_accounting'), null, \core\output\notification::NOTIFY_SUCCESS);
+}
+
 // Create an empty chart, then open the existing editor to add accounts.
 $createform = new \qtype_accounting\form\chart_create_form($baseurl);
 if ($data = $createform->get_data()) {
     $newchartid = chart_manager::create_chart(trim($data->chartname), $context->id);
-    $editurl = new moodle_url('/question/type/accounting/edit_chart.php', [
-        'courseid' => $courseid,
-        'chartid' => $newchartid,
-    ]);
+    $editurl = new moodle_url('/question/type/accounting/edit_chart.php', $urlparams + ['chartid' => $newchartid]);
     if ($returnurl !== '') {
         $editurl->param('returnurl', $returnurl);
     }
@@ -157,23 +178,26 @@ if ($data = $uploadform->get_data()) {
             if (!empty($result['errors'])) {
                 $msg .= ' ' . get_string('witherrors', 'qtype_accounting') . ': ' . implode(', ', $result['errors']);
             }
-            redirect($baseurl, $msg, null, \core\output\notification::NOTIFY_SUCCESS);
+            redirect($doneurl, $msg, null, \core\output\notification::NOTIFY_SUCCESS);
         } else {
             $msg = get_string('chartimportfailed', 'qtype_accounting');
             if (!empty($result['errors'])) {
                 $msg .= ': ' . implode(', ', $result['errors']);
             }
-            redirect($baseurl, $msg, null, \core\output\notification::NOTIFY_ERROR);
+            redirect($doneurl, $msg, null, \core\output\notification::NOTIFY_ERROR);
         }
     } else {
-        redirect($baseurl, get_string('csvfilerequired', 'qtype_accounting'), null, \core\output\notification::NOTIFY_ERROR);
+        redirect($doneurl, get_string('csvfilerequired', 'qtype_accounting'), null, \core\output\notification::NOTIFY_ERROR);
     }
 }
 
 // Display the page.
 $PAGE->requires->js_call_amd('qtype_accounting/manage_charts', 'init');
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('managecharts', 'qtype_accounting'));
+echo $OUTPUT->heading(get_string($courseid ? 'managecharts' : 'sitecharts_add', 'qtype_accounting'));
+if (!$courseid) {
+    echo html_writer::link($doneurl, '&laquo; ' . get_string('sitecharts', 'qtype_accounting'));
+}
 
 // Create and upload sections.
 echo $OUTPUT->heading(get_string('createchart', 'qtype_accounting'), 3);
@@ -182,12 +206,12 @@ $createform->display();
 echo $OUTPUT->heading(get_string('uploadchartcsv', 'qtype_accounting'), 3);
 $uploadform->display();
 
-// Charts table.
-$charts = chart_manager::get_charts_for_context($context->id, $sort, $dir);
+// Charts table. Site charts are listed on the settings page instead.
+$charts = $courseid ? chart_manager::get_charts_for_context($context->id, $sort, $dir) : [];
 
-if (empty($charts)) {
+if (empty($charts) && $courseid) {
     echo html_writer::tag('p', get_string('nocharts', 'qtype_accounting'), ['class' => 'alert alert-info']);
-} else {
+} else if ($charts) {
     // Build sortable table headers.
     $oppositedir = ($dir === 'ASC') ? 'DESC' : 'ASC';
 
@@ -215,10 +239,7 @@ if (empty($charts)) {
         $accounts = account_manager::get_for_chart($chart->id);
         $accountcount = count($accounts);
 
-        $editurl = new moodle_url('/question/type/accounting/edit_chart.php', [
-            'courseid' => $courseid,
-            'chartid' => $chart->id,
-        ]);
+        $editurl = new moodle_url('/question/type/accounting/edit_chart.php', $urlparams + ['chartid' => $chart->id]);
         if ($returnurl !== '') {
             $editurl->param('returnurl', $returnurl);
         }
@@ -247,6 +268,38 @@ if (empty($charts)) {
     }
 
     echo html_writer::table($table);
+}
+
+// Site charts are read-only in a course, but can be exported or copied into the course.
+$sitecharts = $courseid ? chart_manager::get_charts_for_context(context_system::instance()->id) : [];
+if ($sitecharts) {
+    echo $OUTPUT->heading(get_string('sitecharts', 'qtype_accounting'), 3);
+    echo html_writer::tag('p', get_string('sitecharts_course_desc', 'qtype_accounting'));
+    [$insql, $params] = $DB->get_in_or_equal(array_keys($sitecharts));
+    $counts = $DB->get_records_sql_menu(
+        "SELECT chartid, COUNT(1) FROM {qtype_accounting_accounts} WHERE chartid $insql GROUP BY chartid",
+        $params
+    );
+    $sitetable = new html_table();
+    $sitetable->attributes['class'] = 'generaltable';
+    $sitetable->head = [get_string('chartname', 'qtype_accounting'), get_string('accounts', 'qtype_accounting'),
+        get_string('actions')];
+    foreach ($sitecharts as $chart) {
+        $exporturl = new moodle_url($baseurl, ['action' => 'export', 'chartid' => $chart->id]);
+        $copyurl = new moodle_url($baseurl, ['action' => 'copysite', 'chartid' => $chart->id, 'sesskey' => sesskey()]);
+        $sitetable->data[] = [
+            format_string($chart->name),
+            (int)($counts[$chart->id] ?? 0),
+            html_writer::link(
+                $exporturl,
+                $OUTPUT->pix_icon('i/export', get_string('exportaccounts', 'qtype_accounting'))
+            ) . ' ' . html_writer::link(
+                $copyurl,
+                $OUTPUT->pix_icon('t/copy', get_string('copytocourse', 'qtype_accounting'))
+            ),
+        ];
+    }
+    echo html_writer::table($sitetable);
 }
 
 echo $OUTPUT->footer();

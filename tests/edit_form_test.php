@@ -234,7 +234,7 @@ final class edit_form_test extends \advanced_testcase {
     }
 
     /**
-     * Preserve chart order, account-name order, empty charts, IDs, and course isolation.
+     * Preserve chart order, account-name order, empty charts, IDs, and course isolation; site charts follow.
      */
     public function test_accounts_grouped_and_sorted_in_course(): void {
         $this->resetAfterTest();
@@ -246,26 +246,32 @@ final class edit_form_test extends \advanced_testcase {
         $zaccount = account_manager::add($achart, 'Zulu account', 0);
         $aaccount = account_manager::add($achart, 'Alpha account', 1);
         $otheraccount = account_manager::add($zchart, 'Alpha account', 0);
-        $outsidechart = chart_manager::create_chart('Outside', \context_system::instance()->id);
+        $sitechart = chart_manager::create_chart('Aardvark site chart', \context_system::instance()->id);
+        $siteaccount = account_manager::add($sitechart, 'Site account', 0);
+        $othercourse = $this->getDataGenerator()->create_course();
+        $outsidechart = chart_manager::create_chart('Outside', \context_course::instance($othercourse->id)->id);
         account_manager::add($outsidechart, 'Hidden account', 0);
 
         $this->assertSame([
             $achart => [$aaccount => 'Alpha account', $zaccount => 'Zulu account'],
             $emptychart => [],
             $zchart => [$otheraccount => 'Alpha account'],
+            $sitechart => [$siteaccount => 'Site account'],
         ], $this->get_accounts($context));
     }
 
     /**
-     * No course charts or a context without a course must produce an empty result.
+     * Without course or site charts the result is empty; site charts are offered everywhere.
      */
     public function test_no_available_charts(): void {
         $this->resetAfterTest();
         $course = $this->getDataGenerator()->create_course();
         $this->assertSame([], $this->get_accounts(\context_course::instance($course->id)));
-        $chartid = chart_manager::create_chart('System chart', \context_system::instance()->id);
-        account_manager::add($chartid, 'Bank');
         $this->assertSame([], $this->get_accounts(\context_system::instance()));
+        $chartid = chart_manager::create_chart('System chart', \context_system::instance()->id);
+        $accountid = account_manager::add($chartid, 'Bank');
+        $this->assertSame([$chartid => [$accountid => 'Bank']], $this->get_accounts(\context_system::instance()));
+        $this->assertSame([$chartid => [$accountid => 'Bank']], $this->get_accounts(\context_course::instance($course->id)));
     }
 
     /**

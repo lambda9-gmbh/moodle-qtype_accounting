@@ -63,6 +63,16 @@ final class get_charts_test extends \advanced_testcase {
         ], $result);
         chart_manager::delete_chart($chartid);
         $this->assertSame([], get_charts::execute($course->id));
+
+        // Site charts are offered after the course charts and marked as such.
+        $sitechartid = chart_manager::create_chart('Standard', \context_system::instance()->id);
+        $siteaccountid = account_manager::add($sitechartid, 'Bank');
+        $result = external_api::clean_returnvalue(get_charts::execute_returns(), get_charts::execute($course->id));
+        $this->assertSame([
+            ['id' => (int)$sitechartid, 'name' => get_string('sitechart_suffix', 'qtype_accounting', 'Standard'), 'accounts' => [
+                ['id' => (int)$siteaccountid, 'name' => 'Bank'],
+            ]],
+        ], $result);
     }
 
     /**

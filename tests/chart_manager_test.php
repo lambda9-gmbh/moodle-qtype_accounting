@@ -252,6 +252,54 @@ class chart_manager_test extends \advanced_testcase {
     }
 
     /**
+     * Course charts come first, then site charts; other courses' charts are excluded.
+     */
+    public function test_get_available_charts(): void {
+        $this->resetAfterTest();
+        $systemcontextid = \context_system::instance()->id;
+        $course = $this->getDataGenerator()->create_course();
+        $coursecontextid = \context_course::instance($course->id)->id;
+        $othercourse = $this->getDataGenerator()->create_course();
+        $site = chart_manager::create_chart('Alpha site', $systemcontextid);
+        $coursez = chart_manager::create_chart('Zulu course', $coursecontextid);
+        $coursea = chart_manager::create_chart('Beta course', $coursecontextid);
+        chart_manager::create_chart('Other', \context_course::instance($othercourse->id)->id);
+
+        $this->assertSame([$coursea, $coursez, $site], array_keys(chart_manager::get_available_charts($coursecontextid)));
+        $this->assertSame([$site], array_keys(chart_manager::get_available_charts(null)));
+        $this->assertTrue(chart_manager::is_site_chart(chart_manager::get_chart($site)));
+        $this->assertFalse(chart_manager::is_site_chart(chart_manager::get_chart($coursea)));
+        $this->assertSame(
+            get_string('sitechart_suffix', 'qtype_accounting', 'Alpha site'),
+            chart_manager::get_display_name(chart_manager::get_chart($site), \context_system::instance())
+        );
+        $this->assertSame('Beta course', chart_manager::get_display_name(
+            chart_manager::get_chart($coursea),
+            \context_course::instance($course->id)
+        ));
+    }
+
+    /**
+     * Import and restore reuse a matching course chart first, then a matching site chart.
+     */
+    public function test_find_matching_chart_falls_back_to_site_charts(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $coursecontextid = \context_course::instance($course->id)->id;
+        $accounts = ['1200 Bank' => [], '8400 Sales' => []];
+
+        $this->assertNull(chart_manager::find_matching_chart('Standard', $coursecontextid, $accounts));
+
+        $siteid = chart_manager::create_chart('Standard', \context_system::instance()->id);
+        account_manager::add($siteid, '1200 Bank');
+        account_manager::add($siteid, '8400 Sales');
+        $this->assertSame($siteid, chart_manager::find_matching_chart('Standard', $coursecontextid, $accounts));
+
+        $courseid = chart_manager::duplicate_chart($siteid, $coursecontextid);
+        $this->assertSame($courseid, chart_manager::find_matching_chart('Standard', $coursecontextid, $accounts));
+    }
+
+    /**
      * Test duplicating a chart to a new context.
      */
     public function test_duplicate_chart(): void {
