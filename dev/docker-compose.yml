@@ -43,6 +43,8 @@ services:
       - ../classes:/var/www/html/question/type/accounting/classes
       - ../db:/var/www/html/question/type/accounting/db
       - ../lang:/var/www/html/question/type/accounting/lang
+      - ../js:/var/www/html/question/type/accounting/js
+      - ../templates:/var/www/html/question/type/accounting/templates
       - ../pix:/var/www/html/question/type/accounting/pix
       - ../tests:/var/www/html/question/type/accounting/tests
       - ./docker/config.php:/var/www/html/config.php

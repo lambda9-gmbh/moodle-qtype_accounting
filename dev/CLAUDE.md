@@ -95,7 +95,9 @@ Notable absences (intentional):
 - No `settings.php` — the plugin has no admin settings.
 - No `ajax/` — earlier endpoints were dead code; chart import now goes through Moodle's filepicker form in `manage_charts.php` / `edit_chart.php`.
 - No `db/services.php` / `classes/external/` — no external web service surface.
-- No mustache templates — all output via `html_writer` / direct HTML strings in the renderer.
+- Browser output uses `html_writer` / direct HTML strings. Moodle App support is registered in
+  `db/mobile.php`; `classes/output/mobile.php` serves `templates/mobileapp/question.mustache`
+  and `js/mobileapp/question.js`. The app controller is evaluated by the app, not loaded as AMD.
 
 ## Database schema
 

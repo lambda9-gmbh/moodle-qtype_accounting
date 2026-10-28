@@ -1,0 +1,72 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle. If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template qtype_accounting/mobileapp/question
+
+    Moodle App form. Data is extracted from the quiz question HTML by the app controller.
+
+    Context variables required for this template: none.
+
+    Example context (json): {}
+}}
+{{=<% %>=}}
+<section *ngIf="question && question.accountingSides" class="qtype_accounting-app">
+    <core-format-text [text]="question.text" [component]="component" [componentId]="componentId"
+        [contextLevel]="contextLevel" [contextInstanceId]="contextInstanceId" [courseId]="courseId">
+    </core-format-text>
+    <ion-note *ngIf="question.accountingNotice">
+        <core-format-text [text]="question.accountingNotice"></core-format-text>
+    </ion-note>
+    <section *ngFor="let side of question.accountingSides">
+        <h3>{{ side.title | translate }}</h3>
+        <div *ngFor="let entry of side.entries">
+            <ion-card *ngIf="entry.visible">
+                <ion-card-content>
+                    <ng-container *ngIf="!question.readonly">
+                        <label [attr.for]="entry.accountName">{{ 'plugin.qtype_accounting.account' | translate }}</label>
+                        <select *ngIf="question.accountingAccounts.length" [id]="entry.accountName" [name]="entry.accountName"
+                            [(ngModel)]="entry.account" [ngModelOptions]="{standalone: true}" style="display: block; width: 100%;">
+                            <option *ngFor="let account of question.accountingAccounts" [value]="account.value">{{ account.label }}</option>
+                        </select>
+                        <input *ngIf="!question.accountingAccounts.length" type="text" [id]="entry.accountName"
+                            [name]="entry.accountName" [(ngModel)]="entry.account" [ngModelOptions]="{standalone: true}">
+                        <label [attr.for]="entry.amountName">{{ 'plugin.qtype_accounting.amount' | translate }}</label>
+                        <input type="text" inputmode="decimal" [id]="entry.amountName" [name]="entry.amountName"
+                            [(ngModel)]="entry.amount" [ngModelOptions]="{standalone: true}" [placeholder]="question.accountingPlaceholder"
+                            style="display: block; width: 100%;">
+                        <ion-button fill="clear" color="danger" (click)="removeEntry(entry)">
+                            {{ 'plugin.qtype_accounting.deleteentry' | translate }}
+                        </ion-button>
+                    </ng-container>
+                    <ng-container *ngIf="question.readonly">
+                        <p>{{ 'plugin.qtype_accounting.account' | translate }}</p>
+                        <core-format-text [text]="entry.accountReview"></core-format-text>
+                        <p>{{ 'plugin.qtype_accounting.amount' | translate }}</p>
+                        <core-format-text [text]="entry.amountReview"></core-format-text>
+                    </ng-container>
+                </ion-card-content>
+            </ion-card>
+            <ng-container *ngIf="!entry.visible || question.readonly">
+                <input type="hidden" [name]="entry.accountName" [value]="entry.account">
+                <input type="hidden" [name]="entry.amountName" [value]="entry.amount">
+            </ng-container>
+        </div>
+        <ion-button *ngIf="!question.readonly" fill="outline" (click)="addEntry(side)">
+            {{ side.addLabel | translate }}
+        </ion-button>
+    </section>
+</section>

@@ -64,6 +64,7 @@ After submission, every field is highlighted individually — green for correct,
 - Searchable account dropdowns when the theme provides Select2; native `<select>` otherwise.
 - Optional decoy accounts in dropdowns to discourage process-of-elimination guessing.
 - Responsive mobile card layout for narrow viewports.
+- Moodle App question handler with separate debit/credit entry cards, saved-answer restoration, and read-only review.
 - Per-field feedback colouring after submission with a side-level summary message.
 - Full correct-answer view rendered alongside the student's response.
 
@@ -90,6 +91,27 @@ After submission, every field is highlighted individually — green for correct,
 - A supported database — verified against **MariaDB 10.11** and **PostgreSQL 16**.
 
 The plugin has no external service dependencies. It does not require Composer, Node, or any third-party hosted service to run.
+
+### Moodle App
+
+The plugin includes a `CoreQuestionDelegate` handler for attempts inside the Moodle
+App. Responsive browser layouts alone do not provide app support. If the app says
+the quiz only contains unsupported `accounting` questions, update the plugin to a
+build containing `db/mobile.php`, `classes/output/mobile.php`, `js/mobileapp/`, and
+`templates/mobileapp/`.
+
+After deploying the complete plugin, run the Moodle upgrade through **Site
+administration → Notifications**, purge Moodle caches, then log out of the site
+in the app and log in again so it downloads the new handler. Mobile web services
+and site plugins must be enabled and available to that app/site. No custom app
+build is required. Until the updated handler is deployed, students can attempt
+the quiz in their phone's browser.
+
+Before using this support for assessed quizzes, verify it against your deployed
+Moodle and app versions: enter multiple entries, leave and resume an attempt,
+delete a saved entry, submit, and check review/feedback. Test both number formats
+and a quiz containing other question types. Offline attempts additionally depend
+on Moodle's quiz restrictions and should be tested separately.
 
 ---
 

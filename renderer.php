@@ -76,6 +76,7 @@ class qtype_accounting_renderer extends qtype_renderer {
             'data-allowedit' => !$options->readonly ? '1' : '0',
             'data-numberformat' => $numberformat,
             'data-nextindex' => $visiblerows,
+            'data-maxrows' => count($question->get_expected_data()) / 4,
             'data-templateid' => $templateid,
         ];
         $result .= html_writer::start_div('qtype_accounting-question-container', $containerattrs);
