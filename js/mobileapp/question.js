@@ -118,41 +118,44 @@ const accountingComponent = {
             question.feedback = feedback;
             question.feedbackHTML = true;
         }
+
+        // The app only calls componentInit on the compiled template instance. Other
+        // methods in the returned object override the handler, not the component.
+        this.addEntry = side => {
+            if (question.readonly) {
+                return;
+            }
+            const unused = side.entries.find(entry => !entry.visible);
+            if (unused) {
+                unused.visible = true;
+                return;
+            }
+            const index = side.entries.length;
+            if (index >= side.limit) {
+                return;
+            }
+            side.entries.push({
+                index,
+                accountName: prefix + side.name + 'account_' + index,
+                amountName: prefix + side.name + 'amount_' + index,
+                account: '',
+                amount: '',
+                visible: true,
+            });
+        };
+
+        this.canRemoveEntry = side => side.entries.filter(entry => entry.visible).length > 1;
+
+        this.removeEntry = (side, entry) => {
+            if (question.readonly || !entry.visible || !side.entries.includes(entry) || !this.canRemoveEntry(side)) {
+                return;
+            }
+            // Named hidden inputs remain in the form to clear previously saved values.
+            entry.account = '';
+            entry.amount = '';
+            entry.visible = false;
+        };
         return true;
-    },
-
-    addEntry(side) {
-        if (this.question.readonly) {
-            return;
-        }
-        const unused = side.entries.find(entry => !entry.visible);
-        if (unused) {
-            unused.visible = true;
-            return;
-        }
-        const index = side.entries.length;
-        if (index >= side.limit) {
-            return;
-        }
-        const prefix = side.entries[0].accountName.slice(0, -(side.name + 'account_0').length);
-        side.entries.push({
-            index,
-            accountName: prefix + side.name + 'account_' + index,
-            amountName: prefix + side.name + 'amount_' + index,
-            account: '',
-            amount: '',
-            visible: true,
-        });
-    },
-
-    removeEntry(entry) {
-        if (this.question.readonly) {
-            return;
-        }
-        // Keep empty named inputs in the form so Moodle clears previously saved values.
-        entry.account = '';
-        entry.amount = '';
-        entry.visible = false;
     },
 };
 

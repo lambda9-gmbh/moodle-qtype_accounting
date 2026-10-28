@@ -52,9 +52,11 @@ function fixture({saved = {}, local = {}, readonly = false, limit = 3, format = 
             treatCorrectnessIcons() {},
         },
     };
-    const component = vm.runInNewContext(source, context);
-    component.question = {html: '<server HTML>', localAnswers: local};
-    component.componentInit();
+    const handler = vm.runInNewContext(source, context);
+    // Match CoreSitePluginsCompileInitComponent: only componentInit is applied to
+    // the separate compiled-template instance; other handler methods aren't copied.
+    const component = {question: {html: '<server HTML>', localAnswers: local}};
+    handler.componentInit.call(component);
     return {component, question: component.question, aborted, prefix, feedback};
 }
 
@@ -84,13 +86,14 @@ test('deletion clears both saved fields without shifting the other side; adding 
         creditaccount_0: '201', creditamount_0: '100'}});
     const debit = question.accountingSides[0];
     const entry = debit.entries[0];
-    component.removeEntry(entry);
+    component.addEntry(debit);
+    component.removeEntry(debit, entry);
     assert.equal(entry.account, '');
     assert.equal(entry.amount, '');
     assert.equal(entry.visible, false);
     assert.equal(question.accountingSides[1].entries[0].account, '201');
     component.addEntry(debit);
-    assert.equal(debit.entries.length, 1);
+    assert.equal(debit.entries.length, 2);
     assert.equal(entry.visible, true);
 });
 
@@ -108,7 +111,7 @@ test('review ignores local edits and cannot add or remove entries', () => {
     const {component, question, feedback} = fixture({readonly: true,
         saved: {debitaccount_0: '101', debitamount_0: '100'}, local: {debitaccount_0: '201'}});
     const debit = question.accountingSides[0];
-    component.removeEntry(debit.entries[0]);
+    component.removeEntry(debit, debit.entries[0]);
     component.addEntry(debit);
     assert.equal(debit.entries[0].account, '101');
     assert.equal(debit.entries.length, 1);
@@ -129,4 +132,25 @@ test('local cleared fields override saved values and invalid row indices are ign
 test('missing renderer metadata aborts instead of displaying a question with no inputs', () => {
     assert.equal(fixture({missing: true}).aborted, true);
     assert.equal(fixture({limit: 0}).aborted, true);
+});
+
+test('last visible debit and credit entries cannot be deleted or cleared', () => {
+    const {component, question} = fixture({saved: {debitaccount_0: '101', debitamount_0: '100',
+        creditaccount_0: '201', creditamount_0: '100'}});
+    for (const side of question.accountingSides) {
+        const entry = side.entries[0];
+        const account = entry.account;
+        assert.equal(component.canRemoveEntry(side), false);
+        component.removeEntry(side, entry);
+        assert.equal(entry.visible, true);
+        assert.equal(entry.account, account);
+        assert.equal(entry.amount, '100');
+        component.addEntry(side);
+        assert.equal(component.canRemoveEntry(side), true);
+        component.removeEntry(side, entry);
+        assert.equal(entry.visible, false);
+        assert.equal(component.canRemoveEntry(side), false);
+        component.removeEntry(side, side.entries[1]);
+        assert.equal(side.entries[1].visible, true);
+    }
 });

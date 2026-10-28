@@ -59,5 +59,7 @@ logs/
 
 # Node (if using build tools)
 node_modules/
+dev/mobile/.runtime/
+dev/mobile/__pycache__/
 npm-debug.log
 yarn-error.log

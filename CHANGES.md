@@ -8,8 +8,13 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 ## [Unreleased]
 
 ### Added
+- Native Android testing helper for the official Moodle 5.2.1 APK, with a dedicated emulator, local server connection, and DE/US sample quizzes.
 - Moodle App question handler with debit/credit entry cards, multiple entries, local-answer restoration, explicit clearing of deleted entries, and read-only review. Deployment requires a Moodle upgrade/cache purge and refreshing the site's app session.
 - Chart management opens in a desktop overlay from the question editor and automatically refreshes chart and account options on close while preserving unsaved question entries. The overlay protects unfinished chart edits and waits for saves to complete.
+
+### Fixed
+- Moodle App attempts now keep at least one debit entry and one credit entry. Delete buttons are shown only when that side has multiple visible entries; the controller also prevents removing the last entry or clearing its values.
+- Moodle App entry buttons now bind to the compiled component. Ionic account/amount controls follow the app theme, and persistent native named fields preserve entered and added rows when checking or submitting answers, including explicit clearing of deleted entries. Added Angular DOM regression tests using Moodle App 5.2.1's Angular version.
 
 ## [1.0.0] - 2026-05-28
 

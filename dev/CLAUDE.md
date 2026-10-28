@@ -98,6 +98,17 @@ Notable absences (intentional):
 - Browser output uses `html_writer` / direct HTML strings. Moodle App support is registered in
   `db/mobile.php`; `classes/output/mobile.php` serves `templates/mobileapp/question.mustache`
   and `js/mobileapp/question.js`. The app controller is evaluated by the app, not loaded as AMD.
+  Bind template actions inside `componentInit`: other returned methods override the handler and
+  are not copied to the compiled component. The quiz serializes native `form.elements`, so each
+  answer has an always-present hidden input with `[attr.name]` and `[value]`; Ionic field events
+  update that value immediately. Do not rely on Angular form metadata for submitted field names.
+  `dev/tests/mobileapp_integration_test.mjs` renders the form using the Angular version in App 5.2.1.
+  Native testing uses `dev/scripts/app.sh start`: the official Moodle 5.2.1 APK
+  runs in a dedicated Android 13 emulator window. It reuses the existing SDK and
+  keeps its AVD/data under `dev/mobile/.runtime/android/`; other AVDs are untouched.
+  ADB reverse forwards the emulator's localhost:8080 to the local Moodle server.
+  Demo quizzes use immediate feedback: saving retains TODO state until Check.
+  Use deferred feedback for quizzes that should grade only at final submission.
 
 ## Database schema
 

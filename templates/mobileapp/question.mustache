@@ -37,18 +37,27 @@
             <ion-card *ngIf="entry.visible">
                 <ion-card-content>
                     <ng-container *ngIf="!question.readonly">
-                        <label [attr.for]="entry.accountName">{{ 'plugin.qtype_accounting.account' | translate }}</label>
-                        <select *ngIf="question.accountingAccounts.length" [id]="entry.accountName" [name]="entry.accountName"
-                            [(ngModel)]="entry.account" [ngModelOptions]="{standalone: true}" style="display: block; width: 100%;">
-                            <option *ngFor="let account of question.accountingAccounts" [value]="account.value">{{ account.label }}</option>
-                        </select>
-                        <input *ngIf="!question.accountingAccounts.length" type="text" [id]="entry.accountName"
-                            [name]="entry.accountName" [(ngModel)]="entry.account" [ngModelOptions]="{standalone: true}">
-                        <label [attr.for]="entry.amountName">{{ 'plugin.qtype_accounting.amount' | translate }}</label>
-                        <input type="text" inputmode="decimal" [id]="entry.amountName" [name]="entry.amountName"
-                            [(ngModel)]="entry.amount" [ngModelOptions]="{standalone: true}" [placeholder]="question.accountingPlaceholder"
-                            style="display: block; width: 100%;">
-                        <ion-button fill="clear" color="danger" (click)="removeEntry(entry)">
+                        <ion-item>
+                            <ion-select *ngIf="question.accountingAccounts.length" interface="alert" labelPlacement="stacked"
+                                [label]="'plugin.qtype_accounting.account' | translate" [value]="entry.account"
+                                (ionChange)="entry.account = $event.detail.value">
+                                <ion-select-option *ngFor="let account of question.accountingAccounts" [value]="account.value">
+                                    {{ account.label }}
+                                </ion-select-option>
+                            </ion-select>
+                            <ion-input *ngIf="!question.accountingAccounts.length" type="text" labelPlacement="stacked"
+                                [label]="'plugin.qtype_accounting.account' | translate" [value]="entry.account"
+                                (ionInput)="entry.account = $event.detail.value || ''">
+                            </ion-input>
+                        </ion-item>
+                        <ion-item>
+                            <ion-input type="text" inputmode="decimal" labelPlacement="stacked"
+                                [label]="'plugin.qtype_accounting.amount' | translate" [value]="entry.amount"
+                                (ionInput)="entry.amount = $event.detail.value || ''" [placeholder]="question.accountingPlaceholder">
+                            </ion-input>
+                        </ion-item>
+                        <ion-button *ngIf="canRemoveEntry(side)" type="button" fill="clear" color="danger"
+                            (click)="removeEntry(side, entry)">
                             {{ 'plugin.qtype_accounting.deleteentry' | translate }}
                         </ion-button>
                     </ng-container>
@@ -60,12 +69,14 @@
                     </ng-container>
                 </ion-card-content>
             </ion-card>
-            <ng-container *ngIf="!entry.visible || question.readonly">
-                <input type="hidden" [name]="entry.accountName" [value]="entry.account">
-                <input type="hidden" [name]="entry.amountName" [value]="entry.amount">
-            </ng-container>
+            <%!
+                The quiz serializes native form.elements, not Angular's model.
+                Always keep one named native input per answer, including deleted rows.
+            %>
+            <input type="hidden" [attr.name]="entry.accountName" [value]="entry.account">
+            <input type="hidden" [attr.name]="entry.amountName" [value]="entry.amount">
         </div>
-        <ion-button *ngIf="!question.readonly" fill="outline" (click)="addEntry(side)">
+        <ion-button *ngIf="!question.readonly" type="button" fill="outline" (click)="addEntry(side)">
             {{ side.addLabel | translate }}
         </ion-button>
     </section>

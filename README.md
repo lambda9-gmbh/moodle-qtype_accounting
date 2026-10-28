@@ -65,6 +65,7 @@ After submission, every field is highlighted individually — green for correct,
 - Optional decoy accounts in dropdowns to discourage process-of-elimination guessing.
 - Responsive mobile card layout for narrow viewports.
 - Moodle App question handler with separate debit/credit entry cards, saved-answer restoration, and read-only review.
+- App attempts retain at least one debit entry and one credit entry; Delete buttons appear only when that side has multiple entries.
 - Per-field feedback colouring after submission with a side-level summary message.
 - Full correct-answer view rendered alongside the student's response.
 
@@ -112,6 +113,11 @@ Moodle and app versions: enter multiple entries, leave and resume an attempt,
 delete a saved entry, submit, and check review/feedback. Test both number formats
 and a quiz containing other question types. Offline attempts additionally depend
 on Moodle's quiz restrictions and should be tested separately.
+
+When updating an earlier app-support build, refresh the app's downloaded handler
+after the upgrade and cache purge: log out of the site in the app and log in again.
+The corrected form binds actions to the compiled component, uses Ionic controls
+for the app theme, and submits explicit native hidden fields for every answer.
 
 ---
 
@@ -298,6 +304,50 @@ The `dev/` directory contains a complete Dockerised dev/CI environment. It is `e
 
 Both stacks serve Moodle at <http://localhost:8080>. The Postgres stack overlays `dev/docker-compose.pgsql.yml`.
 
+### Test the installed Android App locally
+
+```bash
+./dev/scripts/app.sh start
+```
+
+This opens a dedicated **Android 13 virtual phone window on this Mac** and installs
+and launches the official **Moodle Android App 5.2.1 APK**. It reuses the existing
+Android SDK emulator and ARM64 system image, without installing SDK tools or
+changing existing virtual devices. Set `ACCOUNTING_ANDROID_SDK` if the existing
+SDK is outside `~/Library/Android/sdk`.
+
+In the installed App, enter site **`http://localhost:8080`** and log in with
+**`appstudent` / `AppTest123!`**. An ADB reverse connection maps the phone's port
+8080 to the host Moodle server. Open **My courses → Accounting App Testing**, then
+**Accounting App DE** or **Accounting App US**.
+
+The correct booking is two debit entries (1000 Cash: 500; 1200 Bank: 500) and one
+credit entry (8400 Sales: 1000). Use `500,00`/`1000,00` in DE and
+`500.00`/`1000.00` in US. These quizzes use **Immediate feedback**: press **Check**
+before final submission. Saved but unchecked answers remain "Not complete" in
+Moodle and can cause its unanswered warning. For a single final submission,
+configure the quiz's question behaviour as **Deferred feedback**.
+
+```bash
+./dev/scripts/app.sh open       # Reopen the installed Android App
+./dev/scripts/app.sh refresh    # Purge Moodle caches and reset this virtual phone's App data
+./dev/scripts/app.sh status
+./dev/scripts/app.sh logs
+./dev/scripts/app.sh stop       # Stop the dedicated phone; leave Moodle/database running
+```
+
+`refresh` signs out this test App and discards unsynced local edits. Server-saved
+answers and attempts remain. The dedicated phone's data and APK live under
+`dev/mobile/.runtime/android/` (ignored by Git), using ADB serial `emulator-5560`.
+Existing virtual devices are left untouched. Helper tooling runs in a temporary
+Nix environment; the pre-existing SDK supplies the emulator and system image.
+
+Startup defaults to the existing PostgreSQL Moodle environment; use
+`ACCOUNTING_APP_DB=mariadb` to select MariaDB instead. It upgrades the local
+plugin, enables mobile web services, and creates or reuses the sample course and
+student. It does not reset databases or volumes. Docker is used for the Moodle
+server/database only; the App itself runs as an installed APK in Android.
+
 ### Test suites
 
 ```bash
@@ -305,6 +355,19 @@ Both stacks serve Moodle at <http://localhost:8080>. The Postgres stack overlays
 ./dev/scripts/test.sh phpunit
 ./dev/scripts/test.sh behat
 ```
+
+The app form also has controller tests and Angular DOM tests using Angular
+20.3.18, as shipped in Moodle App 5.2.1. Build their locked dependencies in the
+Nix store and run without starting Moodle or an app server:
+
+```bash
+nix build --impure --expr 'import ./dev/tests/mobileapp { pkgs = import (builtins.getFlake "nixpkgs").outPath {}; }' --out-link /tmp/accounting-mobile-test-deps
+ACCOUNTING_MOBILE_TEST_DEPS=/tmp/accounting-mobile-test-deps nix shell nixpkgs#nodejs --command node --test dev/tests/mobileapp_test.cjs dev/tests/mobileapp_integration_test.mjs
+```
+
+The DOM tests render Angular bindings, dispatch Ionic input events, and serialize
+the native quiz form. Ionic tags are custom elements in this harness; it does not
+test Ionic overlays or visual appearance, or submit to a live Moodle site.
 
 ### Lint and static analysis
 

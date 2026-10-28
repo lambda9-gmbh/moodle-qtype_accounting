@@ -36,8 +36,11 @@ final class mobile_test extends \advanced_testcase {
         $html = $content['templates'][0]['html'];
         $this->assertStringContainsString('{{ side.title | translate }}', $html);
         $this->assertStringContainsString('{{ account.label }}', $html);
-        $this->assertStringContainsString('[(ngModel)]="entry.amount"', $html);
-        $this->assertStringContainsString('[name]="entry.accountName"', $html);
+        $this->assertStringContainsString('(ionInput)="entry.amount = $event.detail.value', $html);
+        $this->assertStringContainsString('type="hidden" [attr.name]="entry.accountName"', $html);
+        $this->assertStringContainsString('type="hidden" [attr.name]="entry.amountName"', $html);
+        $this->assertStringContainsString('<ion-select ', $html);
+        $this->assertStringContainsString('<ion-input ', $html);
         $this->assertStringContainsString('componentInit()', $content['javascript']);
     }
 }
