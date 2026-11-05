@@ -42,6 +42,7 @@ version.hash
 /config.php
 
 # Testing
+.playwright-mcp/
 phpunit.xml
 .phpunit.result.cache
 coverage/

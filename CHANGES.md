@@ -11,10 +11,20 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - Native Android testing helper for the official Moodle 5.2.1 APK, with a dedicated emulator, local server connection, and DE/US sample quizzes.
 - Moodle App question handler with debit/credit entry cards, multiple entries, local-answer restoration, explicit clearing of deleted entries, and read-only review. Deployment requires a Moodle upgrade/cache purge and refreshing the site's app session.
 - Chart management opens in a desktop overlay from the question editor and automatically refreshes chart and account options on close while preserving unsaved question entries. The overlay protects unfinished chart edits and waits for saves to complete.
+- Charts of accounts can now be created directly in Moodle by entering a name, then adding accounts in the existing editor without uploading a CSV file.
 
 ### Fixed
 - Moodle App attempts now keep at least one debit entry and one credit entry. Delete buttons are shown only when that side has multiple visible entries; the controller also prevents removing the last entry or clearing its values.
 - Moodle App entry buttons now bind to the compiled component. Ionic account/amount controls follow the app theme, and persistent native named fields preserve entered and added rows when checking or submitting answers, including explicit clearing of deleted entries. Added Angular DOM regression tests using Moodle App 5.2.1's Angular version.
+- Cancelling question editing now skips account and balance validation, allowing incomplete or unbalanced entries to be discarded without saving.
+- Chart deletion now opens a confirmation modal naming the chart and warning that all its accounts will be removed and questions using it will no longer work correctly. Deletion requires an explicit "Delete chart" confirmation submitted by POST, with a confirmation page available when JavaScript is disabled.
+- Question editing now shows missing solution amount errors beside the affected fields with Moodle's standard validation styling and preserves the submitted chart, accounts, amounts, and weights after failed validation. Normalised decimal amounts are validated consistently in both number formats.
+- Removed N+1 database reads from question-form account loading and chart matching while preserving sorting and matching results.
+- Added behavior and query-count regression tests for those two paths, plus behavior coverage for the unchanged legacy account-name migration.
+- Course backup and restore now remaps debit and credit account IDs to the restored chart, including when reusing an existing chart. Chart matching is scoped to the destination course instead of a process-wide name cache.
+- Added course backup/restore regression tests for shared charts, existing charts, one-sided entries, and consecutive restores into different courses.
+
+Backups made before this fix omit the source IDs from chart accounts, so their ID-based answer selections cannot be reliably reconstructed. Create a fresh backup after updating the plugin; already affected questions need their accounts reconfigured.
 
 ## [1.0.0] - 2026-05-28
 

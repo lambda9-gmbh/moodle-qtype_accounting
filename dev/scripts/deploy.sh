@@ -15,19 +15,25 @@ echo -e "${YELLOW}Deploying moodle-qtype_accounting to ${REMOTE_HOST}:${REMOTE_D
 
 # Copy plugin folder.
 # Script lives in dev/scripts/, so the plugin source is two levels up (the repo root).
-# We use git archive to ship only the files that would be in the released ZIP
-# (respects .gitattributes export-ignore, so dev/ tooling is excluded).
+# Use the release archive as a base, then include German strings for testserver.
+# Release archives still respect .gitattributes export-ignore.
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 echo "Packaging plugin from ${REPO_ROOT}..."
 TMP_ARCHIVE="$(mktemp -t accounting.XXXXXX.tar)"
+TMP_GERMAN_ARCHIVE="$(mktemp -t accounting-de.XXXXXX.tar)"
+trap 'rm -f "$TMP_ARCHIVE" "$TMP_GERMAN_ARCHIVE"' EXIT
 git -C "$REPO_ROOT" archive --format=tar --prefix=accounting/ HEAD -o "$TMP_ARCHIVE"
+# Archiving the subtree includes translations excluded by the root release attributes.
+git -C "$REPO_ROOT" archive --format=tar --prefix=lang/de/ HEAD:lang/de -o "$TMP_GERMAN_ARCHIVE"
 echo "Copying plugin archive to remote..."
 scp "$TMP_ARCHIVE" "${REMOTE_HOST}:${REMOTE_DIR}/accounting.tar"
-ssh "${REMOTE_HOST}" "cd ${REMOTE_DIR} && rm -rf accounting && tar -xf accounting.tar && rm accounting.tar"
-rm -f "$TMP_ARCHIVE"
+scp "$TMP_GERMAN_ARCHIVE" "${REMOTE_HOST}:${REMOTE_DIR}/accounting-de.tar"
+# Extract into the host directory mounted by the testserver's Moodle service.
+# Preserve the directory itself so the bind mount keeps pointing at it.
+ssh "${REMOTE_HOST}" "cd ${REMOTE_DIR} && mkdir -p plugin && tar -xf accounting.tar -C plugin --strip-components=1 && tar -xf accounting-de.tar -C plugin && rm accounting.tar accounting-de.tar"
 
-# Restart docker compose on remote server
-echo "Restarting Docker Compose on remote server..."
-ssh "${REMOTE_HOST}" "cd ${REMOTE_DIR} && docker compose restart"
+# Restart Moodle and purge its caches so deployed PHP and language strings take effect.
+echo "Restarting Moodle and purging caches on remote server..."
+ssh "${REMOTE_HOST}" "cd ${REMOTE_DIR} && docker compose restart moodle && docker compose exec -T moodle php /var/www/html/admin/cli/purge_caches.php"
 
 echo -e "${GREEN}Deployment complete!${NC}"

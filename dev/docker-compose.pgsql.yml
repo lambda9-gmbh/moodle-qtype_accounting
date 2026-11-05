@@ -14,7 +14,7 @@
 # two services manually after `up`, or scale them to 0.
 services:
   moodle:
-    environment:
+    environment: &pgsql-environment
       - MOODLE_WWWROOT=${MOODLE_WWWROOT:-http://localhost:8080}
       - MOODLE_SSLPROXY=${MOODLE_SSLPROXY:-}
       - MOODLE_DOCKER_DBTYPE=pgsql
@@ -22,6 +22,12 @@ services:
       - MOODLE_DOCKER_DBNAME=${POSTGRES_DB:-moodle}
       - MOODLE_DOCKER_DBUSER=${POSTGRES_USER:-moodle}
       - MOODLE_DOCKER_DBPASS=${POSTGRES_PASSWORD:-moodle_password}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  cron:
+    environment: *pgsql-environment
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,5 +1,7 @@
 services:
   moodle:
+    &moodle # An explicit shared image lets the cron worker use the existing web build.
+    image: ${MOODLE_IMAGE:-dev-moodle}
     build:
       context: ./docker
       dockerfile: Dockerfile
@@ -54,6 +56,18 @@ services:
     networks:
       - accounting-network
 
+  # Reuse the web service's image, configuration and mounts so queued course
+  # backups see the same Moodle installation and moodledata directory.
+  cron:
+    <<: *moodle
+    container_name: accounting-cron
+    ports: []
+    user: www-data
+    init: true
+    command: ["php", "/var/www/html/admin/cli/cron.php", "--keep-alive=60"]
+    # Cron exits after its keep-alive period; Docker starts the next invocation.
+    restart: unless-stopped
+
   mariadb:
     image: mariadb:10.11
     container_name: accounting-mariadb
@@ -94,7 +108,7 @@ services:
     ports:
       - "${SELENIUM_PORT:-4444}:4444"
       - "${SELENIUM_VNC_PORT:-7900}:7900"
-    shm_size: '2gb'
+    shm_size: "2gb"
     networks:
       - accounting-network
 

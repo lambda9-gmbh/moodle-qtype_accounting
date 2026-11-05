@@ -270,6 +270,8 @@ All schema changes go through `db/upgrade.php`.
 
 The release ships English strings only, per Moodle policy. German is maintained alongside in this repository for the development environment but is excluded from release ZIPs (`lang/de/` is `export-ignore`d in `.gitattributes`).
 
+Testserver deployments via `./dev/scripts/deploy.sh` include both English and German strings from the latest commit. Install Moodle's German language pack and select German in Moodle to use the translation.
+
 To contribute a translation, please use the official Moodle translation tool at <https://lang.moodle.org/>.
 
 ---
@@ -347,6 +349,42 @@ Startup defaults to the existing PostgreSQL Moodle environment; use
 plugin, enables mobile web services, and creates or reuses the sample course and
 student. It does not reset databases or volumes. Docker is used for the Moodle
 server/database only; the App itself runs as an installed APK in Android.
+
+### Background tasks and course exports
+
+Course exports use Moodle's asynchronous backup queue. They require Moodle's
+cron runner; the web server alone does not process them. The Docker stack includes
+a `cron` service that shares Moodle's image, configuration, plugin mounts and
+data volume, runs as `www-data`, and polls for tasks for 60 seconds before Docker
+starts the next invocation. This also processes scheduled tasks and restores.
+
+For an existing local stack, explicitly start the new worker:
+
+```bash
+docker compose -f dev/docker-compose.yml up -d --no-deps cron
+# For an existing PostgreSQL stack, include its override instead:
+docker compose -f dev/docker-compose.yml -f dev/docker-compose.pgsql.yml up -d --no-deps cron
+```
+
+Inspect worker output with `docker compose -f dev/docker-compose.yml logs --tail=100 cron`.
+In Moodle, check **Site administration → Reports → System status** and
+**Server → Tasks → Task logs / Ad hoc tasks** to verify cron activity and inspect
+any failed backups.
+
+The plugin deployment script only copies the plugin; it does not provision a cron
+worker on the deployed server. If that server uses a separate Docker Compose
+configuration, configure its host scheduler to run the following every minute
+(using the server's actual Compose directory and an absolute Docker executable
+path):
+
+```cron
+* * * * * cd /absolute/path/to/services/moodle && /usr/bin/docker compose exec -T --user www-data moodle php /var/www/html/admin/cli/cron.php --keep-alive=0 >> /absolute/path/to/moodle-cron.log 2>&1
+```
+
+The scheduler account must have access to Docker and permission to write the log.
+Alternatively, add a dedicated worker to that server's Compose configuration,
+sharing its Moodle image, database settings, `config.php`, plugin and moodledata
+mounts, as in the local stack. See [Moodle's cron documentation](https://docs.moodle.org/405/en/Cron).
 
 ### Test suites
 
