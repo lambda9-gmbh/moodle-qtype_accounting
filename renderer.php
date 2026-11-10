@@ -144,10 +144,15 @@ class qtype_accounting_renderer extends qtype_renderer {
         int $visiblerows,
         string $templateid
     ): string {
-        $html = '<table class="table table-bordered qtype_accounting-student-table">';
+        $html = \html_writer::start_tag(
+            'table',
+            [
+                'class' => 'table table-bordered qtype_accounting-student-table',
+            ]
+        );
         $html .= $this->render_colgroup(!$options->readonly);
         $html .= $this->render_header_row(!$options->readonly);
-        $html .= '<tbody class="qtype_accounting-entries">';
+        $html .= \html_writer::start_tag('tbody', ['class' => 'qtype_accounting-entries']);
 
         $feedbackmap = $options->readonly
             ? $this->feedback_calculator()->build_cell_feedback_map($question, $response)
@@ -165,13 +170,13 @@ class qtype_accounting_renderer extends qtype_renderer {
                 $feedbackmap[$i] ?? []
             );
         }
-        $html .= '</tbody>';
+        $html .= \html_writer::end_tag('tbody');
 
         if (!$options->readonly) {
             $html .= $this->render_template_row($qa, $question, $filteredaccounts, $templateid);
             $html .= $this->render_footer_controls();
         }
-        $html .= '</table>';
+        $html .= \html_writer::end_tag('table');
         return $html;
     }
 
@@ -181,27 +186,27 @@ class qtype_accounting_renderer extends qtype_renderer {
      * @return string The HTML for the tfoot row.
      */
     protected function render_footer_controls(): string {
-        $html = '<tfoot class="qtype_accounting-controls-footer">';
-        $html .= '<tr>';
-        $html .= '<td></td>'; // Per label column.
-        $html .= '<td>';
+        $html = \html_writer::start_tag('tfoot', ['class' => 'qtype_accounting-controls-footer']);
+        $html .= \html_writer::start_tag('tr');
+        $html .= \html_writer::start_tag('td') . \html_writer::end_tag('td'); // Per label column.
+        $html .= \html_writer::start_tag('td');
         $html .= html_writer::tag('button', get_string('adddebitentry', 'qtype_accounting'), [
             'type' => 'button',
             'class' => 'btn btn-secondary btn-sm qtype_accounting-add-debit-entry',
         ]);
-        $html .= '</td>';
-        $html .= '<td></td>'; // Debit Amount column.
-        $html .= '<td></td>'; // The 'an' label column.
-        $html .= '<td>';
+        $html .= \html_writer::end_tag('td');
+        $html .= \html_writer::start_tag('td') . \html_writer::end_tag('td'); // Debit Amount column.
+        $html .= \html_writer::start_tag('td') . \html_writer::end_tag('td'); // The 'an' label column.
+        $html .= \html_writer::start_tag('td');
         $html .= html_writer::tag('button', get_string('addcreditentry', 'qtype_accounting'), [
             'type' => 'button',
             'class' => 'btn btn-secondary btn-sm qtype_accounting-add-credit-entry',
         ]);
-        $html .= '</td>';
-        $html .= '<td></td>'; // Credit Amount column.
-        $html .= '<td></td>'; // Actions column.
-        $html .= '</tr>';
-        $html .= '</tfoot>';
+        $html .= \html_writer::end_tag('td');
+        $html .= \html_writer::start_tag('td') . \html_writer::end_tag('td'); // Credit Amount column.
+        $html .= \html_writer::start_tag('td') . \html_writer::end_tag('td'); // Actions column.
+        $html .= \html_writer::end_tag('tr');
+        $html .= \html_writer::end_tag('tfoot');
         return $html;
     }
 
@@ -236,33 +241,33 @@ class qtype_accounting_renderer extends qtype_renderer {
         $accountstr = get_string('account', 'qtype_accounting');
         $amountstr = get_string('amount', 'qtype_accounting');
 
-        $html = '<thead>';
+        $html = \html_writer::start_tag('thead');
 
         // First header row - Debit / Credit.
-        $html .= '<tr>';
-        $html .= '<th class="qtype_accounting-label-cell"></th>';
-        $html .= '<th colspan="2" class="text-center">' . $debitstr . '</th>';
-        $html .= '<th class="qtype_accounting-label-cell"></th>';
-        $html .= '<th colspan="2" class="text-center">' . $creditstr . '</th>';
+        $html .= \html_writer::start_tag('tr');
+        $html .= \html_writer::start_tag('th', ['class' => 'qtype_accounting-label-cell']) . \html_writer::end_tag('th');
+        $html .= \html_writer::tag('th', $debitstr, ['colspan' => '2', 'class' => 'text-center']);
+        $html .= \html_writer::start_tag('th', ['class' => 'qtype_accounting-label-cell']) . \html_writer::end_tag('th');
+        $html .= \html_writer::tag('th', $creditstr, ['colspan' => '2', 'class' => 'text-center']);
         if ($showactions) {
-            $html .= '<th class="qtype_accounting-actions-cell"></th>';
+            $html .= \html_writer::start_tag('th', ['class' => 'qtype_accounting-actions-cell']) . \html_writer::end_tag('th');
         }
-        $html .= '</tr>';
+        $html .= \html_writer::end_tag('tr');
 
         // Second header row - Per / Account / Amount / an / Account / Amount.
-        $html .= '<tr>';
-        $html .= '<th class="qtype_accounting-label-cell">' . $perstr . '</th>';
-        $html .= '<th>' . $accountstr . '</th>';
-        $html .= '<th>' . $amountstr . '</th>';
-        $html .= '<th class="qtype_accounting-label-cell">' . $anstr . '</th>';
-        $html .= '<th>' . $accountstr . '</th>';
-        $html .= '<th>' . $amountstr . '</th>';
+        $html .= \html_writer::start_tag('tr');
+        $html .= \html_writer::tag('th', $perstr, ['class' => 'qtype_accounting-label-cell']);
+        $html .= \html_writer::tag('th', $accountstr);
+        $html .= \html_writer::tag('th', $amountstr);
+        $html .= \html_writer::tag('th', $anstr, ['class' => 'qtype_accounting-label-cell']);
+        $html .= \html_writer::tag('th', $accountstr);
+        $html .= \html_writer::tag('th', $amountstr);
         if ($showactions) {
-            $html .= '<th></th>';
+            $html .= \html_writer::start_tag('th') . \html_writer::end_tag('th');
         }
-        $html .= '</tr>';
+        $html .= \html_writer::end_tag('tr');
 
-        $html .= '</thead>';
+        $html .= \html_writer::end_tag('thead');
 
         return $html;
     }
@@ -276,24 +281,24 @@ class qtype_accounting_renderer extends qtype_renderer {
      * @return string The HTML colgroup element.
      */
     protected function render_colgroup(bool $showactions = false): string {
-        $html = '<colgroup>';
+        $html = \html_writer::start_tag('colgroup');
         // Column 1: Per label (narrow).
-        $html .= '<col style="width: 40px;">';
+        $html .= \html_writer::empty_tag('col', ['class' => 'qtype_accounting-col-label']);
         // Column 2: Debit Account (flexible).
-        $html .= '<col style="width: auto;">';
+        $html .= \html_writer::empty_tag('col', ['class' => 'qtype_accounting-col-account']);
         // Column 3: Debit Amount (wider for numbers like 12.000,55).
-        $html .= '<col style="width: 120px;">';
+        $html .= \html_writer::empty_tag('col', ['class' => 'qtype_accounting-col-amount']);
         // Column 4: an label (narrow).
-        $html .= '<col style="width: 40px;">';
+        $html .= \html_writer::empty_tag('col', ['class' => 'qtype_accounting-col-label']);
         // Column 5: Credit Account (flexible).
-        $html .= '<col style="width: auto;">';
+        $html .= \html_writer::empty_tag('col', ['class' => 'qtype_accounting-col-account']);
         // Column 6: Credit Amount (wider for numbers like 12.000,55).
-        $html .= '<col style="width: 120px;">';
+        $html .= \html_writer::empty_tag('col', ['class' => 'qtype_accounting-col-amount']);
         if ($showactions) {
             // Column 7: Actions/Delete button (narrow).
-            $html .= '<col style="width: 50px;">';
+            $html .= \html_writer::empty_tag('col', ['class' => 'qtype_accounting-col-actions']);
         }
-        $html .= '</colgroup>';
+        $html .= \html_writer::end_tag('colgroup');
 
         return $html;
     }
@@ -303,7 +308,7 @@ class qtype_accounting_renderer extends qtype_renderer {
      *
      * @param question_attempt $qa The question attempt object.
      * @param question_display_options $options The display options.
-     * @param int $index The entry index.
+     * @param int|string $index The entry index.
      * @param array $response The current response data.
      * @param array $accounts Available accounts for the dropdowns, keyed 'debit' and 'credit'.
      * @param object $question The question object.
@@ -315,7 +320,7 @@ class qtype_accounting_renderer extends qtype_renderer {
     protected function render_entry_row(
         question_attempt $qa,
         question_display_options $options,
-        int $index,
+        $index,
         array $response,
         array $accounts,
         object $question,
@@ -333,9 +338,10 @@ class qtype_accounting_renderer extends qtype_renderer {
         $hiddenclasses = \qtype_accounting\entry_helper::get_hidden_classes($entrytype);
         $numberformat = $question->numberformat ?? 'de';
 
-        $rowstyle = $hidden ? 'display: none;' : '';
-        $html = '<tr class="qtype_accounting-entry-row" data-entry="' . $index
-            . '" data-entry-type="' . $entrytype . '" style="' . $rowstyle . '">';
+        $html = html_writer::start_tag('tr', [
+            'class' => 'qtype_accounting-entry-row', 'data-entry' => $index,
+            'data-entry-type' => $entrytype, 'hidden' => $hidden ? 'hidden' : null,
+        ]);
         $html .= $this->render_debit_cells(
             $qa,
             $options,
@@ -358,7 +364,7 @@ class qtype_accounting_renderer extends qtype_renderer {
             $numberformat,
             $feedbackclasses
         );
-        $html .= '</tr>';
+        $html .= \html_writer::end_tag('tr');
         return $html;
     }
 
@@ -367,7 +373,7 @@ class qtype_accounting_renderer extends qtype_renderer {
      *
      * @param question_attempt $qa The question attempt.
      * @param question_display_options $options Display options (readonly flag).
-     * @param int $index Entry row index.
+     * @param int|string $index Entry row index.
      * @param array $vals Pre-extracted values keyed by 'debitaccount' / 'debitamount' / 'creditaccount' / 'creditamount'.
      * @param array $debitaccounts Accounts available in the debit dropdown.
      * @param array $hiddenclasses Hidden-cell classes from entry_helper::get_hidden_classes().
@@ -379,7 +385,7 @@ class qtype_accounting_renderer extends qtype_renderer {
     protected function render_debit_cells(
         question_attempt $qa,
         question_display_options $options,
-        int $index,
+        $index,
         array $vals,
         array $debitaccounts,
         array $hiddenclasses,
@@ -388,9 +394,11 @@ class qtype_accounting_renderer extends qtype_renderer {
         array $feedbackclasses
     ): string {
         $debithidden = $hiddenclasses['debit'];
-        $html = '<td class="qtype_accounting-label-cell' . $debithidden . '" data-section="debit"></td>';
-        $html .= '<td class="qtype_accounting-data-cell' . $debithidden
-            . '" data-label="' . get_string('account', 'qtype_accounting') . '">';
+        $html = \html_writer::tag('td', '', ['class' => 'qtype_accounting-label-cell' . $debithidden, 'data-section' => 'debit']);
+        $html .= html_writer::start_tag('td', [
+            'class' => 'qtype_accounting-data-cell' . $debithidden,
+            'data-label' => get_string('account', 'qtype_accounting'),
+        ]);
         $html .= $this->render_account_field(
             $options->readonly,
             $vals['debitaccount'],
@@ -398,9 +406,11 @@ class qtype_accounting_renderer extends qtype_renderer {
             $debitaccounts,
             $feedbackclasses['debitaccount'] ?? ''
         );
-        $html .= '</td>';
-        $html .= '<td class="qtype_accounting-data-cell' . $debithidden
-            . '" data-label="' . get_string('amount', 'qtype_accounting') . '">';
+        $html .= \html_writer::end_tag('td');
+        $html .= html_writer::start_tag('td', [
+            'class' => 'qtype_accounting-data-cell' . $debithidden,
+            'data-label' => get_string('amount', 'qtype_accounting'),
+        ]);
         $html .= $this->render_amount_field(
             $options->readonly,
             $vals['debitamount'],
@@ -408,13 +418,15 @@ class qtype_accounting_renderer extends qtype_renderer {
             $feedbackclasses['debitamount'] ?? '',
             $numberformat
         );
-        $html .= '</td>';
+        $html .= \html_writer::end_tag('td');
         // The "an" label cell - contains debit delete button if editable.
-        $html .= '<td class="qtype_accounting-label-cell' . $debithidden . '" data-section="credit">';
+        $html .= \html_writer::start_tag('td', [
+            'class' => 'qtype_accounting-label-cell' . $debithidden, 'data-section' => 'credit',
+        ]);
         if ($showdelete) {
             $html .= \qtype_accounting\entry_helper::render_delete_button('debit', $index, 'data-entry');
         }
-        $html .= '</td>';
+        $html .= \html_writer::end_tag('td');
         return $html;
     }
 
@@ -423,7 +435,7 @@ class qtype_accounting_renderer extends qtype_renderer {
      *
      * @param question_attempt $qa The question attempt.
      * @param question_display_options $options Display options (readonly flag).
-     * @param int $index Entry row index.
+     * @param int|string $index Entry row index.
      * @param array $vals Pre-extracted values keyed by 'debitaccount' / 'debitamount' / 'creditaccount' / 'creditamount'.
      * @param array $creditaccounts Accounts available in the credit dropdown.
      * @param array $hiddenclasses Hidden-cell classes from entry_helper::get_hidden_classes().
@@ -435,7 +447,7 @@ class qtype_accounting_renderer extends qtype_renderer {
     protected function render_credit_cells(
         question_attempt $qa,
         question_display_options $options,
-        int $index,
+        $index,
         array $vals,
         array $creditaccounts,
         array $hiddenclasses,
@@ -444,8 +456,10 @@ class qtype_accounting_renderer extends qtype_renderer {
         array $feedbackclasses
     ): string {
         $credithidden = $hiddenclasses['credit'];
-        $html = '<td class="qtype_accounting-data-cell' . $credithidden
-            . '" data-label="' . get_string('account', 'qtype_accounting') . '">';
+        $html = html_writer::start_tag('td', [
+            'class' => 'qtype_accounting-data-cell' . $credithidden,
+            'data-label' => get_string('account', 'qtype_accounting'),
+        ]);
         $html .= $this->render_account_field(
             $options->readonly,
             $vals['creditaccount'],
@@ -453,9 +467,11 @@ class qtype_accounting_renderer extends qtype_renderer {
             $creditaccounts,
             $feedbackclasses['creditaccount'] ?? ''
         );
-        $html .= '</td>';
-        $html .= '<td class="qtype_accounting-data-cell' . $credithidden
-            . '" data-label="' . get_string('amount', 'qtype_accounting') . '">';
+        $html .= \html_writer::end_tag('td');
+        $html .= html_writer::start_tag('td', [
+            'class' => 'qtype_accounting-data-cell' . $credithidden,
+            'data-label' => get_string('amount', 'qtype_accounting'),
+        ]);
         $html .= $this->render_amount_field(
             $options->readonly,
             $vals['creditamount'],
@@ -463,11 +479,11 @@ class qtype_accounting_renderer extends qtype_renderer {
             $feedbackclasses['creditamount'] ?? '',
             $numberformat
         );
-        $html .= '</td>';
+        $html .= \html_writer::end_tag('td');
         if ($showdelete) {
-            $html .= '<td class="qtype_accounting-actions-cell' . $credithidden . '">';
+            $html .= \html_writer::start_tag('td', ['class' => 'qtype_accounting-actions-cell' . $credithidden]);
             $html .= \qtype_accounting\entry_helper::render_delete_button('credit', $index, 'data-entry');
-            $html .= '</td>';
+            $html .= \html_writer::end_tag('td');
         }
         return $html;
     }
@@ -492,70 +508,22 @@ class qtype_accounting_renderer extends qtype_renderer {
         array $accounts,
         string $templateid
     ): string {
-        $placeholder = '__INDEX__';
-
-        $debitaccountname = $qa->get_qt_field_name("debitaccount_{$placeholder}");
-        $debitamountname = $qa->get_qt_field_name("debitamount_{$placeholder}");
-        $creditaccountname = $qa->get_qt_field_name("creditaccount_{$placeholder}");
-        $creditamountname = $qa->get_qt_field_name("creditamount_{$placeholder}");
-
-        $numberformat = $question->numberformat ?? 'de';
-        $amountplaceholder = ($numberformat === 'us') ? '0.00' : '0,00';
-        $accountlabel = get_string('account', 'qtype_accounting');
-        $amountlabel = get_string('amount', 'qtype_accounting');
-        $selectplaceholder = get_string('selectaccount', 'qtype_accounting');
-
-        // Build account options HTML.
-        $optionshtml = \qtype_accounting\entry_helper::build_account_options($accounts, '', $selectplaceholder);
-
-        $html = '<template id="' . $templateid . '">';
-        $html .= '<tr class="qtype_accounting-entry-row" data-entry="' . $placeholder . '" data-entry-type="both" style="">';
-
-        // Per label cell.
-        $html .= '<td class="qtype_accounting-label-cell" data-section="debit"></td>';
-
-        // Debit (Debit) account cell.
-        $html .= '<td class="qtype_accounting-data-cell" data-label="' . $accountlabel . '">';
-        $html .= '<select name="' . $debitaccountname . '" id="' . $debitaccountname . '" ' .
-            'class="form-control qtype_accounting-account-select" ' .
-            'aria-label="' . $accountlabel . '">' . $optionshtml . '</select>';
-        $html .= '</td>';
-
-        // Debit (Debit) amount cell.
-        $html .= '<td class="qtype_accounting-data-cell" data-label="' . $amountlabel . '">';
-        $html .= '<input type="text" name="' . $debitamountname . '" id="' . $debitamountname . '" value="" ' .
-            'class="form-control qtype_accounting-amount-input" placeholder="' . $amountplaceholder . '" ' .
-            'inputmode="decimal" aria-label="' . $amountlabel . '">';
-        $html .= '</td>';
-
-        // The "an" label cell — contains debit delete button.
-        $html .= '<td class="qtype_accounting-label-cell" data-section="credit">';
-        $html .= \qtype_accounting\entry_helper::render_delete_button('debit', $placeholder, 'data-entry');
-        $html .= '</td>';
-
-        // Credit (Credit) account cell.
-        $html .= '<td class="qtype_accounting-data-cell" data-label="' . $accountlabel . '">';
-        $html .= '<select name="' . $creditaccountname . '" id="' . $creditaccountname . '" ' .
-            'class="form-control qtype_accounting-account-select" ' .
-            'aria-label="' . $accountlabel . '">' . $optionshtml . '</select>';
-        $html .= '</td>';
-
-        // Credit (Credit) amount cell.
-        $html .= '<td class="qtype_accounting-data-cell" data-label="' . $amountlabel . '">';
-        $html .= '<input type="text" name="' . $creditamountname . '" id="' . $creditamountname . '" value="" ' .
-            'class="form-control qtype_accounting-amount-input" placeholder="' . $amountplaceholder . '" ' .
-            'inputmode="decimal" aria-label="' . $amountlabel . '">';
-        $html .= '</td>';
-
-        // Credit delete button cell.
-        $html .= '<td class="qtype_accounting-actions-cell">';
-        $html .= \qtype_accounting\entry_helper::render_delete_button('credit', $placeholder, 'data-entry');
-        $html .= '</td>';
-
-        $html .= '</tr>';
-        $html .= '</template>';
-
-        return $html;
+        $options = new question_display_options();
+        $options->readonly = false;
+        return html_writer::tag(
+            'template',
+            $this->render_entry_row(
+                $qa,
+                $options,
+                '__INDEX__',
+                [],
+                ['debit' => $accounts, 'credit' => $accounts],
+                $question,
+                false,
+                true
+            ),
+            ['id' => $templateid]
+        );
     }
 
     /**
@@ -585,17 +553,19 @@ class qtype_accounting_renderer extends qtype_renderer {
             if (!empty($feedbackclass)) {
                 $spanclass .= ' ' . $feedbackclass;
             }
-            $html = '<span class="' . $spanclass . '">' . s($displayval) . '</span>';
-            $html .= '<input type="hidden" name="' . $name . '" value="' . s($value) . '">';
+            $html = html_writer::span(s($displayval), $spanclass);
+            $html .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => $name, 'value' => $value]);
             return $html;
         }
 
         // If no accounts are available, render a text input instead of a dropdown.
         if (empty($accounts)) {
-            return '<input type="text" name="' . $name . '" id="' . $name . '" value="' . s($value) . '" ' .
-                   'class="form-control qtype_accounting-account-input" ' .
-                   'placeholder="' . get_string('enteraccount', 'qtype_accounting') . '" ' .
-                   'aria-label="' . get_string('account', 'qtype_accounting') . '">';
+            return html_writer::empty_tag('input', [
+                'type' => 'text', 'name' => $name, 'id' => $name, 'value' => $value,
+                'class' => 'form-control qtype_accounting-account-input',
+                'placeholder' => get_string('enteraccount', 'qtype_accounting'),
+                'aria-label' => get_string('account', 'qtype_accounting'),
+            ]);
         }
 
         return $this->render_account_select($name, $value, $accounts, get_string('selectaccount', 'qtype_accounting'));
@@ -624,19 +594,21 @@ class qtype_accounting_renderer extends qtype_renderer {
                 $spanclass .= ' ' . $feedbackclass;
             }
             // Parse the amount (handles both German and US formats) then format for display.
+            $spanclass .= ' qtype_accounting-amount-display';
             $parsedvalue = \qtype_accounting\amount_helper::parse_amount($value, $numberformat);
             $displayval = $this->format_amount_display($parsedvalue, $numberformat);
-            $html = '<span class="' . $spanclass . '" style="text-align: end;">' . s($displayval) . '</span>';
-            $html .= '<input type="hidden" name="' . $name . '" value="' . s($value) . '">';
+            $html = html_writer::span(s($displayval), $spanclass);
+            $html .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => $name, 'value' => $value]);
             return $html;
         }
 
         // Use type="text" to allow formatted numbers with thousand separators.
         $placeholder = ($numberformat === 'us') ? '0.00' : '0,00';
-        return '<input type="text" name="' . $name . '" id="' . $name . '" value="' . s($value) . '" ' .
-               'class="form-control qtype_accounting-amount-input" placeholder="' . $placeholder . '" ' .
-               'inputmode="decimal" ' .
-               'aria-label="' . get_string('amount', 'qtype_accounting') . '">';
+        return html_writer::empty_tag('input', [
+            'type' => 'text', 'name' => $name, 'id' => $name, 'value' => $value,
+            'class' => 'form-control qtype_accounting-amount-input', 'placeholder' => $placeholder,
+            'inputmode' => 'decimal', 'aria-label' => get_string('amount', 'qtype_accounting'),
+        ]);
     }
 
     /**
@@ -650,10 +622,10 @@ class qtype_accounting_renderer extends qtype_renderer {
      */
     protected function render_account_select(string $name, string $selected, array $accounts, string $placeholder): string {
         $optionshtml = \qtype_accounting\entry_helper::build_account_options($accounts, $selected, $placeholder);
-        return '<select name="' . $name . '" id="' . $name . '" ' .
-            'class="form-control qtype_accounting-account-select" ' .
-            'aria-label="' . get_string('account', 'qtype_accounting') . '">' .
-            $optionshtml . '</select>';
+        return html_writer::tag('select', $optionshtml, [
+            'name' => $name, 'id' => $name, 'class' => 'form-control qtype_accounting-account-select',
+            'aria-label' => get_string('account', 'qtype_accounting'),
+        ]);
     }
 
     /**
@@ -689,7 +661,7 @@ class qtype_accounting_renderer extends qtype_renderer {
     }
 
     /**
-     * Legacy stub kept until extension points are cleaned up.
+     * Format an amount for the student response control.
      *
      * @param float $amount The amount value.
      * @param string $format The number format: 'de' for German (1.234,56) or 'us' for US (1,234.56).
@@ -699,10 +671,6 @@ class qtype_accounting_renderer extends qtype_renderer {
         if (abs($amount) < 0.01) {
             return '';
         }
-        if ($format === 'us') {
-            return number_format($amount, 2, '.', ',');
-        }
-        // Default: German/EU format.
-        return number_format($amount, 2, ',', '.');
+        return \qtype_accounting\amount_helper::format_amount($amount, $format);
     }
 }

@@ -46,7 +46,7 @@ class qtype_accounting_edit_form extends question_edit_form {
         $this->add_entries_section($mform, $effectiveformat);
 
         // Add the standard "Multiple tries" section (penalty and hints).
-        $this->add_interactive_settings();
+        $this->add_interactive_settings(true, true);
     }
 
     /**
@@ -206,7 +206,7 @@ class qtype_accounting_edit_form extends question_edit_form {
         $currentchartid = $this->resolve_current_chart_id($DB);
 
         // Build account options for select elements - only include accounts from the selected chart.
-        $debitaccountoptions = ['' => get_string('noaccountselected', 'qtype_accounting')];
+        $debitaccountoptions = ['' => get_string('selectaccount', 'qtype_accounting')];
         $creditaccountoptions = ['' => get_string('selectaccount', 'qtype_accounting')];
         if ($currentchartid > 0 && isset($allaccounts[$currentchartid])) {
             $debitaccountoptions = $debitaccountoptions + $allaccounts[$currentchartid];
@@ -218,6 +218,21 @@ class qtype_accounting_edit_form extends question_edit_form {
             : [];
         // Default to 2 entries for new questions, otherwise use the number of existing entries.
         $entrycount = count($existingentries) > 0 ? count($existingentries) : 2;
+        $requestedrows = optional_param('accounting_rowcount', $entrycount, PARAM_INT);
+        $entrycount = max($entrycount, min(\qtype_accounting\entry_helper::MAX_ENTRIES, max(1, $requestedrows)));
+        $mform->addElement('hidden', 'accounting_js', 0);
+        $mform->setType('accounting_js', PARAM_BOOL);
+        $mform->addElement('hidden', 'accounting_displayformat', $effectiveformat);
+        $mform->setType('accounting_displayformat', PARAM_ALPHA);
+        $mform->addGroup([
+            $mform->createElement('text', 'accounting_rowcount', get_string('entryrows', 'qtype_accounting'), [
+                'aria-label' => get_string('entryrows', 'qtype_accounting'), 'size' => 4,
+            ]),
+            $mform->createElement('submit', 'refreshentries', get_string('refreshentries', 'qtype_accounting')),
+        ], 'accountingservercontrols', get_string('entryrows', 'qtype_accounting'), ' ', false);
+        $mform->setType('accounting_rowcount', PARAM_INT);
+        $mform->setDefault('accounting_rowcount', $entrycount);
+        $mform->registerNoSubmitButton('refreshentries');
 
         $table = $mform->createElement('html', $this->build_entries_table(
             $debitaccountoptions,
@@ -229,8 +244,12 @@ class qtype_accounting_edit_form extends question_edit_form {
         $table->setName('entrytable');
         $mform->addElement($table);
 
-        // Hidden fields for form element registration; populated via JS on submit.
-        for ($i = 0; $i < 20; $i++) {
+        // Register every submitted index, including sparse indices after repeated add/delete operations.
+        $indices = range(0, $entrycount - 1);
+        foreach (['debitaccount', 'creditaccount', 'debitaccount_display', 'creditaccount_display'] as $field) {
+            $indices = array_merge($indices, array_keys(optional_param_array($field, [], PARAM_INT)));
+        }
+        foreach (array_unique($indices) as $i) {
             $mform->addElement('hidden', "debitaccount[$i]", '');
             $mform->setType("debitaccount[$i]", PARAM_RAW);
             $mform->addElement('hidden', "debitamount[$i]", '');
@@ -247,6 +266,12 @@ class qtype_accounting_edit_form extends question_edit_form {
             $mform->setType("weight_creditaccount[$i]", PARAM_INT);
             $mform->addElement('hidden', "weight_creditamount[$i]", '1');
             $mform->setType("weight_creditamount[$i]", PARAM_INT);
+            $fields = ['debitaccount', 'debitamount', 'creditaccount', 'creditamount',
+                'weight_debitaccount', 'weight_debitamount', 'weight_creditaccount', 'weight_creditamount'];
+            foreach ($fields as $field) {
+                // Without JavaScript, submit display controls only; the fallback normalises them.
+                $mform->getElement($field . '[' . $i . ']')->updateAttributes(['disabled' => 'disabled']);
+            }
         }
 
         $coursecontext = $this->context->get_course_context(false);
@@ -256,6 +281,7 @@ class qtype_accounting_edit_form extends question_edit_form {
             'entries' => $existingentries,
             'courseId' => $coursecontext ? $coursecontext->instanceid : 0,
             'numberFormat' => $effectiveformat,
+            'maxEntries' => max(\qtype_accounting\entry_helper::MAX_ENTRIES, $entrycount),
         ];
         $config = $mform->createElement('html', '<script type="application/json" id="qtype_accounting-editform-data">' .
             json_encode($jsdata, JSON_HEX_TAG | JSON_HEX_AMP) . '</script>');
@@ -265,6 +291,7 @@ class qtype_accounting_edit_form extends question_edit_form {
         $PAGE->requires->string_for_js('err_balancemismatch', 'qtype_accounting');
         $PAGE->requires->string_for_js('err_debitaccountrequired', 'qtype_accounting');
         $PAGE->requires->string_for_js('err_creditaccountrequired', 'qtype_accounting');
+        $PAGE->requires->strings_for_js(['err_debitamountrequired', 'err_creditamountrequired'], 'qtype_accounting');
         $PAGE->requires->strings_for_js([
             'refreshchartsdone', 'refreshchartsfailed', 'refreshchartsmissing', 'err_accountunavailable',
         ], 'qtype_accounting');
@@ -285,6 +312,34 @@ class qtype_accounting_edit_form extends question_edit_form {
         $this->update_submitted_entries($mform->getSubmitValues());
     }
 
+    // phpcs:disable PSR2.Methods.MethodDeclaration.Underscore -- Moodle lifecycle API.
+    /**
+     * Support ordinary HTML submissions when JavaScript is disabled or fails to load.
+     *
+     * @param string $method Form submission method.
+     */
+    public function _process_submission($method) {
+        parent::_process_submission($method);
+        $data = $this->_form->getSubmitValues();
+        if (!$data || !empty($data['accounting_js']) || !isset($data['debitaccount_display'])) {
+            return;
+        }
+        $format = $data['accounting_displayformat'] ?? $data['numberformat'] ?? 'de';
+        foreach (['debit', 'credit'] as $side) {
+            $data[$side . 'account'] = $data[$side . 'account_display'] ?? [];
+            $data[$side . 'amount'] = array_map(static function ($value) use ($format) {
+                return trim($value) === '' ? '' : (string)\qtype_accounting\amount_helper::parse_amount($value, $format);
+            }, $data[$side . 'amount_display'] ?? []);
+            foreach (['account', 'amount'] as $field) {
+                $name = 'weight_' . $side . $field;
+                $data[$name] = $data[$name . '_display'] ?? [];
+            }
+        }
+        $data['accounting_displayformat'] = $data['numberformat'] ?? 'de';
+        $this->_form->updateSubmission($data, $_FILES);
+    }
+    // phpcs:enable PSR2.Methods.MethodDeclaration.Underscore
+
     /**
      * Render submitted controls with field errors using Moodle's normal error styling.
      *
@@ -299,9 +354,9 @@ class qtype_accounting_edit_form extends question_edit_form {
         $allaccounts = $this->get_all_accounts_by_chart();
         $accounts = $allaccounts[$chartid] ?? [];
         $mform->getElement('entrytable')->setValue($this->build_entries_table(
-            ['' => get_string('noaccountselected', 'qtype_accounting')] + $accounts,
             ['' => get_string('selectaccount', 'qtype_accounting')] + $accounts,
-            max(1, count($entries)),
+            ['' => get_string('selectaccount', 'qtype_accounting')] + $accounts,
+            max(1, count($entries), min(\qtype_accounting\entry_helper::MAX_ENTRIES, (int)($data['accounting_rowcount'] ?? 0))),
             $entries,
             $format
         ));
@@ -312,6 +367,7 @@ class qtype_accounting_edit_form extends question_edit_form {
             'entries' => $entries,
             'courseId' => $coursecontext ? $coursecontext->instanceid : 0,
             'numberFormat' => $format,
+            'maxEntries' => max(\qtype_accounting\entry_helper::MAX_ENTRIES, count($entries)),
         ];
         $mform->getElement('entryconfig')->setValue(
             '<script type="application/json" id="qtype_accounting-editform-data">' .
@@ -431,6 +487,7 @@ class qtype_accounting_edit_form extends question_edit_form {
      */
     protected function data_preprocessing($question) {
         $question = parent::data_preprocessing($question);
+        $question = $this->data_preprocessing_hints($question, true, true);
         if (!empty($question->options)) {
             $this->populate_options_fields($question);
             $this->populate_entry_fields($question);
@@ -485,7 +542,9 @@ class qtype_accounting_edit_form extends question_edit_form {
      * @param object $question The question being preprocessed (modified in place).
      */
     protected function populate_entry_fields(object $question): void {
-        if (empty($question->options->entries)) {
+        // Saved entries are initial defaults only. On submission, absent indices
+        // represent deleted rows and must not be restored by QuickForm defaults.
+        if ($this->_form->isSubmitted() || empty($question->options->entries)) {
             return;
         }
         $i = 0;

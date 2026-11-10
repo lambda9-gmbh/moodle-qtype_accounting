@@ -32,6 +32,137 @@ require_once($CFG->dirroot . '/backup/tests/backup_restore_base_testcase.php');
  */
 final class backup_test extends \core_backup_backup_restore_base_testcase {
     /**
+     * Same-name charts with different contents must remain distinct, even for subset accounts.
+     */
+    public function test_restore_preserves_different_same_name_charts(): void {
+        global $DB;
+        $source = $this->getDataGenerator()->create_course();
+        $context = \context_course::instance($source->id);
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category(['contextid' => $context->id]);
+        foreach ([['Bank', 'Sales'], ['Bank']] as $names) {
+            $chart = chart_manager::create_chart('Same name', $context->id);
+            $ids = [];
+            foreach ($names as $i => $name) {
+                $ids[] = account_manager::add($chart, $name, $i);
+            }
+            $generator->create_question('accounting', null, [
+                'category' => $category->id, 'chartofaccountsid' => $chart,
+                'debitaccount' => [$ids[0]], 'creditaccount' => [end($ids)],
+                'debitamount' => [100], 'creditamount' => [100],
+            ]);
+        }
+        $target = $this->getDataGenerator()->create_course();
+        $this->perform_restore($this->perform_backup($source), $target);
+        $charts = $DB->get_records('qtype_accounting_charts', [
+            'contextid' => \context_course::instance($target->id)->id, 'name' => 'Same name',
+        ]);
+        $this->assertCount(2, $charts);
+        $sizes = array_map(static fn($chart) => count(account_manager::get_for_chart($chart->id)), $charts);
+        sort($sizes);
+        $this->assertSame([1, 2], $sizes);
+    }
+
+    /**
+     * Backups with attempts must remap answers as well as the correct solution.
+     */
+    public function test_restore_recodes_student_attempts(): void {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/mod/quiz/locallib.php');
+        $course = $this->getDataGenerator()->create_course();
+        $student = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($student->id, $course->id);
+        $context = \context_course::instance($course->id);
+        $chartid = chart_manager::create_chart('Attempt chart', $context->id);
+        $bank = account_manager::add($chartid, 'Bank');
+        $sales = account_manager::add($chartid, 'Sales');
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category(['contextid' => $context->id]);
+        $question = $generator->create_question('accounting', null, [
+            'category' => $category->id, 'chartofaccountsid' => $chartid,
+            'debitaccount' => [$bank], 'creditaccount' => [$sales], 'debitamount' => [100.50], 'creditamount' => [100.50],
+        ]);
+        $quiz = $this->getDataGenerator()->create_module('quiz', ['course' => $course->id]);
+        quiz_add_quiz_question($question->id, $quiz);
+        $quiz->sumgrades = 1;
+        $DB->set_field('quiz', 'sumgrades', 1, ['id' => $quiz->id]);
+        $quizobj = \mod_quiz\quiz_settings::create($quiz->id, $student->id);
+        $attempt = quiz_create_attempt($quizobj, 1, false, time(), false, $student->id);
+        $usage = \question_engine::make_questions_usage_by_activity('mod_quiz', \context_module::instance($quiz->cmid));
+        $usage->set_preferred_behaviour('deferredfeedback');
+        $loaded = \question_bank::load_question($question->id);
+        $usage->add_question($loaded);
+        $usage->start_all_questions();
+        $usage->process_action(1, $loaded->get_correct_response());
+        $usage->finish_all_questions();
+        \question_engine::save_questions_usage_by_activity($usage);
+        $attempt->uniqueid = $usage->get_id();
+        $attempt->state = \mod_quiz\quiz_attempt::FINISHED;
+        $attempt->timefinish = time();
+        $DB->insert_record('quiz_attempts', $attempt);
+
+        $target = $this->getDataGenerator()->create_course();
+        // Repeating into the same target exercises response mapping for an existing question.
+        for ($restore = 0; $restore < 2; $restore++) {
+            get_file_storage()->delete_area_files($context->id, 'backup', 'course');
+            $backupid = $this->perform_backup($course);
+            $this->perform_restore($backupid, $target);
+            $quizzes = $DB->get_records('quiz', ['course' => $target->id], 'id DESC');
+            $restoredquiz = reset($quizzes);
+            $restoredattempt = $DB->get_record('quiz_attempts', ['quiz' => $restoredquiz->id], '*', MUST_EXIST);
+            $restoredusage = \question_engine::load_questions_usage_by_activity($restoredattempt->uniqueid);
+            $restoredquestion = $restoredusage->get_question(1);
+            $response = $restoredusage->get_question_attempt(1)->get_last_qt_data();
+            if ((int)$restoredquestion->id !== (int)$question->id) {
+                $this->assertNotEquals($bank, $response['debitaccount_0']);
+                $this->assertNotEquals($sales, $response['creditaccount_0']);
+            } else {
+                $this->assertEquals($bank, $response['debitaccount_0']);
+                $this->assertEquals($sales, $response['creditaccount_0']);
+            }
+            $this->assertEquals(1.0, $restoredquestion->grade_response($response)[0]);
+            $this->assertEquals($restoredquestion->chartofaccountsid, $DB->get_field('qtype_accounting_accounts', 'chartid', [
+                'id' => $response['debitaccount_0'],
+            ]));
+        }
+        $this->assertEquals(1, $DB->count_records('qtype_accounting_charts', [
+            'contextid' => \context_course::instance($target->id)->id,
+        ]));
+    }
+
+    /**
+     * A question without a chart must not inherit the preceding question's restore state.
+     */
+    public function test_restore_question_without_chart(): void {
+        global $DB;
+        $course = $this->getDataGenerator()->create_course();
+        $context = \context_course::instance($course->id);
+        $chartid = chart_manager::create_chart('Chart before empty question', $context->id);
+        $bank = account_manager::add($chartid, 'Bank');
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category(['contextid' => $context->id]);
+        foreach (['With chart' => $chartid, 'Without chart' => 0] as $name => $id) {
+            $generator->create_question('accounting', null, [
+                'category' => $category->id, 'name' => $name, 'chartofaccountsid' => $id,
+                'debitaccount' => [$id ? $bank : 0], 'creditaccount' => [0],
+            ]);
+        }
+        $target = $this->getDataGenerator()->create_course();
+        $this->perform_restore($this->perform_backup($course), $target);
+        $options = $DB->get_records_sql(
+            "SELECT o.* FROM {qtype_accounting_options} o
+               JOIN {question} q ON q.id = o.questionid
+               JOIN {question_versions} v ON v.questionid = q.id
+               JOIN {question_bank_entries} b ON b.id = v.questionbankentryid
+               JOIN {question_categories} c ON c.id = b.questioncategoryid
+              WHERE c.contextid = :context AND q.name = :name",
+            ['context' => \context_course::instance($target->id)->id, 'name' => 'Without chart']
+        );
+        $this->assertCount(1, $options);
+        $this->assertEquals(0, reset($options)->chartofaccountsid);
+    }
+
+    /**
      * Restored entries must reference accounts in the target chart, including when reusing a chart.
      *
      * @dataProvider chart_reuse_provider

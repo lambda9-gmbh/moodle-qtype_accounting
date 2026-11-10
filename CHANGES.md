@@ -8,16 +8,24 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 ## [Unreleased]
 
 ### Added
+- GitHub Actions checks for Moodle 4.5 and 5.1 on MariaDB and PostgreSQL, using a Nix development shell. Added number-format, restore-attempt, hint-option, no-JavaScript form, and atomic-import regressions.
+- Working interactive hint options for clearing incorrect fields and showing correct parts, random-question selection, and response-analysis classifications.
 - Native Android testing helper for the official Moodle 5.2.1 APK, with a dedicated emulator, local server connection, and DE/US sample quizzes.
 - Moodle App question handler with debit/credit entry cards, multiple entries, local-answer restoration, explicit clearing of deleted entries, and read-only review. Deployment requires a Moodle upgrade/cache purge and refreshing the site's app session.
 - Chart management opens in a desktop overlay from the question editor and automatically refreshes chart and account options on close while preserving unsaved question entries. The overlay protects unfinished chart edits and waits for saves to complete.
 - Charts of accounts can now be created directly in Moodle by entering a name, then adding accounts in the existing editor without uploading a CSV file.
 
 ### Fixed
+- Generated correct responses and response summaries now respect German and US number formats. German input such as `1.000` is parsed as one thousand; formatting is isolated per question.
+- Added and deleted entry rows no longer disappear beyond index 19. Browser and app answers share a 100-row limit, deleted student indices are reused for autosave, and larger imported solutions remain readable.
+- Used accounts can be renamed while retaining their IDs. Chart and account deletion requires explicit confirmation with warnings about existing questions, grading, and saved attempts; account warnings list affected questions. Duplicate and overlong names produce readable errors. Imports and question saves roll back completely on failure.
+- Restore now resets chart state for every question and recodes student attempt account references. Legacy restore and migration reads and chart counts are batched.
+- Question editing also works without JavaScript through the chart/row refresh controls. Both amount sides follow the same account-selection rules, controls have accessible labels, and rendering uses Moodle's HTML writer and theme-aware color fallbacks.
+- Nested unsaved-change confirmations no longer consume the chart overlay's final refresh callback.
 - Moodle App attempts now keep at least one debit entry and one credit entry. Delete buttons are shown only when that side has multiple visible entries; the controller also prevents removing the last entry or clearing its values.
 - Moodle App entry buttons now bind to the compiled component. Ionic account/amount controls follow the app theme, and persistent native named fields preserve entered and added rows when checking or submitting answers, including explicit clearing of deleted entries. Added Angular DOM regression tests using Moodle App 5.2.1's Angular version.
 - Cancelling question editing now skips account and balance validation, allowing incomplete or unbalanced entries to be discarded without saving.
-- Chart deletion now opens a confirmation modal naming the chart and warning that all its accounts will be removed and questions using it will no longer work correctly. Deletion requires an explicit "Delete chart" confirmation submitted by POST, with a confirmation page available when JavaScript is disabled.
+- Chart deletion opens a confirmation modal naming the chart. Deletion requires an explicit "Delete chart" confirmation submitted by POST, with a confirmation page available when JavaScript is disabled.
 - Question editing now shows missing solution amount errors beside the affected fields with Moodle's standard validation styling and preserves the submitted chart, accounts, amounts, and weights after failed validation. Normalised decimal amounts are validated consistently in both number formats.
 - Removed N+1 database reads from question-form account loading and chart matching while preserving sorting and matching results.
 - Added behavior and query-count regression tests for those two paths, plus behavior coverage for the unchanged legacy account-name migration.

@@ -39,9 +39,12 @@ let chartSelect = null;
 let numberFormatSelect = null;
 let initialChartId = '0';
 let unavailableMessage = '';
+let editForm = null;
+let previousNumberFormat = 'de';
+let maxEntries = 100;
 
 // CSS selector for entry rows in the edit form.
-var ROW_SELECTOR = '.qtype_accounting-entry-row';
+let ROW_SELECTOR = '.qtype_accounting-entry-row';
 
 /**
  * Initialize the edit form enhancements.
@@ -50,6 +53,10 @@ var ROW_SELECTOR = '.qtype_accounting-entry-row';
 function init() {
     // Read configuration from script tag (preferred) or data attribute (fallback).
     const dataElement = document.getElementById('qtype_accounting-editform-data');
+    editForm = dataElement ? dataElement.closest('form') : null;
+    if (!editForm) {
+        return;
+    }
     let config = {};
     if (dataElement) {
         try {
@@ -64,18 +71,30 @@ function init() {
     }
 
     accountsByChart = config.accounts || {};
+    maxEntries = config.maxEntries || 100;
+    editForm.elements.accounting_js.value = '1';
+    editForm.querySelectorAll('input[type="hidden"]').forEach(input => {
+        if (/^(?:debit|credit|weight_).*\[\d+\]$/.test(input.name)) {
+            input.disabled = false;
+        }
+    });
+    const serverControls = editForm.querySelector('#fgroup_id_accountingservercontrols');
+    if (serverControls) {
+        serverControls.hidden = true;
+    }
+    editForm.querySelector('.qtype_accounting-edit-table').dataset.enhanced = 'true';
     initialChartId = String(config.chartId || '0');
 
     // Find chart select by ID first, then fall back to name (for Moodle 4.x compatibility).
     chartSelect = document.getElementById('id_chartofaccountsid');
     if (!chartSelect) {
-        chartSelect = document.querySelector('select[name="chartofaccountsid"]');
+        chartSelect = editForm.querySelector('select[name="chartofaccountsid"]');
     }
 
     // Find number format select.
     numberFormatSelect = document.getElementById('id_numberformat');
     if (!numberFormatSelect) {
-        numberFormatSelect = document.querySelector('select[name="numberformat"]');
+        numberFormatSelect = editForm.querySelector('select[name="numberformat"]');
     }
 
     // Initial setup - populate dropdowns based on selected chart.
@@ -83,6 +102,7 @@ function init() {
         chartSelect.value = initialChartId;
     }
     lastChartId = chartSelect ? chartSelect.value : '0';
+    previousNumberFormat = getNumberFormat();
 
     // Calculate next entry index from existing rows.
     calculateNextEntryIndex();
@@ -124,9 +144,9 @@ function init() {
  * Calculate the next entry index from existing rows.
  */
 function calculateNextEntryIndex() {
-    const existingRows = document.querySelectorAll(ROW_SELECTOR);
+    const existingRows = editForm.querySelectorAll(ROW_SELECTOR);
     let maxIndex = -1;
-    existingRows.forEach(function (row) {
+    existingRows.forEach(function(row) {
         const index = parseInt(row.getAttribute('data-entry-index'), 10);
         if (!isNaN(index) && index > maxIndex) {
             maxIndex = index;
@@ -140,7 +160,7 @@ function calculateNextEntryIndex() {
  */
 function setupChartChangeHandler() {
     if (chartSelect) {
-        chartSelect.addEventListener('change', function () {
+        chartSelect.addEventListener('change', function() {
             checkOptionAvailability(chartSelect);
             lastChartId = null; // Reset to force rebuild.
             updateAccountDropdowns(true);
@@ -198,7 +218,7 @@ function createChartRefreshCallback(courseId) {
             accountsByChart = freshAccounts;
             updateAccountDropdowns(true, true);
             syncAllDisplayToHidden();
-            const missing = document.querySelector('option[data-unavailable="true"]:checked');
+            const missing = editForm.querySelector('option[data-unavailable="true"]:checked');
             status.textContent = ' ' + messages[missing ? 1 : 0];
         } catch (error) {
             Log.error('Failed to refresh accounting charts', error);
@@ -232,22 +252,24 @@ function checkOptionAvailability(select) {
  */
 function setupNumberFormatChangeHandler() {
     if (numberFormatSelect) {
-        numberFormatSelect.addEventListener('change', function () {
-            var fmt = numberFormatSelect.value || 'de';
-            var placeholder = (fmt === 'us') ? '0.00' : '0,00';
+        numberFormatSelect.addEventListener('change', function() {
+            let fmt = numberFormatSelect.value || 'de';
+            let placeholder = (fmt === 'us') ? '0.00' : '0,00';
 
             // Reformat all amount fields.
-            var amountFields = document.querySelectorAll('.qtype_accounting-debitamount, .qtype_accounting-creditamount');
-            amountFields.forEach(function (field) {
+            let amountFields = editForm.querySelectorAll('.qtype_accounting-debitamount, .qtype_accounting-creditamount');
+            amountFields.forEach(function(field) {
                 // Update placeholder.
                 field.placeholder = placeholder;
                 // Reformat current value if present.
                 if (field.value) {
-                    var formatted = EntryUtils.formatNumber(field.value, fmt, 2);
+                    const plain = Number(EntryUtils.parseNumber(field.value, previousNumberFormat));
+                    const formatted = EntryUtils.formatNumber(plain, fmt, 2);
                     field.value = formatted;
                 }
             });
 
+            previousNumberFormat = fmt;
             // Sync to hidden fields after reformatting.
             syncAllDisplayToHidden();
         });
@@ -258,7 +280,7 @@ function setupNumberFormatChangeHandler() {
  * Setup event delegation for debitaccount and creditaccount changes.
  */
 function setupDebitaccountChangeHandler() {
-    document.addEventListener('change', function (e) {
+    editForm.addEventListener('change', function(e) {
         // Guard against events where target doesn't have classList.
         if (!e.target || !e.target.classList) {
             return;
@@ -274,6 +296,7 @@ function setupDebitaccountChangeHandler() {
         if (e.target.classList.contains('qtype_accounting-creditaccount')) {
             checkOptionAvailability(e.target);
             const index = e.target.getAttribute('data-index');
+            updateDebitamountState(index);
             updateWeightStates(index);
             syncDisplayToHidden(index);
         }
@@ -285,7 +308,7 @@ function setupDebitaccountChangeHandler() {
     });
 
     // Sync amount fields on input (not just change).
-    document.addEventListener('input', function (e) {
+    editForm.addEventListener('input', function(e) {
         // Guard against events where target doesn't have classList.
         if (!e.target || !e.target.classList) {
             return;
@@ -299,7 +322,7 @@ function setupDebitaccountChangeHandler() {
     });
 
     // Format amount fields on blur (when user leaves the field).
-    document.addEventListener('blur', function (e) {
+    editForm.addEventListener('blur', function(e) {
         // Guard against events where target doesn't have classList.
         if (!e.target || !e.target.classList) {
             return;
@@ -325,14 +348,14 @@ function setupAddEntryHandler() {
     const addCreditButton = document.getElementById('qtype_accounting-add-credit-entry');
 
     if (addDebitButton) {
-        addDebitButton.addEventListener('click', function (e) {
+        addDebitButton.addEventListener('click', function(e) {
             e.preventDefault();
             addEntryRow('debit');
         });
     }
 
     if (addCreditButton) {
-        addCreditButton.addEventListener('click', function (e) {
+        addCreditButton.addEventListener('click', function(e) {
             e.preventDefault();
             addEntryRow('credit');
         });
@@ -343,7 +366,7 @@ function setupAddEntryHandler() {
  * Setup delete entry button handlers (event delegation).
  */
 function setupDeleteEntryHandler() {
-    document.addEventListener('click', function (e) {
+    editForm.addEventListener('click', function(e) {
         // Handle delete debit button.
         const deleteDebitBtn = e.target.closest('.qtype_accounting-delete-debit');
         if (deleteDebitBtn) {
@@ -371,8 +394,8 @@ function setupDeleteEntryHandler() {
  * @param {string} side The side to delete: 'debit' or 'credit'.
  */
 function deleteEntrySide(index, side) {
-    const entryRow = document.querySelector(ROW_SELECTOR + '[data-entry-index="' + index + '"]');
-    const weightRow = document.querySelector('.qtype_accounting-weight-row[data-entry-index="' + index + '"]');
+    const entryRow = editForm.querySelector(ROW_SELECTOR + '[data-entry-index="' + index + '"]');
+    const weightRow = editForm.querySelector('.qtype_accounting-weight-row[data-entry-index="' + index + '"]');
 
     if (!entryRow) {
         return;
@@ -394,7 +417,7 @@ function deleteEntrySide(index, side) {
         // Clear the hidden form fields for this side.
         clearHiddenFieldsForSide(index, side);
 
-        EntryUtils.updatePerLabels(document, ROW_SELECTOR);
+        EntryUtils.updatePerLabels(editForm, ROW_SELECTOR);
     } else if ((currentType === 'debit' && side === 'debit') ||
                (currentType === 'credit' && side === 'credit')) {
         // Row only has this side - delete the entire row.
@@ -411,8 +434,8 @@ function deleteEntrySide(index, side) {
  */
 function clearHiddenFieldsForSide(index, side) {
     if (side === 'debit') {
-        var debitaccountHidden = getFieldByName('debitaccount[' + index + ']');
-        var debitamountHidden = getFieldByName('debitamount[' + index + ']');
+        let debitaccountHidden = getFieldByName('debitaccount[' + index + ']');
+        let debitamountHidden = getFieldByName('debitamount[' + index + ']');
         if (debitaccountHidden) {
             debitaccountHidden.value = '';
         }
@@ -420,8 +443,8 @@ function clearHiddenFieldsForSide(index, side) {
             debitamountHidden.value = '';
         }
     } else if (side === 'credit') {
-        var creditaccountHidden = getFieldByName('creditaccount[' + index + ']');
-        var creditamountHidden = getFieldByName('creditamount[' + index + ']');
+        let creditaccountHidden = getFieldByName('creditaccount[' + index + ']');
+        let creditamountHidden = getFieldByName('creditamount[' + index + ']');
         if (creditaccountHidden) {
             creditaccountHidden.value = '';
         }
@@ -436,21 +459,31 @@ function clearHiddenFieldsForSide(index, side) {
  * and validate balance before submission.
  */
 function setupFormSubmitHandler() {
-    const form = document.querySelector('form.mform') || document.querySelector('form');
+    const form = editForm;
     if (form) {
-        form.addEventListener('submit', function (e) {
+        form.addEventListener('submit', function(e) {
             // Moodle cancel buttons submit the form without saving or validating it.
-            if (e.submitter && e.submitter.getAttribute('data-cancel') === '1') {
+            if (e.submitter && (e.submitter.name === 'cancel' || e.submitter.dataset.cancel === '1' ||
+                e.submitter.hasAttribute('data-skip-validation'))) {
                 return;
             }
             syncAllDisplayToHidden();
-            var valid = validateAccounts();
+            let valid = validateAccounts();
             if (!validateBalance()) {
                 valid = false;
             }
             if (!valid) {
                 e.preventDefault();
+                return;
             }
+            // Only canonical hidden fields are submitted. Avoid duplicating every value
+            // in PHP's max_input_vars budget; restore names if another listener cancels.
+            const controls = Array.from(form.querySelectorAll('[name*="_display["]'));
+            const names = controls.map(control => control.name);
+            controls.forEach(control => control.removeAttribute('name'));
+            setTimeout(() => controls.forEach((control, i) => {
+                control.name = names[i];
+            }), 0);
         });
     }
 }
@@ -461,30 +494,30 @@ function setupFormSubmitHandler() {
  * @return {boolean} True if all visible sides have accounts, false if not.
  */
 function validateAccounts() {
-    var errors = [];
+    let errors = [];
     clearAccountErrors();
     if (chartSelect && chartSelect.selectedOptions[0] && chartSelect.selectedOptions[0].dataset.unavailable) {
         showAccountError(chartSelect, 'err_accountunavailable');
         errors.push('chart');
     }
 
-    var entryRows = document.querySelectorAll(ROW_SELECTOR);
-    entryRows.forEach(function (row) {
+    let entryRows = editForm.querySelectorAll(ROW_SELECTOR);
+    entryRows.forEach(function(row) {
         if (row.style.display === 'none') {
             return;
         }
-        var index = row.getAttribute('data-entry-index');
+        let index = row.getAttribute('data-entry-index');
         if (index === '__INDEX__') {
             return;
         }
 
-        var entryType = row.getAttribute('data-entry-type') || 'both';
-        var debitAccount = row.querySelector('.qtype_accounting-debitaccount');
-        var creditAccount = row.querySelector('.qtype_accounting-creditaccount');
+        let entryType = row.getAttribute('data-entry-type') || 'both';
+        let debitAccount = row.querySelector('.qtype_accounting-debitaccount');
+        let creditAccount = row.querySelector('.qtype_accounting-creditaccount');
 
         // Debit side is visible for 'debit' and 'both' entries.
         if (entryType === 'debit' || entryType === 'both') {
-            var hasDebitAccount = debitAccount && debitAccount.value && debitAccount.value !== '';
+            let hasDebitAccount = debitAccount && debitAccount.value && debitAccount.value !== '';
             if (hasDebitAccount && debitAccount.selectedOptions[0].dataset.unavailable) {
                 showAccountError(debitAccount, 'err_accountunavailable');
                 errors.push(index);
@@ -496,7 +529,7 @@ function validateAccounts() {
 
         // Credit side is visible for 'credit' and 'both' entries.
         if (entryType === 'credit' || entryType === 'both') {
-            var hasCreditAccount = creditAccount && creditAccount.value && creditAccount.value !== '';
+            let hasCreditAccount = creditAccount && creditAccount.value && creditAccount.value !== '';
             if (hasCreditAccount && creditAccount.selectedOptions[0].dataset.unavailable) {
                 showAccountError(creditAccount, 'err_accountunavailable');
                 errors.push(index);
@@ -505,6 +538,15 @@ function validateAccounts() {
                 errors.push(index);
             }
         }
+        ['debit', 'credit'].forEach(side => {
+            const account = row.querySelector('.qtype_accounting-' + side + 'account');
+            const amount = row.querySelector('.qtype_accounting-' + side + 'amount');
+            if ((entryType === 'both' || entryType === side) && account && account.value && amount &&
+                    amount.value.trim() === '') {
+                showAccountError(amount, 'err_' + side + 'amountrequired');
+                errors.push(index);
+            }
+        });
     });
 
     return errors.length === 0;
@@ -517,9 +559,9 @@ function validateAccounts() {
  * @param {string} stringKey The language string key for the error message.
  */
 function showAccountError(field, stringKey) {
-    var errorSpan = document.createElement('span');
+    let errorSpan = document.createElement('span');
     errorSpan.className = 'qtype_accounting-account-error form-control-feedback invalid-feedback d-block';
-    errorSpan.id = 'qtype_accounting-error-' + field.name.replace(/[^a-z0-9_-]/gi, '_');
+    errorSpan.id = field.id ? field.id + '_error' : 'qtype_accounting-error-' + field.name.replace(/[^a-z0-9_-]/gi, '_');
     errorSpan.textContent = M.util.get_string(stringKey, 'qtype_accounting');
     field.classList.add('is-invalid');
     field.setAttribute('aria-invalid', 'true');
@@ -531,8 +573,8 @@ function showAccountError(field, stringKey) {
  * Clear all inline account validation errors.
  */
 function clearAccountErrors() {
-    var existing = document.querySelectorAll('.qtype_accounting-account-error');
-    existing.forEach(function (el) {
+    let existing = editForm.querySelectorAll('.qtype_accounting-account-error');
+    existing.forEach(function(el) {
         const field = el.parentNode.querySelector('[aria-describedby="' + el.id + '"]');
         if (field) {
             field.classList.remove('is-invalid');
@@ -549,30 +591,30 @@ function clearAccountErrors() {
  * @return {boolean} True if balanced, false if not.
  */
 function validateBalance() {
-    var totalDebit = 0;
-    var totalCredit = 0;
+    let totalDebit = 0;
+    let totalCredit = 0;
 
-    var entryRows = document.querySelectorAll(ROW_SELECTOR);
-    entryRows.forEach(function (row) {
+    let entryRows = editForm.querySelectorAll(ROW_SELECTOR);
+    entryRows.forEach(function(row) {
         if (row.style.display === 'none') {
             return;
         }
-        var index = row.getAttribute('data-entry-index');
+        let index = row.getAttribute('data-entry-index');
         if (index === '__INDEX__') {
             return;
         }
 
-        var debitField = row.querySelector('.qtype_accounting-debitamount');
-        var creditField = row.querySelector('.qtype_accounting-creditamount');
+        let debitField = row.querySelector('.qtype_accounting-debitamount');
+        let creditField = row.querySelector('.qtype_accounting-creditamount');
 
         if (debitField && debitField.value) {
-            var parsedDebit = parseFloat(EntryUtils.parseNumber(debitField.value));
+            let parsedDebit = parseFloat(EntryUtils.parseNumber(debitField.value, getNumberFormat()));
             if (!isNaN(parsedDebit)) {
                 totalDebit += parsedDebit;
             }
         }
         if (creditField && creditField.value) {
-            var parsedCredit = parseFloat(EntryUtils.parseNumber(creditField.value));
+            let parsedCredit = parseFloat(EntryUtils.parseNumber(creditField.value, getNumberFormat()));
             if (!isNaN(parsedCredit)) {
                 totalCredit += parsedCredit;
             }
@@ -593,11 +635,11 @@ function validateBalance() {
  */
 function showBalanceError() {
     clearBalanceError();
-    var table = document.querySelector('.qtype_accounting-edit-table');
+    let table = editForm.querySelector('.qtype_accounting-edit-table');
     if (!table) {
         return;
     }
-    var errorDiv = document.createElement('div');
+    let errorDiv = document.createElement('div');
     errorDiv.id = 'qtype_accounting-balance-error';
     errorDiv.className = 'form-control-feedback invalid-feedback d-block mt-2';
     errorDiv.setAttribute('role', 'alert');
@@ -609,7 +651,7 @@ function showBalanceError() {
  * Clear the balance validation error if present.
  */
 function clearBalanceError() {
-    var existing = document.getElementById('qtype_accounting-balance-error');
+    let existing = document.getElementById('qtype_accounting-balance-error');
     if (existing) {
         existing.remove();
     }
@@ -624,14 +666,14 @@ function addEntryRow(entryType) {
     entryType = entryType || 'both';
 
     // First, check if we can complete an existing incomplete row.
-    const incompleteRow = EntryUtils.findIncompleteRow(document, entryType, ROW_SELECTOR);
+    const incompleteRow = EntryUtils.findIncompleteRow(editForm, entryType, ROW_SELECTOR);
     if (incompleteRow) {
         // Complete the existing row by making it 'both'.
         incompleteRow.setAttribute('data-entry-type', 'both');
 
         // Find the associated weight row.
         const index = incompleteRow.getAttribute('data-entry-index');
-        const weightRow = document.querySelector('.qtype_accounting-weight-row[data-entry-index="' + index + '"]');
+        const weightRow = editForm.querySelector('.qtype_accounting-weight-row[data-entry-index="' + index + '"]');
 
         // Remove hidden-cell classes from both rows.
         EntryUtils.applyEntryTypeVisibility(incompleteRow, 'both');
@@ -640,10 +682,13 @@ function addEntryRow(entryType) {
         // Update states for the completed row.
         updateDebitamountState(index);
         updateWeightStates(index);
-        EntryUtils.updatePerLabels(document, ROW_SELECTOR);
+        EntryUtils.updatePerLabels(editForm, ROW_SELECTOR);
         return;
     }
 
+    if (editForm.querySelectorAll(ROW_SELECTOR).length >= maxEntries) {
+        return;
+    }
     // No incomplete row to complete, so add a new row.
     const template = document.getElementById('qtype_accounting-entry-template');
     const tbody = document.getElementById('qtype_accounting-entries-body');
@@ -658,16 +703,16 @@ function addEntryRow(entryType) {
 
     // Update all __INDEX__ placeholders in the cloned content.
     // We need to update attributes and text content.
-    clone.querySelectorAll('[data-index="__INDEX__"]').forEach(function (el) {
+    clone.querySelectorAll('[data-index="__INDEX__"]').forEach(function(el) {
         el.setAttribute('data-index', nextEntryIndex);
     });
-    clone.querySelectorAll('[data-entry-index="__INDEX__"]').forEach(function (el) {
+    clone.querySelectorAll('[data-entry-index="__INDEX__"]').forEach(function(el) {
         el.setAttribute('data-entry-index', nextEntryIndex);
     });
-    clone.querySelectorAll('[name*="__INDEX__"]').forEach(function (el) {
+    clone.querySelectorAll('[name*="__INDEX__"]').forEach(function(el) {
         el.name = el.name.replace('__INDEX__', nextEntryIndex);
     });
-    clone.querySelectorAll('[id*="__INDEX__"]').forEach(function (el) {
+    clone.querySelectorAll('[id*="__INDEX__"]').forEach(function(el) {
         el.id = el.id.replace('__INDEX__', nextEntryIndex);
     });
 
@@ -697,7 +742,7 @@ function addEntryRow(entryType) {
     updateDeleteButtonStates();
 
     // Update Per/an labels.
-    EntryUtils.updatePerLabels(document, ROW_SELECTOR);
+    EntryUtils.updatePerLabels(editForm, ROW_SELECTOR);
 
     nextEntryIndex++;
 }
@@ -708,13 +753,23 @@ function addEntryRow(entryType) {
  * @param {number} index The entry index.
  */
 function initializeHiddenFieldsForIndex(index) {
-    const form = document.querySelector('form.mform') || document.querySelector('form');
+    const form = editForm;
     if (!form) {
         return;
     }
 
-    // The hidden fields should already exist (they're pre-created up to index 19).
-    // Just sync the display values to them.
+    const fields = ['debitaccount', 'debitamount', 'creditaccount', 'creditamount',
+        'weight_debitaccount', 'weight_debitamount', 'weight_creditaccount', 'weight_creditamount'];
+    fields.forEach(field => {
+        const name = field + '[' + index + ']';
+        if (!getFieldByName(name)) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = field.startsWith('weight_') ? '1' : '';
+            form.appendChild(input);
+        }
+    });
     syncDisplayToHidden(index);
 }
 
@@ -725,13 +780,13 @@ function initializeHiddenFieldsForIndex(index) {
  */
 function deleteEntryRow(index) {
     // Prevent deleting the last remaining entry.
-    const allEntryRows = document.querySelectorAll(ROW_SELECTOR);
+    const allEntryRows = editForm.querySelectorAll(ROW_SELECTOR);
     if (allEntryRows.length <= 1) {
         return;
     }
 
-    const entryRow = document.querySelector(ROW_SELECTOR + '[data-entry-index="' + index + '"]');
-    const weightRow = document.querySelector('.qtype_accounting-weight-row[data-entry-index="' + index + '"]');
+    const entryRow = editForm.querySelector(ROW_SELECTOR + '[data-entry-index="' + index + '"]');
+    const weightRow = editForm.querySelector('.qtype_accounting-weight-row[data-entry-index="' + index + '"]');
 
     if (entryRow) {
         entryRow.remove();
@@ -742,9 +797,14 @@ function deleteEntryRow(index) {
 
     // Clear the hidden fields for this index.
     clearHiddenFieldsForIndex(index);
+    editForm.querySelectorAll('input[type="hidden"]').forEach(input => {
+        if (input.name.endsWith('[' + index + ']')) {
+            input.remove();
+        }
+    });
 
     // Update Per/an labels (first visible row should have them).
-    EntryUtils.updatePerLabels(document, ROW_SELECTOR);
+    EntryUtils.updatePerLabels(editForm, ROW_SELECTOR);
 
     // Update delete button states (disable if only one entry remains).
     updateDeleteButtonStates();
@@ -755,20 +815,24 @@ function deleteEntryRow(index) {
  * Disable delete buttons when only one entry remains.
  */
 function updateDeleteButtonStates() {
-    const allEntryRows = document.querySelectorAll(ROW_SELECTOR);
-    const deleteButtons = document.querySelectorAll('.qtype_accounting-delete-debit, .qtype_accounting-delete-credit');
+    const allEntryRows = editForm.querySelectorAll(ROW_SELECTOR);
+    const deleteButtons = editForm.querySelectorAll('.qtype_accounting-delete-debit, .qtype_accounting-delete-credit');
     const isOnlyOne = allEntryRows.length <= 1;
+    editForm.querySelectorAll('.qtype_accounting-add-debit-entry, .qtype_accounting-add-credit-entry')
+        .forEach(button => {
+            button.disabled = allEntryRows.length >= maxEntries;
+        });
 
-    deleteButtons.forEach(function (button) {
+    deleteButtons.forEach(function(button) {
         button.disabled = isOnlyOne;
         if (isOnlyOne) {
             button.classList.add('disabled');
-            button.style.opacity = '0.5';
-            button.style.cursor = 'not-allowed';
+
+
         } else {
             button.classList.remove('disabled');
-            button.style.opacity = '';
-            button.style.cursor = '';
+
+
         }
     });
 }
@@ -782,7 +846,7 @@ function clearHiddenFieldsForIndex(index) {
     // Clear all Moodle hidden fields.
     const allFields = ['debitaccount', 'debitamount', 'creditaccount', 'creditamount',
                     'weight_debitaccount', 'weight_debitamount', 'weight_creditaccount', 'weight_creditamount'];
-    allFields.forEach(function (field) {
+    allFields.forEach(function(field) {
         const hiddenField = getFieldByName(field + '[' + index + ']');
         if (hiddenField) {
             hiddenField.value = '';
@@ -797,9 +861,7 @@ function clearHiddenFieldsForIndex(index) {
  * @return {Element|null} The form field element or null.
  */
 function getFieldByName(name) {
-    // Use getElementsByName which handles brackets properly.
-    const fields = document.getElementsByName(name);
-    return fields.length > 0 ? fields[0] : null;
+    return Array.from(editForm.elements).find(field => field.name === name) || null;
 }
 
 /**
@@ -820,36 +882,40 @@ function getNumberFormat() {
  * @param {string|number} index The entry index.
  */
 function syncDisplayToHidden(index) {
+    if (!getFieldByName('debitaccount[' + index + ']')) {
+        initializeHiddenFieldsForIndex(index);
+        return;
+    }
     // Sync account selects.
-    const debitaccountDisplay = document.querySelector('.qtype_accounting-debitaccount[data-index="' + index + '"]');
+    const debitaccountDisplay = editForm.querySelector('.qtype_accounting-debitaccount[data-index="' + index + '"]');
     const debitaccountHidden = getFieldByName('debitaccount[' + index + ']');
     if (debitaccountDisplay && debitaccountHidden) {
         debitaccountHidden.value = debitaccountDisplay.value;
     }
 
-    const creditaccountDisplay = document.querySelector('.qtype_accounting-creditaccount[data-index="' + index + '"]');
+    const creditaccountDisplay = editForm.querySelector('.qtype_accounting-creditaccount[data-index="' + index + '"]');
     const creditaccountHidden = getFieldByName('creditaccount[' + index + ']');
     if (creditaccountDisplay && creditaccountHidden) {
         creditaccountHidden.value = creditaccountDisplay.value;
     }
 
     // Sync amount fields - parse German format to plain numbers for hidden fields.
-    const debitamountDisplay = document.querySelector('.qtype_accounting-debitamount[data-index="' + index + '"]');
+    const debitamountDisplay = editForm.querySelector('.qtype_accounting-debitamount[data-index="' + index + '"]');
     const debitamountHidden = getFieldByName('debitamount[' + index + ']');
     if (debitamountDisplay && debitamountHidden) {
-        debitamountHidden.value = EntryUtils.parseNumber(debitamountDisplay.value);
+        debitamountHidden.value = EntryUtils.parseNumber(debitamountDisplay.value, getNumberFormat());
     }
 
-    const creditamountDisplay = document.querySelector('.qtype_accounting-creditamount[data-index="' + index + '"]');
+    const creditamountDisplay = editForm.querySelector('.qtype_accounting-creditamount[data-index="' + index + '"]');
     const creditamountHidden = getFieldByName('creditamount[' + index + ']');
     if (creditamountDisplay && creditamountHidden) {
-        creditamountHidden.value = EntryUtils.parseNumber(creditamountDisplay.value);
+        creditamountHidden.value = EntryUtils.parseNumber(creditamountDisplay.value, getNumberFormat());
     }
 
     // Sync weight fields.
     const weightFields = ['debitaccount', 'debitamount', 'creditaccount', 'creditamount'];
-    weightFields.forEach(function (field) {
-        const displayField = document.querySelector(
+    weightFields.forEach(function(field) {
+        const displayField = editForm.querySelector(
             '.qtype_accounting-weight[data-index="' + index + '"][data-field="' + field + '"]'
         );
         const hiddenField = getFieldByName('weight_' + field + '[' + index + ']');
@@ -863,8 +929,8 @@ function syncDisplayToHidden(index) {
  * Sync all display fields to hidden form fields.
  */
 function syncAllDisplayToHidden() {
-    const entryRows = document.querySelectorAll(ROW_SELECTOR);
-    entryRows.forEach(function (row) {
+    const entryRows = editForm.querySelectorAll(ROW_SELECTOR);
+    entryRows.forEach(function(row) {
         const index = row.getAttribute('data-entry-index');
         if (index !== '__INDEX__') {
             syncDisplayToHidden(index);
@@ -889,10 +955,10 @@ function updateAccountDropdowns(forceRebuild, preserveMissing = false) {
     lastChartId = chartId;
 
     // Find all debitaccount and creditaccount selects (display fields).
-    const debitSelects = document.querySelectorAll('select.qtype_accounting-debitaccount');
-    const creditSelects = document.querySelectorAll('select.qtype_accounting-creditaccount');
+    const debitSelects = editForm.querySelectorAll('select.qtype_accounting-debitaccount');
+    const creditSelects = editForm.querySelectorAll('select.qtype_accounting-creditaccount');
 
-    debitSelects.forEach(function (select) {
+    debitSelects.forEach(function(select) {
         const currentValue = select.value;
         const currentOption = select.selectedOptions[0];
         // Keep first option (placeholder).
@@ -915,7 +981,7 @@ function updateAccountDropdowns(forceRebuild, preserveMissing = false) {
         checkOptionAvailability(select);
     });
 
-    creditSelects.forEach(function (select) {
+    creditSelects.forEach(function(select) {
         const currentValue = select.value;
         const currentOption = select.selectedOptions[0];
         while (select.options.length > 1) {
@@ -947,31 +1013,30 @@ function updateAccountDropdowns(forceRebuild, preserveMissing = false) {
  * @param {string|number} index The entry index.
  */
 function updateDebitamountState(index) {
-    const debitSelect = document.querySelector('select.qtype_accounting-debitaccount[data-index="' + index + '"]');
-    const debitAmount = document.querySelector('input.qtype_accounting-debitamount[data-index="' + index + '"]');
-
-    if (debitSelect && debitAmount) {
-        const hasAccount = debitSelect.value !== '' && debitSelect.value !== null;
-        debitAmount.disabled = !hasAccount;
-        debitAmount.style.backgroundColor = hasAccount ? '' : '#e9ecef';
-
-        if (hasAccount) {
-            debitAmount.title = '';
-        } else {
-            Str.get_string('selectdebitaccountfirst', 'qtype_accounting').then(function (str) {
-                debitAmount.title = str;
-            });
-            debitAmount.value = '';
+    ['debit', 'credit'].forEach(side => {
+        const select = editForm.querySelector('.qtype_accounting-' + side + 'account[data-index="' + index + '"]');
+        const amount = editForm.querySelector('.qtype_accounting-' + side + 'amount[data-index="' + index + '"]');
+        if (select && amount) {
+            amount.disabled = !select.value;
+            if (select.value) {
+                amount.title = '';
+            } else {
+                Str.get_string('select' + side + 'accountfirst', 'qtype_accounting').then(str => {
+                    amount.title = str;
+                    return str;
+                }).catch(Log.error);
+                amount.value = '';
+            }
         }
-    }
+    });
 }
 
 /**
  * Update all Debit (debit) amount field states.
  */
 function updateAllDebitamountStates() {
-    const entryRows = document.querySelectorAll(ROW_SELECTOR);
-    entryRows.forEach(function (row) {
+    const entryRows = editForm.querySelectorAll(ROW_SELECTOR);
+    entryRows.forEach(function(row) {
         const index = row.getAttribute('data-entry-index');
         if (index !== '__INDEX__') {
             updateDebitamountState(index);
@@ -986,14 +1051,14 @@ function updateAllDebitamountStates() {
  * weight field disabled state.
  */
 function setupAllOrNothingHandler() {
-    var checkbox = document.getElementById('id_allornothinggrading');
+    let checkbox = document.getElementById('id_allornothinggrading');
     if (!checkbox) {
         return;
     }
 
     allOrNothingEnabled = checkbox.checked;
 
-    checkbox.addEventListener('change', function () {
+    checkbox.addEventListener('change', function() {
         allOrNothingEnabled = checkbox.checked;
         updateAllWeightStates();
     });
@@ -1008,49 +1073,49 @@ function setupAllOrNothingHandler() {
  * @param {string|number} index The entry index.
  */
 function updateWeightStates(index) {
-    const debitSelect = document.querySelector('select.qtype_accounting-debitaccount[data-index="' + index + '"]');
-    const creditSelect = document.querySelector('select.qtype_accounting-creditaccount[data-index="' + index + '"]');
+    const debitSelect = editForm.querySelector('select.qtype_accounting-debitaccount[data-index="' + index + '"]');
+    const creditSelect = editForm.querySelector('select.qtype_accounting-creditaccount[data-index="' + index + '"]');
 
     const hasDebitAccount = debitSelect && debitSelect.value !== '' && debitSelect.value !== null;
     const hasCreditAccount = creditSelect && creditSelect.value !== '' && creditSelect.value !== null;
 
     // When all-or-nothing is enabled, all weights are disabled regardless of account state.
-    var debitEnabled = hasDebitAccount && !allOrNothingEnabled;
-    var creditEnabled = hasCreditAccount && !allOrNothingEnabled;
+    let debitEnabled = hasDebitAccount && !allOrNothingEnabled;
+    let creditEnabled = hasCreditAccount && !allOrNothingEnabled;
 
     // Update debit weight fields.
-    const weightDebitaccount = document.querySelector(
+    const weightDebitaccount = editForm.querySelector(
         '.qtype_accounting-weight[data-index="' + index + '"][data-field="debitaccount"]'
     );
-    const weightDebitamount = document.querySelector(
+    const weightDebitamount = editForm.querySelector(
         '.qtype_accounting-weight[data-index="' + index + '"][data-field="debitamount"]'
     );
 
     if (weightDebitaccount) {
         weightDebitaccount.disabled = !debitEnabled;
-        weightDebitaccount.style.opacity = debitEnabled ? '' : '0.5';
-        weightDebitaccount.style.cursor = debitEnabled ? '' : 'not-allowed';
+
+
     }
     if (weightDebitamount) {
         weightDebitamount.disabled = !debitEnabled;
-        weightDebitamount.style.opacity = debitEnabled ? '' : '0.5';
-        weightDebitamount.style.cursor = debitEnabled ? '' : 'not-allowed';
+
+
     }
 
     // Update credit weight fields.
     const creditWeightBase = '.qtype_accounting-weight[data-index="' + index + '"]';
-    const weightCreditaccount = document.querySelector(creditWeightBase + '[data-field="creditaccount"]');
-    const weightCreditamount = document.querySelector(creditWeightBase + '[data-field="creditamount"]');
+    const weightCreditaccount = editForm.querySelector(creditWeightBase + '[data-field="creditaccount"]');
+    const weightCreditamount = editForm.querySelector(creditWeightBase + '[data-field="creditamount"]');
 
     if (weightCreditaccount) {
         weightCreditaccount.disabled = !creditEnabled;
-        weightCreditaccount.style.opacity = creditEnabled ? '' : '0.5';
-        weightCreditaccount.style.cursor = creditEnabled ? '' : 'not-allowed';
+
+
     }
     if (weightCreditamount) {
         weightCreditamount.disabled = !creditEnabled;
-        weightCreditamount.style.opacity = creditEnabled ? '' : '0.5';
-        weightCreditamount.style.cursor = creditEnabled ? '' : 'not-allowed';
+
+
     }
 }
 
@@ -1058,8 +1123,8 @@ function updateWeightStates(index) {
  * Update all weight field states.
  */
 function updateAllWeightStates() {
-    const entryRows = document.querySelectorAll(ROW_SELECTOR);
-    entryRows.forEach(function (row) {
+    const entryRows = editForm.querySelectorAll(ROW_SELECTOR);
+    entryRows.forEach(function(row) {
         const index = row.getAttribute('data-entry-index');
         if (index !== '__INDEX__') {
             updateWeightStates(index);

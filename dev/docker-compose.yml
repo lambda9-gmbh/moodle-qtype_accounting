@@ -45,6 +45,8 @@ services:
       - ../classes:/var/www/html/question/type/accounting/classes
       - ../db:/var/www/html/question/type/accounting/db
       - ../lang:/var/www/html/question/type/accounting/lang
+      # Local customisations override downloaded Moodle language packs.
+      - ../lang/de/qtype_accounting.php:/var/www/moodledata/lang/de_local/qtype_accounting.php:ro
       - ../js:/var/www/html/question/type/accounting/js
       - ../templates:/var/www/html/question/type/accounting/templates
       - ../pix:/var/www/html/question/type/accounting/pix

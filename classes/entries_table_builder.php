@@ -89,9 +89,15 @@ class entries_table_builder {
         array $existingentries,
         string $numberformat = 'de'
     ): string {
-        $html = '<table class="table table-bordered qtype_accounting-edit-table" id="qtype_accounting-entries-table">';
+        $html = \html_writer::start_tag(
+            'table',
+            [
+                'class' => 'table table-bordered qtype_accounting-edit-table',
+                'id' => 'qtype_accounting-entries-table',
+            ]
+        );
         $html .= $this->build_thead();
-        $html .= '<tbody id="qtype_accounting-entries-body">';
+        $html .= \html_writer::start_tag('tbody', ['id' => 'qtype_accounting-entries-body']);
         for ($i = 0; $i < $entrycount; $i++) {
             $entry = $existingentries[$i] ?? null;
             $html .= $this->build_entry_rows(
@@ -103,12 +109,12 @@ class entries_table_builder {
                 $numberformat
             );
         }
-        $html .= '</tbody>';
+        $html .= \html_writer::end_tag('tbody');
         $html .= $this->build_footer();
-        $html .= '</table>';
+        $html .= \html_writer::end_tag('table');
 
         // Template for new rows (hidden, used by JavaScript).
-        $html .= '<template id="qtype_accounting-entry-template">';
+        $html .= \html_writer::start_tag('template', ['id' => 'qtype_accounting-entry-template']);
         $html .= $this->build_entry_rows(
             '__INDEX__',
             $debitaccountoptions,
@@ -117,7 +123,7 @@ class entries_table_builder {
             false,
             $numberformat
         );
-        $html .= '</template>';
+        $html .= \html_writer::end_tag('template');
         return $html;
     }
 
@@ -133,24 +139,24 @@ class entries_table_builder {
         $creditstr = get_string('credit', 'qtype_accounting');
         $accountstr = get_string('account', 'qtype_accounting');
         $amountstr = get_string('amount', 'qtype_accounting');
-        $html = '<thead>';
-        $html .= '<tr>';
-        $html .= '<th class="qtype_accounting-edit-label"></th>';
-        $html .= '<th colspan="2" class="text-center">' . $debitstr . '</th>';
-        $html .= '<th class="qtype_accounting-edit-label"></th>';
-        $html .= '<th colspan="2" class="text-center">' . $creditstr . '</th>';
-        $html .= '<th class="qtype_accounting-edit-actions"></th>';
-        $html .= '</tr>';
-        $html .= '<tr>';
-        $html .= '<th class="qtype_accounting-edit-label">' . $perstr . '</th>';
-        $html .= '<th>' . $accountstr . '</th>';
-        $html .= '<th>' . $amountstr . '</th>';
-        $html .= '<th class="qtype_accounting-edit-label">' . $anstr . '</th>';
-        $html .= '<th>' . $accountstr . '</th>';
-        $html .= '<th>' . $amountstr . '</th>';
-        $html .= '<th></th>';
-        $html .= '</tr>';
-        $html .= '</thead>';
+        $html = \html_writer::start_tag('thead');
+        $html .= \html_writer::start_tag('tr');
+        $html .= \html_writer::start_tag('th', ['class' => 'qtype_accounting-edit-label']) . \html_writer::end_tag('th');
+        $html .= \html_writer::tag('th', $debitstr, ['colspan' => '2', 'class' => 'text-center']);
+        $html .= \html_writer::start_tag('th', ['class' => 'qtype_accounting-edit-label']) . \html_writer::end_tag('th');
+        $html .= \html_writer::tag('th', $creditstr, ['colspan' => '2', 'class' => 'text-center']);
+        $html .= \html_writer::start_tag('th', ['class' => 'qtype_accounting-edit-actions']) . \html_writer::end_tag('th');
+        $html .= \html_writer::end_tag('tr');
+        $html .= \html_writer::start_tag('tr');
+        $html .= \html_writer::tag('th', $perstr, ['class' => 'qtype_accounting-edit-label']);
+        $html .= \html_writer::tag('th', $accountstr);
+        $html .= \html_writer::tag('th', $amountstr);
+        $html .= \html_writer::tag('th', $anstr, ['class' => 'qtype_accounting-edit-label']);
+        $html .= \html_writer::tag('th', $accountstr);
+        $html .= \html_writer::tag('th', $amountstr);
+        $html .= \html_writer::start_tag('th') . \html_writer::end_tag('th');
+        $html .= \html_writer::end_tag('tr');
+        $html .= \html_writer::end_tag('thead');
         return $html;
     }
 
@@ -162,19 +168,23 @@ class entries_table_builder {
     protected function build_footer(): string {
         $adddebitentrystr = get_string('adddebitentry', 'qtype_accounting');
         $addcreditentrystr = get_string('addcreditentry', 'qtype_accounting');
-        $html = '<tfoot class="qtype_accounting-controls-footer">';
-        $html .= '<tr>';
-        $html .= '<td></td>'; // Per label column.
-        $html .= '<td><button type="button" class="btn btn-secondary btn-sm qtype_accounting-add-debit-entry"'
-            . ' id="qtype_accounting-add-debit-entry">+ ' . $adddebitentrystr . '</button></td>';
-        $html .= '<td></td>'; // Debit Amount column.
-        $html .= '<td></td>'; // The 'an' label column.
-        $html .= '<td><button type="button" class="btn btn-secondary btn-sm qtype_accounting-add-credit-entry"'
-            . ' id="qtype_accounting-add-credit-entry">+ ' . $addcreditentrystr . '</button></td>';
-        $html .= '<td></td>'; // Credit Amount column.
-        $html .= '<td></td>'; // Actions column.
-        $html .= '</tr>';
-        $html .= '</tfoot>';
+        $html = \html_writer::start_tag('tfoot', ['class' => 'qtype_accounting-controls-footer']);
+        $html .= \html_writer::start_tag('tr');
+        $html .= \html_writer::start_tag('td') . \html_writer::end_tag('td'); // Per label column.
+        $html .= \html_writer::tag('td', \html_writer::tag('button', '+ ' . $adddebitentrystr, [
+            'type' => 'button', 'class' => 'btn btn-secondary btn-sm qtype_accounting-add-debit-entry',
+            'id' => 'qtype_accounting-add-debit-entry',
+        ]));
+        $html .= \html_writer::start_tag('td') . \html_writer::end_tag('td'); // Debit Amount column.
+        $html .= \html_writer::start_tag('td') . \html_writer::end_tag('td'); // The 'an' label column.
+        $html .= \html_writer::tag('td', \html_writer::tag('button', '+ ' . $addcreditentrystr, [
+            'type' => 'button', 'class' => 'btn btn-secondary btn-sm qtype_accounting-add-credit-entry',
+            'id' => 'qtype_accounting-add-credit-entry',
+        ]));
+        $html .= \html_writer::start_tag('td') . \html_writer::end_tag('td'); // Credit Amount column.
+        $html .= \html_writer::start_tag('td') . \html_writer::end_tag('td'); // Actions column.
+        $html .= \html_writer::end_tag('tr');
+        $html .= \html_writer::end_tag('tfoot');
         return $html;
     }
 
@@ -241,33 +251,40 @@ class entries_table_builder {
         $creditamount = $this->format_entry_amount($entry, 'credit', $numberformat);
         $placeholder = ($numberformat === 'us') ? '0.00' : '0,00';
 
-        $debitselecthtml = '<select name="debitaccount_display[' . $index . ']"'
-            . ' class="form-control qtype_accounting-debitaccount" data-index="' . $index . '">';
-        $debitselecthtml .= entry_helper::build_account_options($debitaccountoptions, (string)$debitaccount, '');
-        $debitselecthtml .= '</select>';
-        $creditselecthtml = '<select name="creditaccount_display[' . $index . ']"'
-            . ' class="form-control qtype_accounting-creditaccount" data-index="' . $index . '">';
-        $creditselecthtml .= entry_helper::build_account_options($creditaccountoptions, (string)$creditaccount, '');
-        $creditselecthtml .= '</select>';
+        $debitselecthtml = \html_writer::tag(
+            'select',
+            entry_helper::build_account_options($debitaccountoptions, (string)$debitaccount, ''),
+            ['name' => 'debitaccount_display[' . $index . ']', 'data-index' => $index,
+                'class' => 'form-control qtype_accounting-debitaccount',
+                'aria-label' => get_string('debitaccount', 'qtype_accounting')]
+        );
+        $creditselecthtml = \html_writer::tag(
+            'select',
+            entry_helper::build_account_options($creditaccountoptions, (string)$creditaccount, ''),
+            ['name' => 'creditaccount_display[' . $index . ']', 'data-index' => $index,
+                'class' => 'form-control qtype_accounting-creditaccount',
+                'aria-label' => get_string('creditaccount', 'qtype_accounting')]
+        );
 
-        $html = '<tr class="qtype_accounting-entry-row" data-entry-index="'
-            . $index . '" data-entry-type="' . $entrytype . '">';
-        $html .= '<td class="qtype_accounting-edit-label' . $debithidden . '"></td>';
-        $html .= '<td class="qtype_accounting-edit-data' . $debithidden . '">' . $debitselecthtml . '</td>';
-        $html .= '<td class="qtype_accounting-edit-data' . $debithidden . '">';
+        $html = \html_writer::start_tag('tr', [
+            'class' => 'qtype_accounting-entry-row', 'data-entry-index' => $index, 'data-entry-type' => $entrytype,
+        ]);
+        $html .= \html_writer::tag('td', '', ['class' => 'qtype_accounting-edit-label' . $debithidden]);
+        $html .= \html_writer::tag('td', $debitselecthtml, ['class' => 'qtype_accounting-edit-data' . $debithidden]);
+        $html .= \html_writer::start_tag('td', ['class' => 'qtype_accounting-edit-data' . $debithidden]);
         $html .= $this->build_amount_input($index, 'debit', $debitamount, $placeholder, $entry->debitamounterror ?? '');
-        $html .= '</td>';
-        $html .= '<td class="qtype_accounting-edit-label' . $debithidden . '">';
+        $html .= \html_writer::end_tag('td');
+        $html .= \html_writer::start_tag('td', ['class' => 'qtype_accounting-edit-label' . $debithidden]);
         $html .= entry_helper::render_delete_button('debit', $index, 'data-index');
-        $html .= '</td>';
-        $html .= '<td class="qtype_accounting-edit-data' . $credithidden . '">' . $creditselecthtml . '</td>';
-        $html .= '<td class="qtype_accounting-edit-data' . $credithidden . '">';
+        $html .= \html_writer::end_tag('td');
+        $html .= \html_writer::tag('td', $creditselecthtml, ['class' => 'qtype_accounting-edit-data' . $credithidden]);
+        $html .= \html_writer::start_tag('td', ['class' => 'qtype_accounting-edit-data' . $credithidden]);
         $html .= $this->build_amount_input($index, 'credit', $creditamount, $placeholder, $entry->creditamounterror ?? '');
-        $html .= '</td>';
-        $html .= '<td class="qtype_accounting-edit-actions' . $credithidden . '">';
+        $html .= \html_writer::end_tag('td');
+        $html .= \html_writer::start_tag('td', ['class' => 'qtype_accounting-edit-actions' . $credithidden]);
         $html .= entry_helper::render_delete_button('credit', $index, 'data-index');
-        $html .= '</td>';
-        $html .= '</tr>';
+        $html .= \html_writer::end_tag('td');
+        $html .= \html_writer::end_tag('tr');
         return $html;
     }
 
@@ -291,6 +308,7 @@ class entries_table_builder {
             'class' => 'form-control qtype_accounting-' . $side . 'amount' . ($error !== '' ? ' is-invalid' : ''),
             'data-index' => $index,
             'placeholder' => $placeholder,
+            'aria-label' => get_string($side . 'amount', 'qtype_accounting'),
         ];
         if ($error !== '') {
             $attributes['aria-invalid'] = 'true';
@@ -298,7 +316,11 @@ class entries_table_builder {
         }
         $html = \html_writer::empty_tag('input', $attributes);
         if ($error !== '') {
-            $html .= \html_writer::div(s($error), 'form-control-feedback invalid-feedback d-block', ['id' => $id . '_error']);
+            $html .= \html_writer::div(
+                s($error),
+                'qtype_accounting-account-error form-control-feedback invalid-feedback d-block',
+                ['id' => $id . '_error']
+            );
         }
         return $html;
     }
@@ -323,9 +345,9 @@ class entries_table_builder {
             'creditamount' => (int)($entry->weight_creditamount ?? 1),
         ];
 
-        $html = '<tr class="qtype_accounting-weight-row" data-entry-index="' . $index . '">';
-        $html .= '<td class="' . trim($debithidden) . '"></td>';
-        $html .= '<td class="qtype_accounting-weight-cell' . $debithidden . '">';
+        $html = \html_writer::start_tag('tr', ['class' => 'qtype_accounting-weight-row', 'data-entry-index' => $index]);
+        $html .= \html_writer::tag('td', '', ['class' => '' . trim($debithidden)]);
+        $html .= \html_writer::start_tag('td', ['class' => 'qtype_accounting-weight-cell' . $debithidden]);
         $html .= $weightstr . ': ' . $this->build_weight_select(
             'weight_debitaccount_display[' . $index . ']',
             $weights['debitaccount'],
@@ -335,34 +357,34 @@ class entries_table_builder {
         if ($isfirst) {
             $html .= $this->build_weight_tooltip($weightstr);
         }
-        $html .= '</td>';
-        $html .= '<td class="qtype_accounting-weight-cell' . $debithidden . '">';
+        $html .= \html_writer::end_tag('td');
+        $html .= \html_writer::start_tag('td', ['class' => 'qtype_accounting-weight-cell' . $debithidden]);
         $html .= $weightstr . ': ' . $this->build_weight_select(
             'weight_debitamount_display[' . $index . ']',
             $weights['debitamount'],
             $index,
             'debitamount'
         );
-        $html .= '</td>';
-        $html .= '<td class="' . trim($debithidden) . '"></td>';
-        $html .= '<td class="qtype_accounting-weight-cell' . $credithidden . '">';
+        $html .= \html_writer::end_tag('td');
+        $html .= \html_writer::tag('td', '', ['class' => '' . trim($debithidden)]);
+        $html .= \html_writer::start_tag('td', ['class' => 'qtype_accounting-weight-cell' . $credithidden]);
         $html .= $weightstr . ': ' . $this->build_weight_select(
             'weight_creditaccount_display[' . $index . ']',
             $weights['creditaccount'],
             $index,
             'creditaccount'
         );
-        $html .= '</td>';
-        $html .= '<td class="qtype_accounting-weight-cell' . $credithidden . '">';
+        $html .= \html_writer::end_tag('td');
+        $html .= \html_writer::start_tag('td', ['class' => 'qtype_accounting-weight-cell' . $credithidden]);
         $html .= $weightstr . ': ' . $this->build_weight_select(
             'weight_creditamount_display[' . $index . ']',
             $weights['creditamount'],
             $index,
             'creditamount'
         );
-        $html .= '</td>';
-        $html .= '<td class="' . trim($credithidden) . '"></td>';
-        $html .= '</tr>';
+        $html .= \html_writer::end_tag('td');
+        $html .= \html_writer::tag('td', '', ['class' => '' . trim($credithidden)]);
+        $html .= \html_writer::end_tag('tr');
         return $html;
     }
 
@@ -374,12 +396,15 @@ class entries_table_builder {
      */
     protected function build_weight_tooltip(string $weightstr): string {
         $tooltiphtml = nl2br(s(get_string('weight_tooltip', 'qtype_accounting')));
-        $html = ' <a class="btn btn-link p-0" role="button" data-container="body" ';
-        $html .= 'data-toggle="popover" data-placement="right" data-trigger="click" ';
-        $html .= 'data-html="true" data-content="' . s($tooltiphtml) . '" tabindex="0">';
-        $html .= '<i class="icon fa fa-question-circle text-info fa-fw" ';
-        $html .= 'title="' . s($weightstr) . '"></i></a>';
-        return $html;
+        return ' ' . \html_writer::tag(
+            'a',
+            \html_writer::tag('i', '', ['class' => 'icon fa fa-question-circle text-info fa-fw', 'title' => $weightstr]),
+            [
+                'class' => 'btn btn-link p-0', 'role' => 'button', 'data-container' => 'body',
+                'data-toggle' => 'popover', 'data-placement' => 'right', 'data-trigger' => 'click',
+                'data-html' => 'true', 'data-content' => $tooltiphtml, 'tabindex' => '0',
+            ]
+        );
     }
 
     /**
@@ -395,14 +420,17 @@ class entries_table_builder {
         if ($selectedvalue < 1 || $selectedvalue > 3) {
             $selectedvalue = 1;
         }
-        $html = '<select name="' . $name . '" class="form-control qtype_accounting-weight" ';
-        $html .= 'data-index="' . $index . '" data-field="' . $field . '" style="width: auto; display: inline-block;">';
+        $options = '';
         for ($i = 1; $i <= 3; $i++) {
-            $selected = ($i === $selectedvalue) ? ' selected' : '';
-            $html .= '<option value="' . $i . '"' . $selected . '>' . $i . '</option>';
+            $options .= \html_writer::tag('option', (string)$i, [
+                'value' => $i, 'selected' => $i === $selectedvalue ? 'selected' : null,
+            ]);
         }
-        $html .= '</select>';
-        return $html;
+        return \html_writer::tag('select', $options, [
+            'name' => $name, 'class' => 'form-control qtype_accounting-weight',
+            'data-index' => $index, 'data-field' => $field,
+            'aria-label' => get_string('weight', 'qtype_accounting') . ': ' . get_string($field, 'qtype_accounting'),
+        ]);
     }
 
     /**
@@ -431,9 +459,6 @@ class entries_table_builder {
      * @return string The formatted amount.
      */
     protected function format_amount(float $amount, string $numberformat = 'de'): string {
-        if ($numberformat === 'us') {
-            return number_format($amount, 2, '.', ',');
-        }
-        return number_format($amount, 2, ',', '.');
+        return amount_helper::format_amount($amount, $numberformat);
     }
 }

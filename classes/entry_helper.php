@@ -24,6 +24,9 @@ namespace qtype_accounting;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class entry_helper {
+    /** Maximum number of editable entries shared by browser and app interfaces. */
+    public const MAX_ENTRIES = 100;
+
     /**
      * Determine the entry type based on which account fields are filled.
      *

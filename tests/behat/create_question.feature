@@ -139,7 +139,7 @@ Feature: Create and edit Buchungssatz questions
     And I set the field "creditaccount_display[1]" to "Cash"
     And I set the field "weight_debitaccount_display[0]" to "3"
     And I press "id_submitbutton"
-    Then I should see "Debit amount is required when a debit account is selected."
+    Then I should see "Debit amount is required."
     And I should see "Credit amount is required."
     And "input[name='debitamount_display[0]'].is-invalid" "css_element" should exist
     And "input[name='creditamount_display[0]'].is-invalid" "css_element" should exist
@@ -204,7 +204,7 @@ Feature: Create and edit Buchungssatz questions
     And I switch to "qtype_accounting-chart-frame" iframe
     And I click on "Renamed" "link"
     And I click on "Delete" "link" in the "Bank" "table_row"
-    And I press "Continue"
+    And I press "Delete account"
     And I switch to the main frame
     And I press "Done"
     Then I should see "A selected chart or account is no longer available."

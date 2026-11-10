@@ -221,9 +221,16 @@ if (empty($charts)) {
     // Actions header.
     $table->head[] = get_string('actions');
 
+    $accountcounts = $DB->get_records_sql_menu(
+        "SELECT a.chartid, COUNT(a.id)
+           FROM {qtype_accounting_accounts} a
+           JOIN {qtype_accounting_charts} c ON c.id = a.chartid
+          WHERE c.contextid = :contextid
+       GROUP BY a.chartid",
+        ['contextid' => $context->id]
+    );
     foreach ($charts as $chart) {
-        $accounts = account_manager::get_for_chart($chart->id);
-        $accountcount = count($accounts);
+        $accountcount = (int)($accountcounts[$chart->id] ?? 0);
 
         $editurl = new moodle_url('/question/type/accounting/edit_chart.php', [
             'courseid' => $courseid,

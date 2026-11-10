@@ -24,7 +24,22 @@ namespace qtype_accounting;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting\chart_manager
  */
-class chart_manager_test extends \advanced_testcase {
+final class chart_manager_test extends \advanced_testcase {
+    /**
+     * Deleting a chart must not introduce one query per account.
+     */
+    public function test_delete_chart_has_bounded_reads(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $chartid = chart_manager::create_chart('Bulk deletion', \context_system::instance()->id);
+        for ($i = 0; $i < 30; $i++) {
+            account_manager::add($chartid, 'Account ' . $i);
+        }
+        $before = $DB->perf_get_reads();
+        $this->assertTrue(chart_manager::delete_chart($chartid));
+        $this->assertLessThanOrEqual(8, $DB->perf_get_reads() - $before);
+    }
+
     /**
      * Test creating and retrieving a chart.
      */

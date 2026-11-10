@@ -79,11 +79,18 @@ class chart_manager {
     public static function delete_chart(int $chartid): bool {
         global $DB;
 
-        // Delete all accounts in this chart.
-        $DB->delete_records('qtype_accounting_accounts', ['chartid' => $chartid]);
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            // Delete all accounts in this chart.
+            $DB->delete_records('qtype_accounting_accounts', ['chartid' => $chartid]);
 
-        // Delete the chart.
-        return $DB->delete_records('qtype_accounting_charts', ['id' => $chartid]);
+            // Delete the chart.
+            $result = $DB->delete_records('qtype_accounting_charts', ['id' => $chartid]);
+            $transaction->allow_commit();
+        } catch (\Exception $exception) {
+            $transaction->rollback($exception);
+        }
+        return $result;
     }
 
     /**
@@ -160,6 +167,8 @@ class chart_manager {
      * @return array ['chartid' => int, 'chartname' => string, 'imported' => int, 'errors' => array]
      */
     public static function import_chart_from_csv(string $content, int $contextid, string $filename = ''): array {
+        global $DB;
+
         $result = ['chartid' => 0, 'chartname' => '', 'imported' => 0, 'errors' => []];
 
         try {
@@ -169,32 +178,31 @@ class chart_manager {
             return $result;
         }
 
-        // Create the chart with name from data.
-        $chartname = $parsed['chartname'];
-        $chartid = self::create_chart($chartname, $contextid);
-        $result['chartid'] = $chartid;
-        $result['chartname'] = $chartname;
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            // Create the chart with name from data.
+            $chartname = $parsed['chartname'];
+            $chartid = self::create_chart($chartname, $contextid);
+            $result['chartid'] = $chartid;
+            $result['chartname'] = $chartname;
 
-        // Import all accounts.
-        foreach ($parsed['accounts'] as $accountname => $accountdata) {
-            try {
-                account_manager::add(
-                    $chartid,
-                    $accountdata['accountname'],
-                    $accountdata['sortorder']
-                );
+            // Import all accounts.
+            foreach ($parsed['accounts'] as $accountname => $accountdata) {
+                account_manager::add($chartid, $accountdata['accountname'], $accountdata['sortorder']);
                 $result['imported']++;
-            } catch (\Exception $e) {
-                $result['errors'][] = $accountname . ': ' . $e->getMessage();
             }
-        }
 
-        // If no accounts were imported, delete the empty chart.
-        if ($result['imported'] === 0) {
-            self::delete_chart($chartid);
-            $result['chartid'] = 0;
-            $result['chartname'] = '';
-            $result['errors'][] = get_string('csvnoentries', 'qtype_accounting');
+            // If no accounts were imported, delete the empty chart.
+            if ($result['imported'] === 0) {
+                self::delete_chart($chartid);
+                $result['chartid'] = 0;
+                $result['chartname'] = '';
+                $result['errors'][] = get_string('csvnoentries', 'qtype_accounting');
+            }
+
+            $transaction->allow_commit();
+        } catch (\Exception $exception) {
+            $transaction->rollback($exception);
         }
 
         return $result;
@@ -206,9 +214,15 @@ class chart_manager {
      * @param string $name Chart name to search for.
      * @param int $contextid Context ID to search in.
      * @param array $accounts Array of account data keyed by account name.
+     * @param bool $exact Require identical account names and ordering for lossless restore.
      * @return int|null Chart ID if a matching chart is found, null otherwise.
      */
-    public static function find_matching_chart_in_context(string $name, int $contextid, array $accounts): ?int {
+    public static function find_matching_chart_in_context(
+        string $name,
+        int $contextid,
+        array $accounts,
+        bool $exact = false
+    ): ?int {
         global $DB;
 
         $charts = $DB->get_records('qtype_accounting_charts', ['name' => $name, 'contextid' => $contextid]);
@@ -216,7 +230,7 @@ class chart_manager {
             return null;
         }
 
-        $requiredaccounts = array_keys($accounts);
+        $requiredaccounts = array_map('strval', array_keys($accounts));
         sort($requiredaccounts);
 
         $chartaccounts = $DB->get_records_list(
@@ -224,16 +238,30 @@ class chart_manager {
             'chartid',
             array_keys($charts),
             '',
-            'id, chartid, accountname'
+            'id, chartid, accountname, sortorder'
         );
         $accountsbychart = [];
+        $ordersbychart = [];
         foreach ($chartaccounts as $account) {
             $accountsbychart[$account->chartid][] = $account->accountname;
+            $ordersbychart[$account->chartid][$account->accountname] = (int)$account->sortorder;
         }
 
         foreach ($charts as $chart) {
             $chartaccountnames = $accountsbychart[$chart->id] ?? [];
             sort($chartaccountnames);
+
+            if ($exact) {
+                if ($chartaccountnames !== $requiredaccounts) {
+                    continue;
+                }
+                foreach ($accounts as $accountname => $data) {
+                    $order = is_object($data) ? ($data->sortorder ?? 0) : ($data['sortorder'] ?? 0);
+                    if ($ordersbychart[$chart->id][$accountname] !== (int)$order) {
+                        continue 2;
+                    }
+                }
+            }
 
             // Check if this chart contains all required accounts.
             $hasall = true;

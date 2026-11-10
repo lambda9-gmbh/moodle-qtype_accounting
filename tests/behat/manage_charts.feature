@@ -52,7 +52,7 @@ Feature: Manage charts of accounts
     Then I should see "Are you sure you want to permanently delete the chart of accounts" in the "Delete chart" "dialogue"
     And I should see "Main"
     And I should see "All accounts in this chart will also be deleted."
-    And I should see "Questions that use this chart will no longer work correctly."
+    And I should see "Existing questions may stop working correctly, and grading and the display of saved attempts may be affected."
     And I should see "This action cannot be undone."
     When I click on "Cancel" "button" in the "Delete chart" "dialogue"
     Then "Main" "link" should exist
@@ -67,3 +67,36 @@ Feature: Manage charts of accounts
     Then I should see "Chart of accounts deleted successfully."
     And "Main" "link" should not exist
     And I should see "No charts of accounts have been created yet."
+
+  Scenario: Used accounts can be renamed and deleted after reviewing the consequences
+    Given the following "question categories" exist:
+      | contextlevel | reference | name           |
+      | Course       | C1        | Test questions |
+    And the following accounting questions exist:
+      | questioncategory | name                | debitaccount | creditaccount |
+      | Test questions   | Referenced question | 1200         | 8400          |
+    When I click on "Main" "link"
+    And I click on "Manage Charts of Accounts" "link"
+    And I click on "Accounting test chart" "link"
+    And I click on "Edit" "link" in the "1200" "table_row"
+    And I set the field with xpath "//input[@name='accountname' and @form]" to "Renamed account"
+    And I click on "input[type='submit'][form^='form_account_']" "css_element"
+    Then I should see "Account updated successfully."
+    And I should see "Renamed account"
+    When I click on "Delete" "link" in the "Renamed account" "table_row"
+    Then I should see "Deleting this account can leave existing questions with missing accounts"
+    And I should see "This action cannot be undone."
+    And I should see "This account is used by the following questions or their saved attempts:"
+    And I should see "Referenced question"
+    When I press "Cancel"
+    Then I should see "Renamed account"
+    When I click on "Delete" "link" in the "Renamed account" "table_row"
+    And I press "Delete account"
+    Then I should see "Account deleted successfully."
+    And I should not see "Renamed account"
+    When I click on "Manage Charts of Accounts" "link"
+    And I click on "Delete" "link" in the "Accounting test chart" "table_row"
+    Then I should see "Existing questions may stop working correctly"
+    When I click on "Delete chart" "button" in the "Delete chart" "dialogue"
+    Then I should see "Chart of accounts deleted successfully."
+    And "Accounting test chart" "link" should not exist

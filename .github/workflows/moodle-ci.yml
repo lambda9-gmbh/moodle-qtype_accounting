@@ -1,0 +1,53 @@
+name: Moodle plugin tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        moodle: [MOODLE_405_STABLE, MOODLE_501_STABLE]
+        database: [mariadb, pgsql]
+    services:
+      mariadb:
+        image: ${{ matrix.database == 'mariadb' && 'mariadb:11' || '' }}
+        env:
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: '1'
+        ports:
+          - 3306:3306
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=10s --health-retries=5
+      postgres:
+        image: ${{ matrix.database == 'pgsql' && 'postgres:17' || '' }}
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: --health-cmd=pg_isready --health-interval=10s --health-retries=5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@v31
+        with:
+          nix_path: nixpkgs=channel:nixos-25.11
+      - name: Validate and test in Nix
+        env:
+          MOODLE_BRANCH: ${{ matrix.moodle }}
+          DB: ${{ matrix.database }}
+          DB_USER: ${{ matrix.database == 'pgsql' && 'postgres' || 'root' }}
+        run: nix-shell dev/shell.nix --run 'bash dev/scripts/github-ci.sh'
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: behat-${{ matrix.moodle }}-${{ matrix.database }}
+          path: ${{ runner.temp }}/accounting-ci/moodledata/behat_dump
+          if-no-files-found: ignore

@@ -158,18 +158,33 @@ if ($action === 'deleteaccount' && $accountid) {
         redirect($baseurl);
     }
 
-    if (optional_param('confirm', 0, PARAM_BOOL)) {
+    if (data_submitted() && optional_param('confirm', 0, PARAM_BOOL)) {
         require_sesskey();
         account_manager::delete($accountid);
         redirect($baseurl, get_string('accountdeleted', 'qtype_accounting'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
 
+    // Explain the impact before allowing deletion, including references in saved attempts.
+    $warning = html_writer::tag('p', get_string('confirmdeleteaccount', 'qtype_accounting') . ' ' .
+        html_writer::tag('strong', format_string($account->accountname)));
+    $warning .= html_writer::div(get_string('accountdeletewarning', 'qtype_accounting'), 'alert alert-warning');
+    $questions = account_manager::get_using_questions([$accountid]);
+    if ($questions) {
+        $warning .= html_writer::tag('p', get_string('accountusagewarning', 'qtype_accounting'));
+        $warning .= html_writer::alist(array_map(static function ($question) {
+            return s($question->name);
+        }, $questions));
+    }
+
     // Show confirmation page.
     echo $OUTPUT->header();
     echo $OUTPUT->confirm(
-        get_string('confirmdeleteaccount', 'qtype_accounting') . ' <strong>'
-            . format_string($account->accountname) . '</strong>',
-        new moodle_url($baseurl, ['action' => 'deleteaccount', 'accountid' => $accountid, 'confirm' => 1]),
+        $warning,
+        new single_button(
+            new moodle_url($baseurl, ['action' => 'deleteaccount', 'accountid' => $accountid, 'confirm' => 1]),
+            get_string('deleteaccount', 'qtype_accounting'),
+            'post'
+        ),
         $baseurl
     );
     echo $OUTPUT->footer();

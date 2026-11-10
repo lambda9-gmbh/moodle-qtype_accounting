@@ -36,6 +36,86 @@ require_once($CFG->dirroot . '/question/type/accounting/edit_accounting_form.php
  */
 final class edit_form_test extends \advanced_testcase {
     /**
+     * Deleted saved rows must not be filled back in from question defaults on submit.
+     *
+     * @dataProvider deleted_row_provider
+     * @param int $remainingindex Index of the row retained in the editor.
+     * @param bool $javascript Submit canonical or no-JavaScript display fields.
+     */
+    public function test_deleted_saved_row_stays_deleted(int $remainingindex, bool $javascript): void {
+        global $DB, $PAGE;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $PAGE->set_url('/question/bank/editquestion/question.php');
+        $course = $this->getDataGenerator()->create_course();
+        $context = \context_course::instance($course->id);
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category(['contextid' => $context->id]);
+        $chartid = chart_manager::create_chart('Main', $context->id);
+        $bank = account_manager::add($chartid, 'Bank');
+        $cash = account_manager::add($chartid, 'Cash');
+        $saved = $generator->create_question('accounting', null, [
+            'category' => $category->id,
+            'chartofaccountsid' => $chartid,
+            'debitaccount' => [$bank, $bank], 'creditaccount' => [$cash, $cash],
+            'debitamount' => [100, 200], 'creditamount' => [100, 200],
+        ]);
+        $question = \question_bank::load_question_data($saved->id);
+        $question->contextid = $context->id;
+        $question->beingcopied = false;
+        $question->formoptions = (object)[
+            'mustbeusable' => false, 'repeatelements' => true,
+            'canedit' => true, 'canmove' => false, 'cansaveasnew' => false,
+        ];
+        $amount = $remainingindex === 0 ? 100 : 200;
+        $submission = [
+            'category' => $category->id . ',' . $context->id,
+            'name' => 'Deleted row',
+            'questiontext' => ['text' => 'Record the transaction.', 'format' => FORMAT_HTML],
+            'defaultmark' => 1, 'penalty' => 0.3333333,
+            'chartofaccountsid' => $chartid, 'numberformat' => 'de',
+            'accounting_js' => (int)$javascript, 'accounting_displayformat' => 'de',
+        ];
+        foreach (['debit' => $bank, 'credit' => $cash] as $side => $account) {
+            $suffix = $javascript ? '' : '_display';
+            $submission[$side . 'account' . $suffix] = [$remainingindex => $account];
+            $submission[$side . 'amount' . $suffix] = [$remainingindex => $javascript ? $amount : $amount . ',00'];
+        }
+        \qtype_accounting_edit_form::mock_submit($submission);
+        $form = new \qtype_accounting_edit_form(
+            new \moodle_url('/question/bank/editquestion/question.php'),
+            $question,
+            $category,
+            new \core_question\local\bank\question_edit_contexts($context)
+        );
+        // The real editor supplies saved defaults after constructing the submitted form.
+        $form->set_data(clone $question);
+        $data = $form->get_data();
+        $this->assertNotFalse($data);
+        foreach (['debit', 'credit'] as $side) {
+            $this->assertEmpty($data->{$side . 'account'}[1 - $remainingindex] ?? '');
+            $this->assertEmpty($data->{$side . 'amount'}[1 - $remainingindex] ?? '');
+        }
+        $data->id = $saved->id;
+        $data->context = $context;
+        \question_bank::get_qtype('accounting')->save_question_options($data);
+        $entries = $DB->get_records('qtype_accounting_entries', ['questionid' => $saved->id]);
+        $this->assertCount(1, $entries);
+        $entry = reset($entries);
+        $this->assertEquals($amount, $entry->debitamount);
+        $this->assertEquals($amount, $entry->creditamount);
+    }
+
+    /**
+     * Cover deletion of either saved row with and without JavaScript.
+     *
+     * @return array Submission variants.
+     */
+    public static function deleted_row_provider(): array {
+        return [[0, true], [1, true], [0, false], [1, false]];
+    }
+
+    /**
      * Missing amounts must produce separate errors for each affected control.
      */
     public function test_missing_amount_errors_are_visible(): void {
@@ -87,8 +167,13 @@ final class edit_form_test extends \advanced_testcase {
      * @dataProvider failed_submission_provider
      * @param string $format Submitted display format.
      * @param bool $existing Whether the form starts with saved options and entries.
+     * @param bool $javascript Whether canonical fields or ordinary display controls are submitted.
      */
-    public function test_failed_submission_preserves_custom_controls(string $format, bool $existing): void {
+    public function test_failed_submission_preserves_custom_controls(
+        string $format,
+        bool $existing,
+        bool $javascript = true
+    ): void {
         global $PAGE, $USER;
         $this->resetAfterTest();
         $this->setAdminUser();
@@ -108,12 +193,25 @@ final class edit_form_test extends \advanced_testcase {
             'penalty' => 0.3333333,
             'chartofaccountsid' => $chartid,
             'numberformat' => $format,
-            'debitaccount' => [0 => $bank, 1 => '', 4 => $bank, 6 => $cash],
-            'creditaccount' => [0 => $cash, 1 => '', 4 => '', 6 => $bank],
-            'debitamount' => [0 => '', 1 => '', 4 => '12.50', 6 => '0'],
-            'creditamount' => [0 => '', 1 => '', 4 => '', 6 => '0'],
-            'weight_debitaccount' => [0 => 3, 4 => 2],
+            'accounting_js' => (int)$javascript,
+            'accounting_displayformat' => $format,
+            'debitaccount' => [0 => $bank, 1 => '', 24 => $bank, 46 => $cash],
+            'creditaccount' => [0 => $cash, 1 => '', 24 => '', 46 => $bank],
+            'debitamount' => [0 => '', 1 => '', 24 => '12.50', 46 => '0'],
+            'creditamount' => [0 => '', 1 => '', 24 => '', 46 => '0'],
+            'weight_debitaccount' => [0 => 3, 24 => 2],
         ];
+        if (!$javascript) {
+            foreach (['debit', 'credit'] as $side) {
+                $submitted[$side . 'account_display'] = $submitted[$side . 'account'];
+                $submitted[$side . 'amount_display'] = array_map(static function ($value) use ($format) {
+                    return $value === '' ? '' : amount_helper::format_amount((float)$value, $format);
+                }, $submitted[$side . 'amount']);
+                unset($submitted[$side . 'account'], $submitted[$side . 'amount']);
+            }
+            $submitted['weight_debitaccount_display'] = $submitted['weight_debitaccount'];
+            unset($submitted['weight_debitaccount']);
+        }
         \qtype_accounting_edit_form::mock_submit($submitted);
         $question = (object)[
             'qtype' => 'accounting',
@@ -145,6 +243,9 @@ final class edit_form_test extends \advanced_testcase {
             new \core_question\local\bank\question_edit_contexts($context)
         );
         $this->assertFalse($form->is_validated());
+        $submitteddata = $form->get_submitted_data();
+        $this->assertEquals(12.5, $submitteddata->debitamount[24]);
+        $this->assertEquals($cash, $submitteddata->debitaccount[46]);
         $html = $form->render();
         $this->assertStringContainsString(get_string('err_debitamountrequired', 'qtype_accounting'), $html);
         $this->assertStringContainsString(get_string('err_creditamountrequired', 'qtype_accounting'), $html);
@@ -188,6 +289,8 @@ final class edit_form_test extends \advanced_testcase {
             'new US' => ['us', false],
             'existing German' => ['de', true],
             'existing US' => ['us', true],
+            'no JavaScript German' => ['de', false, false],
+            'no JavaScript US' => ['us', true, false],
         ];
     }
 

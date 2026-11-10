@@ -30,6 +30,8 @@
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_accounting_question extends question_graded_automatically {
+    /** Maximum number of answer rows offered by the web and app interfaces. */
+    public const MAX_ENTRIES = \qtype_accounting\entry_helper::MAX_ENTRIES;
     /** @var int Chart of accounts ID. */
     public $chartofaccountsid;
 
@@ -84,8 +86,8 @@ class qtype_accounting_question extends question_graded_automatically {
     /**
      * Get the expected data keys for the question.
      *
-     * Declares fields for indices 0 through a generous upper bound based on the
-     * number of correct entries. Uses PARAM_RAW for amounts to preserve empty
+     * Declares all fields offered by the web and app interfaces, retaining larger
+     * imported solutions. Uses PARAM_RAW for amounts to preserve empty
      * strings (PARAM_FLOAT converts them to 0).
      *
      * @return array The expected data keys and their types.
@@ -93,8 +95,8 @@ class qtype_accounting_question extends question_graded_automatically {
     public function get_expected_data(): array {
         $expected = [];
 
-        // Use a generous upper bound: number of correct entries + headroom for student additions.
-        $maxindex = max(count($this->entries), 1) + 19;
+        // Match the explicit UI limit, retaining support for larger imported questions.
+        $maxindex = max(self::MAX_ENTRIES, count($this->entries)) - 1;
         for ($i = 0; $i <= $maxindex; $i++) {
             $expected["debitaccount_{$i}"] = PARAM_RAW;
             $expected["debitamount_{$i}"] = PARAM_RAW;
@@ -115,9 +117,15 @@ class qtype_accounting_question extends question_graded_automatically {
 
         foreach ($this->entries as $i => $entry) {
             $response["debitaccount_{$i}"] = $entry['debitaccountid'] ?? 0;
-            $response["debitamount_{$i}"] = $entry['debitamount'];
+            $response["debitamount_{$i}"] = \qtype_accounting\amount_helper::format_amount(
+                (float)$entry['debitamount'],
+                $this->numberformat
+            );
             $response["creditaccount_{$i}"] = $entry['creditaccountid'] ?? 0;
-            $response["creditamount_{$i}"] = $entry['creditamount'];
+            $response["creditamount_{$i}"] = \qtype_accounting\amount_helper::format_amount(
+                (float)$entry['creditamount'],
+                $this->numberformat
+            );
         }
 
         return $response;
@@ -145,9 +153,9 @@ class qtype_accounting_question extends question_graded_automatically {
                 $parts[] = sprintf(
                     "%s %.2f / %s %.2f",
                     $debitname,
-                    (float)$debitamount,
+                    \qtype_accounting\amount_helper::parse_amount($debitamount, $this->numberformat),
                     $creditname,
-                    (float)$creditamount
+                    \qtype_accounting\amount_helper::parse_amount($creditamount, $this->numberformat)
                 );
             }
         }
@@ -262,18 +270,86 @@ class qtype_accounting_question extends question_graded_automatically {
     }
 
     /**
-     * Compute the final grade.
+     * Compare account and amount parts using the same aggregation as normal grading.
      *
-     * @param array $responses All responses from the attempts.
-     * @param int $totaltries The total number of tries.
-     * @return float The final grade fraction.
+     * @param array $response Student response.
+     * @return array Correctness keyed by side and correct account ID.
      */
-    public function compute_final_grade($responses, $totaltries): float {
-        $fraction = 0;
-        foreach ($responses as $response) {
-            $fraction = max($fraction, $this->calculate_fraction($response));
+    protected function response_parts(array $response): array {
+        $scorer = new \qtype_accounting\scorer(null, false, $this->numberformat);
+        $correct = $scorer->aggregate_entries($this->entries, true);
+        $student = $scorer->aggregate_entries($scorer->parse_response($response), false);
+        $parts = ['debit' => [], 'credit' => []];
+        foreach ($correct as $side => $accounts) {
+            foreach ($accounts as $id => $account) {
+                $present = isset($student[$side][$id]);
+                $parts[$side][$id] = [
+                    $present,
+                    $present && $scorer->amounts_equal($student[$side][$id]['amount'], $account['amount']),
+                ];
+            }
         }
-        return $fraction;
+        return $parts;
+    }
+
+    /**
+     * Clear incorrect parts for interactive hints, retaining correct split bookings.
+     *
+     * Moodle's standard interactive behaviour applies the configured try penalties.
+     *
+     * @param array $response Student response.
+     * @return array Response with incorrect controls cleared.
+     */
+    public function clear_wrong_from_response(array $response) {
+        $parts = $this->response_parts($response);
+        foreach ($response as $key => $value) {
+            if (preg_match('/^(debit|credit)account_(\d+)$/', $key, $matches)) {
+                $status = $parts[$matches[1]][(int)$value] ?? [false, false];
+                if (!$status[0]) {
+                    $response[$key] = '';
+                }
+                if (!$status[1]) {
+                    $response[$matches[1] . 'amount_' . $matches[2]] = '';
+                }
+            }
+        }
+        return $response;
+    }
+
+    /**
+     * Report correct account/amount parts for interactive hints.
+     *
+     * @param array $response Student response.
+     * @return array Number correct and total number of parts.
+     */
+    public function get_num_parts_right(array $response) {
+        $right = 0;
+        $total = 0;
+        foreach ($this->response_parts($response) as $accounts) {
+            foreach ($accounts as $parts) {
+                $right += count(array_filter($parts));
+                $total += count($parts);
+            }
+        }
+        return [$right, $total];
+    }
+
+    /**
+     * Classify observed responses for quiz response analysis.
+     *
+     * @param array $response Student response.
+     * @return array Classification keyed by question ID.
+     */
+    public function classify_response(array $response) {
+        if (!$this->is_complete_response($response)) {
+            return [$this->id => question_classified_response::no_response()];
+        }
+        $fraction = $this->calculate_fraction($response);
+        return [$this->id => new question_classified_response(
+            $fraction >= 1 ? 1 : 0,
+            $this->summarise_response($response),
+            $fraction
+        )];
     }
 
     /**

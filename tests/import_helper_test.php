@@ -26,7 +26,7 @@ namespace qtype_accounting;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting\import_helper
  */
-class import_helper_test extends \advanced_testcase {
+final class import_helper_test extends \advanced_testcase {
     /**
      * Test basic line-per-name parsing.
      */

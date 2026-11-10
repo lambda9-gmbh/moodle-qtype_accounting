@@ -25,6 +25,17 @@ namespace qtype_accounting;
  */
 class amount_helper {
     /**
+     * Format a canonical database amount for a response or display control.
+     *
+     * @param float $amount Canonical amount.
+     * @param string $format Question number format.
+     * @return string Localised amount, including two decimal places.
+     */
+    public static function format_amount(float $amount, string $format = 'de'): string {
+        return $format === 'us' ? number_format($amount, 2, '.', ',') : number_format($amount, 2, ',', '.');
+    }
+
+    /**
      * Parse an amount string to a float using the known number format.
      *
      * Unlike guessing-based parsing, this method uses the question's configured

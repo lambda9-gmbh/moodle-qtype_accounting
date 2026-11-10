@@ -42,7 +42,17 @@ class qtype_accounting extends question_type {
      * @return bool
      */
     public function is_usable_by_random(): bool {
-        return false;
+        return true;
+    }
+
+    /**
+     * Load the options offered by the interactive hint editor.
+     *
+     * @param object $hint Stored hint record.
+     * @return question_hint_with_parts Hint supporting clear-wrong and part-count options.
+     */
+    protected function make_hint($hint) {
+        return question_hint_with_parts::load_from_record($hint);
     }
 
     /**
@@ -77,15 +87,23 @@ class qtype_accounting extends question_type {
     public function save_question_options($question) {
         global $DB;
 
-        $DB->delete_records('qtype_accounting_options', ['questionid' => $question->id]);
-        $DB->delete_records('qtype_accounting_entries', ['questionid' => $question->id]);
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            $optionsquestion = clone $question;
+            foreach ((array)$this->build_options_record($question) as $field => $value) {
+                $optionsquestion->$field = $value;
+            }
+            parent::save_question_options($optionsquestion);
+            $DB->delete_records('qtype_accounting_entries', ['questionid' => $question->id]);
 
-        $DB->insert_record('qtype_accounting_options', $this->build_options_record($question));
+            $arrays = $this->normalize_entry_arrays($question);
+            $this->save_entries($question->id, $arrays);
 
-        $arrays = $this->normalize_entry_arrays($question);
-        $this->save_entries($question->id, $arrays);
-
-        $this->save_hints($question);
+            $this->save_hints($question, true);
+            $transaction->allow_commit();
+        } catch (\Exception $exception) {
+            $transaction->rollback($exception);
+        }
 
         return true;
     }
@@ -176,22 +194,9 @@ class qtype_accounting extends question_type {
     public function get_question_options($question): bool {
         global $DB;
 
-        $question->options = $DB->get_record(
-            'qtype_accounting_options',
-            ['questionid' => $question->id]
-        );
-
-        if ($question->options === false) {
-            $question->options = new stdClass();
-            $question->options->questionid = $question->id;
-            $question->options->chartofaccountsid = 0;
-            $question->options->accountsindropdown = 0;
-            $question->options->numberformat = 'de';
-            $question->options->extraentrydeduction = null;
-            $question->options->allornothinggrading = 0;
-            $question->options->allowmultipleentries = 1;
-            $question->options->maxentries = 5;
-        }
+        parent::get_question_options($question);
+        $defaults = $this->build_options_record((object)['id' => $question->id]);
+        $question->options = (object)((array)$question->options + (array)$defaults);
 
         $question->options->entries = $DB->get_records(
             'qtype_accounting_entries',
@@ -199,7 +204,6 @@ class qtype_accounting extends question_type {
             'sortorder ASC'
         );
 
-        parent::get_question_options($question);
         return true;
     }
 
@@ -260,7 +264,6 @@ class qtype_accounting extends question_type {
     public function delete_question($questionid, $contextid): void {
         global $DB;
 
-        $DB->delete_records('qtype_accounting_options', ['questionid' => $questionid]);
         $DB->delete_records('qtype_accounting_entries', ['questionid' => $questionid]);
 
         parent::delete_question($questionid, $contextid);
@@ -283,7 +286,11 @@ class qtype_accounting extends question_type {
      * @return array The possible responses.
      */
     public function get_possible_responses($questiondata): array {
-        return [];
+        return [$questiondata->id => [
+            1 => new question_possible_response(get_string('correct', 'question'), 1),
+            0 => new question_possible_response(get_string('incorrect', 'question'), 0),
+            null => question_possible_response::no_response(),
+        ]];
     }
 
     /**

@@ -30,7 +30,26 @@ require_once($CFG->dirroot . '/question/format/xml/format.php');
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting
  */
-class questiontype_test extends \advanced_testcase {
+final class questiontype_test extends \advanced_testcase {
+    /**
+     * Interactive hint options survive saving and question-engine loading.
+     */
+    public function test_interactive_hint_options_round_trip(): void {
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category();
+        $question = $generator->create_question('accounting', null, [
+            'category' => $category->id,
+            'hint' => [['text' => 'Try again.', 'format' => FORMAT_HTML]],
+            'hintclearwrong' => [1],
+            'hintshownumcorrect' => [1],
+        ]);
+        $loaded = \question_bank::load_question($question->id);
+        $this->assertInstanceOf(\question_hint_with_parts::class, $loaded->hints[0]);
+        $this->assertEquals(1, $loaded->hints[0]->clearwrong);
+        $this->assertEquals(1, $loaded->hints[0]->shownumcorrect);
+    }
+
     /** @var \qtype_accounting The question type instance. */
     protected $qtype;
 
@@ -50,10 +69,10 @@ class questiontype_test extends \advanced_testcase {
     }
 
     /**
-     * Test is_usable_by_random returns false.
+     * Accounting questions are available to random-question selection.
      */
     public function test_is_usable_by_random(): void {
-        $this->assertFalse($this->qtype->is_usable_by_random());
+        $this->assertTrue($this->qtype->is_usable_by_random());
     }
 
     /**
@@ -229,14 +248,16 @@ class questiontype_test extends \advanced_testcase {
     }
 
     /**
-     * Test get_possible_responses returns empty array.
+     * Response analysis declares correct, incorrect and unanswered categories.
      */
     public function test_get_possible_responses(): void {
-        $questiondata = new \stdClass();
+        $questiondata = (object)['id' => 123];
         $responses = $this->qtype->get_possible_responses($questiondata);
 
         $this->assertIsArray($responses);
-        $this->assertEmpty($responses);
+        $this->assertCount(3, $responses[123]);
+        $this->assertEquals(1, $responses[123][1]->fraction);
+        $this->assertEquals(0, $responses[123][0]->fraction);
     }
 
     /**

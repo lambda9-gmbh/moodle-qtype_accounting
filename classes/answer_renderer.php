@@ -174,9 +174,6 @@ class answer_renderer {
         if (abs($amount) < 0.01) {
             return '';
         }
-        if ($format === 'us') {
-            return number_format($amount, 2, '.', ',');
-        }
-        return number_format($amount, 2, ',', '.');
+        return amount_helper::format_amount($amount, $format);
     }
 }

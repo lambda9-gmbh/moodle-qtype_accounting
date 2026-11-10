@@ -364,34 +364,23 @@ function xmldb_qtype_accounting_upgrade($oldversion) {
         }
 
         // Step 2: Migrate existing name-based data to IDs.
-        $entries = $DB->get_records('qtype_accounting_entries');
+        $entries = $DB->get_records_sql(
+            "SELECT e.*, d.id AS mappeddebitid, c.id AS mappedcreditid
+               FROM {qtype_accounting_entries} e
+               LEFT JOIN {qtype_accounting_options} o ON o.questionid = e.questionid
+               LEFT JOIN {qtype_accounting_accounts} d ON d.chartid = o.chartofaccountsid
+                    AND d.accountname = e.debitaccount
+               LEFT JOIN {qtype_accounting_accounts} c ON c.chartid = o.chartofaccountsid
+                    AND c.accountname = e.creditaccount"
+        );
         foreach ($entries as $entry) {
-            $options = $DB->get_record('qtype_accounting_options', ['questionid' => $entry->questionid]);
-            if (!$options || !$options->chartofaccountsid) {
-                continue;
+            if (!empty($entry->debitaccount) && $entry->mappeddebitid) {
+                $entry->debitaccountid = $entry->mappeddebitid;
             }
-            $chartid = $options->chartofaccountsid;
-
-            if (!empty($entry->debitaccount)) {
-                $acc = $DB->get_record(
-                    'qtype_accounting_accounts',
-                    ['chartid' => $chartid, 'accountname' => $entry->debitaccount]
-                );
-                if ($acc) {
-                    $entry->debitaccountid = $acc->id;
-                }
+            if (!empty($entry->creditaccount) && $entry->mappedcreditid) {
+                $entry->creditaccountid = $entry->mappedcreditid;
             }
-
-            if (!empty($entry->creditaccount)) {
-                $acc = $DB->get_record(
-                    'qtype_accounting_accounts',
-                    ['chartid' => $chartid, 'accountname' => $entry->creditaccount]
-                );
-                if ($acc) {
-                    $entry->creditaccountid = $acc->id;
-                }
-            }
-
+            unset($entry->mappeddebitid, $entry->mappedcreditid);
             $DB->update_record('qtype_accounting_entries', $entry);
         }
 

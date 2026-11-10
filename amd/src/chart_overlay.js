@@ -47,6 +47,19 @@ class ChartOverlay extends Modal {
     confirming = false;
     closing = false;
     messages = [];
+    onClosed = null;
+
+    /**
+     * Finish a deliberate close once. Core may also hide this modal temporarily
+     * while showing a nested confirmation, which must not refresh the editor.
+     */
+    finishClose() {
+        this.closing = true;
+        super.destroy();
+        if (this.onClosed) {
+            this.onClosed();
+        }
+    }
 
     /**
      * Track the current embedded page after each navigation or form submission.
@@ -97,8 +110,7 @@ class ChartOverlay extends Modal {
         }
         const dirty = Array.from(this.forms).some(([form, values]) => formValues(form) !== values);
         if (!dirty) {
-            this.closing = true;
-            super.destroy();
+            this.finishClose();
             return;
         }
         this.confirming = true;
@@ -117,8 +129,7 @@ class ChartOverlay extends Modal {
             confirmation.getRoot().one(ModalEvents.hidden, () => {
                 this.confirming = false;
                 if (discard) {
-                    this.closing = true;
-                    super.destroy();
+                    this.finishClose();
                 }
             });
             confirmation.show();
@@ -193,10 +204,10 @@ export const init = refreshCharts => {
             modal.getFooter().find('button').on('click', () => modal.destroy());
             // An accidental click outside must not interrupt chart editing.
             modal.getRoot().on(ModalEvents.outsideClick, event => event.preventDefault());
-            modal.getRoot().one(ModalEvents.hidden, () => {
+            modal.onClosed = () => {
                 activeModal = null;
                 refreshCharts();
-            });
+            };
             await modal.show();
             modal.frame.src = url.href;
         } catch (error) {

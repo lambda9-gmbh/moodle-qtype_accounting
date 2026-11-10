@@ -42,6 +42,12 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
     /** @var array Map of source account IDs to IDs in the current question's restored chart. */
     protected $accountidmap = [];
 
+    /** @var int|null Source question owning the transient chart data. */
+    protected $chartquestionid = null;
+
+    /** @var array Target account IDs keyed by name, also used for legacy entries. */
+    protected $targetaccountsbyname = [];
+
     /**
      * Convert custom backup elements into question data for restore identity comparison.
      *
@@ -154,11 +160,28 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
     }
 
     /**
+     * Reset state for every question, including questions without a chart.
+     *
+     */
+    protected function reset_question_state(): void {
+        $questionid = $this->get_old_parentid('question');
+        if ($this->chartquestionid === $questionid) {
+            return;
+        }
+        $this->chartquestionid = $questionid;
+        $this->chartname = '';
+        $this->chartaccounts = [];
+        $this->accountidmap = [];
+        $this->targetaccountsbyname = [];
+    }
+
+    /**
      * Process the chart element - store chart name and reset accounts array.
      *
      * @param array $data The chart data from backup.
      */
     public function process_accounting_chart($data) {
+        $this->reset_question_state();
         $data = (object) $data;
         $this->chartname = $data->name ?? '';
         $this->chartaccounts = [];
@@ -186,6 +209,8 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
     public function process_accounting_options($data) {
         global $DB;
 
+        $this->reset_question_state();
+
         $data = (object) $data;
 
         // Only process if the question was newly created by restore.
@@ -195,6 +220,10 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
         ) ? true : false;
 
         if (!$questioncreated) {
+            $options = $DB->get_record('qtype_accounting_options', ['questionid' => $this->get_new_parentid('question')]);
+            if ($options) {
+                $this->map_chart_account_ids((int)$options->chartofaccountsid);
+            }
             return;
         }
 
@@ -299,11 +328,71 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
         foreach (\qtype_accounting\account_manager::get_for_chart($chartid) as $account) {
             $accountsbyname[$account->accountname] = (int) $account->id;
         }
+        $this->targetaccountsbyname = $accountsbyname;
         foreach ($this->chartaccounts as $account) {
             if (isset($account->id, $accountsbyname[$account->accountname])) {
                 $this->accountidmap[$account->id] = $accountsbyname[$account->accountname];
+                $this->set_mapping(
+                    'qtype_accounting_account_' . $this->get_new_parentid('question'),
+                    $account->id,
+                    $accountsbyname[$account->accountname]
+                );
             }
         }
+        // Core caches attempt recoders across restores in a CLI process, even after
+        // their original restore step is destroyed. Refresh a request-scoped map
+        // for this target question whenever its current backup data is processed.
+        $cache = \cache::make_from_params(\cache_store::MODE_REQUEST, 'qtype_accounting', 'restoredaccounts');
+        $restoreid = $this->get_restoreid();
+        $key = 'question_' . $this->get_new_parentid('question');
+        $previous = $cache->get($key);
+        $mapping = $previous && $previous['restoreid'] === $restoreid ? $previous['accounts'] : [];
+        $cache->set('restoreid', $restoreid);
+        $cache->set($key, ['restoreid' => $restoreid, 'accounts' => $this->accountidmap + $mapping]);
+    }
+
+    /**
+     * Recode account references in all restored attempt steps, including reused questions.
+     *
+     * @param int $questionid Restored question ID.
+     * @param int $sequencenumber Attempt step number.
+     * @param array $response Original response data.
+     * @return array Response referencing target accounts.
+     */
+    public function recode_response($questionid, $sequencenumber, array $response) {
+        global $DB;
+        $cache = \cache::make_from_params(\cache_store::MODE_REQUEST, 'qtype_accounting', 'restoredaccounts');
+        $restoreid = $cache->get('restoreid');
+        if ($restoreid === false) {
+            // A resumed restore phase has a fresh recoder with a live task.
+            $restoreid = $this->step->get_task()->get_restoreid();
+            $cache->set('restoreid', $restoreid);
+        }
+        $entry = $cache->get('question_' . $questionid);
+        if ($entry === false || $entry['restoreid'] !== $restoreid) {
+            // Same-site restores can leave historical attempts bound to the original
+            // question. In that case its own chart IDs already need no translation.
+            $chartid = $DB->get_field('qtype_accounting_options', 'chartofaccountsid', ['questionid' => $questionid]);
+            $accounts = \qtype_accounting\account_manager::get_for_chart((int)$chartid);
+            $mapping = array_combine(array_keys($accounts), array_keys($accounts));
+            $stored = $DB->get_records('backup_ids_temp', [
+                'backupid' => $restoreid, 'itemname' => 'qtype_accounting_account_' . $questionid,
+            ], '', 'itemid, newitemid');
+            foreach ($stored as $record) {
+                if (isset($accounts[$record->newitemid])) {
+                    $mapping[$record->itemid] = (int)$record->newitemid;
+                }
+            }
+            $cache->set('question_' . $questionid, ['restoreid' => $restoreid, 'accounts' => $mapping]);
+        } else {
+            $mapping = $entry['accounts'];
+        }
+        foreach ($response as $key => $value) {
+            if (preg_match('/^(?:debitaccount|creditaccount)_\d+$/', $key) && (int)$value > 0) {
+                $response[$key] = (string)($mapping[(int)$value] ?? 0);
+            }
+        }
+        return $response;
     }
 
     /**
@@ -316,7 +405,7 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
      * @return int The resolved chart ID, or 0 if no chart data.
      */
     protected function resolve_chart(): int {
-        if (empty($this->chartname)) {
+        if ($this->chartname === '') {
             return 0;
         }
 
@@ -338,7 +427,8 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
         $chartid = \qtype_accounting\chart_manager::find_matching_chart_in_context(
             $this->chartname,
             $contextid,
-            $accountsbyname
+            $accountsbyname,
+            true
         );
 
         if (!$chartid) {
@@ -366,22 +456,6 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
      * @return int|null The account ID, or null if not found.
      */
     protected function resolve_account_name_to_id(string $accountname, int $questionid): ?int {
-        global $DB;
-
-        if (empty($accountname)) {
-            return null;
-        }
-
-        $options = $DB->get_record('qtype_accounting_options', ['questionid' => $questionid]);
-        if (!$options || !$options->chartofaccountsid) {
-            return null;
-        }
-
-        $account = $DB->get_record(
-            'qtype_accounting_accounts',
-            ['chartid' => $options->chartofaccountsid, 'accountname' => $accountname]
-        );
-
-        return $account ? (int) $account->id : null;
+        return $this->targetaccountsbyname[$accountname] ?? null;
     }
 }

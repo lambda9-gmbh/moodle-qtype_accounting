@@ -32,6 +32,11 @@ scp "$TMP_GERMAN_ARCHIVE" "${REMOTE_HOST}:${REMOTE_DIR}/accounting-de.tar"
 # Preserve the directory itself so the bind mount keeps pointing at it.
 ssh "${REMOTE_HOST}" "cd ${REMOTE_DIR} && mkdir -p plugin && tar -xf accounting.tar -C plugin --strip-components=1 && tar -xf accounting-de.tar -C plugin && rm accounting.tar accounting-de.tar"
 
+# Downloaded language packs override plugin lang/de files. Install the repository
+# translation as a local customisation so testserver uses the deployed strings.
+echo "Installing German plugin strings as a local language customisation..."
+ssh "${REMOTE_HOST}" "cd ${REMOTE_DIR} && docker compose exec -T moodle sh -c 'mkdir -p /var/www/moodledata/lang/de_local && cp /var/www/html/question/type/accounting/lang/de/qtype_accounting.php /var/www/moodledata/lang/de_local/qtype_accounting.php'"
+
 # Restart Moodle and purge its caches so deployed PHP and language strings take effect.
 echo "Restarting Moodle and purging caches on remote server..."
 ssh "${REMOTE_HOST}" "cd ${REMOTE_DIR} && docker compose restart moodle && docker compose exec -T moodle php /var/www/html/admin/cli/purge_caches.php"

@@ -25,12 +25,10 @@ import $ from 'jquery';
 import * as EntryUtils from 'qtype_accounting/entry_utils';
 import * as MobileLayout from 'qtype_accounting/mobile_layout';
 
-// Module-level settings for number formatting.
-let numberFormat = 'de';
 const decimalPlaces = 2;
 
 // CSS selector for entry rows in the student view.
-var ROW_SELECTOR = '.qtype_accounting-entry-row';
+let ROW_SELECTOR = '.qtype_accounting-entry-row';
 
 /**
  * Format all non-empty amount fields in a container.
@@ -38,8 +36,9 @@ var ROW_SELECTOR = '.qtype_accounting-entry-row';
  * @param {jQuery} container The question container.
  */
 function formatAllAmountFields(container) {
-    container.find('.qtype_accounting-amount-input').each(function () {
-        var val = $(this).val();
+    const numberFormat = container.data('numberformat') || 'de';
+    container.find('.qtype_accounting-amount-input').each(function() {
+        let val = $(this).val();
         if (val !== '') {
             $(this).val(EntryUtils.formatNumber(val, numberFormat, decimalPlaces));
         }
@@ -56,18 +55,18 @@ function formatAllAmountFields(container) {
  * @param {jQuery} container The question container.
  */
 function setupResponsiveWidth(container) {
-    var table = container.find('.qtype_accounting-student-table')[0];
-    var containerEl = container[0];
+    let table = container.find('.qtype_accounting-student-table')[0];
+    let containerEl = container[0];
     if (!table || !containerEl) {
         return;
     }
 
-    var drawers = document.querySelector('.drawers.drag-container');
+    let drawers = document.querySelector('.drawers.drag-container');
     if (!drawers) {
         return;
     }
 
-    var padding = 50;
+    let padding = 50;
 
     /** Recalculate and apply table width. */
     function updateWidth() {
@@ -75,18 +74,18 @@ function setupResponsiveWidth(container) {
             table.style.width = '';
             return;
         }
-        var containerRect = containerEl.getBoundingClientRect();
-        var rightEdge;
+        let containerRect = containerEl.getBoundingClientRect();
+        let rightEdge;
 
         // When the right drawer is open, use its left edge as the boundary.
-        var rightDrawer = drawers.querySelector('[data-region="right-hand-drawer"]');
+        let rightDrawer = drawers.querySelector('[data-region="right-hand-drawer"]');
         if (rightDrawer && rightDrawer.offsetWidth > 0) {
             rightEdge = rightDrawer.getBoundingClientRect().left;
         } else {
             rightEdge = drawers.getBoundingClientRect().right;
         }
 
-        var availableWidth = rightEdge - containerRect.left - padding;
+        let availableWidth = rightEdge - containerRect.left - padding;
         if (availableWidth > 0) {
             table.style.width = availableWidth + 'px';
         }
@@ -124,7 +123,7 @@ function init(containerId) {
 
     // Read configuration from data attributes (avoids Moodle 3.10 js_call_amd size limits).
     const allowEdit = container.data('allowedit') === 1 || container.data('allowedit') === '1';
-    numberFormat = container.data('numberformat') || 'de';
+    const numberFormat = container.data('numberformat') || 'de';
 
     // Template-based row cloning: read the next index and locate the template element.
     let nextEntryIndex = parseInt(container.data('nextindex'), 10) || 1;
@@ -147,7 +146,7 @@ function init(containerId) {
     // Auto-copy amount from Debit to Credit for convenience (delegated for cloned rows).
     // Only copies when the row is a debit-only entry that just got its credit side added,
     // i.e., when the credit amount is truly empty and the user hasn't interacted with it.
-    container.on('change', 'input[name*="debitamount"]', function () {
+    container.on('change', 'input[name*="debitamount"]', function() {
         const match = $(this).attr('name').match(/_(\d+)$/);
         if (!match) {
             return;
@@ -164,7 +163,7 @@ function init(containerId) {
     });
 
     // Format amount fields on blur (delegated for cloned rows).
-    container.on('blur', '.qtype_accounting-amount-input', function () {
+    container.on('blur', '.qtype_accounting-amount-input', function() {
         const formatted = EntryUtils.formatNumber($(this).val(), numberFormat, decimalPlaces);
         $(this).val(formatted);
     });
@@ -173,8 +172,8 @@ function init(containerId) {
     formatAllAmountFields(container);
 
     // Format amount fields after "Fill correct answers" button is clicked (AJAX case).
-    $('input.btn[name="fill"]').on('click', function () {
-        setTimeout(function () {
+    $('input.btn[name="fill"]').on('click', function() {
+        setTimeout(function() {
             formatAllAmountFields(container);
         }, 500);
     });
@@ -184,25 +183,25 @@ function init(containerId) {
 
     // Add entry button handlers (using delegation so mobile view buttons also work).
     if (allowEdit) {
-        container.on('click', '.qtype_accounting-add-debit-entry', function () {
+        container.on('click', '.qtype_accounting-add-debit-entry', function() {
             nextEntryIndex = addEntry(container, template, tbody, nextEntryIndex, 'debit');
             MobileLayout.refreshMobileView(container);
         });
 
-        container.on('click', '.qtype_accounting-add-credit-entry', function () {
+        container.on('click', '.qtype_accounting-add-credit-entry', function() {
             nextEntryIndex = addEntry(container, template, tbody, nextEntryIndex, 'credit');
             MobileLayout.refreshMobileView(container);
         });
 
         // Delete debit button handler (using delegation for cloned rows and mobile cards).
-        container.on('click', '.qtype_accounting-delete-debit', function () {
+        container.on('click', '.qtype_accounting-delete-debit', function() {
             const entryIndex = $(this).data('entry');
             deleteEntrySide(container, entryIndex, 'debit');
             MobileLayout.refreshMobileView(container);
         });
 
         // Delete credit button handler (using delegation for cloned rows and mobile cards).
-        container.on('click', '.qtype_accounting-delete-credit', function () {
+        container.on('click', '.qtype_accounting-delete-credit', function() {
             const entryIndex = $(this).data('entry');
             deleteEntrySide(container, entryIndex, 'credit');
             MobileLayout.refreshMobileView(container);
@@ -211,27 +210,27 @@ function init(containerId) {
         // On form submit, disable empty/hidden rows and re-index the remaining
         // rows so their field names are contiguous (0, 1, 2, …). This prevents
         // index gaps that would cause the PHP renderer to show empty rows.
-        var form = container.closest('form');
+        let form = container.closest('form');
         if (form.length) {
-            form.on('submit', function () {
+            form.on('submit', function() {
                 // Save original states so we can restore if submission is intercepted.
-                var savedStates = [];
-                var writeIndex = 0;
-                container.find(ROW_SELECTOR).each(function () {
-                    var $row = $(this);
-                    var isHidden = $row.css('display') === 'none';
-                    var isEmpty = EntryUtils.isRowEmpty(this);
+                let savedStates = [];
+                let writeIndex = 0;
+                container.find(ROW_SELECTOR).each(function() {
+                    let $row = $(this);
+                    let isHidden = $row.css('display') === 'none';
+                    let isEmpty = EntryUtils.isRowEmpty(this);
 
                     if (isHidden || isEmpty) {
                         // Exclude from form submission.
-                        $row.find('select, input').each(function () {
+                        $row.find('select, input').each(function() {
                             savedStates.push({el: this, disabled: this.disabled, name: $(this).attr('name')});
                             $(this).prop('disabled', true);
                         });
                     } else {
                         // Re-index fields to ensure contiguous indices.
-                        $row.find('select, input').each(function () {
-                            var name = $(this).attr('name');
+                        $row.find('select, input').each(function() {
+                            let name = $(this).attr('name');
                             if (name) {
                                 savedStates.push({el: this, disabled: this.disabled, name: name});
                                 $(this).attr('name', name.replace(/_\d+$/, '_' + writeIndex));
@@ -244,9 +243,9 @@ function init(containerId) {
                 // Restore original states after the event loop tick. If the page
                 // reloads (normal POST), this never fires. If submission was
                 // intercepted (AJAX, validation), this restores the DOM.
-                setTimeout(function () {
-                    for (var i = 0; i < savedStates.length; i++) {
-                        var s = savedStates[i];
+                setTimeout(function() {
+                    for (let i = 0; i < savedStates.length; i++) {
+                        let s = savedStates[i];
                         s.el.disabled = s.disabled;
                         if (s.name) {
                             $(s.el).attr('name', s.name);
@@ -278,7 +277,7 @@ function init(containerId) {
  * @param {jQuery} container The question container.
  */
 function restoreEntryTypes(container) {
-    container.find(ROW_SELECTOR).each(function () {
+    container.find(ROW_SELECTOR).each(function() {
         if ($(this).css('display') === 'none') {
             return; // Skip hidden rows.
         }
@@ -303,7 +302,7 @@ function restoreEntryTypes(container) {
 function initSelect2OnRow(row) {
     const isMobile = window.innerWidth <= 768;
     if (typeof $.fn.select2 !== 'undefined' && !isMobile) {
-        row.find('.qtype_accounting-account-select').each(function () {
+        row.find('.qtype_accounting-account-select').each(function() {
             if (!$(this).closest('td').hasClass('qtype_accounting-hidden-cell') && !$(this).data('select2')) {
                 $(this).select2({
                     placeholder: M.util.get_string('selectaccount', 'qtype_accounting'),
@@ -344,13 +343,34 @@ function addEntry(container, template, tbody, nextIndex, entryType) {
         return nextIndex;
     }
 
+    const maxRows = Number(container.data('maxrows'));
+    const visibleRows = container.find(ROW_SELECTOR).filter(function() {
+        return $(this).css('display') !== 'none';
+    }).length;
+    if (maxRows && visibleRows >= maxRows) {
+        return nextIndex;
+    }
     // No incomplete row to complete — clone a new row from the template.
     if (!template) {
         return nextIndex;
     }
 
     const clone = template.content.cloneNode(true);
-    const index = nextIndex;
+    const occupied = new Set();
+    container.find(ROW_SELECTOR).each(function() {
+        if ($(this).css('display') !== 'none') {
+            occupied.add(Number($(this).attr('data-entry')));
+        }
+    });
+    let index = 0;
+    while (occupied.has(index)) {
+        index++;
+    }
+    // Reuse deleted indices, so autosave and AJAX submissions also stay within
+    // get_expected_data(), without relying on the form submit re-indexing hook.
+    const deleted = container.find(ROW_SELECTOR + '[data-entry="' + index + '"]');
+    deleted.next('.qtype_accounting-explanation-row').remove();
+    deleted.remove();
 
     // Replace __INDEX__ placeholder in all relevant attributes and content.
     const tr = clone.querySelector('tr');
@@ -363,9 +383,9 @@ function addEntry(container, template, tbody, nextIndex, entryType) {
     tr.setAttribute('data-entry-type', entryType);
 
     // Replace __INDEX__ in name, id, and data-entry attributes of all children.
-    var elements = tr.querySelectorAll('[name], [id], [data-entry]');
-    for (var i = 0; i < elements.length; i++) {
-        var el = elements[i];
+    let elements = tr.querySelectorAll('[name], [id], [data-entry]');
+    for (let i = 0; i < elements.length; i++) {
+        let el = elements[i];
         if (el.name) {
             el.name = el.name.replace(/__INDEX__/g, index);
         }
@@ -400,7 +420,7 @@ function addEntry(container, template, tbody, nextIndex, entryType) {
  * @param {number} entryIndex The index of the entry to delete.
  */
 function deleteEntry(container, entryIndex) {
-    const visibleRows = container.find(ROW_SELECTOR).filter(function () {
+    const visibleRows = container.find(ROW_SELECTOR).filter(function() {
         return $(this).css('display') !== 'none';
     });
 
@@ -417,7 +437,7 @@ function deleteEntry(container, entryIndex) {
 
         // Destroy Select2 if active.
         if (typeof $.fn.select2 !== 'undefined') {
-            entryRow.find('.qtype_accounting-account-select').each(function () {
+            entryRow.find('.qtype_accounting-account-select').each(function() {
                 if ($(this).data('select2')) {
                     $(this).select2('destroy');
                 }
@@ -482,14 +502,14 @@ function deleteEntrySide(container, entryIndex, side) {
  * @param {jQuery} container The question container.
  */
 function updateDeleteButtons(container) {
-    const visibleRows = container.find(ROW_SELECTOR).filter(function () {
+    const visibleRows = container.find(ROW_SELECTOR).filter(function() {
         return $(this).css('display') !== 'none';
     });
 
     if (visibleRows.length <= 1) {
         container.find('.qtype_accounting-delete-debit, .qtype_accounting-delete-credit').css('visibility', 'hidden');
     } else {
-        container.find(ROW_SELECTOR).each(function () {
+        container.find(ROW_SELECTOR).each(function() {
             if ($(this).css('display') !== 'none') {
                 $(this).find('.qtype_accounting-delete-debit, .qtype_accounting-delete-credit').css('visibility', 'visible');
             }

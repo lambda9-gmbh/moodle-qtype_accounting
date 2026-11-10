@@ -191,6 +191,16 @@ On the management page you can:
 - **Download** any chart as CSV.
 - **Delete** a chart (with confirmation).
 
+Accounts can be renamed even when used by questions; their IDs and question references
+stay the same. Accounts and charts can also be deleted after explicit confirmation.
+Deletion warnings explain the impact on existing questions, grading, and saved attempts;
+account deletion also lists the questions that use the account or have saved attempts using it.
+Duplicate account names are rejected, and a failed import leaves existing data intact.
+
+The editor and student interfaces support up to 100 entry rows. Existing imported
+solutions above that limit remain supported. Without JavaScript, choose the chart
+and row count, then use **Update chart and rows** before completing the question.
+
 CSV files may be UTF-8 or Windows-1252 (Excel's default); a UTF-8 BOM, if present, is stripped automatically.
 
 ---
@@ -272,6 +282,8 @@ The release ships English strings only, per Moodle policy. German is maintained 
 
 Testserver deployments via `./dev/scripts/deploy.sh` include both English and German strings from the latest commit. Install Moodle's German language pack and select German in Moodle to use the translation.
 
+The local Docker environment mounts the repository's German plugin strings into `moodledata/lang/de_local/qtype_accounting.php`; testserver deployments copy them there. This local customisation takes precedence over translations in the downloaded Moodle language pack, which would otherwise override the plugin's `lang/de/` file. After changing strings, purge Moodle's caches. An existing local container needs to be recreated once to pick up the additional mount.
+
 To contribute a translation, please use the official Moodle translation tool at <https://lang.moodle.org/>.
 
 ---
@@ -293,6 +305,11 @@ When reporting a bug, please include:
 ## Development
 
 The `dev/` directory contains a complete Dockerised dev/CI environment. It is `export-ignore`d in `.gitattributes` and does not ship in the release ZIP.
+
+Use `nix-shell dev/shell.nix` for PHP, Composer, Node, Python, and database clients;
+dependencies should not be installed into a host environment. The GitHub Actions
+workflow uses this shell and runs the Moodle checks, PHPUnit, and Behat against
+Moodle 4.5/5.1 with both MariaDB and PostgreSQL.
 
 ### Bring up the stack
 
@@ -388,6 +405,12 @@ mounts, as in the local stack. See [Moodle's cron documentation](https://docs.mo
 
 ### Test suites
 
+The pure JavaScript number-format and app-controller regressions do not need a server:
+
+```bash
+nix-shell dev/shell.nix --run 'node --test dev/tests/entry_utils_test.cjs dev/tests/mobileapp_test.cjs'
+```
+
 ```bash
 ./dev/scripts/test.sh              # PHPUnit + Behat
 ./dev/scripts/test.sh phpunit
@@ -422,7 +445,7 @@ The container ships `moodle-cs` and `moodle-plugin-ci` ready to run.
 ### Building the AMD modules
 
 ```bash
-./dev/scripts/build.sh             # minify amd/src → amd/build (uses terser)
+./dev/scripts/build.sh             # compile amd/src → amd/build with Moodle's grunt/rollup pipeline
 ```
 
 Commit `amd/build/` alongside any `amd/src/` change — CI's grunt step compares the two and fails if they drift. For local iteration without rebuilding on every edit, set `$CFG->cachejs = false;` in `dev/docker/config.php`.
