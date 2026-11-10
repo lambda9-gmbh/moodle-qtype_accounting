@@ -53,7 +53,8 @@
                         <ion-item>
                             <ion-input type="text" inputmode="decimal" labelPlacement="stacked"
                                 [label]="'plugin.qtype_accounting.amount' | translate" [value]="entry.amount"
-                                (ionInput)="entry.amount = $event.detail.value || ''" [placeholder]="question.accountingPlaceholder">
+                                (ionInput)="entry.amount = $event.detail.value || ''" (ionBlur)="formatAmount(entry)"
+                                [placeholder]="question.accountingPlaceholder">
                             </ion-input>
                         </ion-item>
                         <ion-button *ngIf="canRemoveEntry(side)" type="button" fill="clear" color="danger"
@@ -63,9 +64,23 @@
                     </ng-container>
                     <ng-container *ngIf="question.readonly">
                         <p>{{ 'plugin.qtype_accounting.account' | translate }}</p>
-                        <core-format-text [text]="entry.accountReview"></core-format-text>
+                        <div class="ion-padding" [class.core-question-correct]="entry.accountCorrectness === 'correct'"
+                            [class.core-question-incorrect]="entry.accountCorrectness === 'incorrect'"
+                            [style.background-color]="entry.accountCorrectness ?
+                                'var(--core-question-' + entry.accountCorrectness + '-color-bg)' : null"
+                            [style.color]="entry.accountCorrectness ?
+                                'var(--core-question-' + entry.accountCorrectness + '-color)' : null">
+                            <core-format-text [text]="entry.accountReview"></core-format-text>
+                        </div>
                         <p>{{ 'plugin.qtype_accounting.amount' | translate }}</p>
-                        <core-format-text [text]="entry.amountReview"></core-format-text>
+                        <div class="ion-padding" [class.core-question-correct]="entry.amountCorrectness === 'correct'"
+                            [class.core-question-incorrect]="entry.amountCorrectness === 'incorrect'"
+                            [style.background-color]="entry.amountCorrectness ?
+                                'var(--core-question-' + entry.amountCorrectness + '-color-bg)' : null"
+                            [style.color]="entry.amountCorrectness ?
+                                'var(--core-question-' + entry.amountCorrectness + '-color)' : null">
+                            <core-format-text [text]="entry.amountReview"></core-format-text>
+                        </div>
                     </ng-container>
                 </ion-card-content>
             </ion-card>
@@ -79,5 +94,27 @@
         <ion-button *ngIf="!question.readonly" type="button" fill="outline" (click)="addEntry(side)">
             {{ side.addLabel | translate }}
         </ion-button>
+    </section>
+    <section *ngIf="question.accountingSolution" class="qtype_accounting-app-solution">
+        <div *ngIf="question.accountingSolution.summaryHtml" class="qtype_accounting-app-summary ion-padding"
+            style="background-color: var(--core-question-feedback-background-color); color: var(--core-question-feedback-color);
+                display: flex; align-items: center;">
+            <core-format-text [text]="question.accountingSolution.summaryHtml" [component]="component" [componentId]="componentId"
+                [contextLevel]="contextLevel" [contextInstanceId]="contextInstanceId" [courseId]="courseId">
+            </core-format-text>
+        </div>
+        <h3>{{ question.accountingSolution.title }}</h3>
+        <section *ngFor="let side of question.accountingSolution.sides">
+            <h3>{{ side.title | translate }}</h3>
+            <ion-card *ngFor="let entry of side.entries">
+                <ion-card-content>
+                    <p>{{ 'plugin.qtype_accounting.account' | translate }}</p>
+                    <div class="ion-padding">{{ entry.account }}</div>
+                    <p>{{ 'plugin.qtype_accounting.amount' | translate }}</p>
+                    <div class="ion-padding">{{ entry.amount }}</div>
+                    <core-format-text *ngIf="entry.explanation" [text]="entry.explanation"></core-format-text>
+                </ion-card-content>
+            </ion-card>
+        </section>
     </section>
 </section>

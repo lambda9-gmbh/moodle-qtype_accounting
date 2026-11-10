@@ -32,9 +32,12 @@ const accountingComponent = {
 
         const element = document.createElement('div');
         element.innerHTML = question.html;
-        // Map the browser's field feedback to the app's standard correctness styling.
-        element.querySelectorAll('.qtype_accounting-correct').forEach(field => field.classList.add('correct'));
-        element.querySelectorAll('.qtype_accounting-incorrect').forEach(field => field.classList.add('incorrect'));
+        // Add app classes directly: its helper replaces substrings of className,
+        // which would corrupt our namespaced markers if we added "correct"/"incorrect".
+        element.querySelectorAll('.qtype_accounting-correct').forEach(field =>
+            field.classList.add('core-question-answer-correct'));
+        element.querySelectorAll('.qtype_accounting-incorrect').forEach(field =>
+            field.classList.add('core-question-answer-incorrect'));
         accountingProviders.CoreQuestionHelperProvider.replaceCorrectnessClasses(element);
         const container = element.querySelector('.qtype_accounting-question-container');
         const text = element.querySelector('.qtext');
@@ -53,13 +56,35 @@ const accountingComponent = {
         question.readonly = readonly;
         question.text = text.innerHTML;
         question.accountingNotice = element.querySelector('.alert')?.innerHTML || '';
-        question.accountingPlaceholder = container.getAttribute('data-numberformat') === 'us' ? '0.00' : '0,00';
+        const numberFormat = container.getAttribute('data-numberformat') === 'us' ? 'us' : 'de';
+        question.accountingPlaceholder = numberFormat === 'us' ? '0.00' : '0,00';
         question.accountingSides = [];
+
+        // Match the browser's formatNumber(value, numberFormat, 2), including
+        // German grouping such as 1.000 and formatting when the field loses focus.
+        this.formatAmount = entry => {
+            if (question.readonly) {
+                return;
+            }
+            const value = String(entry.amount ?? '').trim();
+            const plain = numberFormat === 'de' ? value.replace(/\./g, '').replace(',', '.') : value.replace(/,/g, '');
+            const amount = parseFloat(plain);
+            entry.amount = isNaN(amount) ? '' : amount.toLocaleString(numberFormat === 'us' ? 'en-US' : 'de-DE', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            });
+        };
 
         // Local answers can contain rows not present in the server's last saved HTML.
         const local = readonly ? {} : question.localAnswers || {};
         const value = (field, name) => Object.prototype.hasOwnProperty.call(local, name)
             ? String(local[name] ?? '') : field?.value || '';
+        const correctness = field => {
+            if (field?.classList.contains('qtype_accounting-correct')) {
+                return 'correct';
+            }
+            return field?.classList.contains('qtype_accounting-incorrect') ? 'incorrect' : '';
+        };
         const accountSelect = container.querySelector('select');
         question.accountingAccounts = accountSelect ? Array.from(accountSelect.options).map(option => ({
             value: option.value,
@@ -85,6 +110,8 @@ const accountingComponent = {
                 const amount = container.querySelector('[name="' + prefix + amountKey + '"]');
                 const accountValue = value(account, accountKey);
                 const amountValue = value(amount, amountKey);
+                const accountReview = account?.parentElement.querySelector('.qtype_accounting-readonly');
+                const amountReview = amount?.parentElement.querySelector('.qtype_accounting-readonly');
                 entries.push({
                     index,
                     accountName: prefix + accountKey,
@@ -92,9 +119,12 @@ const accountingComponent = {
                     account: accountValue,
                     amount: amountValue,
                     visible: (accountValue !== '' && accountValue !== '0') || (amountValue !== '' && amountValue !== '0'),
-                    accountReview: account?.parentElement.querySelector('.qtype_accounting-readonly')?.outerHTML || '',
-                    amountReview: amount?.parentElement.querySelector('.qtype_accounting-readonly')?.outerHTML || '',
+                    accountReview: accountReview?.outerHTML || '',
+                    amountReview: amountReview?.outerHTML || '',
+                    accountCorrectness: correctness(accountReview),
+                    amountCorrectness: correctness(amountReview),
                 });
+                this.formatAmount(entries[entries.length - 1]);
             }
 
             // An unanswered question needs one editable entry on each side.
@@ -110,11 +140,70 @@ const accountingComponent = {
             });
         });
 
-        // The surrounding quiz component displays feedback according to the quiz review options.
-        const feedback = element.querySelector('.feedback');
+        // The app extracts .outcome into feedbackHtml before initializing this
+        // controller. Handle that source as well as unprocessed question HTML.
+        const feedbackElement = typeof question.feedbackHtml === 'string' ? document.createElement('div') : element;
+        if (feedbackElement !== element) {
+            feedbackElement.innerHTML = question.feedbackHtml;
+        }
+        const feedback = feedbackElement.querySelector('.feedback');
+        question.accountingSolution = null;
         if (feedback) {
-            accountingProviders.CoreQuestionHelperProvider.replaceFeedbackClasses(element);
-            accountingProviders.CoreQuestionHelperProvider.treatCorrectnessIcons(element);
+            const solution = feedback.querySelector('.qtype_accounting-correct-response');
+            const table = solution?.querySelector('.qtype_accounting-solution');
+            if (table) {
+                const sides = ['debit', 'credit'].map(name => ({
+                    title: 'plugin.qtype_accounting.' + name + 'entries',
+                    entries: [],
+                }));
+                table.querySelectorAll('tbody > tr').forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length !== 4) {
+                        return;
+                    }
+                    const explanation = row.nextElementSibling?.classList.contains('qtype_accounting-explanation-row')
+                        ? row.nextElementSibling.querySelector('td')?.innerHTML || '' : '';
+                    let explanationAssigned = false;
+                    sides.forEach((side, index) => {
+                        const account = cells[index * 2].textContent.trim();
+                        const amount = cells[index * 2 + 1].textContent.trim();
+                        if (account || amount) {
+                            side.entries.push({account, amount, explanation: explanationAssigned ? '' : explanation});
+                            explanationAssigned = true;
+                        }
+                    });
+                });
+                question.accountingSolution = {
+                    title: solution.querySelector('p')?.textContent || '',
+                    sides: sides.filter(side => side.entries.length),
+                };
+                // The app template renders these entries as Ionic cards instead.
+                solution.remove();
+            }
+            accountingProviders.CoreQuestionHelperProvider.replaceFeedbackClasses(feedbackElement);
+            accountingProviders.CoreQuestionHelperProvider.treatCorrectnessIcons(feedbackElement);
+            if (question.accountingSolution) {
+                const summary = feedback.querySelector('.qtype_accounting-feedback-summary');
+                // The browser's mt-3 spacing sits inside the app warning and
+                // pushes the message down. Let the enclosing panel own spacing.
+                if (summary) {
+                    summary.classList.remove('mt-3');
+                    summary.style.margin = '0';
+                }
+                // The enclosing app warning supplies the feedback background.
+                // Do not retain the browser alert's red/green background inside it.
+                summary?.querySelectorAll('.alert').forEach(alert =>
+                    alert.classList.remove('alert', 'alert-danger', 'alert-warning', 'alert-success'));
+                question.accountingSolution.summaryHtml = summary?.outerHTML || '';
+                summary?.remove();
+            }
+            // This is the property rendered by CoreQuestionComponent, rather than
+            // the legacy feedback/feedbackHTML fields used by older handlers.
+            // Empty .specificfeedback/.rightanswer wrappers must not cause the
+            // app to render an empty orange feedback panel below the cards.
+            const hasFeedback = feedback.textContent?.trim() ||
+                feedback.querySelector('img, video, audio, iframe, object, embed, svg, canvas, hr');
+            question.feedbackHtml = hasFeedback ? feedback.outerHTML : '';
             question.feedback = feedback;
             question.feedbackHTML = true;
         }

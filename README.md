@@ -325,8 +325,22 @@ Both stacks serve Moodle at <http://localhost:8080>. The Postgres stack overlays
 
 ### Test the installed Android App locally
 
+If Moodle is already running at `http://localhost:8080`, reuse the existing
+emulator and open the App without starting or changing the server:
+
 ```bash
-./dev/scripts/app.sh start
+./dev/scripts/app.sh open
+```
+
+This command also restores the emulator's connection to the host's port 8080.
+Use `./dev/scripts/app.sh stop` to close the dedicated emulator when finished.
+
+To start the server and provision the sample course as well, choose its database:
+
+```bash
+ACCOUNTING_APP_DB=mariadb ./dev/scripts/app.sh start
+# For the PostgreSQL environment instead:
+ACCOUNTING_APP_DB=pgsql ./dev/scripts/app.sh start
 ```
 
 This opens a dedicated **Android 13 virtual phone window on this Mac** and installs

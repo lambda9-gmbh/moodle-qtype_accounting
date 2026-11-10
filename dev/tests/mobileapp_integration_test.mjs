@@ -53,7 +53,7 @@ Component({
     template: '<form name="addon-mod_quiz-player-form">' + template + '</form>',
 })(QuizHost);
 
-function serverHtml({saved = {}, readonly = false, format = 'de', accounts = true} = {}) {
+function serverHtml({saved = {}, readonly = false, format = 'de', accounts = true, correctness = {}, feedback = ''} = {}) {
     const fields = ['debit', 'credit'].map(side => {
         const accountKey = side + 'account_0';
         const amountKey = side + 'amount_0';
@@ -62,13 +62,15 @@ function serverHtml({saved = {}, readonly = false, format = 'de', accounts = tru
                 `<option value="101" ${saved[accountKey] === '101' ? 'selected' : ''}>Bank</option>` +
                 `<option value="201" ${saved[accountKey] === '201' ? 'selected' : ''}>Sales</option></select>`
             : `<input name="q42:7_${accountKey}" value="${saved[accountKey] || ''}">`;
-        return `<div><span class="qtype_accounting-readonly">Bank</span>${account}</div>` +
-            `<div><span class="qtype_accounting-readonly">100,00</span>` +
+        const feedbackClass = key => correctness[key] ? ' qtype_accounting-' + correctness[key] : '';
+        return `<div><span class="qtype_accounting-readonly${feedbackClass(accountKey)}">Bank</span>${account}</div>` +
+            `<div><span class="qtype_accounting-readonly${feedbackClass(amountKey)}">100,00</span>` +
             `<input name="q42:7_${amountKey}" value="${saved[amountKey] || ''}"></div>`;
     }).join('');
     return '<div class="qtext">Record the booking</div>' +
         `<div class="qtype_accounting-question-container" data-allowedit="${readonly ? '0' : '1'}"` +
-        ` data-maxrows="3" data-numberformat="${format}">${fields}</div>`;
+        ` data-maxrows="3" data-numberformat="${format}">${fields}</div>` +
+        (feedback ? '<div class="outcome">' + feedback + '</div>' : '');
 }
 
 async function render(options = {}) {
@@ -77,11 +79,27 @@ async function render(options = {}) {
     const fixture = TestBed.createComponent(QuizHost);
     const instance = fixture.componentInstance;
     instance.question = {html: serverHtml(options), localAnswers: options.local || {}};
+    // CoreQuestionHelper.extractQuestionFeedback runs before the plugin controller.
+    const parsed = document.createElement('div');
+    parsed.innerHTML = instance.question.html;
+    const outcome = parsed.querySelector('.outcome');
+    if (outcome) {
+        instance.question.feedbackHtml = outcome.innerHTML;
+        outcome.remove();
+        instance.question.html = parsed.innerHTML;
+    }
     const handler = vm.runInNewContext(controller, {
         document: dom.window.document,
         CoreQuestionHelperProvider: {
             showComponentError() { throw new Error('Question aborted'); },
-            replaceCorrectnessClasses() {},
+            replaceCorrectnessClasses(element) {
+                // Match the app helper, including its substring replacement of className.
+                for (const state of ['correct', 'incorrect', 'partiallycorrect']) {
+                    element.querySelectorAll('.' + state).forEach(field => {
+                        field.className = field.className.replace(state, 'core-question-answer-' + state);
+                    });
+                }
+            },
             replaceFeedbackClasses() {},
             treatCorrectnessIcons() {},
         },
@@ -121,6 +139,136 @@ function enterBooking(card, account, amount) {
     nativeAmount.dispatchEvent(new dom.window.Event('input', {bubbles: true}));
 }
 afterEach(() => TestBed.resetTestingModule());
+
+test('review highlights each account and amount independently with app feedback backgrounds', async () => {
+    const fixture = await render({readonly: true,
+        saved: {debitaccount_0: '101', debitamount_0: '50,00', creditaccount_0: '201', creditamount_0: '100,00'},
+        correctness: {debitaccount_0: 'correct', debitamount_0: 'incorrect',
+            creditaccount_0: 'incorrect', creditamount_0: 'correct'}});
+    const cards = fixture.nativeElement.querySelectorAll('ion-card');
+    for (const [index, states] of [['correct', 'incorrect'], ['incorrect', 'correct']].entries()) {
+        const fields = cards[index].querySelectorAll('core-format-text');
+        for (const [fieldIndex, state] of states.entries()) {
+            assert.ok(fields[fieldIndex].parentElement.classList.contains('core-question-' + state));
+            assert.equal(fields[fieldIndex].parentElement.style.backgroundColor,
+                'var(--core-question-' + state + '-color-bg)');
+            assert.equal(fields[fieldIndex].parentElement.classList.contains(
+                'core-question-' + (state === 'correct' ? 'incorrect' : 'correct')), false);
+        }
+    }
+    assert.equal(payload(fixture)['q42:7_debitamount_0'], '50,00');
+});
+
+test('unmarked review fields and editable answers have no correctness background', async () => {
+    const saved = {debitaccount_0: '101', debitamount_0: '100,00'};
+    const review = await render({readonly: true, saved});
+    assert.equal(review.nativeElement.querySelectorAll('.core-question-correct, .core-question-incorrect').length, 0);
+    review.destroy();
+    TestBed.resetTestingModule();
+    const attempt = await render({saved});
+    assert.equal(attempt.nativeElement.querySelectorAll('.core-question-correct, .core-question-incorrect').length, 0);
+});
+
+test('correct answer becomes stacked cards with uneven sides, formatted amounts and explanations', async () => {
+    const fixture = await render({readonly: true, feedback:
+        '<div class="feedback"><div class="specificfeedback"><div class="qtype_accounting-feedback-summary mt-3">' +
+        'The debit side is incorrect. The credit side is incorrect.</div></div><div class="rightanswer">' +
+        '<div class="qtype_accounting-correct-response"><p>The correct answer is:</p>' +
+        '<table class="qtype_accounting-solution"><thead><tr><th>Debit</th><th>Credit</th></tr></thead><tbody>' +
+        '<tr><td>&lt;Cash&gt; &amp; Bank</td><td>1.234,56</td><td>Sales</td><td>2.000,00</td></tr>' +
+        '<tr class="qtype_accounting-explanation-row"><td colspan="4"><strong>Explanation:</strong> Split sale</td></tr>' +
+        '<tr><td>Receivables</td><td>765,44</td><td></td><td></td></tr>' +
+        '</tbody></table></div></div><div class="generalfeedback">General feedback</div></div>'});
+    const solution = fixture.nativeElement.querySelector('.qtype_accounting-app-solution');
+    assert.ok(solution);
+    assert.equal(solution.querySelector('h3').textContent, 'The correct answer is:');
+    const sides = solution.querySelectorAll('section');
+    assert.equal(sides.length, 2);
+    assert.equal(sides[0].querySelectorAll('ion-card').length, 2);
+    assert.equal(sides[1].querySelectorAll('ion-card').length, 1);
+    assert.ok(sides[0].textContent.includes('<Cash> & Bank'));
+    assert.ok(sides[0].textContent.includes('1.234,56'));
+    assert.ok(sides[0].textContent.includes('765,44'));
+    assert.ok(sides[1].textContent.includes('2.000,00'));
+    const summary = solution.querySelector('core-format-text');
+    assert.ok(summary.text.includes('The debit side is incorrect. The credit side is incorrect.'));
+    assert.equal(summary.parentElement.nextElementSibling, solution.querySelector('h3'));
+    assert.equal(summary.parentElement.style.backgroundColor, 'var(--core-question-feedback-background-color)');
+    const explanations = solution.querySelectorAll('ion-card core-format-text');
+    assert.equal(explanations.length, 1);
+    assert.equal(explanations[0].text, '<strong>Explanation:</strong> Split sale');
+    const remainingFeedback = fixture.componentInstance.question.feedback;
+    assert.equal(remainingFeedback.querySelector('table, .qtype_accounting-correct-response'), null);
+    assert.equal(remainingFeedback.querySelector('.qtype_accounting-feedback-summary'), null);
+    assert.ok(!fixture.componentInstance.question.feedbackHtml.includes('The debit side is incorrect'));
+    assert.ok(remainingFeedback.textContent.includes('General feedback'));
+    assert.ok(!fixture.componentInstance.question.feedbackHtml.includes('<table'));
+    assert.ok(fixture.componentInstance.question.feedbackHtml.includes('General feedback'));
+    assert.equal(solution.querySelector('input, ion-button, ion-input, ion-select, table'), null);
+});
+
+test('correct answer stays hidden when quiz feedback does not include it', async () => {
+    const fixture = await render({readonly: true, feedback: '<div class="feedback">General feedback only</div>'});
+    assert.equal(fixture.nativeElement.querySelector('.qtype_accounting-app-solution'), null);
+    assert.equal(fixture.componentInstance.question.accountingSolution, null);
+});
+
+test('moved warning uses the orange feedback background and leaves no empty bottom panel', async () => {
+    const fixture = await render({readonly: true, feedback:
+        '<div class="feedback"><div class="specificfeedback"><div class="qtype_accounting-feedback-summary mt-3">' +
+        '<div class="alert alert-danger"><i class="fa fa-times-circle"></i>Both sides are incorrect.</div>' +
+        '</div></div><div class="rightanswer"><div class="qtype_accounting-correct-response">' +
+        '<p>The correct answer is:</p><table class="qtype_accounting-solution"><tbody>' +
+        '<tr><td>Bank</td><td>100.00</td><td>Sales</td><td>100.00</td></tr>' +
+        '</tbody></table></div></div><div class="generalfeedback"> </div></div>'});
+    const warning = fixture.nativeElement.querySelector('.qtype_accounting-app-summary');
+    assert.ok(warning);
+    assert.equal(warning.style.backgroundColor, 'var(--core-question-feedback-background-color)');
+    assert.equal(warning.style.color, 'var(--core-question-feedback-color)');
+    assert.equal(warning.style.display, 'flex');
+    assert.equal(warning.style.alignItems, 'center');
+    const html = warning.querySelector('core-format-text').text;
+    const summary = document.createElement('div');
+    summary.innerHTML = html;
+    assert.equal(summary.firstElementChild.classList.contains('mt-3'), false);
+    assert.equal(summary.firstElementChild.style.margin, '0px');
+    assert.ok(html.includes('Both sides are incorrect.'));
+    assert.ok(!html.includes('alert-danger'));
+    assert.equal(fixture.componentInstance.question.feedbackHtml, '');
+});
+
+test('image-only feedback is retained while empty wrappers do not produce a panel', async () => {
+    const fixture = await render({readonly: true, feedback:
+        '<div class="feedback"><div class="generalfeedback"><img src="feedback.png" alt="Diagram"></div></div>'});
+    assert.ok(fixture.componentInstance.question.feedbackHtml.includes('feedback.png'));
+});
+
+for (const [format, savedAmount, grouped, decimal] of [
+    ['de', '1234,5', '1.234,50', '12,30'],
+    ['us', '1234.5', '1,234.50', '12.30'],
+]) {
+    test(format + ' amounts format on restore and Ionic blur, including added rows', async () => {
+        const fixture = await render({format, saved: {debitaccount_0: '101', debitamount_0: savedAmount}});
+        assert.equal(payload(fixture)['q42:7_debitamount_0'], grouped);
+        const amount = fixture.nativeElement.querySelector('ion-card ion-input');
+        input(amount, format === 'de' ? '12,3' : '12.3');
+        fixture.detectChanges();
+        amount.dispatchEvent(new dom.window.CustomEvent('ionBlur'));
+        fixture.detectChanges();
+        assert.equal(amount.value, decimal);
+        assert.equal(payload(fixture)['q42:7_debitamount_0'], decimal);
+        action(fixture, 'adddebitentry');
+        const added = fixture.nativeElement.querySelectorAll('ion-card ion-input')[1];
+        input(added, format === 'de' ? '1.000' : '1,000');
+        added.dispatchEvent(new dom.window.CustomEvent('ionBlur'));
+        fixture.detectChanges();
+        assert.equal(payload(fixture)['q42:7_debitamount_1'], format === 'de' ? '1.000,00' : '1,000.00');
+        input(added, '');
+        added.dispatchEvent(new dom.window.CustomEvent('ionBlur'));
+        fixture.detectChanges();
+        assert.equal(payload(fixture)['q42:7_debitamount_1'], '');
+    });
+}
 
 test('rendered add/delete actions work on the separate compiled component', async () => {
     const fixture = await render();

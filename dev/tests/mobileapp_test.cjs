@@ -16,7 +16,8 @@ function fixture({saved = {}, local = {}, readonly = false, limit = 3, format = 
         fields.set(prefix + key, {
             name: prefix + key,
             value: saved[key] || '',
-            parentElement: {querySelector: () => ({outerHTML: '<span>Saved review value</span>'})},
+            parentElement: {querySelector: () => ({outerHTML: '<span>Saved review value</span>',
+                classList: {contains: () => false}})},
         });
     }
     const container = {
@@ -34,7 +35,7 @@ function fixture({saved = {}, local = {}, readonly = false, limit = 3, format = 
         },
         querySelectorAll: () => Array.from(fields.values()),
     };
-    const feedback = {innerHTML: '<p>Feedback permitted by the quiz</p>'};
+    const feedback = {innerHTML: '<p>Feedback permitted by the quiz</p>', querySelector: () => null};
     const element = {
         querySelector(selector) {
             return {'.qtype_accounting-question-container': missing ? null : container,
@@ -144,7 +145,7 @@ test('last visible debit and credit entries cannot be deleted or cleared', () =>
         component.removeEntry(side, entry);
         assert.equal(entry.visible, true);
         assert.equal(entry.account, account);
-        assert.equal(entry.amount, '100');
+        assert.equal(entry.amount, '100,00');
         component.addEntry(side);
         assert.equal(component.canRemoveEntry(side), true);
         component.removeEntry(side, entry);

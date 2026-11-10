@@ -16,6 +16,9 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - Charts of accounts can now be created directly in Moodle by entering a name, then adding accounts in the existing editor without uploading a CSV file.
 
 ### Fixed
+- Moodle App amount fields now format saved values and amounts on blur using the question's German or US format. Moved feedback summaries use the app's orange feedback background, and empty feedback wrappers no longer leave an orange panel below the solution.
+- Moodle App correct answers now use stacked debit and credit cards, preserving formatted amounts and entry explanations and respecting quiz answer visibility.
+- Moodle App review now highlights correct and incorrect accounts and amounts independently using the app's theme-aware feedback backgrounds.
 - Generated correct responses and response summaries now respect German and US number formats. German input such as `1.000` is parsed as one thousand; formatting is isolated per question.
 - Added and deleted entry rows no longer disappear beyond index 19. Browser and app answers share a 100-row limit, deleted student indices are reused for autosave, and larger imported solutions remain readable.
 - Used accounts can be renamed while retaining their IDs. Chart and account deletion requires explicit confirmation with warnings about existing questions, grading, and saved attempts; account warnings list affected questions. Duplicate and overlong names produce readable errors. Imports and question saves roll back completely on failure.
