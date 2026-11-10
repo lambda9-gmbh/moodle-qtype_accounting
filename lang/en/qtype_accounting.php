@@ -117,6 +117,7 @@ $string['entryrows'] = 'Number of entry rows';
 $string['err_accountsindropdown_negative'] = 'The number of accounts in selection list cannot be negative.';
 $string['err_accountunavailable'] = 'This chart or account is no longer available. Please choose a replacement.';
 $string['err_balancemismatch'] = 'Total debit amount must equal total credit amount for a valid accounting entry.';
+$string['err_chartdeleted'] = 'The chart of accounts used by this question has been deleted. Please select a replacement and review the accounts before saving.';
 $string['err_chartrequired'] = 'Please select a chart of accounts.';
 $string['err_creditaccountrequired'] = 'Please select an account, or remove this entry.';
 $string['err_creditamountrequired'] = 'Credit amount is required.';

@@ -29,12 +29,79 @@ require_once($CFG->dirroot . '/question/type/accounting/edit_accounting_form.php
  * @copyright  2026 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting_edit_form::get_all_accounts_by_chart
+ * @covers     \qtype_accounting_edit_form::add_chart_section
  * @covers     \qtype_accounting_edit_form::validate_available_accounts
  * @covers     \qtype_accounting_edit_form::definition_after_data
  * @covers     \qtype_accounting\entry_validator
  * @covers     \qtype_accounting\entries_table_builder
  */
 final class edit_form_test extends \advanced_testcase {
+    /**
+     * Opening an existing question warns immediately if its chart has been deleted.
+     *
+     * @dataProvider chart_state_provider
+     * @param string $state Whether the question has no chart, an existing chart, or a deleted chart.
+     */
+    public function test_opening_question_with_deleted_chart(string $state): void {
+        global $PAGE, $USER;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $PAGE->set_url('/question/bank/editquestion/question.php');
+        $course = $this->getDataGenerator()->create_course();
+        $context = \context_course::instance($course->id);
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category(['contextid' => $context->id]);
+        $question = (object)[
+            'qtype' => 'accounting',
+            'contextid' => $context->id,
+            'createdby' => $USER->id,
+            'category' => $category->id,
+            'questiontext' => '',
+            'generalfeedback' => '',
+            'formoptions' => (object)['mustbeusable' => false, 'repeatelements' => true],
+        ];
+        if ($state !== 'none') {
+            $chartid = chart_manager::create_chart('Main', $context->id);
+            $bank = account_manager::add($chartid, 'Bank');
+            $cash = account_manager::add($chartid, 'Cash');
+            $saved = $generator->create_question('accounting', null, [
+                'category' => $category->id, 'chartofaccountsid' => $chartid,
+                'debitaccount' => [$bank], 'creditaccount' => [$cash],
+                'debitamount' => [100], 'creditamount' => [100],
+            ]);
+            if ($state === 'deleted') {
+                chart_manager::delete_chart($chartid);
+            }
+            $question->id = $saved->id;
+            $question->options = \question_bank::load_question_data($saved->id)->options;
+        }
+        $form = new \qtype_accounting_edit_form(
+            new \moodle_url('/question/bank/editquestion/question.php'),
+            $question,
+            $category,
+            new \core_question\local\bank\question_edit_contexts($context)
+        );
+        $html = $form->render();
+        $message = get_string('err_chartdeleted', 'qtype_accounting');
+        if ($state === 'deleted') {
+            $this->assertStringContainsString($message, $html);
+            $this->assertStringContainsString('role="alert"', $html);
+            $this->assertStringContainsString('name="chartofaccountsid"', $html);
+            $this->assertStringContainsString('100,00', $html);
+        } else {
+            $this->assertStringNotContainsString($message, $html);
+        }
+    }
+
+    /**
+     * Cover new questions, intact charts, and deleted charts.
+     *
+     * @return array Chart states.
+     */
+    public static function chart_state_provider(): array {
+        return [['none'], ['existing'], ['deleted']];
+    }
+
     /**
      * Deleted saved rows must not be filled back in from question defaults on submit.
      *

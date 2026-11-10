@@ -117,6 +117,7 @@ $string['entryrows'] = 'Anzahl der Buchungszeilen';
 $string['err_accountsindropdown_negative'] = 'Die Anzahl der Konten in der Auswahlliste darf nicht negativ sein.';
 $string['err_accountunavailable'] = 'Dieser Kontenplan oder dieses Konto ist nicht mehr verfügbar. Bitte wählen Sie einen Ersatz.';
 $string['err_balancemismatch'] = 'Die Summe der Soll-Beträge muss der Summe der Haben-Beträge entsprechen.';
+$string['err_chartdeleted'] = 'Der Kontenplan dieser Frage wurde gelöscht. Bitte wählen Sie einen Ersatz und prüfen Sie die Konten vor dem Speichern.';
 $string['err_chartrequired'] = 'Bitte wählen Sie einen Kontenplan aus.';
 $string['err_creditaccountrequired'] = 'Bitte wählen Sie ein Konto aus oder entfernen Sie diesen Eintrag.';
 $string['err_creditamountrequired'] = 'Der Haben-Betrag ist erforderlich.';

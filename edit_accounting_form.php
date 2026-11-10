@@ -140,6 +140,8 @@ class qtype_accounting_edit_form extends question_edit_form {
      * @param \MoodleQuickForm $mform The form being built.
      */
     protected function add_chart_section($mform): void {
+        global $DB;
+
         $charts = $this->get_available_charts();
         $select = $mform->createElement(
             'select',
@@ -169,6 +171,15 @@ class qtype_accounting_edit_form extends question_edit_form {
         $mform->addGroup($elements, 'chartofaccountsgroup', get_string('chartofaccounts', 'qtype_accounting'), ' ', false);
         $mform->setType('chartofaccountsid', PARAM_INT);
         $mform->addHelpButton('chartofaccountsgroup', 'chartofaccounts', 'qtype_accounting');
+
+        $chartid = $this->resolve_current_chart_id($DB);
+        if ($chartid > 0 && !\qtype_accounting\chart_manager::get_chart($chartid)) {
+            $mform->addElement('static', 'missingchart', '', html_writer::div(
+                get_string('err_chartdeleted', 'qtype_accounting'),
+                'alert alert-danger',
+                ['role' => 'alert']
+            ));
+        }
 
         if (!$coursecontext) {
             return;
