@@ -60,9 +60,47 @@ class question_test extends \advanced_testcase {
         $response = $question->get_correct_response();
 
         $this->assertEquals(101, $response['debitaccount_0']);
-        $this->assertEquals(1000.00, $response['debitamount_0']);
+        $this->assertSame('1000,00', $response['debitamount_0']);
         $this->assertEquals(201, $response['creditaccount_0']);
-        $this->assertEquals(1000.00, $response['creditamount_0']);
+        $this->assertSame('1000,00', $response['creditamount_0']);
+    }
+
+    /**
+     * The correct response must grade as fully correct in both number formats.
+     *
+     * Amounts loaded from the database are decimal strings such as '1000.00'; they must be
+     * formatted for the question's number format instead of being passed through verbatim.
+     *
+     * @dataProvider number_format_provider
+     * @param string $numberformat The question number format.
+     * @param string $expectedamount The expected formatted amount.
+     */
+    public function test_get_correct_response_grades_as_right(string $numberformat, string $expectedamount): void {
+        $question = \test_question_maker::make_question('accounting', 'simple_debit_credit');
+        $question->numberformat = $numberformat;
+        foreach ($question->entries as $i => $entry) {
+            $question->entries[$i]['debitamount'] = '1234.50';
+            $question->entries[$i]['creditamount'] = '1234.50';
+        }
+
+        $response = $question->get_correct_response();
+
+        $this->assertSame($expectedamount, $response['debitamount_0']);
+        [$fraction, $state] = $question->grade_response($response);
+        $this->assertEquals(1, $fraction);
+        $this->assertEquals(\question_state::$gradedright, $state);
+    }
+
+    /**
+     * Data provider for test_get_correct_response_grades_as_right.
+     *
+     * @return array
+     */
+    public static function number_format_provider(): array {
+        return [
+            'de' => ['de', '1234,50'],
+            'us' => ['us', '1234.50'],
+        ];
     }
 
     /**
