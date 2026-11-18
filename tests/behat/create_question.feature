@@ -26,6 +26,23 @@ Feature: Create and edit Buchungssatz questions
     And I should see "Correct Answer"
 
   @javascript
+  Scenario: Empty and zero account limits visibly mean all accounts
+    Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
+    When I press "Create a new question ..."
+    And I set the field "Accounting Entry" to "1"
+    And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
+    Then the field "Number of additional accounts in selection list" matches value "All"
+    When I set the field "Number of additional accounts in selection list" to "0"
+    And I click on "Question name" "field"
+    Then the field "Number of additional accounts in selection list" matches value "All"
+    When I set the field "Number of additional accounts in selection list" to ""
+    And I click on "Question name" "field"
+    Then the field "Number of additional accounts in selection list" matches value "All"
+    When I set the field "Number of additional accounts in selection list" to "3"
+    And I click on "Question name" "field"
+    Then the field "Number of additional accounts in selection list" matches value "3"
+
+  @javascript
   Scenario: Cancel a new question with empty required fields
     Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."

@@ -57,6 +57,7 @@ function init() {
     if (!editForm) {
         return;
     }
+    setupAccountCountHandler();
     let config = {};
     if (dataElement) {
         try {
@@ -138,6 +139,27 @@ function init() {
     if (typeof $.fn.popover === 'function') {
         $('[data-toggle="popover"]').popover();
     }
+}
+
+/**
+ * Display the meaning of blank or zero account limits when editing is finished.
+ */
+function setupAccountCountHandler() {
+    const input = editForm.elements.accountsindropdown;
+    if (!input) {
+        return;
+    }
+    const allLabel = input.placeholder;
+    const normalise = () => {
+        const value = input.value.trim();
+        if (value === '' || /^-?0+$/.test(value) || value.toLowerCase() === allLabel.toLowerCase()) {
+            input.value = allLabel;
+        }
+    };
+    normalise();
+    input.addEventListener('change', normalise);
+    input.addEventListener('blur', normalise);
+    editForm.addEventListener('submit', normalise, true);
 }
 
 /**

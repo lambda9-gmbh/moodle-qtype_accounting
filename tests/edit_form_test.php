@@ -37,6 +37,110 @@ require_once($CFG->dirroot . '/question/type/accounting/edit_accounting_form.php
  */
 final class edit_form_test extends \advanced_testcase {
     /**
+     * The translated label is displayed for zero and round-trips as a numeric option.
+     *
+     * @dataProvider account_count_provider
+     * @param string $lang Form language.
+     * @param int $savedcount Existing stored count.
+     * @param string|null $input Submitted count, or null for the current language's all label.
+     * @param int|null $expected Expected stored count, or null for invalid input.
+     */
+    public function test_account_count_label(string $lang, int $savedcount, ?string $input, ?int $expected): void {
+        global $DB, $PAGE;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        force_current_language($lang);
+        $PAGE->set_url('/question/bank/editquestion/question.php');
+        $course = $this->getDataGenerator()->create_course();
+        $context = \context_course::instance($course->id);
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category(['contextid' => $context->id]);
+        $chartid = chart_manager::create_chart('Main', $context->id);
+        $account = account_manager::add($chartid, 'Bank');
+        $saved = $generator->create_question('accounting', null, [
+            'category' => $category->id, 'chartofaccountsid' => $chartid,
+            'accountsindropdown' => $savedcount,
+            'debitaccount' => [$account], 'creditaccount' => [$account],
+            'debitamount' => [100], 'creditamount' => [100],
+        ]);
+        $question = \question_bank::load_question_data($saved->id);
+        $question->contextid = $context->id;
+        $question->beingcopied = false;
+        $question->formoptions = (object)[
+            'mustbeusable' => false, 'repeatelements' => true,
+            'canedit' => true, 'canmove' => false, 'cansaveasnew' => false,
+        ];
+        $url = new \moodle_url('/question/bank/editquestion/question.php');
+        $contexts = new \core_question\local\bank\question_edit_contexts($context);
+        $form = new \qtype_accounting_edit_form($url, $question, $category, $contexts);
+        $form->set_data(clone $question);
+        $dom = new \DOMDocument();
+        @$dom->loadHTML($form->render());
+        $xpath = new \DOMXPath($dom);
+        $this->assertSame(
+            get_string('all'),
+            $xpath->evaluate('string(//input[@name="accountsindropdown"]/@placeholder)')
+        );
+        $this->assertSame(
+            $savedcount === 0 ? get_string('all') : (string)$savedcount,
+            $xpath->evaluate('string(//input[@name="accountsindropdown"]/@value)')
+        );
+
+        \qtype_accounting_edit_form::mock_submit([
+            'category' => $category->id . ',' . $context->id,
+            'name' => 'Account count',
+            'questiontext' => ['text' => 'Record the transaction.', 'format' => FORMAT_HTML],
+            'defaultmark' => 1, 'penalty' => 0.3333333,
+            'chartofaccountsid' => $chartid, 'numberformat' => 'de',
+            'accountsindropdown' => $input ?? get_string('all'),
+            'accounting_js' => 1,
+            'debitaccount' => [$account], 'creditaccount' => [$account],
+            'debitamount' => [100], 'creditamount' => [100],
+        ]);
+        $form = new \qtype_accounting_edit_form($url, $question, $category, $contexts);
+        $form->set_data(clone $question);
+        if ($expected === 0) {
+            $this->assertSame(get_string('all'), $form->get_submitted_data()->accountsindropdown);
+        }
+        $data = $form->get_data();
+        if ($expected === null) {
+            $this->assertEmpty($data);
+            $this->assertFalse($form->is_validated());
+            return;
+        }
+        $this->assertNotFalse($data);
+        $this->assertSame($expected, $data->accountsindropdown);
+        $data->id = $saved->id;
+        $data->context = $context;
+        \question_bank::get_qtype('accounting')->save_question_options($data);
+        $this->assertEquals($expected, $DB->get_field('qtype_accounting_options', 'accountsindropdown', [
+            'questionid' => $saved->id,
+        ]));
+    }
+
+    /**
+     * Cover translated labels, existing numeric values and invalid input.
+     *
+     * @return array Account-count cases.
+     */
+    public static function account_count_provider(): array {
+        return [
+            'English all' => ['en', 0, null, 0],
+            'German all' => ['de', 0, null, 0],
+            'numeric limit' => ['en', 3, '5', 5],
+            'limit to all' => ['de', 3, null, 0],
+            'legacy zero' => ['en', 0, '0', 0],
+            'blank' => ['en', 0, '', 0],
+            'whitespace' => ['de', 0, '   ', 0],
+            'padded zero' => ['de', 0, ' 00 ', 0],
+            'lowercase label' => ['en', 0, 'all', 0],
+            'negative' => ['en', 0, '-1', null],
+            'invalid text' => ['en', 0, 'invalid', null],
+            'fraction' => ['en', 0, '1.5', null],
+        ];
+    }
+
+    /**
      * Opening an existing question warns immediately if its chart has been deleted.
      *
      * @dataProvider chart_state_provider
@@ -58,7 +162,11 @@ final class edit_form_test extends \advanced_testcase {
             'category' => $category->id,
             'questiontext' => '',
             'generalfeedback' => '',
-            'formoptions' => (object)['mustbeusable' => false, 'repeatelements' => true],
+            'beingcopied' => false,
+            'formoptions' => (object)[
+                'mustbeusable' => false, 'repeatelements' => true,
+                'canedit' => true, 'canmove' => false, 'cansaveasnew' => false,
+            ],
         ];
         if ($state !== 'none') {
             $chartid = chart_manager::create_chart('Main', $context->id);
@@ -72,8 +180,7 @@ final class edit_form_test extends \advanced_testcase {
             if ($state === 'deleted') {
                 chart_manager::delete_chart($chartid);
             }
-            $question->id = $saved->id;
-            $question->options = \question_bank::load_question_data($saved->id)->options;
+            $question = (object)array_merge((array)$question, (array)\question_bank::load_question_data($saved->id));
         }
         $form = new \qtype_accounting_edit_form(
             new \moodle_url('/question/bank/editquestion/question.php'),
@@ -255,6 +362,7 @@ final class edit_form_test extends \advanced_testcase {
         $submitted = [
             'category' => $category->id . ',' . $context->id,
             'name' => 'Missing amounts',
+            'accountsindropdown' => $existing ? '0' : '',
             'questiontext' => ['text' => 'Record the transaction.', 'format' => FORMAT_HTML],
             'defaultmark' => 1,
             'penalty' => 0.3333333,
@@ -319,6 +427,10 @@ final class edit_form_test extends \advanced_testcase {
         $dom = new \DOMDocument();
         @$dom->loadHTML($html);
         $xpath = new \DOMXPath($dom);
+        $this->assertSame(
+            get_string('all'),
+            $xpath->evaluate('string(//input[@name="accountsindropdown"]/@value)')
+        );
         foreach (['debit', 'credit'] as $side) {
             $input = $xpath->query('//input[@name="' . $side . 'amount_display[0]"]')->item(0);
             $this->assertStringContainsString('is-invalid', $input->getAttribute('class'));

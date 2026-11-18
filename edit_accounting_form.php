@@ -60,12 +60,11 @@ class qtype_accounting_edit_form extends question_edit_form {
             'text',
             'accountsindropdown',
             get_string('accountsindropdown', 'qtype_accounting'),
-            ['size' => 5]
+            ['size' => 5, 'placeholder' => get_string('all')]
         );
-        $mform->setType('accountsindropdown', PARAM_INT);
-        $mform->setDefault('accountsindropdown', 0);
+        $mform->setType('accountsindropdown', PARAM_RAW_TRIMMED);
+        $mform->setDefault('accountsindropdown', get_string('all'));
         $mform->addHelpButton('accountsindropdown', 'accountsindropdown', 'qtype_accounting');
-        $mform->addRule('accountsindropdown', get_string('err_numeric', 'form'), 'numeric', null, 'client');
 
         $numberformatoptions = [
             'de' => get_string('numberformat_de', 'qtype_accounting'),
@@ -332,7 +331,18 @@ class qtype_accounting_edit_form extends question_edit_form {
     public function _process_submission($method) {
         parent::_process_submission($method);
         $data = $this->_form->getSubmitValues();
-        if (!$data || !empty($data['accounting_js']) || !isset($data['debitaccount_display'])) {
+        if (!$data) {
+            return;
+        }
+        $accountcount = trim((string)($data['accountsindropdown'] ?? ''));
+        if (
+            $accountcount === '' || preg_match('/^-?0+$/D', $accountcount) ||
+            strcasecmp($accountcount, get_string('all')) === 0
+        ) {
+            $data['accountsindropdown'] = get_string('all');
+            $this->_form->updateSubmission($data, $_FILES);
+        }
+        if (!empty($data['accounting_js']) || !isset($data['debitaccount_display'])) {
             return;
         }
         $format = $data['accounting_displayformat'] ?? $data['numberformat'] ?? 'de';
@@ -517,6 +527,9 @@ class qtype_accounting_edit_form extends question_edit_form {
     protected function populate_options_fields(object $question): void {
         $question->chartofaccountsid = $question->options->chartofaccountsid ?? 0;
         $question->accountsindropdown = $question->options->accountsindropdown ?? 0;
+        if ((int)$question->accountsindropdown === 0) {
+            $question->accountsindropdown = get_string('all');
+        }
         $question->numberformat = $question->options->numberformat ?? 'de';
         $question->extraentrydeduction = $this->closest_deduction_key(
             $question->options->extraentrydeduction ?? '0.0'
@@ -581,13 +594,29 @@ class qtype_accounting_edit_form extends question_edit_form {
      */
     public function validation($data, $files): array {
         $errors = parent::validation($data, $files);
-        if ((int)($data['accountsindropdown'] ?? 0) < 0) {
+        $accountcount = trim((string)($data['accountsindropdown'] ?? ''));
+        if ($accountcount !== '' && $accountcount !== get_string('all') && !preg_match('/^-?\d+$/D', $accountcount)) {
+            $errors['accountsindropdown'] = get_string('err_accountsindropdown', 'qtype_accounting');
+        } else if ((int)$accountcount < 0) {
             $errors['accountsindropdown'] = get_string('err_accountsindropdown_negative', 'qtype_accounting');
         }
         $errors = $this->validate_available_accounts($data, $errors);
         $errors = (new \qtype_accounting\entry_validator())->validate($data, $errors);
         $this->update_submitted_entries($data, $errors);
         return $errors;
+    }
+
+    /**
+     * Convert the translated all-accounts label back to the stored numeric value.
+     *
+     * @return object|null|false Validated question data, or no data when unavailable.
+     */
+    public function get_data() {
+        $data = parent::get_data();
+        if ($data) {
+            $data->accountsindropdown = (int)$data->accountsindropdown;
+        }
+        return $data;
     }
 
     /**

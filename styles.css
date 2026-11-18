@@ -8,7 +8,12 @@
 
 .qtype_accounting-chart-overlay .modal-content {
     max-height: calc(100vh - 2rem);
-    max-height: calc(100dvh - 2rem);
+}
+
+@supports (max-height: 100dvh) {
+    .qtype_accounting-chart-overlay .modal-content {
+        max-height: calc(100dvh - 2rem);
+    }
 }
 
 .qtype_accounting-chart-overlay .modal-body {

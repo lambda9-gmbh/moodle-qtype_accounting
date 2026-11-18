@@ -134,6 +134,7 @@ cd /opt/moodle-cs && composer install --no-interaction --no-progress --quiet"
         docker exec "${CONTAINER}" bash -c \
             "cp -r /opt/moodle-plugin-ci/vendor/moodlehq/moodle-local_moodlecheck /var/www/html/local/moodlecheck \
                 && chown -R www-data:www-data /var/www/html/local/moodlecheck \
+                && php /var/www/html/admin/cli/purge_caches.php \
                 && php /var/www/html/admin/cli/upgrade.php --non-interactive >/dev/null"
     fi
 
@@ -172,6 +173,25 @@ run_phpmd() {
         "${PHPMD_BIN} ${PLUGIN_PATH} text ${PLUGIN_PATH}/.phpmd.xml --exclude ${PHPMD_EXCLUDES} --ignore-violations-on-exit"
 }
 
+# The checker needs an up-to-date component registry to load its renderer.
+# Call it directly: moodle-plugin-ci parses its output but loses fatal exit codes.
+run_phpdoc() {
+    local output status
+    echo " RUN  Moodle PHPDoc Checker on qtype_accounting"
+    docker exec -w "${MOODLE_DIR}" "${CONTAINER}" php admin/cli/purge_caches.php || return
+    output=$(docker exec -w "${MOODLE_DIR}" "${CONTAINER}" \
+        php local/moodlecheck/cli/moodlecheck.php "-p=${PLUGIN_PATH}" -f=text "$@" 2>&1)
+    status=$?
+    printf '%s\n' "${output}"
+    if [ "${status}" -ne 0 ]; then
+        return "${status}"
+    fi
+    # Match moodle-plugin-ci's default: fail on errors, allow documentation warnings.
+    if printf '%s\n' "${output}" | grep -E '^[[:space:]]+Line' | grep -qv '(warning)$'; then
+        return 1
+    fi
+}
+
 # Stricter phpcs run using .phpcs.xml.dist (moodle + moodle-extra,
 # amd/build/ excluded). Used by the `codecheck` subcommand.
 run_phpcs_direct() {
@@ -187,6 +207,8 @@ run_checks() {
         section "Running: moodle-plugin-ci ${cmd}"
         if [ "${cmd}" = "phpmd" ]; then
             run_phpmd || die "${cmd}"
+        elif [ "${cmd}" = "phpdoc" ]; then
+            run_phpdoc || die "${cmd}"
         else
             run "${cmd} ${PLUGIN_PATH}" || die "${cmd}"
         fi
@@ -259,7 +281,11 @@ case "${1:-default}" in
     phpmd)
         run_phpmd
         ;;
-    phpcs|phpcbf|phpdoc|phpcpd|phplint|validate|savepoints|mustache|grunt|parallel|install|behat|phpunit)
+    phpdoc)
+        shift
+        run_phpdoc "$@"
+        ;;
+    phpcs|phpcbf|phpcpd|phplint|validate|savepoints|mustache|grunt|parallel|install|behat|phpunit)
         cmd="$1"
         shift
         run "${cmd} ${PLUGIN_PATH} $*"
