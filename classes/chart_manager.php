@@ -157,11 +157,11 @@ class chart_manager {
     }
 
     /**
-     * Import a complete chart of accounts from text content.
+     * Import a complete chart of accounts from text or ODS content.
      *
      * Each line = one account name.
      *
-     * @param string $content Text content with one account name per line.
+     * @param string $content Text with one account name per line, or raw ODS content.
      * @param int $contextid Context ID.
      * @param string $filename Optional original filename (used as chart name).
      * @return array ['chartid' => int, 'chartname' => string, 'imported' => int, 'errors' => array]
@@ -172,7 +172,7 @@ class chart_manager {
         $result = ['chartid' => 0, 'chartname' => '', 'imported' => 0, 'errors' => []];
 
         try {
-            $parsed = import_helper::parse_csv($content, $filename);
+            $parsed = import_helper::parse_file($content, $filename);
         } catch (\Exception $e) {
             $result['errors'][] = $e->getMessage();
             return $result;

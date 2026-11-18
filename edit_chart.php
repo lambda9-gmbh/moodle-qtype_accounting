@@ -29,7 +29,7 @@ use qtype_accounting\chart_manager;
 use qtype_accounting\account_manager;
 
 /**
- * Form for importing accounts into an existing chart of accounts from a CSV file.
+ * Form for importing accounts into an existing chart from CSV, text or ODS.
  *
  * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
@@ -45,10 +45,11 @@ class qtype_accounting_chart_account_import_form extends moodleform {
         $mform->addElement(
             'filepicker',
             'chartcsvfile',
-            '',
+            get_string('csvfile', 'qtype_accounting'),
             null,
-            ['maxbytes' => 2097152, 'accepted_types' => ['.csv', '.txt']]
+            ['maxbytes' => 2097152, 'accepted_types' => ['.csv', '.txt', '.ods']]
         );
+        $mform->addHelpButton('chartcsvfile', 'csvfile', 'qtype_accounting');
 
         $this->add_action_buttons(false, get_string('importchart', 'qtype_accounting'));
     }
@@ -191,7 +192,7 @@ if ($action === 'deleteaccount' && $accountid) {
     exit;
 }
 
-// Handle CSV import to existing chart via Moodle filepicker form.
+// Handle account import to existing chart via Moodle filepicker form.
 $importform = new qtype_accounting_chart_account_import_form($baseurl);
 if ($data = $importform->get_data()) {
     global $USER;
@@ -204,7 +205,7 @@ if ($data = $importform->get_data()) {
     if (!empty($files)) {
         $file = reset($files);
         $csvcontent = $file->get_content();
-        $result = account_manager::import_into_chart($chartid, $csvcontent);
+        $result = account_manager::import_into_chart($chartid, $csvcontent, $file->get_filename());
 
         if ($result['imported'] > 0) {
             $msg = get_string('imported', 'qtype_accounting', $result['imported']);

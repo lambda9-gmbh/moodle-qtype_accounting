@@ -72,7 +72,7 @@ $string['confirmdeleteaccount'] = 'Sind Sie sicher, dass Sie dieses Konto lösch
 $string['correctanswer'] = 'Musterlösung';
 $string['correctansweris'] = 'Die richtige Antwort lautet:';
 $string['createchart'] = 'Kontenplan erstellen';
-$string['createchart_help'] = 'Geben Sie einen Namen ein, um einen leeren Kontenplan zu erstellen. Anschließend können Sie Konten direkt in Moodle hinzufügen oder aus einer CSV-Datei importieren.';
+$string['createchart_help'] = 'Geben Sie einen Namen ein, um einen leeren Kontenplan zu erstellen. Anschließend können Sie Konten direkt in Moodle hinzufügen oder aus einer CSV- oder ODS-Datei importieren.';
 $string['credit'] = 'Haben';
 $string['creditaccount'] = 'Habenkonto';
 $string['creditamount'] = 'Habenbetrag';
@@ -82,9 +82,10 @@ $string['creditincorrect'] = 'Die Haben-Seite ist nicht korrekt.';
 $string['creditpartiallyincorrect'] = 'Die Haben-Seite ist teilweise nicht korrekt.';
 $string['csvdata'] = 'CSV/Excel-Daten';
 $string['csvempty'] = 'CSV-Daten sind leer.';
-$string['csvfile'] = 'CSV-Datei';
-$string['csvfile_help'] = 'Laden Sie eine Textdatei mit Kontobezeichnungen hoch.<br><br>
-<strong>Format:</strong> Eine Kontobezeichnung pro Zeile.<br>
+$string['csvfile'] = 'CSV-, Text- oder ODS-Datei';
+$string['csvfile_help'] = 'Laden Sie eine CSV-, Text- oder ODS-Datei mit Kontobezeichnungen hoch.<br><br>
+<strong>CSV/Text:</strong> Eine Kontobezeichnung pro Zeile.<br>
+<strong>ODS:</strong> Eine Kontobezeichnung pro Zeile in Spalte A des ersten Tabellenblatts. Weitere Spalten und Tabellenblätter werden ignoriert.<br>
 Leere Zeilen werden ignoriert. Doppelte Namen werden übersprungen.<br><br>
 Beispiel:<br>
 <code>1200 Bank</code><br>
@@ -93,10 +94,10 @@ Beispiel:<br>
 Maximale Dateigröße: 2 MB<br><br>
 <strong>Unterstützte Zeichenkodierungen:</strong> UTF-8 und Windows-1252 (gängiger Excel-Export).';
 $string['csvfilehelp'] = 'Laden Sie eine Textdatei mit einer Kontobezeichnung pro Zeile hoch. Der Kontenplanname wird aus dem Dateinamen abgeleitet oder automatisch generiert.';
-$string['csvfilerequired'] = 'Eine CSV-Datei ist erforderlich, um einen Kontenplan zu erstellen.';
+$string['csvfilerequired'] = 'Für den Import ist eine CSV-, Text- oder ODS-Datei erforderlich.';
 $string['csvinvalidformat'] = 'Die Kontodaten konnten nicht verarbeitet werden. Jede Zeile sollte eine Kontobezeichnung sein.';
 $string['csvnodata'] = 'Keine Kontobezeichnungen gefunden. Jede nicht-leere Zeile wird als ein Kontoname behandelt.';
-$string['csvnoentries'] = 'Keine gültigen Buchungen in den CSV-Daten gefunden.';
+$string['csvnoentries'] = 'Keine gültigen Kontobezeichnungen in der Datei gefunden.';
 $string['debit'] = 'Soll';
 $string['debitaccount'] = 'Sollkonto';
 $string['debitamount'] = 'Sollbetrag';
@@ -143,7 +144,7 @@ $string['extraentrydeduction_help'] = 'Prozentualer Abzug pro zusätzlichem Kont
 $string['filereaderror'] = 'Fehler beim Lesen der Datei. Bitte versuchen Sie es erneut.';
 $string['grade'] = 'Bewertung (%)';
 $string['grade_help'] = 'Der Prozentsatz der Gesamtpunktzahl, den dieser Eintrag wert ist. Alle Bewertungen müssen zusammen genau 100% ergeben.';
-$string['importaccounts'] = 'Konten aus CSV importieren';
+$string['importaccounts'] = 'Konten aus CSV oder ODS importieren';
 $string['importchart'] = 'Kontenplan importieren';
 $string['importchartfromcsv'] = 'Kontenplan aus CSV importieren';
 $string['importdate'] = 'Importdatum';
@@ -171,6 +172,7 @@ $string['numberformat'] = 'Zahlenformat';
 $string['numberformat_de'] = '#.###,00';
 $string['numberformat_help'] = 'Wähle das Format für das Dezimal- und das Tausendertrennzeichen. Entweder #.###,00 oder #,###.00';
 $string['numberformat_us'] = '#,###.00';
+$string['odsinvalid'] = 'Die ODS-Tabelle konnte nicht gelesen werden. Laden Sie eine gültige ODS-Datei mit höchstens 16 MiB unkomprimiertem Inhalt hoch.';
 $string['overrideexisting'] = 'Bestehenden Kontenplan überschreiben';
 $string['overrideexisting_help'] = 'Wenn aktiviert und ein Kontenplan mit demselben Namen bereits existiert, wird dieser gelöscht und durch den importierten Kontenplan ersetzt. Warnung: Dies löscht den bestehenden Kontenplan und alle seine Konten dauerhaft.';
 $string['overrideexistingdesc'] = 'Bestehenden Kontenplan mit gleichem Namen ersetzen';
@@ -191,7 +193,7 @@ $string['refreshentries'] = 'Kontenplan und Zeilen aktualisieren';
 $string['selectaccount'] = '-- Konto auswählen --';
 $string['selectcreditaccountfirst'] = 'Bitte zuerst ein Habenkonto auswählen';
 $string['selectdebitaccountfirst'] = 'Bitte zuerst ein Sollkonto auswählen';
-$string['uploadchartcsv'] = 'Kontenplan hochladen (CSV)';
+$string['uploadchartcsv'] = 'Kontenplan hochladen (CSV oder ODS)';
 $string['uploadchartcsv_btn'] = 'Hochladen';
 $string['uploadchartcsv_help'] = 'Laden Sie eine Textdatei hoch, um einen neuen Kontenplan für diesen Kurs zu erstellen. Der Kontenplan erscheint sofort nach dem Hochladen in der Auswahlliste. Format: eine Kontobezeichnung pro Zeile.';
 $string['weight'] = 'Gewicht';

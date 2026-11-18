@@ -29,7 +29,7 @@ use qtype_accounting\chart_manager;
 use qtype_accounting\account_manager;
 
 /**
- * Form for uploading a chart of accounts CSV file.
+ * Form for uploading a chart of accounts CSV, text or ODS file.
  *
  * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
@@ -47,7 +47,7 @@ class qtype_accounting_chart_upload_form extends moodleform {
             'chartcsvfile',
             get_string('csvfile', 'qtype_accounting'),
             null,
-            ['maxbytes' => 2097152, 'accepted_types' => ['.csv', '.txt']]
+            ['maxbytes' => 2097152, 'accepted_types' => ['.csv', '.txt', '.ods']]
         );
         $mform->addHelpButton('chartcsvfile', 'csvfile', 'qtype_accounting');
 
@@ -145,7 +145,7 @@ if ($data = $createform->get_data()) {
     redirect($editurl, get_string('chartcreated', 'qtype_accounting'), null, \core\output\notification::NOTIFY_SUCCESS);
 }
 
-// Handle CSV upload via Moodle filepicker form.
+// Handle chart upload via Moodle filepicker form.
 $uploadform = new qtype_accounting_chart_upload_form($baseurl);
 if ($data = $uploadform->get_data()) {
     global $USER;

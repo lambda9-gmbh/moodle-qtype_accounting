@@ -72,7 +72,7 @@ $string['confirmdeleteaccount'] = 'Are you sure you want to delete this account?
 $string['correctanswer'] = 'Correct Answer';
 $string['correctansweris'] = 'The correct answer is:';
 $string['createchart'] = 'Create chart of accounts';
-$string['createchart_help'] = 'Enter a name to create an empty chart of accounts. You can then add accounts directly in Moodle or import them from a CSV file.';
+$string['createchart_help'] = 'Enter a name to create an empty chart of accounts. You can then add accounts directly in Moodle or import them from a CSV or ODS file.';
 $string['credit'] = 'Credit';
 $string['creditaccount'] = 'Credit Account';
 $string['creditamount'] = 'Credit Amount';
@@ -82,9 +82,10 @@ $string['creditincorrect'] = 'The credit side is incorrect.';
 $string['creditpartiallyincorrect'] = 'The credit side is partially incorrect.';
 $string['csvdata'] = 'CSV/Excel data';
 $string['csvempty'] = 'CSV data is empty.';
-$string['csvfile'] = 'CSV file';
-$string['csvfile_help'] = 'Upload a text file containing account names.<br><br>
-<strong>Format:</strong> One account name per line.<br>
+$string['csvfile'] = 'CSV, text or ODS file';
+$string['csvfile_help'] = 'Upload a CSV, text or ODS file containing account names.<br><br>
+<strong>CSV/text:</strong> One account name per line.<br>
+<strong>ODS:</strong> One account name per row in column A of the first sheet. Other columns and sheets are ignored.<br>
 Empty lines are ignored. Duplicate names are skipped.<br><br>
 Example:<br>
 <code>1200 Bank</code><br>
@@ -93,10 +94,10 @@ Example:<br>
 Maximum file size: 2MB<br><br>
 <strong>Supported encodings:</strong> UTF-8 and Windows-1252 (common Excel export).';
 $string['csvfilehelp'] = 'Upload a text file with one account name per line. The chart name is derived from the filename or auto-generated.';
-$string['csvfilerequired'] = 'A CSV file is required to create a chart of accounts.';
+$string['csvfilerequired'] = 'A CSV, text or ODS file is required for import.';
 $string['csvinvalidformat'] = 'Could not parse the account data. Each line should be one account name.';
 $string['csvnodata'] = 'No account names found. Each non-empty line is treated as one account name.';
-$string['csvnoentries'] = 'No valid entries found in CSV data.';
+$string['csvnoentries'] = 'No valid account names found in the file.';
 $string['debit'] = 'Debit';
 $string['debitaccount'] = 'Debit Account';
 $string['debitamount'] = 'Debit Amount';
@@ -143,7 +144,7 @@ $string['extraentrydeduction_help'] = 'Percentage deducted per extra account the
 $string['filereaderror'] = 'Error reading the file. Please try again.';
 $string['grade'] = 'Grade (%)';
 $string['grade_help'] = 'The percentage of total marks this entry is worth. All entry grades must sum to exactly 100%.';
-$string['importaccounts'] = 'Import accounts from CSV';
+$string['importaccounts'] = 'Import accounts from CSV or ODS';
 $string['importchart'] = 'Import Chart';
 $string['importchartfromcsv'] = 'Import Chart of Accounts from CSV';
 $string['importdate'] = 'Import date';
@@ -171,6 +172,7 @@ $string['numberformat'] = 'Number format';
 $string['numberformat_de'] = '#.###,00';
 $string['numberformat_help'] = 'Choose the format for decimal and thousand separators. Either #,###.00 or #.###,00';
 $string['numberformat_us'] = '#,###.00';
+$string['odsinvalid'] = 'Could not read the ODS spreadsheet. Upload a valid ODS file with uncompressed content no larger than 16 MiB.';
 $string['overrideexisting'] = 'Override existing chart';
 $string['overrideexisting_help'] = 'If enabled and a chart with the same name already exists, it will be deleted and replaced with the imported chart. Warning: This will permanently delete the existing chart and all its accounts.';
 $string['overrideexistingdesc'] = 'Replace existing chart with the same name';
@@ -191,7 +193,7 @@ $string['refreshentries'] = 'Update chart and rows';
 $string['selectaccount'] = '-- Select account --';
 $string['selectcreditaccountfirst'] = 'Please select a credit account first';
 $string['selectdebitaccountfirst'] = 'Please select a debit account first';
-$string['uploadchartcsv'] = 'Upload Chart of Accounts (CSV)';
+$string['uploadchartcsv'] = 'Upload Chart of Accounts (CSV or ODS)';
 $string['uploadchartcsv_btn'] = 'Upload';
 $string['uploadchartcsv_help'] = 'Upload a text file to create a new chart of accounts for this course. The chart will appear in the dropdown immediately after upload. Format: one account name per line.';
 $string['weight'] = 'Weight';

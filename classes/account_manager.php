@@ -166,22 +166,23 @@ class account_manager {
     }
 
     /**
-     * Import accounts from text content into an existing chart.
+     * Import accounts from text or ODS content into an existing chart.
      *
      * Each line in $content is one account name. Lines whose account name already
      * exists in the chart are skipped (no duplicates created).
      *
      * @param int $chartid Chart ID.
-     * @param string $content Text content with one account name per line.
+     * @param string $content Text with one account name per line, or raw ODS content.
+     * @param string $filename Original filename, used to select the file format.
      * @return array ['imported' => int, 'errors' => array]
      */
-    public static function import_into_chart(int $chartid, string $content): array {
+    public static function import_into_chart(int $chartid, string $content, string $filename = ''): array {
         global $DB;
 
         $result = ['imported' => 0, 'errors' => []];
 
         try {
-            $parsed = import_helper::parse_csv($content);
+            $parsed = import_helper::parse_file($content, $filename);
         } catch (\Exception $e) {
             $result['errors'][] = $e->getMessage();
             return $result;

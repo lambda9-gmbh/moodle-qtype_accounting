@@ -79,7 +79,7 @@ After submission, every field is highlighted individually — green for correct,
 - **Number format toggle** — `1,234.56` (US) or `1.234,56` (DE).
 - Course-scoped charts of accounts, manageable directly from the question form.
 - Chart management opens in a large overlay. Choose **Done** to return to the question; chart and account dropdowns refresh automatically while keeping unsaved question entries. Removed selections are flagged for replacement before saving. Unfinished chart edits require confirmation before closing.
-- Create charts of accounts directly in Moodle, or import and export CSV files (one account per line; UTF-8 or Windows-1252).
+- Create charts of accounts directly in Moodle, import CSV/text or ODS files, and export CSV files (one account per line; UTF-8 or Windows-1252).
 - Question import and export through Moodle's standard XML format, with the embedded chart of accounts travelling with the question.
 - Backup and restore as part of a course's question bank.
 
@@ -143,7 +143,7 @@ The plugin has no admin settings page — all configuration is per-question, and
 
 1. In any course, create or open a quiz.
 2. **Add → A new question → Accounting Entry (Buchungssatz)**.
-3. In the question form, click **Manage Charts of Accounts**, enter a chart name, and click **Create chart of accounts**. Add accounts in the editor that opens, or upload a CSV instead. Each line of the CSV is one account name, e.g.:
+3. In the question form, click **Manage Charts of Accounts**, enter a chart name, and click **Create chart of accounts**. Add accounts in the editor that opens, or upload a CSV or ODS file instead. Each line of the CSV is one account name, e.g.:
    ```
    1200 Bank
    1400 Receivables
@@ -186,7 +186,7 @@ You reach the management page from within the question authoring form: when you 
 On the management page you can:
 
 - **Create a chart directly** by entering its name. The account editor opens so you can add accounts without preparing a file.
-- **Upload a CSV** to create a new chart. The filename becomes the chart name; one account per line.
+- **Upload a CSV, text or ODS file** to create a new chart. The filename becomes the chart name; one account per line.
 - **Edit** a chart to rename it and add, edit, delete, or reorder accounts.
 - **Download** any chart as CSV.
 - **Delete** a chart (with confirmation).
@@ -202,6 +202,8 @@ solutions above that limit remain supported. Without JavaScript, choose the char
 and row count, then use **Update chart and rows** before completing the question.
 
 CSV files may be UTF-8 or Windows-1252 (Excel's default); a UTF-8 BOM, if present, is stripped automatically.
+
+ODS imports read one account name per row from column A of the first sheet. Other columns and sheets are ignored. Put the complete account name (including any account number) in one cell. Blank cells and duplicate names are skipped; an optional account-name header is recognised as with CSV. ODS files can also be imported into an existing chart. The upload limit is 2 MB; the uncompressed ODS `content.xml` must not exceed 16 MiB.
 
 ---
 

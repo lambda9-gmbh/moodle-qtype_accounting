@@ -47,6 +47,24 @@ Feature: Manage charts of accounts
     And "Main" "link" should exist
     And I should not see "Chart of accounts created successfully."
 
+  @_file_upload
+  Scenario: Upload an ODS chart and import its accounts into an existing chart
+    When I upload "question/type/accounting/tests/fixtures/Accounts.ods" file to "CSV, text or ODS file" filemanager
+    And I press "Upload"
+    Then I should see "3 accounts imported successfully."
+    When I click on "Accounts" "link"
+    Then I should see "0010 Bank"
+    And I should see "8400 Erlöse & USt"
+    And I should see "1000 Kasse"
+    And I should not see "Ignored column"
+    When I click on "Manage Charts of Accounts" "link"
+    And I click on "Main" "link"
+    And I upload "question/type/accounting/tests/fixtures/Accounts.ods" file to "CSV, text or ODS file" filemanager
+    And I press "Import Chart"
+    Then I should see "3 accounts imported successfully."
+    And I should see "0010 Bank"
+    And I should see "1000 Kasse"
+
   Scenario: Cancelling deletion preserves the chart and its accounts
     When I click on "Delete" "link" in the "Main" "table_row"
     Then I should see "Are you sure you want to permanently delete the chart of accounts" in the "Delete chart" "dialogue"

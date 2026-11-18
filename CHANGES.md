@@ -8,6 +8,7 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 ## [Unreleased]
 
 ### Added
+- ODS chart uploads and account imports, reading column A of the first worksheet with the same header and duplicate handling as CSV imports.
 - GitHub Actions checks for Moodle 4.5 and 5.1 on MariaDB and PostgreSQL, using a Nix development shell. Added number-format, restore-attempt, hint-option, no-JavaScript form, and atomic-import regressions.
 - Working interactive hint options for clearing incorrect fields and showing correct parts, random-question selection, and response-analysis classifications.
 - Native Android testing helper for the official Moodle 5.2.1 APK, with a dedicated emulator, local server connection, and DE/US sample quizzes.
