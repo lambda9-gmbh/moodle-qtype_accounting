@@ -26,6 +26,34 @@ Feature: Create and edit Buchungssatz questions
     And I should see "Correct Answer"
 
   @javascript
+  Scenario Outline: Each accounting side keeps at least one entry after adding and deleting rows
+    Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
+    When I press "Create a new question ..."
+    And I set the field "Accounting Entry" to "1"
+    And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
+    And I click on ".qtype_accounting-delete-debit[data-index='1']" "css_element"
+    And I click on ".qtype_accounting-delete-credit[data-index='1']" "css_element"
+    Then ".qtype_accounting-delete-debit[data-index='0'][disabled]" "css_element" should exist
+    And ".qtype_accounting-delete-credit[data-index='0'][disabled]" "css_element" should exist
+    When I click on "Add <side> Entry" "button"
+    Then ".qtype_accounting-delete-<other>[data-index='0'][disabled]" "css_element" should exist
+    And ".qtype_accounting-delete-<type>[data-index='0']:not([disabled])" "css_element" should exist
+    When I click on ".qtype_accounting-delete-<type>[data-index='0']" "css_element"
+    Then ".qtype_accounting-delete-<type>[data-index='2'][disabled]" "css_element" should exist
+    And ".qtype_accounting-delete-<other>[data-index='0'][disabled]" "css_element" should exist
+    When I click on "Add <side> Entry" "button"
+    Then ".qtype_accounting-delete-<type>[data-index='0']:not([disabled])" "css_element" should exist
+    And ".qtype_accounting-delete-<type>[data-index='2']:not([disabled])" "css_element" should exist
+    When I click on ".qtype_accounting-delete-<type>[data-index='2']" "css_element"
+    Then ".qtype_accounting-delete-<type>[data-index='0'][disabled]" "css_element" should exist
+    And ".qtype_accounting-delete-<other>[data-index='0'][disabled]" "css_element" should exist
+
+    Examples:
+      | side   | type   | other  |
+      | Debit  | debit  | credit |
+      | Credit | credit | debit  |
+
+  @javascript
   Scenario: Empty and zero account limits visibly mean all accounts
     Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."

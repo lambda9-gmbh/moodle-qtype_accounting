@@ -127,7 +127,7 @@ function init() {
     // Update weight field states (disable if no account selected or all-or-nothing is active).
     updateAllWeightStates();
 
-    // Update delete button states (disable if only one entry).
+    // Update delete button states for each side.
     updateDeleteButtonStates();
 
     // Sync display fields to hidden fields for any existing entries.
@@ -419,7 +419,7 @@ function deleteEntrySide(index, side) {
     const entryRow = editForm.querySelector(ROW_SELECTOR + '[data-entry-index="' + index + '"]');
     const weightRow = editForm.querySelector('.qtype_accounting-weight-row[data-entry-index="' + index + '"]');
 
-    if (!entryRow) {
+    if (!entryRow || getEntrySideRows(side).length <= 1) {
         return;
     }
 
@@ -440,6 +440,7 @@ function deleteEntrySide(index, side) {
         clearHiddenFieldsForSide(index, side);
 
         EntryUtils.updatePerLabels(editForm, ROW_SELECTOR);
+        updateDeleteButtonStates();
     } else if ((currentType === 'debit' && side === 'debit') ||
                (currentType === 'credit' && side === 'credit')) {
         // Row only has this side - delete the entire row.
@@ -705,6 +706,7 @@ function addEntryRow(entryType) {
         updateDebitamountState(index);
         updateWeightStates(index);
         EntryUtils.updatePerLabels(editForm, ROW_SELECTOR);
+        updateDeleteButtonStates();
         return;
     }
 
@@ -760,7 +762,7 @@ function addEntryRow(entryType) {
     // Initialize hidden fields for the new index.
     initializeHiddenFieldsForIndex(nextEntryIndex);
 
-    // Update delete button states (enable all since we now have more than one).
+    // Update delete button states for each side.
     updateDeleteButtonStates();
 
     // Update Per/an labels.
@@ -828,34 +830,39 @@ function deleteEntryRow(index) {
     // Update Per/an labels (first visible row should have them).
     EntryUtils.updatePerLabels(editForm, ROW_SELECTOR);
 
-    // Update delete button states (disable if only one entry remains).
+    // Update delete button states for each side.
     updateDeleteButtonStates();
 }
 
 /**
- * Update the enabled/disabled state of all delete buttons.
- * Disable delete buttons when only one entry remains.
+ * Get the entry rows containing the given side, independently of row indices.
+ *
+ * @param {string} side The side to count: 'debit' or 'credit'.
+ * @return {Element[]} The rows containing that side.
+ */
+function getEntrySideRows(side) {
+    return Array.from(editForm.querySelectorAll(ROW_SELECTOR)).filter(row => {
+        const entryType = row.getAttribute('data-entry-type') || 'both';
+        return entryType === 'both' || entryType === side;
+    });
+}
+
+/**
+ * Update delete buttons so each side keeps at least one entry.
  */
 function updateDeleteButtonStates() {
     const allEntryRows = editForm.querySelectorAll(ROW_SELECTOR);
-    const deleteButtons = editForm.querySelectorAll('.qtype_accounting-delete-debit, .qtype_accounting-delete-credit');
-    const isOnlyOne = allEntryRows.length <= 1;
     editForm.querySelectorAll('.qtype_accounting-add-debit-entry, .qtype_accounting-add-credit-entry')
         .forEach(button => {
             button.disabled = allEntryRows.length >= maxEntries;
         });
 
-    deleteButtons.forEach(function(button) {
-        button.disabled = isOnlyOne;
-        if (isOnlyOne) {
-            button.classList.add('disabled');
-
-
-        } else {
-            button.classList.remove('disabled');
-
-
-        }
+    ['debit', 'credit'].forEach(side => {
+        const isOnlyOne = getEntrySideRows(side).length <= 1;
+        editForm.querySelectorAll('.qtype_accounting-delete-' + side).forEach(button => {
+            button.disabled = isOnlyOne;
+            button.classList.toggle('disabled', isOnlyOne);
+        });
     });
 }
 
