@@ -213,6 +213,7 @@ Services:
 
 ## Working agreements with Claude
 
+- Never switch Git branches unless the user explicitly instructs you to do so. Keep all work on the current branch; a task, ticket, or commit request does not authorize a branch switch.
 - When creating a plan, surface anything unclear before writing code.
 - Keep plans tight; one or two lines per step.
 - Don't restate what the diff already says.
