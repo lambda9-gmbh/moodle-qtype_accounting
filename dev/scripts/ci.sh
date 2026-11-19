@@ -94,7 +94,38 @@ ensure_tooling || die "prerequisites"
 # not used, since GitHub checks repository sources rather than release archives.
 snapshot_root=$(docker exec "${CONTAINER}" mktemp -d /tmp/accounting-ci.XXXXXX) || die "create source snapshot"
 trap 'docker exec "$CONTAINER" rm -rf -- "$snapshot_root" >/dev/null' EXIT
-PLUGIN_PATH="${snapshot_root}/plugin"
+SCAN_MOODLE_DIR="${snapshot_root}/moodle"
+# Preserve Moodle's directory ancestry: moodle-cs discovers its version and
+# components from the scanned file's location, not the MOODLE_DIR environment.
+# Only the plugin is copied; the surrounding core files reuse the installation.
+PLUGIN_PATH=$(docker exec -i "${CONTAINER}" bash -s -- "${MOODLE_DIR}" "${SCAN_MOODLE_DIR}" <<'SCAN_WORKSPACE'
+set -euo pipefail
+source_root=$1
+scan_root=$2
+link_directory() {
+    local source=$1 target=$2 excluded=$3 entry
+    mkdir -p "$target"
+    shopt -s dotglob nullglob
+    for entry in "$source"/*; do
+        if [ "${entry##*/}" != "$excluded" ]; then
+            ln -s "$entry" "$target/${entry##*/}"
+        fi
+    done
+}
+if [ -f "$source_root/public/version.php" ]; then
+    link_directory "$source_root" "$scan_root" public
+    link_directory "$source_root/public" "$scan_root/public" question
+    source_root="$source_root/public"
+    scan_root="$scan_root/public"
+else
+    link_directory "$source_root" "$scan_root" question
+fi
+link_directory "$source_root/question" "$scan_root/question" type
+link_directory "$source_root/question/type" "$scan_root/question/type" accounting
+mkdir -p "$scan_root/question/type/accounting"
+printf '%s\n' "$scan_root/question/type/accounting"
+SCAN_WORKSPACE
+) || die "create scanner workspace"
 sync_working_tree() {
     docker exec "${CONTAINER}" mkdir -p "${PLUGIN_PATH}" || return
     (
@@ -112,7 +143,15 @@ sync_working_tree || die "sync working files"
 
 run_scope_check() {
     docker exec "${CONTAINER}" php "${PLUGIN_PATH}/dev/scripts/ci-files.php" \
-        --autoload=/opt/moodle-plugin-ci/vendor/autoload.php --plugin="${PLUGIN_PATH}" --format=verify
+        --autoload=/opt/moodle-plugin-ci/vendor/autoload.php --plugin="${PLUGIN_PATH}" \
+        --moodle="${SCAN_MOODLE_DIR}" --format=verify
+}
+
+run_phpcs() {
+    docker exec "${CONTAINER}" php "${PLUGIN_PATH}/dev/scripts/ci-files.php" \
+        --autoload=/opt/moodle-plugin-ci/vendor/autoload.php --plugin="${PLUGIN_PATH}" \
+        --moodle="${SCAN_MOODLE_DIR}" --format=context || return
+    run phpcs --max-warnings 0 "${PLUGIN_PATH}" "$@"
 }
 
 # Run a moodle-plugin-ci subcommand inside the container.
@@ -202,7 +241,7 @@ run_checks() {
     for cmd in phplint phpcs phpdoc validate savepoints mustache; do
         section "Running: ${cmd}"
         case "${cmd}" in
-            phpcs) run phpcs --max-warnings 0 "${PLUGIN_PATH}" || die "${cmd}" ;;
+            phpcs) run_phpcs || die "${cmd}" ;;
             phpdoc) run_phpdoc || die "${cmd}" ;;
             *) run "${cmd}" "${PLUGIN_PATH}" || die "${cmd}" ;;
         esac
@@ -237,7 +276,8 @@ case "${1:-default}" in
     scope)
         run_scope_check || die "scanner scope"
         docker exec "${CONTAINER}" php "${PLUGIN_PATH}/dev/tests/ci_scope_test.php" \
-            --autoload=/opt/moodle-plugin-ci/vendor/autoload.php --command="${MPCI}" --plugin="${PLUGIN_PATH}"
+            --autoload=/opt/moodle-plugin-ci/vendor/autoload.php --command="${MPCI}" --plugin="${PLUGIN_PATH}" \
+            --moodle="${SCAN_MOODLE_DIR}"
         ;;
     test)
         shift
@@ -291,7 +331,7 @@ case "${1:-default}" in
         cmd="$1"
         shift
         if [ "${cmd}" = "phpcs" ]; then
-            run phpcs --max-warnings 0 "${PLUGIN_PATH}" "$@"
+            run_phpcs "$@"
         else
             run_grunt "$@"
         fi

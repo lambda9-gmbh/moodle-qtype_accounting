@@ -480,12 +480,23 @@ Gitignored files are omitted. `.moodle-plugin-ci.yml` explicitly excludes `dev/`
 local and GitHub runs; `.gitattributes` only controls release archives. Local
 PHPDoc obtains its file list from the same Moodle Plugin CI selector.
 
+The snapshot sits inside a temporary Moodle directory tree, with core files
+linked from the installed version. This preserves moodle-cs's automatic Moodle
+version and component detection. A detached plugin copy can silently skip
+version-dependent PHPUnit checks when the Moodle version is unknown, while
+Moodle 4.5 uses the legacy coverage rules. Local checks verify the detected
+root and branch before PHPCS and stop if the context is missing or incorrect.
+Test classes place PHPUnit attributes above the class docblock so the legacy
+`@covers` tags stay adjacent to the class declaration and both versions work.
+
 Both runners verify and fingerprint the selected file lists before linting.
 The guard requires the development helpers to be physically present, checks
 that plugin code and PHPUnit tests remain selected, and rejects development
 files in the scan. GitHub also compares its installed plugin and checkout file
 lists. `ci.sh scope` runs regressions that reproduce the reported development
 file failures without the filter and confirm new production errors still fail.
+They also reproduce the version-sensitive coverage warning with the real checker
+in Moodle 4.5 and 5.1 directory layouts, and reject a detached scan workspace.
 Grunt uses a container-native copy of the same snapshot, arranged as
 `question/type/accounting` with the installed Moodle build tools. Its backup and
 restore never traverse host bind mounts, avoiding Docker Desktop's stale file

@@ -22,6 +22,7 @@ global $CFG;
 require_once($CFG->libdir . '/upgradelib.php');
 require_once($CFG->dirroot . '/question/type/accounting/db/upgrade.php');
 
+#[\PHPUnit\Framework\Attributes\CoversFunction('xmldb_qtype_accounting_upgrade')]
 /**
  * Tests for the legacy account-name migration.
  *
@@ -30,7 +31,6 @@ require_once($CFG->dirroot . '/question/type/accounting/db/upgrade.php');
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     ::xmldb_qtype_accounting_upgrade
  */
-#[\PHPUnit\Framework\Attributes\CoversFunction('xmldb_qtype_accounting_upgrade')]
 final class upgrade_test extends \advanced_testcase {
     /**
      * Add the legacy columns to the isolated test table.

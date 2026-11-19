@@ -16,6 +16,7 @@
 
 namespace qtype_accounting;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\account_manager::class)]
 /**
  * Unit tests for the account_manager class.
  *
@@ -24,7 +25,6 @@ namespace qtype_accounting;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting\account_manager
  */
-#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\account_manager::class)]
 final class account_manager_test extends \advanced_testcase {
     /**
      * Warnings list each logical question once, including usage in old attempts.

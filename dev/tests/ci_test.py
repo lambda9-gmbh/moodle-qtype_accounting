@@ -51,9 +51,14 @@ case "$*" in
     *'tar -xf - -C '*)
         cat > "$CI_TEST_ARCHIVE"
         if [ "$CI_TEST_MODE" = copy-failure ]; then exit 1; fi ;;
-    *'ci-files.php '*--format=csv*) echo /tmp/accounting-ci.mock/plugin/renderer.php ;;
+    *'ci-files.php '*--format=csv*) echo /tmp/accounting-ci.mock/moodle/question/type/accounting/renderer.php ;;
+    *'ci-files.php '*--format=context*)
+        if [ "$CI_TEST_MODE" = context-failure ]; then exit 1; fi ;;
     *'ci-files.php '*--format=verify*)
         if [ "$CI_TEST_MODE" = scope-failure ]; then exit 1; fi ;;
+    *'bash -s -- /var/www/html /tmp/accounting-ci.mock/moodle')
+        if [ "$CI_TEST_MODE" = scanner-workspace-failure ]; then exit 1; fi
+        echo /tmp/accounting-ci.mock/moodle/question/type/accounting ;;
     *'bash -s -- '*)
         if [ "$CI_TEST_MODE" = grunt-workspace-failure ]; then exit 1; fi ;;
     *'node --test '*)
@@ -114,7 +119,8 @@ exit 0
         self.assertIn("exec accounting-moodle node --test /tmp/accounting-js-tests.mock/dev/tests/", commands)
         self.assertIn(f"compose cp {self.root}/dev/../tests/fixtures/. "
                       "selenium:/var/www/html/question/type/accounting/tests/fixtures", commands)
-        self.assertIn("phpcs --max-warnings 0 /tmp/accounting-ci.mock/plugin", commands)
+        self.assertIn("phpcs --max-warnings 0 /tmp/accounting-ci.mock/moodle/question/type/accounting", commands)
+        self.assertIn("--moodle=/tmp/accounting-ci.mock/moodle --format=context", commands)
         grunt_command = next(line for line in commands.splitlines() if "moodle-plugin-ci grunt " in line)
         self.assertIn("--moodle=/tmp/accounting-ci.mock/grunt-moodle", grunt_command)
         self.assertIn("/tmp/accounting-ci.mock/grunt-moodle/question/type/accounting", grunt_command)
@@ -134,6 +140,18 @@ exit 0
 
     def test_scope_failure_stops_scanners(self):
         result, commands = self.run_ci(mode="scope-failure")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn("moodle-plugin-ci phplint", commands)
+
+    def test_unknown_checker_context_stops_full_and_individual_checks(self):
+        for args in ((), ("phpcs",)):
+            with self.subTest(args=args):
+                result, commands = self.run_ci(*args, mode="context-failure")
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn("moodle-plugin-ci phpcs", commands)
+
+    def test_failed_scanner_workspace_stops_checks(self):
+        result, commands = self.run_ci(mode="scanner-workspace-failure")
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn("moodle-plugin-ci phplint", commands)
 

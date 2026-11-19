@@ -21,6 +21,8 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 require_once($CFG->dirroot . '/backup/tests/backup_restore_base_testcase.php');
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\backup_qtype_accounting_plugin::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\restore_qtype_accounting_plugin::class)]
 /**
  * Regression tests for accounting question backup and restore.
  *
@@ -30,8 +32,6 @@ require_once($CFG->dirroot . '/backup/tests/backup_restore_base_testcase.php');
  * @covers     \backup_qtype_accounting_plugin
  * @covers     \restore_qtype_accounting_plugin
  */
-#[\PHPUnit\Framework\Attributes\CoversClass(\backup_qtype_accounting_plugin::class)]
-#[\PHPUnit\Framework\Attributes\CoversClass(\restore_qtype_accounting_plugin::class)]
 final class backup_test extends \core_backup_backup_restore_base_testcase {
     /**
      * Same-name charts with different contents must remain distinct, even for subset accounts.

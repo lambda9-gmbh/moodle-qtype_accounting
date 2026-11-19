@@ -16,6 +16,7 @@
 
 namespace qtype_accounting;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\amount_helper::class)]
 /**
  * Exact monetary parsing and formatting.
  *
@@ -24,7 +25,6 @@ namespace qtype_accounting;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting\amount_helper
  */
-#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\amount_helper::class)]
 final class amount_helper_test extends \advanced_testcase {
     /**
      * Decimal text, including database precision, round-trips without float conversion.

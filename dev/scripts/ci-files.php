@@ -26,7 +26,7 @@ if (PHP_SAPI !== 'cli') {
     exit(1);
 }
 
-$options = getopt('', ['autoload:', 'env:', 'plugin:', 'reference:', 'context:', 'format:']);
+$options = getopt('', ['autoload:', 'env:', 'plugin:', 'reference:', 'moodle:', 'context:', 'format:']);
 require $options['autoload'];
 if (isset($options['env'])) {
     (new \Symfony\Component\Dotenv\Dotenv())->usePutenv(true)->load($options['env']);
@@ -34,6 +34,39 @@ if (isset($options['env'])) {
 $root = realpath($options['plugin'] ?? getenv('PLUGIN_DIR'));
 if ($root === false) {
     throw new RuntimeException('The complete plugin source directory is required.');
+}
+
+// File lists alone cannot prove parity: moodle-cs changes rules by Moodle
+// version and treats an unknown version differently from Moodle 4.5.
+if (isset($options['moodle']) || ($options['format'] ?? '') === 'context') {
+    $moodleroot = isset($options['moodle']) ? realpath($options['moodle']) : false;
+    if ($moodleroot === false) {
+        throw new RuntimeException('A valid Moodle root is required for checker context verification.');
+    }
+    require_once dirname($options['autoload']) . '/squizlabs/php_codesniffer/autoload.php';
+    defined('PHP_CODESNIFFER_VERBOSITY') || define('PHP_CODESNIFFER_VERBOSITY', 0);
+    defined('PHP_CODESNIFFER_CBF') || define('PHP_CODESNIFFER_CBF', false);
+    // Register PHPCS's token constants before constructing its ruleset.
+    class_exists(\PHP_CodeSniffer\Util\Tokens::class);
+    $config = new \PHP_CodeSniffer\Config(['--standard=moodle', '--parallel=1']);
+    $ruleset = new \PHP_CodeSniffer\Ruleset($config);
+    $file = new \PHP_CodeSniffer\Files\LocalFile($root . '/renderer.php', $ruleset, $config);
+    $detectedroot = \MoodleHQ\MoodleCS\moodle\Util\MoodleUtil::getMoodleRoot($file, false);
+    $branch = \MoodleHQ\MoodleCS\moodle\Util\MoodleUtil::getMoodleBranch($file, false);
+    $versionfile = is_file($moodleroot . '/public/version.php')
+        ? $moodleroot . '/public/version.php' : $moodleroot . '/version.php';
+    if (!preg_match('/^\$branch\s*=\s*[\'"]([0-9]+)[\'"]\s*;/m', file_get_contents($versionfile), $matches)) {
+        throw new RuntimeException('Cannot read the installed Moodle branch.');
+    }
+    $expectedbranch = (int) $matches[1];
+    if ($detectedroot !== $moodleroot || $branch !== $expectedbranch) {
+        throw new RuntimeException('PHPCS Moodle context differs from the installation: root=' .
+            ($detectedroot ?? 'unknown') . ', branch=' . ($branch ?? 'unknown'));
+    }
+    printf("PHPCS context: Moodle %d, root %s\n", $branch, $detectedroot);
+    if (($options['format'] ?? '') === 'context') {
+        exit(0);
+    }
 }
 
 $select = static function (string $directory, string $context): array {

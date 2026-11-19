@@ -23,6 +23,7 @@ require_once($CFG->dirroot . '/backup/tests/backup_restore_base_testcase.php');
 require_once($CFG->dirroot . '/course/lib.php');
 require_once($CFG->dirroot . '/mod/quiz/locallib.php');
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\restore_qtype_accounting_plugin::class)]
 /**
  * Regression tests for question identity during activity duplication and course restore.
  *
@@ -31,7 +32,6 @@ require_once($CFG->dirroot . '/mod/quiz/locallib.php');
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \restore_qtype_accounting_plugin
  */
-#[\PHPUnit\Framework\Attributes\CoversClass(\restore_qtype_accounting_plugin::class)]
 final class restore_identity_test extends \core_backup_backup_restore_base_testcase {
     /**
      * Repeated quiz duplication must reuse the existing question bank entries and versions.

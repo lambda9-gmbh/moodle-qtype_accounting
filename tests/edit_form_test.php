@@ -22,6 +22,12 @@ global $CFG;
 require_once($CFG->dirroot . '/question/type/edit_question_form.php');
 require_once($CFG->dirroot . '/question/type/accounting/edit_accounting_form.php');
 
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'get_all_accounts_by_chart')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'add_chart_section')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'validate_available_accounts')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'definition_after_data')]
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\entry_validator::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\entries_table_builder::class)]
 /**
  * Tests for the accounting editing form's account data.
  *
@@ -35,12 +41,6 @@ require_once($CFG->dirroot . '/question/type/accounting/edit_accounting_form.php
  * @covers     \qtype_accounting\entry_validator
  * @covers     \qtype_accounting\entries_table_builder
  */
-#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'get_all_accounts_by_chart')]
-#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'add_chart_section')]
-#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'validate_available_accounts')]
-#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'definition_after_data')]
-#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\entry_validator::class)]
-#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\entries_table_builder::class)]
 final class edit_form_test extends \advanced_testcase {
     /**
      * Balance validation sums cents and detects a one-cent difference.

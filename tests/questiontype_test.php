@@ -22,6 +22,7 @@ global $CFG;
 require_once($CFG->dirroot . '/question/type/accounting/questiontype.php');
 require_once($CFG->dirroot . '/question/format/xml/format.php');
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting::class)]
 /**
  * Unit tests for qtype_accounting (question type class).
  *
@@ -30,7 +31,6 @@ require_once($CFG->dirroot . '/question/format/xml/format.php');
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting
  */
-#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting::class)]
 final class questiontype_test extends \advanced_testcase {
     /**
      * XML export and import retain hint ordering, formats, options and embedded files.

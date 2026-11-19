@@ -16,6 +16,10 @@
 
 namespace qtype_accounting;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\import_helper::class)]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting\chart_manager::class, 'import_chart_from_csv')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting\account_manager::class, 'import_into_chart')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting\chart_manager::class, 'export_to_csv')]
 /**
  * Unit tests for import_helper class.
  *
@@ -29,10 +33,6 @@ namespace qtype_accounting;
  * @covers     \qtype_accounting\account_manager::import_into_chart
  * @covers     \qtype_accounting\chart_manager::export_to_csv
  */
-#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\import_helper::class)]
-#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting\chart_manager::class, 'import_chart_from_csv')]
-#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting\account_manager::class, 'import_into_chart')]
-#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting\chart_manager::class, 'export_to_csv')]
 final class import_helper_test extends \advanced_testcase {
     /**
      * Build an ODS archive with the given content document.

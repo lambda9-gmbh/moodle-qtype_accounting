@@ -21,6 +21,7 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 require_once($CFG->dirroot . '/question/type/accounting/tests/behat/behat_qtype_accounting.php');
 
+#[\PHPUnit\Framework\Attributes\CoversMethod(\behat_qtype_accounting::class, 'accounting_questions_exist')]
 /**
  * Test question fixture ownership across course and module question contexts.
  *
@@ -29,7 +30,6 @@ require_once($CFG->dirroot . '/question/type/accounting/tests/behat/behat_qtype_
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \behat_qtype_accounting::accounting_questions_exist
  */
-#[\PHPUnit\Framework\Attributes\CoversMethod(\behat_qtype_accounting::class, 'accounting_questions_exist')]
 final class behat_fixture_test extends \advanced_testcase {
     /**
      * A module-owned question must use a chart visible to its owning course.

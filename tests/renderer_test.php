@@ -21,6 +21,7 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 require_once($CFG->dirroot . '/question/type/accounting/tests/helper.php');
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting_renderer::class)]
 /**
  * Rendering honours Moodle's review visibility settings.
  *
@@ -29,7 +30,6 @@ require_once($CFG->dirroot . '/question/type/accounting/tests/helper.php');
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting_renderer
  */
-#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting_renderer::class)]
 final class renderer_test extends \advanced_testcase {
     /**
      * Field colours depend on correctness visibility independently of specific feedback.

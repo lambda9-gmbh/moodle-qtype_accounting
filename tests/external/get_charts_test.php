@@ -20,6 +20,7 @@ use core_external\external_api;
 use qtype_accounting\account_manager;
 use qtype_accounting\chart_manager;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\external\get_charts::class)]
 /**
  * Tests for manually refreshing charts in the question editor.
  *
@@ -28,7 +29,6 @@ use qtype_accounting\chart_manager;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting\external\get_charts
  */
-#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\external\get_charts::class)]
 final class get_charts_test extends \advanced_testcase {
     /**
      * Return empty charts and fresh accounts, without exposing another course's data.

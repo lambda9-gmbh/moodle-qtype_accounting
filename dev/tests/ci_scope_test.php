@@ -6,7 +6,7 @@ use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Process\Process;
 
-$options = getopt('', ['autoload:', 'command:', 'plugin:']);
+$options = getopt('', ['autoload:', 'command:', 'plugin:', 'moodle:']);
 require $options['autoload'];
 $source = $options['plugin'];
 $temp = sys_get_temp_dir() . '/accounting-scope-test-' . bin2hex(random_bytes(8));
@@ -51,6 +51,63 @@ try {
     $check->run();
     $expect($check->isSuccessful(), 'The shared filter should pass PHPCS: ' . $check->getOutput());
 
+    // A detached copy used to pass because moodle-cs treated its branch as
+    // unknown. Exercise the actual version-sensitive sniff in both layouts.
+    $coveragefixture = <<<'PHP'
+<?php
+namespace qtype_accounting;
+/**
+ * Coverage context probe, deliberately using only Moodle 5 coverage metadata.
+ */
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting_renderer::class)]
+final class renderer_test extends \advanced_testcase {
+    public function test_coverage_context(): void {
+    }
+}
+PHP;
+    $phpcs = dirname($options['autoload']) . '/bin/phpcs';
+    $coverage = static function (string $file) use ($phpcs): array {
+        $process = new Process([$phpcs, '--standard=moodle', '--sniffs=moodle.PHPUnit.TestCaseCovers',
+            '--no-cache', '--report=json', $file]);
+        $process->run();
+        return json_decode($process->getOutput(), true, 512, JSON_THROW_ON_ERROR);
+    };
+    foreach ([405, 501] as $branch) {
+        $contextroot = $temp . '/context-' . $branch;
+        $public = $contextroot . ($branch >= 501 ? '/public' : '');
+        $fixture = $public . '/question/type/accounting/tests/renderer_test.php';
+        $filesystem->dumpFile($contextroot . '/config-dist.php', '<?php');
+        $filesystem->dumpFile($public . '/version.php', "<?php\n\$branch = '$branch';\n");
+        $filesystem->dumpFile($fixture, $coveragefixture);
+        $report = $coverage($fixture);
+        $expect($report['totals']['errors'] === 0 && $report['totals']['warnings'] === ($branch < 500 ? 1 : 0),
+            'The real coverage sniff must apply the detected Moodle ' . $branch . ' rules.');
+        if ($branch < 500) {
+            $message = array_values($report['files'])[0]['messages'][0];
+            $expect($message['source'] === 'moodle.PHPUnit.TestCaseCovers.Missing',
+                'The Moodle 4.5 fixture must reproduce the exact GitHub coverage warning.');
+        }
+    }
+    $detached = $temp . '/tests/renderer_test.php';
+    $filesystem->dumpFile($detached, $coveragefixture);
+    $expect($coverage($detached)['totals']['warnings'] === 0,
+        'Negative control: the detached copy must demonstrate the previous false pass.');
+    $filesystem->remove([$temp . '/context-405', $temp . '/context-501', $detached]);
+
+    $context = new Process([PHP_BINARY, $source . '/dev/scripts/ci-files.php',
+        '--autoload=' . $options['autoload'], '--plugin=' . $source,
+        '--moodle=' . $options['moodle'], '--format=context']);
+    $context->run();
+    $expect($context->isSuccessful(), 'The real scan workspace must retain Moodle context: ' .
+        $context->getOutput() . $context->getErrorOutput());
+    $missingcontext = new Process([PHP_BINARY, $source . '/dev/scripts/ci-files.php',
+        '--autoload=' . $options['autoload'], '--plugin=' . $temp,
+        '--moodle=' . $options['moodle'], '--format=context']);
+    $missingcontext->run();
+    $expect(!$missingcontext->isSuccessful() && str_contains($missingcontext->getOutput() .
+        $missingcontext->getErrorOutput(), 'PHPCS Moodle context differs'),
+        'A detached scan must fail the context guard before PHPCS can falsely pass.');
+
     // Exercise the exact GitHub guard, including loading the installer's .env.
     $filesystem->mirror($temp, $installed);
     $filesystem->dumpFile($envfile, 'PLUGIN_DIR="' . $installed . '"' . "\n");
@@ -72,7 +129,7 @@ try {
     foreach (['dev/mobile/setup.php', 'dev/docker/config.php', 'MoodleInternalGlobalState'] as $text) {
         $expect(str_contains($output, $text), 'Expected GitHub failure was not reproduced: ' . $text);
     }
-    echo "Scope regressions passed: plugin/tests retained, dependencies excluded, new source errors detected, GitHub installed/checkout scope verified, reported failures reproduced without filter.\n";
+    echo "Scope regressions passed: file filters verified, Moodle 4.5/5.1 coverage rules reproduced, missing context rejected.\n";
 } finally {
     $filesystem->remove([$temp, $installed, $envfile]);
 }
