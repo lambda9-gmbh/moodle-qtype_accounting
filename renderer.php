@@ -81,7 +81,7 @@ class qtype_accounting_renderer extends qtype_renderer {
         ];
         $result .= html_writer::start_div('qtype_accounting-question-container', $containerattrs);
         $result .= $this->render_question_table($qa, $options, $question, $response, $filteredaccounts, $visiblerows, $templateid);
-        $result .= html_writer::div('', 'qtype_accounting-mobile-view', ['style' => 'display:none;']);
+        $result .= html_writer::div('', 'qtype_accounting-mobile-view');
         $result .= html_writer::end_div();
 
         $this->register_js_strings_and_module($containerid);

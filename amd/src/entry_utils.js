@@ -157,7 +157,7 @@ function findIncompleteRow(container, entryType, rowSelector) {
     for (let i = 0; i < rows.length; i++) {
         let row = rows[i];
         // Skip hidden rows (student view hides unused rows with display:none).
-        if (row.style.display === 'none') {
+        if (row.classList.contains('qtype_accounting-deleted-row') || row.style.display === 'none') {
             continue;
         }
         let rowType = row.getAttribute('data-entry-type');
@@ -232,7 +232,7 @@ function clearFieldsInCell(cell) {
     let selects = cell.querySelectorAll('select');
     for (let i = 0; i < selects.length; i++) {
         selects[i].value = '';
-        // Notify Select2 of the change so its display stays in sync.
+        // Notify listeners so dependent fields stay in sync.
         $(selects[i]).trigger('change');
     }
     let inputs = cell.querySelectorAll('input');

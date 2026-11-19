@@ -9,7 +9,7 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ### Added
 - ODS chart uploads and account imports, reading column A of the first worksheet with the same header and duplicate handling as CSV imports.
-- GitHub Actions checks for Moodle 4.5 and 5.1 on MariaDB and PostgreSQL, using a Nix development shell. Added number-format, restore-attempt, hint-option, no-JavaScript form, and atomic-import regressions.
+- GitHub Actions checks for Moodle 4.5 and 5.1 on MariaDB and PostgreSQL, using the standard Moodle Plugin CI setup. Added number-format, restore-attempt, hint-option, no-JavaScript form, and atomic-import regressions.
 - Working interactive hint options for clearing incorrect fields and showing correct parts, random-question selection, and response-analysis classifications.
 - Native Android testing helper for the official Moodle 5.2.1 APK, with a dedicated emulator, local server connection, and DE/US sample quizzes.
 - Moodle App question handler with debit/credit entry cards, multiple entries, local-answer restoration, explicit clearing of deleted entries, and read-only review. Deployment requires a Moodle upgrade/cache purge and refreshing the site's app session.
@@ -17,6 +17,7 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - Charts of accounts can now be created directly in Moodle by entering a name, then adding accounts in the existing editor without uploading a CSV file.
 
 ### Fixed
+- Removed optional Select2 integration; account dropdowns use native controls throughout. Student row visibility and mobile switching now use stylesheet classes, with theme-aware colors and a CSS variable for calculated table width.
 - Moodle App amount fields now format saved values and amounts on blur using the question's German or US format. Moved feedback summaries use the app's orange feedback background, and empty feedback wrappers no longer leave an orange panel below the solution.
 - Moodle App correct answers now use stacked debit and credit cards, preserving formatted amounts and entry explanations and respecting quiz answer visibility.
 - Moodle App review now highlights correct and incorrect accounts and amounts independently using the app's theme-aware feedback backgrounds.

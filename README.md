@@ -61,7 +61,7 @@ After submission, every field is highlighted individually — green for correct,
 
 - Two-sided entry table (Debit / Credit), one journal-entry row at a time.
 - Add or remove rows independently on each side.
-- Searchable account dropdowns when the theme provides Select2; native `<select>` otherwise.
+- Native account dropdowns on desktop and mobile.
 - Optional decoy accounts in dropdowns to discourage process-of-elimination guessing.
 - Responsive mobile card layout for narrow viewports.
 - Moodle App question handler with separate debit/credit entry cards, saved-answer restoration, and read-only review.
@@ -311,9 +311,10 @@ When reporting a bug, please include:
 The `dev/` directory contains a complete Dockerised dev/CI environment. It is `export-ignore`d in `.gitattributes` and does not ship in the release ZIP.
 
 Use `nix-shell dev/shell.nix` for PHP, Composer, Node, Python, and database clients;
-dependencies should not be installed into a host environment. The GitHub Actions
-workflow uses this shell and runs the Moodle checks, PHPUnit, and Behat against
-Moodle 4.5/5.1 with both MariaDB and PostgreSQL.
+dependencies should not be installed into a host environment. GitHub Actions uses
+the standard Moodle Plugin CI setup with `shivammathur/setup-php` and
+`moodle-plugin-ci`, running Moodle checks, PHPUnit, and Behat against Moodle
+4.5/5.1 with both MariaDB and PostgreSQL. Nix is only used for local development.
 
 ### Bring up the stack
 

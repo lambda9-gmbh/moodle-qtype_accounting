@@ -139,7 +139,7 @@ Account matching is case-insensitive on `accountname` (via the account_id lookup
 
 Wired into PHP via `$PAGE->requires->js_call_amd('qtype_accounting/<module>', 'init', […])`:
 
-- **`question/init(containerId)`** — student quiz: add/delete entry rows, copy debit amount to credit amount, integrate with Select2 (if the theme provides it), apply mobile card layout via `mobile_layout`.
+- **`question/init(containerId)`** — student quiz: add/delete entry rows, copy debit amount to credit amount, apply mobile card layout via `mobile_layout`.
 - **`editform/init()`** — authoring form: populate account dropdowns from selected chart, auto-calculate total grade from per-entry fractions, sync per-field weight visibility, CSV import wiring.
 - `entry_utils` — pure helpers reused by both above.
 - `mobile_layout` — viewport-based switching between table view and card view.

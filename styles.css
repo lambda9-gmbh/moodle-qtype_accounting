@@ -142,7 +142,7 @@
 }
 
 .qtype_accounting-credit-header {
-    background-color: #cce5ff;
+    background-color: var(--bs-primary-bg-subtle, #cce5ff);
     padding: 0.5rem;
     border-radius: 0 0.25rem 0 0;
 }
@@ -209,8 +209,8 @@
 
 /* Explanation shown below incorrect entries */
 .qtype_accounting-entry-explanation {
-    color: #856404;
-    border: 1px solid #ffc107;
+    color: var(--bs-warning-text-emphasis, #856404);
+    border: 1px solid var(--bs-warning-border-subtle, #ffc107);
 }
 
 .qtype_accounting-balance {
@@ -261,7 +261,7 @@
 /* T-Account visual style (optional enhanced view) */
 .qtype_accounting-t-account {
     display: flex;
-    border: 2px solid #333;
+    border: 2px solid var(--bs-border-color, #333);
     margin: 1rem 0;
 }
 
@@ -271,13 +271,13 @@
 }
 
 .qtype_accounting-t-account-debit {
-    border-right: 2px solid #333;
+    border-right: 2px solid var(--bs-border-color, #333);
 }
 
 .qtype_accounting-t-account-title {
     text-align: center;
     font-weight: bold;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--bs-border-color, #333);
     padding-bottom: 0.5rem;
     margin-bottom: 0.5rem;
 }
@@ -317,7 +317,7 @@
         width: 100% !important;
     }
 
-    /* Only show visible rows as blocks - don't override inline display:none */
+    /* Display table rows as blocks on mobile. */
     .qtype_accounting-student-table tr {
         display: block;
         width: 100% !important;
@@ -329,7 +329,7 @@
         display: none !important;
     }
 
-    /* Each row becomes a card - don't use !important on display to allow hiding */
+    /* Each row becomes a card. */
     .qtype_accounting-student-table .qtype_accounting-entry-row {
         display: block;
         background: var(--bs-body-bg, #fff);
@@ -340,24 +340,6 @@
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         overflow: visible !important;
         position: relative;
-    }
-
-    /* Reset any problematic Select2 containers */
-    .qtype_accounting-student-table .select2-container {
-        position: static !important;
-        display: block !important;
-        width: 100% !important;
-    }
-
-    .qtype_accounting-student-table .select2-container--default .select2-selection--single {
-        height: auto;
-        min-height: 44px;
-    }
-
-    /* Hide Select2 dropdown wrapper if it exists */
-    .qtype_accounting-student-table .select2-container .select2-dropdown {
-        position: absolute;
-        z-index: 9999;
     }
 
     /* All cells become block elements - override desktop max-width: 0 hack */
@@ -395,8 +377,8 @@
 
     /* Credit section header */
     .qtype_accounting-student-table td.qtype_accounting-label-cell[data-section="credit"] {
-        background-color: #cce5ff;
-        color: #004085;
+        background-color: var(--bs-primary-bg-subtle, #cce5ff);
+        color: var(--bs-primary-text-emphasis, #004085);
         font-weight: 700;
         font-style: normal;
         text-align: left;
@@ -474,31 +456,6 @@
         border: 1px solid var(--bs-border-color, #ced4da);
         border-radius: 4px;
         padding: 0.5rem;
-    }
-
-    /* Select2 mobile fixes */
-    .qtype_accounting-student-table .select2-container {
-        width: 100% !important;
-        max-width: 100% !important;
-        position: relative !important;
-    }
-
-    .qtype_accounting-student-table .select2-container .select2-selection {
-        min-height: 44px;
-        font-size: 16px;
-    }
-
-    .qtype_accounting-student-table .select2-container .select2-selection__rendered {
-        line-height: 42px;
-    }
-
-    .qtype_accounting-student-table .select2-container .select2-selection__arrow {
-        height: 42px;
-    }
-
-    /* Ensure Select2 dropdown doesn't overflow card */
-    .select2-container--open .select2-dropdown {
-        max-width: calc(100vw - 2rem);
     }
 
     /* Actions cell */
@@ -620,7 +577,7 @@
 }
 
 .qtype_accounting-edit-data {
-    background-color: #fffef0;
+    background-color: var(--bs-body-bg, #fffef0);
 }
 
 .qtype_accounting-edit-data select,
@@ -672,7 +629,7 @@
 /* Student view table styles */
 table.qtype_accounting-student-table {
     table-layout: fixed;
-    width: 100%;
+    width: var(--qtype-accounting-table-width, 100%);
     margin-bottom: 0;
     border-collapse: collapse;
 }
@@ -702,7 +659,7 @@ table.qtype_accounting-student-table {
 
 /* Data cells (Account dropdowns, Amount inputs) */
 .qtype_accounting-data-cell {
-    background-color: #fffef0;
+    background-color: var(--bs-body-bg, #fffef0);
     overflow: hidden;
 }
 
@@ -754,8 +711,8 @@ table.qtype_accounting-student-table {
 }
 
 .qtype_accounting-student-table .qtype_accounting-explanation-row td {
-    background-color: #fff3cd;
-    color: #856404;
+    background-color: var(--bs-warning-bg-subtle, #fff3cd);
+    color: var(--bs-warning-text-emphasis, #856404);
     font-size: 0.9em;
     border-top: none;
 }
@@ -871,8 +828,8 @@ table.qtype_accounting-student-table {
     .qtype_accounting-student-table tr[data-entry-type="credit"]
     td.qtype_accounting-label-cell[data-section="credit"].qtype_accounting-hidden-cell {
         display: block !important;
-        background-color: #cce5ff;
-        color: #004085;
+        background-color: var(--bs-primary-bg-subtle, #cce5ff);
+        color: var(--bs-primary-text-emphasis, #004085);
         font-weight: 700;
         font-size: 1rem;
     }
@@ -1015,7 +972,7 @@ table.qtype_accounting-student-table {
     .qtype_accounting-mobile-debit-header,
     .qtype_accounting-mobile-credit-header {
         background-color: var(--bs-secondary-bg, #e9ecef);
-        color: #495057;
+        color: var(--bs-body-color, #495057);
     }
 
     .qtype_accounting-mobile-section-header h4 {
@@ -1082,7 +1039,7 @@ table.qtype_accounting-student-table {
         display: flex;
         justify-content: flex-end;
         padding-top: 0.5rem;
-        border-top: 1px solid #f0f0f0;
+        border-top: 1px solid var(--bs-border-color, #f0f0f0);
         margin-top: 0.75rem;
     }
 
@@ -1125,7 +1082,7 @@ table.qtype_accounting-student-table {
         content: '\2014'; /* em-dash */
         display: block;
         text-align: center;
-        color: #adb5bd;
+        color: var(--bs-secondary-color, #adb5bd);
         padding: 1rem;
     }
 }
@@ -1167,4 +1124,13 @@ table.qtype_accounting-student-table {
 
 .qtype_accounting-edit-table:not([data-enhanced]) td.qtype_accounting-hidden-cell {
     display: table-cell !important;
+}
+
+/* State classes shared by the desktop table and mobile cards. */
+.qtype_accounting-question-container .qtype_accounting-deleted-row {
+    display: none !important;
+}
+
+.qtype_accounting-delete-hidden {
+    visibility: hidden !important;
 }

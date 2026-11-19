@@ -11,6 +11,11 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-24.04
+    env:
+      MOODLE_BRANCH: ${{ matrix.moodle }}
+      DB: ${{ matrix.database }}
+      DB_USER: ${{ matrix.database == 'pgsql' && 'postgres' || 'root' }}
+      MOODLE_DOCKER_PHPUNIT_EXTERNAL_SERVICES: 'false'
     strategy:
       fail-fast: false
       matrix:
@@ -21,6 +26,8 @@ jobs:
         image: ${{ matrix.database == 'mariadb' && 'mariadb:11' || '' }}
         env:
           MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: '1'
+          MYSQL_CHARACTER_SET_SERVER: utf8mb4
+          MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
         ports:
           - 3306:3306
         options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=10s --health-retries=5
@@ -32,22 +39,66 @@ jobs:
           - 5432:5432
         options: --health-cmd=pg_isready --health-interval=10s --health-retries=5
     steps:
-      - uses: actions/checkout@v6
+      - name: Check out repository code
+        uses: actions/checkout@v6
         with:
+          path: plugin
           persist-credentials: false
-      - uses: cachix/install-nix-action@v31
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
         with:
-          nix_path: nixpkgs=channel:nixos-25.11
-      - name: Validate and test in Nix
-        env:
-          MOODLE_BRANCH: ${{ matrix.moodle }}
-          DB: ${{ matrix.database }}
-          DB_USER: ${{ matrix.database == 'pgsql' && 'postgres' || 'root' }}
-        run: nix-shell dev/shell.nix --run 'bash dev/scripts/github-ci.sh'
+          php-version: '8.3'
+          extensions: gd, intl, mysqli, pgsql, soap, zip
+          ini-values: max_input_vars=5000, memory_limit=512M, opcache.enable_cli=1, opcache.jit=disable
+          coverage: none
+      - name: Initialise moodle-plugin-ci
+        run: |
+          composer create-project -n --no-dev --prefer-dist moodlehq/moodle-plugin-ci ci '^4.5'
+          echo "$(cd ci/bin; pwd)" >> "$GITHUB_PATH"
+          echo "$(cd ci/vendor/bin; pwd)" >> "$GITHUB_PATH"
+          sudo locale-gen en_AU.UTF-8
+          echo "NVM_DIR=$HOME/.nvm" >> "$GITHUB_ENV"
+      - name: Install Moodle test environment
+        run: moodle-plugin-ci install --plugin ./plugin --db-host=127.0.0.1 --db-user="$DB_USER"
+      - name: PHP Lint
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci phplint
+      - name: Moodle Code Checker
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci phpcs --max-warnings 0
+      - name: Moodle PHPDoc Checker
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci phpdoc --max-warnings 0
+      - name: Validate plugin
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci validate
+      - name: Check upgrade savepoints
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci savepoints
+      - name: Mustache Lint
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci mustache
+      - name: JavaScript regression tests
+        if: ${{ !cancelled() }}
+        run: node --test plugin/dev/tests/entry_utils_test.cjs plugin/dev/tests/mobileapp_test.cjs
+      - name: Grunt
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci grunt --max-lint-warnings 0
+      - name: PHPUnit tests
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci phpunit --fail-on-warning
+      - name: Behat features
+        id: behat
+        if: ${{ !cancelled() }}
+        run: moodle-plugin-ci behat --profile chrome
       - name: Upload browser failure evidence
-        if: failure()
+        if: ${{ failure() && steps.behat.outcome == 'failure' }}
         uses: actions/upload-artifact@v7
         with:
           name: behat-${{ matrix.moodle }}-${{ matrix.database }}
-          path: ${{ runner.temp }}/accounting-ci/moodledata/behat_dump
+          path: ${{ github.workspace }}/moodledata/behat_dump
+          retention-days: 7
           if-no-files-found: ignore
+      - name: Mark cancelled jobs as failed
+        if: ${{ cancelled() }}
+        run: exit 1

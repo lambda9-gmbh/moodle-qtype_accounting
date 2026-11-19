@@ -125,7 +125,7 @@ function buildMobileView(container) {
     // Iterate visible entry rows and create cards.
     container.find(settings.selector).each(function() {
         let $row = $(this);
-        if ($row.css('display') === 'none') {
+        if ($row.hasClass('qtype_accounting-deleted-row')) {
             return; // Skip hidden rows.
         }
 
@@ -160,7 +160,6 @@ function buildMobileView(container) {
 
     // Activate mobile layout.
     container.addClass(ACTIVE_CLASS);
-    mobileView.show();
 }
 
 /**
@@ -281,11 +280,6 @@ function createProxyAccountField(label, cell) {
         .addClass('qtype_accounting-mobile-proxy')
         .attr('aria-label', label);
 
-    // Remove any Select2 artifacts from the clone.
-    proxySelect.removeClass('select2-hidden-accessible');
-    proxySelect.removeAttr('data-select2-id');
-    proxySelect.find('option').removeAttr('data-select2-id');
-
     // Set current value.
     proxySelect.val(realSelect.val());
 
@@ -345,7 +339,7 @@ function createProxyAmountField(label, cell, numberFormat) {
 function destroyMobileView(container) {
     container.removeClass(ACTIVE_CLASS);
     let mobileView = container.find('.qtype_accounting-mobile-view');
-    mobileView.empty().hide();
+    mobileView.empty();
 }
 
 /**

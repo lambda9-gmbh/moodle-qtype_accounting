@@ -71,7 +71,7 @@ function setupResponsiveWidth(container) {
     /** Recalculate and apply table width. */
     function updateWidth() {
         if (window.innerWidth <= 768) {
-            table.style.width = '';
+            table.style.removeProperty('--qtype-accounting-table-width');
             return;
         }
         let containerRect = containerEl.getBoundingClientRect();
@@ -87,7 +87,7 @@ function setupResponsiveWidth(container) {
 
         let availableWidth = rightEdge - containerRect.left - padding;
         if (availableWidth > 0) {
-            table.style.width = availableWidth + 'px';
+            table.style.setProperty('--qtype-accounting-table-width', availableWidth + 'px');
         }
     }
 
@@ -130,18 +130,6 @@ function init(containerId) {
     const templateId = container.data('templateid');
     const template = templateId ? document.getElementById(templateId) : null;
     const tbody = container.find('.qtype_accounting-entries')[0];
-
-    // Enable searchable dropdowns if Select2 is available (desktop only).
-    // On mobile, native selects provide better UX.
-    const isMobile = window.innerWidth <= 768;
-    if (typeof $.fn.select2 !== 'undefined' && !isMobile) {
-        container.find('.qtype_accounting-account-select').select2({
-            placeholder: M.util.get_string('selectaccount', 'qtype_accounting'),
-            allowClear: true,
-            width: '100%',
-            dropdownAutoWidth: true
-        });
-    }
 
     // Auto-copy amount from Debit to Credit for convenience (delegated for cloned rows).
     // Only copies when the row is a debit-only entry that just got its credit side added,
@@ -218,7 +206,7 @@ function init(containerId) {
                 let writeIndex = 0;
                 container.find(ROW_SELECTOR).each(function() {
                     let $row = $(this);
-                    let isHidden = $row.css('display') === 'none';
+                    let isHidden = $row.hasClass('qtype_accounting-deleted-row');
                     let isEmpty = EntryUtils.isRowEmpty(this);
 
                     if (isHidden || isEmpty) {
@@ -278,7 +266,7 @@ function init(containerId) {
  */
 function restoreEntryTypes(container) {
     container.find(ROW_SELECTOR).each(function() {
-        if ($(this).css('display') === 'none') {
+        if ($(this).hasClass('qtype_accounting-deleted-row')) {
             return; // Skip hidden rows.
         }
 
@@ -292,27 +280,6 @@ function restoreEntryTypes(container) {
     });
 
     EntryUtils.updatePerLabels(container, ROW_SELECTOR);
-}
-
-/**
- * Initialize Select2 on account selects within a row (desktop only).
- *
- * @param {jQuery} row The row jQuery element.
- */
-function initSelect2OnRow(row) {
-    const isMobile = window.innerWidth <= 768;
-    if (typeof $.fn.select2 !== 'undefined' && !isMobile) {
-        row.find('.qtype_accounting-account-select').each(function() {
-            if (!$(this).closest('td').hasClass('qtype_accounting-hidden-cell') && !$(this).data('select2')) {
-                $(this).select2({
-                    placeholder: M.util.get_string('selectaccount', 'qtype_accounting'),
-                    allowClear: true,
-                    width: '100%',
-                    dropdownAutoWidth: true
-                });
-            }
-        });
-    }
 }
 
 /**
@@ -338,14 +305,13 @@ function addEntry(container, template, tbody, nextIndex, entryType) {
         incompleteRow.setAttribute('data-entry-type', 'both');
         EntryUtils.applyEntryTypeVisibility(incompleteRow, 'both');
 
-        initSelect2OnRow($(incompleteRow));
         EntryUtils.updatePerLabels(container, ROW_SELECTOR);
         return nextIndex;
     }
 
     const maxRows = Number(container.data('maxrows'));
     const visibleRows = container.find(ROW_SELECTOR).filter(function() {
-        return $(this).css('display') !== 'none';
+        return !$(this).hasClass('qtype_accounting-deleted-row');
     }).length;
     if (maxRows && visibleRows >= maxRows) {
         return nextIndex;
@@ -358,7 +324,7 @@ function addEntry(container, template, tbody, nextIndex, entryType) {
     const clone = template.content.cloneNode(true);
     const occupied = new Set();
     container.find(ROW_SELECTOR).each(function() {
-        if ($(this).css('display') !== 'none') {
+        if (!$(this).hasClass('qtype_accounting-deleted-row')) {
             occupied.add(Number($(this).attr('data-entry')));
         }
     });
@@ -403,10 +369,6 @@ function addEntry(container, template, tbody, nextIndex, entryType) {
     // Append to tbody.
     tbody.appendChild(clone);
 
-    // Initialize Select2 on the new row's selects.
-    const $newRow = container.find(ROW_SELECTOR + '[data-entry="' + index + '"]');
-    initSelect2OnRow($newRow);
-
     updateDeleteButtons(container);
     EntryUtils.updatePerLabels(container, ROW_SELECTOR);
 
@@ -421,7 +383,7 @@ function addEntry(container, template, tbody, nextIndex, entryType) {
  */
 function deleteEntry(container, entryIndex) {
     const visibleRows = container.find(ROW_SELECTOR).filter(function() {
-        return $(this).css('display') !== 'none';
+        return !$(this).hasClass('qtype_accounting-deleted-row');
     });
 
     // Don't delete if only one entry remains.
@@ -435,24 +397,15 @@ function deleteEntry(container, entryIndex) {
         entryRow.find('select').val('');
         entryRow.find('input.qtype_accounting-amount-input').val('');
 
-        // Destroy Select2 if active.
-        if (typeof $.fn.select2 !== 'undefined') {
-            entryRow.find('.qtype_accounting-account-select').each(function() {
-                if ($(this).data('select2')) {
-                    $(this).select2('destroy');
-                }
-            });
-        }
-
         // Reset entry type to 'both' and remove hidden-cell classes.
         entryRow.attr('data-entry-type', 'both');
         entryRow.find('.' + EntryUtils.HIDDEN_CLASS).removeClass(EntryUtils.HIDDEN_CLASS);
 
         // Hide the row.
-        entryRow.css('display', 'none');
+        entryRow.addClass('qtype_accounting-deleted-row');
 
         // Also hide any associated explanation row.
-        entryRow.next('.qtype_accounting-explanation-row').css('display', 'none');
+        entryRow.next('.qtype_accounting-explanation-row').addClass('qtype_accounting-deleted-row');
 
         updateDeleteButtons(container);
         EntryUtils.updatePerLabels(container, ROW_SELECTOR);
@@ -503,15 +456,17 @@ function deleteEntrySide(container, entryIndex, side) {
  */
 function updateDeleteButtons(container) {
     const visibleRows = container.find(ROW_SELECTOR).filter(function() {
-        return $(this).css('display') !== 'none';
+        return !$(this).hasClass('qtype_accounting-deleted-row');
     });
 
     if (visibleRows.length <= 1) {
-        container.find('.qtype_accounting-delete-debit, .qtype_accounting-delete-credit').css('visibility', 'hidden');
+        container.find('.qtype_accounting-delete-debit, .qtype_accounting-delete-credit')
+            .addClass('qtype_accounting-delete-hidden');
     } else {
         container.find(ROW_SELECTOR).each(function() {
-            if ($(this).css('display') !== 'none') {
-                $(this).find('.qtype_accounting-delete-debit, .qtype_accounting-delete-credit').css('visibility', 'visible');
+            if (!$(this).hasClass('qtype_accounting-deleted-row')) {
+                $(this).find('.qtype_accounting-delete-debit, .qtype_accounting-delete-credit')
+                    .removeClass('qtype_accounting-delete-hidden');
             }
         });
     }
