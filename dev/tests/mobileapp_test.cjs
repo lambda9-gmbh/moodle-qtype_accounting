@@ -1,4 +1,4 @@
-// Run with Node in a Nix environment: node dev/tests/mobileapp_test.cjs
+// Run with ./dev/scripts/js-tests.sh basic (Node runs in the Moodle container).
 // These controller tests supply the DOM interface used by the app; they do not run Angular or Moodle.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

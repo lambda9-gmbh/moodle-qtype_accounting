@@ -25,7 +25,14 @@ namespace qtype_accounting;
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting\import_helper
+ * @covers     \qtype_accounting\chart_manager::import_chart_from_csv
+ * @covers     \qtype_accounting\account_manager::import_into_chart
+ * @covers     \qtype_accounting\chart_manager::export_to_csv
  */
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\import_helper::class)]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting\chart_manager::class, 'import_chart_from_csv')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting\account_manager::class, 'import_into_chart')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting\chart_manager::class, 'export_to_csv')]
 final class import_helper_test extends \advanced_testcase {
     /**
      * Build an ODS archive with the given content document.
@@ -60,8 +67,6 @@ final class import_helper_test extends \advanced_testcase {
     /**
      * An ODS upload can create a chart and append missing accounts to it.
      *
-     * @covers \qtype_accounting\chart_manager::import_chart_from_csv
-     * @covers \qtype_accounting\account_manager::import_into_chart
      */
     public function test_import_ods_chart_and_accounts(): void {
         $this->resetAfterTest();
@@ -83,7 +88,6 @@ final class import_helper_test extends \advanced_testcase {
     /**
      * Invalid ODS files report an import error without creating a chart.
      *
-     * @covers \qtype_accounting\chart_manager::import_chart_from_csv
      */
     public function test_invalid_ods_does_not_create_chart(): void {
         global $DB;
@@ -100,6 +104,7 @@ final class import_helper_test extends \advanced_testcase {
      * @param string $xml Content XML.
      * @dataProvider invalid_ods_provider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('invalid_ods_provider')]
     public function test_reject_invalid_ods_content(string $xml): void {
         $this->expectException(\moodle_exception::class);
         $this->expectExceptionMessage(get_string('odsinvalid', 'qtype_accounting'));
@@ -346,7 +351,6 @@ final class import_helper_test extends \advanced_testcase {
     /**
      * Test full import workflow with chart_manager.
      *
-     * @covers \qtype_accounting\chart_manager::import_chart_from_csv
      */
     public function test_chart_import_from_csv(): void {
         $this->resetAfterTest();
@@ -376,7 +380,6 @@ final class import_helper_test extends \advanced_testcase {
     /**
      * Test export to text format (one name per line).
      *
-     * @covers \qtype_accounting\chart_manager::export_to_csv
      */
     public function test_export_to_csv(): void {
         $this->resetAfterTest();

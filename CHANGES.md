@@ -17,6 +17,11 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - Charts of accounts can now be created directly in Moodle by entering a name, then adding accounts in the existing editor without uploading a CSV file.
 
 ### Fixed
+- Updated question-form and restore fixtures for Moodle 5.1 module question banks, preserving per-bank identity and account-mapping assertions. Tests use the current XML parser and PHPUnit attribute metadata while remaining compatible with Moodle 4.5/PHPUnit 9.
+- Local Grunt checks build a container-native snapshot to avoid Docker Desktop file-size races during backup. Behat question fixtures keep charts in the owning course when question categories live in a Moodle 5.1 question-bank module context.
+- Local source scanners now inspect a complete working-tree snapshot and share explicit development/dependency exclusions with GitHub. Both runners verify scanner scope before linting; scope regressions reproduce the previously hidden GitHub failures when the filter is removed.
+- Removed the host development shell; CI JavaScript tests now run in the Moodle container, optional DOM/runner tests have a Docker image, and the Android helper reuses existing host SDK tools.
+- Local CI now matches GitHub's checks and warning thresholds, includes the standalone JavaScript regressions, and fails explicitly when tools or Selenium are missing instead of installing dependencies or starting services.
 - Removed optional Select2 integration; account dropdowns use native controls throughout. Student row visibility and mobile switching now use stylesheet classes, with theme-aware colors and a CSS variable for calculated table width.
 - Moodle App amount fields now format saved values and amounts on blur using the question's German or US format. Moved feedback summaries use the app's orange feedback background, and empty feedback wrappers no longer leave an orange panel below the solution.
 - Moodle App correct answers now use stacked debit and credit cards, preserving formatted amounts and entry explanations and respecting quiz answer visibility.

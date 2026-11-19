@@ -35,6 +35,12 @@ require_once($CFG->dirroot . '/question/type/accounting/edit_accounting_form.php
  * @covers     \qtype_accounting\entry_validator
  * @covers     \qtype_accounting\entries_table_builder
  */
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'get_all_accounts_by_chart')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'add_chart_section')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'validate_available_accounts')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'definition_after_data')]
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\entry_validator::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\entries_table_builder::class)]
 final class edit_form_test extends \advanced_testcase {
     /**
      * Balance validation sums cents and detects a one-cent difference.
@@ -63,6 +69,7 @@ final class edit_form_test extends \advanced_testcase {
      * @param string|null $input Submitted count, or null for the current language's all label.
      * @param int|null $expected Expected stored count, or null for invalid input.
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('account_count_provider')]
     public function test_account_count_label(string $lang, int $savedcount, ?string $input, ?int $expected): void {
         global $DB, $PAGE;
         $this->resetAfterTest();
@@ -73,6 +80,7 @@ final class edit_form_test extends \advanced_testcase {
         $context = \context_course::instance($course->id);
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $category = $generator->create_question_category(['contextid' => $context->id]);
+        $questioncontext = \context::instance_by_id($category->contextid);
         $chartid = chart_manager::create_chart('Main', $context->id);
         $account = account_manager::add($chartid, 'Bank');
         $saved = $generator->create_question('accounting', null, [
@@ -82,14 +90,14 @@ final class edit_form_test extends \advanced_testcase {
             'debitamount' => [100], 'creditamount' => [100],
         ]);
         $question = \question_bank::load_question_data($saved->id);
-        $question->contextid = $context->id;
+        $question->contextid = $questioncontext->id;
         $question->beingcopied = false;
         $question->formoptions = (object)[
             'mustbeusable' => false, 'repeatelements' => true,
             'canedit' => true, 'canmove' => false, 'cansaveasnew' => false,
         ];
         $url = new \moodle_url('/question/bank/editquestion/question.php');
-        $contexts = new \core_question\local\bank\question_edit_contexts($context);
+        $contexts = new \core_question\local\bank\question_edit_contexts($questioncontext);
         $form = new \qtype_accounting_edit_form($url, $question, $category, $contexts);
         $form->set_data(clone $question);
         $dom = new \DOMDocument();
@@ -105,7 +113,7 @@ final class edit_form_test extends \advanced_testcase {
         );
 
         \qtype_accounting_edit_form::mock_submit([
-            'category' => $category->id . ',' . $context->id,
+            'category' => $category->id . ',' . $questioncontext->id,
             'name' => 'Account count',
             'questiontext' => ['text' => 'Record the transaction.', 'format' => FORMAT_HTML],
             'defaultmark' => 1, 'penalty' => 0.3333333,
@@ -164,6 +172,7 @@ final class edit_form_test extends \advanced_testcase {
      * @dataProvider chart_state_provider
      * @param string $state Whether the question has no chart, an existing chart, or a deleted chart.
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('chart_state_provider')]
     public function test_opening_question_with_deleted_chart(string $state): void {
         global $PAGE, $USER;
         $this->resetAfterTest();
@@ -173,9 +182,10 @@ final class edit_form_test extends \advanced_testcase {
         $context = \context_course::instance($course->id);
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $category = $generator->create_question_category(['contextid' => $context->id]);
+        $questioncontext = \context::instance_by_id($category->contextid);
         $question = (object)[
             'qtype' => 'accounting',
-            'contextid' => $context->id,
+            'contextid' => $questioncontext->id,
             'createdby' => $USER->id,
             'category' => $category->id,
             'questiontext' => '',
@@ -204,7 +214,7 @@ final class edit_form_test extends \advanced_testcase {
             new \moodle_url('/question/bank/editquestion/question.php'),
             $question,
             $category,
-            new \core_question\local\bank\question_edit_contexts($context)
+            new \core_question\local\bank\question_edit_contexts($questioncontext)
         );
         $html = $form->render();
         $message = get_string('err_chartdeleted', 'qtype_accounting');
@@ -234,6 +244,7 @@ final class edit_form_test extends \advanced_testcase {
      * @param int $remainingindex Index of the row retained in the editor.
      * @param bool $javascript Submit canonical or no-JavaScript display fields.
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('deleted_row_provider')]
     public function test_deleted_saved_row_stays_deleted(int $remainingindex, bool $javascript): void {
         global $DB, $PAGE;
         $this->resetAfterTest();
@@ -243,6 +254,7 @@ final class edit_form_test extends \advanced_testcase {
         $context = \context_course::instance($course->id);
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $category = $generator->create_question_category(['contextid' => $context->id]);
+        $questioncontext = \context::instance_by_id($category->contextid);
         $chartid = chart_manager::create_chart('Main', $context->id);
         $bank = account_manager::add($chartid, 'Bank');
         $cash = account_manager::add($chartid, 'Cash');
@@ -253,7 +265,7 @@ final class edit_form_test extends \advanced_testcase {
             'debitamount' => [100, 200], 'creditamount' => [100, 200],
         ]);
         $question = \question_bank::load_question_data($saved->id);
-        $question->contextid = $context->id;
+        $question->contextid = $questioncontext->id;
         $question->beingcopied = false;
         $question->formoptions = (object)[
             'mustbeusable' => false, 'repeatelements' => true,
@@ -261,7 +273,7 @@ final class edit_form_test extends \advanced_testcase {
         ];
         $amount = $remainingindex === 0 ? 100 : 200;
         $submission = [
-            'category' => $category->id . ',' . $context->id,
+            'category' => $category->id . ',' . $questioncontext->id,
             'name' => 'Deleted row',
             'questiontext' => ['text' => 'Record the transaction.', 'format' => FORMAT_HTML],
             'defaultmark' => 1, 'penalty' => 0.3333333,
@@ -278,7 +290,7 @@ final class edit_form_test extends \advanced_testcase {
             new \moodle_url('/question/bank/editquestion/question.php'),
             $question,
             $category,
-            new \core_question\local\bank\question_edit_contexts($context)
+            new \core_question\local\bank\question_edit_contexts($questioncontext)
         );
         // The real editor supplies saved defaults after constructing the submitted form.
         $form->set_data(clone $question);
@@ -361,6 +373,7 @@ final class edit_form_test extends \advanced_testcase {
      * @param bool $existing Whether the form starts with saved options and entries.
      * @param bool $javascript Whether canonical fields or ordinary display controls are submitted.
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('failed_submission_provider')]
     public function test_failed_submission_preserves_custom_controls(
         string $format,
         bool $existing,
@@ -374,11 +387,12 @@ final class edit_form_test extends \advanced_testcase {
         $context = \context_course::instance($course->id);
         $category = $this->getDataGenerator()->get_plugin_generator('core_question')
             ->create_question_category(['contextid' => $context->id]);
+        $questioncontext = \context::instance_by_id($category->contextid);
         $chartid = chart_manager::create_chart('Main', $context->id);
         $bank = account_manager::add($chartid, 'Bank');
         $cash = account_manager::add($chartid, 'Cash');
         $submitted = [
-            'category' => $category->id . ',' . $context->id,
+            'category' => $category->id . ',' . $questioncontext->id,
             'name' => 'Missing amounts',
             'accountsindropdown' => $existing ? '0' : '',
             'questiontext' => ['text' => 'Record the transaction.', 'format' => FORMAT_HTML],
@@ -408,7 +422,7 @@ final class edit_form_test extends \advanced_testcase {
         \qtype_accounting_edit_form::mock_submit($submitted);
         $question = (object)[
             'qtype' => 'accounting',
-            'contextid' => $context->id,
+            'contextid' => $questioncontext->id,
             'createdby' => $USER->id,
             'category' => $category->id,
             'questiontext' => '',
@@ -433,7 +447,7 @@ final class edit_form_test extends \advanced_testcase {
             new \moodle_url('/question/bank/editquestion/question.php'),
             $question,
             $category,
-            new \core_question\local\bank\question_edit_contexts($context)
+            new \core_question\local\bank\question_edit_contexts($questioncontext)
         );
         $this->assertFalse($form->is_validated());
         $submitteddata = $form->get_submitted_data();

@@ -1,25 +1,27 @@
 #!/bin/bash
 # Unified CI for the qtype_accounting plugin.
 #
-# Runs PHPUnit + Behat first, then all moodle-plugin-ci checks.
+# Runs the GitHub Actions checks against the current working tree, then PHPUnit + Behat.
 # Fail-fast: the first failing step aborts the script with a non-zero exit
 # code and "FAILED at step: <step-name>".
 #
 # Usage:
-#   ./ci.sh                       # Full CI: tests + all checks
+#   ./ci.sh                       # GitHub-equivalent checks + PHPUnit + Behat
 #   ./ci.sh test                  # Tests only (delegates to test.sh)
 #   ./ci.sh test phpunit          # PHPUnit only
 #   ./ci.sh test behat            # Behat only
-#   ./ci.sh checks                # Lint/static-analysis set only (no tests)
+#   ./ci.sh checks                # Static checks + standalone JavaScript regressions
+#   ./ci.sh js                    # Standalone JavaScript regressions only
+#   ./ci.sh scope                 # Verify and fingerprint scanner input files
 #   ./ci.sh codecheck             # phpcs via .phpcs.xml.dist (moodle + moodle-extra)
 #   ./ci.sh codecheck fix         # phpcbf auto-fix, then re-run phpcs
 #   ./ci.sh codecheck summary     # phpcs summary report
 #   ./ci.sh codecheck <path>      # phpcs on a specific path inside the plugin
 #   ./ci.sh phpcs                 # Individual moodle-plugin-ci check (also: phpmd, phpdoc, ...)
-#   ./ci.sh all                   # Default check set + phpcpd
+#   ./ci.sh all                   # Check set + optional phpmd and phpcpd
 #   ./ci.sh help                  # This message
 
-set -u
+set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -27,6 +29,7 @@ PLUGIN_ROOT="$(dirname "$PROJECT_DIR")"
 
 CONTAINER="accounting-moodle"
 PLUGIN_PATH="/var/www/html/question/type/accounting"
+LIVE_PLUGIN_PATH="${PLUGIN_PATH}"
 MOODLE_DIR="/var/www/html"
 MPCI="/opt/moodle-plugin-ci/bin/moodle-plugin-ci"
 PHPMD_BIN="/opt/moodle-plugin-ci/vendor/bin/phpmd"
@@ -35,7 +38,7 @@ PHPCBF="/opt/moodle-cs/vendor/bin/phpcbf"
 # Paths excluded from phpmd because the rules don't apply:
 #   - PHPUnit test classes (one public method per test case)
 #   - Moodle's upgrade entry point (Moodle API requires the long-function pattern)
-PHPMD_EXCLUDES="*/tests/*,*/db/upgrade.php"
+PHPMD_EXCLUDES="*/tests/*,*/db/upgrade.php,*/dev/*"
 
 die() {
     echo ""
@@ -55,114 +58,91 @@ section() {
 # Skip the container check and bootstrap when the user just asked for help.
 case "${1:-}" in
     -h|--help|help)
-        sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
+        sed -n '2,/^set -/p' "$0" | sed '$d; s/^# \{0,1\}//'
         exit 0
         ;;
 esac
 
 if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER}$"; then
     echo "Error: container '${CONTAINER}' is not running."
-    echo "Start it with: cd ${PROJECT_DIR}/docker && docker compose up -d"
+    echo "Start the development environment explicitly before running CI."
     exit 1
 fi
 
-# Ensure all CI tooling is installed inside the container. Idempotent — only
-# downloads anything when a piece is missing. Survives container rebuilds.
+# Check existing tooling without installing dependencies or changing the site.
 ensure_tooling() {
-    local need_apt=0 need_composer=0 need_node=0
-    local need_moodlecs=0 need_mpci=0 need_npm=0 need_moodlecheck=0
-
-    docker exec "${CONTAINER}" test -x /usr/local/bin/composer || need_composer=1
-    docker exec "${CONTAINER}" test -x /usr/bin/node || need_node=1
-    docker exec "${CONTAINER}" test -f /opt/moodle-cs/vendor/bin/phpcs || need_moodlecs=1
-    docker exec "${CONTAINER}" test -f /opt/moodle-plugin-ci/bin/moodle-plugin-ci || need_mpci=1
-    docker exec "${CONTAINER}" test -d /var/www/html/node_modules || need_npm=1
-    docker exec "${CONTAINER}" test -f /var/www/html/local/moodlecheck/version.php || need_moodlecheck=1
-
-    if [ ${need_composer} -eq 1 ] || [ ${need_node} -eq 1 ]; then
-        need_apt=1
-    fi
-
-    if [ ${need_apt} -eq 0 ] && [ ${need_moodlecs} -eq 0 ] && [ ${need_mpci} -eq 0 ] \
-        && [ ${need_npm} -eq 0 ] && [ ${need_moodlecheck} -eq 0 ]; then
-        return 0
-    fi
-
-    section "Bootstrapping CI tooling inside ${CONTAINER}"
-
-    if [ ${need_apt} -eq 1 ]; then
-        echo "Installing system packages (curl, unzip)..."
-        docker exec "${CONTAINER}" bash -c "apt-get update -qq && apt-get install -y -qq curl unzip" >/dev/null
-    fi
-
-    if [ ${need_composer} -eq 1 ]; then
-        echo "Installing composer..."
-        docker exec "${CONTAINER}" bash -c \
-            "curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer --quiet"
-    fi
-
-    if [ ${need_node} -eq 1 ]; then
-        echo "Installing Node.js 22..."
-        docker exec "${CONTAINER}" bash -c \
-            "curl -fsSL https://deb.nodesource.com/setup_22.x | bash - >/dev/null && apt-get install -y -qq nodejs >/dev/null"
-    fi
-
-    if [ ${need_moodlecs} -eq 1 ]; then
-        echo "Installing moodle-cs at /opt/moodle-cs..."
-        docker exec "${CONTAINER}" bash -c "mkdir -p /opt/moodle-cs && cat > /opt/moodle-cs/composer.json <<'EOF'
-{
-    \"require-dev\": {\"moodlehq/moodle-cs\": \"^3.7\"},
-    \"config\": {\"allow-plugins\": {\"dealerdirect/phpcodesniffer-composer-installer\": true}}
-}
-EOF
-cd /opt/moodle-cs && composer install --no-interaction --no-progress --quiet"
-    fi
-
-    if [ ${need_mpci} -eq 1 ]; then
-        echo "Installing moodle-plugin-ci at /opt/moodle-plugin-ci..."
-        docker exec "${CONTAINER}" bash -c \
-            "composer create-project moodlehq/moodle-plugin-ci /opt/moodle-plugin-ci ^4 --no-interaction --no-progress --quiet || true"
-    fi
-
-    if [ ${need_npm} -eq 1 ]; then
-        echo "Running 'npm install' in /var/www/html (needed for grunt)..."
-        docker exec -w "${MOODLE_DIR}" "${CONTAINER}" npm install --no-audit --no-fund --silent
-    fi
-
-    if [ ${need_moodlecheck} -eq 1 ]; then
-        echo "Installing local_moodlecheck plugin into Moodle..."
-        docker exec "${CONTAINER}" bash -c \
-            "cp -r /opt/moodle-plugin-ci/vendor/moodlehq/moodle-local_moodlecheck /var/www/html/local/moodlecheck \
-                && chown -R www-data:www-data /var/www/html/local/moodlecheck \
-                && php /var/www/html/admin/cli/purge_caches.php \
-                && php /var/www/html/admin/cli/upgrade.php --non-interactive >/dev/null"
-    fi
-
-    echo "Tooling ready."
-}
-
-# Run bootstrap before any subcommand needs it. Cheap when nothing is missing.
-ensure_tooling
-
-# Copy static text files (README.md, CHANGES.md, LICENSE) from the host into the
-# container's plugin dir. We deliberately do NOT bind-mount these as single
-# files: macOS Docker Desktop occasionally returns a stale filesize() for
-# single-file bind mounts immediately after a host write, which trips Symfony
-# Filesystem::copy() inside moodle-plugin-ci's grunt backup step. Copying via
-# `docker cp` puts a fresh inode on the container's writable layer where the
-# cache race can't happen. Re-run on every ci.sh invocation so edits flow.
-sync_static_files() {
-    for f in README.md CHANGES.md LICENSE; do
-        if [ -f "${PLUGIN_ROOT}/${f}" ]; then
-            docker cp "${PLUGIN_ROOT}/${f}" "${CONTAINER}:${PLUGIN_PATH}/${f}" >/dev/null
+    local tool
+    for tool in "${MPCI}" "${PHPCS}" "${PHPMD_BIN}"; do
+        if ! docker exec "${CONTAINER}" test -x "${tool}"; then
+            echo "Missing CI tool: ${tool}. Provision it in the development environment before running CI." >&2
+            return 1
         fi
     done
+    if ! docker exec "${CONTAINER}" test -d "${MOODLE_DIR}/node_modules"; then
+        echo "Moodle's Grunt dependencies are missing. Provision the development environment before running CI." >&2
+        return 1
+    fi
+    if ! docker exec "${CONTAINER}" test -f "${MOODLE_DIR}/local/moodlecheck/version.php"; then
+        echo "The local_moodlecheck plugin is missing. Provision the development environment before running CI." >&2
+        return 1
+    fi
 }
-sync_static_files
+ensure_tooling || die "prerequisites"
+
+# Scan a complete copy of tracked and untracked working files, including dev/.
+# Gitignored files and deleted paths are omitted; export-ignore is deliberately
+# not used, since GitHub checks repository sources rather than release archives.
+snapshot_root=$(docker exec "${CONTAINER}" mktemp -d /tmp/accounting-ci.XXXXXX) || die "create source snapshot"
+trap 'docker exec "$CONTAINER" rm -rf -- "$snapshot_root" >/dev/null' EXIT
+PLUGIN_PATH="${snapshot_root}/plugin"
+sync_working_tree() {
+    docker exec "${CONTAINER}" mkdir -p "${PLUGIN_PATH}" || return
+    (
+        cd "${PLUGIN_ROOT}" || exit 1
+        git ls-files --cached --others --exclude-standard -z |
+            while IFS= read -r -d '' file; do
+                if [ -f "${file}" ]; then
+                    printf '%s\0' "${file}"
+                fi
+            done |
+            tar --null -T - -cf -
+    ) | docker exec -i "${CONTAINER}" tar -xf - -C "${PLUGIN_PATH}"
+}
+sync_working_tree || die "sync working files"
+
+run_scope_check() {
+    docker exec "${CONTAINER}" php "${PLUGIN_PATH}/dev/scripts/ci-files.php" \
+        --autoload=/opt/moodle-plugin-ci/vendor/autoload.php --plugin="${PLUGIN_PATH}" --format=verify
+}
 
 # Run a moodle-plugin-ci subcommand inside the container.
 run() {
-    docker exec -w "${MOODLE_DIR}" "${CONTAINER}" bash -c "MOODLE_DIR=${MOODLE_DIR} ${MPCI} $*"
+    docker exec -w "${MOODLE_DIR}" "${CONTAINER}" env "MOODLE_DIR=${MOODLE_DIR}" "${MPCI}" "$@"
+}
+
+# Grunt's backup/restore must not traverse Docker Desktop bind mounts: stale
+# filesize() metadata there can make Symfony reject a correctly copied file.
+# Reuse Moodle's installed build tools around a container-native plugin copy.
+run_grunt() {
+    local buildroot="${snapshot_root}/grunt-moodle"
+    docker exec -i "${CONTAINER}" bash -s -- "${MOODLE_DIR}" "${PLUGIN_PATH}" "${buildroot}" <<'GRUNT_WORKSPACE' || return
+set -euo pipefail
+moodle_dir=$1
+source_dir=$2
+build_dir=$3
+mkdir -p "$build_dir/question/type/accounting"
+for directory in node_modules .grunt lib; do
+    ln -s "$moodle_dir/$directory" "$build_dir/$directory"
+done
+for file in Gruntfile.js package.json package-lock.json version.php .eslintrc .eslintignore \
+    .stylelintrc .stylelintignore .gherkin-lintrc .jshintrc .jshintignore .shifter.json; do
+    if [ -f "$moodle_dir/$file" ]; then
+        ln -s "$moodle_dir/$file" "$build_dir/$file"
+    fi
+done
+cp -a "$source_dir/." "$build_dir/question/type/accounting/"
+GRUNT_WORKSPACE
+    run grunt --max-lint-warnings 0 --moodle="${buildroot}" "${buildroot}/question/type/accounting" "$@"
 }
 
 # Call phpmd directly so we can pass --exclude (moodle-plugin-ci's phpmd
@@ -176,18 +156,25 @@ run_phpmd() {
 # The checker needs an up-to-date component registry to load its renderer.
 # Call it directly: moodle-plugin-ci parses its output but loses fatal exit codes.
 run_phpdoc() {
-    local output status
+    local output status files
     echo " RUN  Moodle PHPDoc Checker on qtype_accounting"
     docker exec -w "${MOODLE_DIR}" "${CONTAINER}" php admin/cli/purge_caches.php || return
+    files=$(docker exec "${CONTAINER}" php "${PLUGIN_PATH}/dev/scripts/ci-files.php" \
+        --autoload=/opt/moodle-plugin-ci/vendor/autoload.php --plugin="${PLUGIN_PATH}" \
+        --context=phpdoc --format=csv) || return
+    if [ -z "${files}" ]; then
+        echo "PHPDoc file selection is empty." >&2
+        return 1
+    fi
     output=$(docker exec -w "${MOODLE_DIR}" "${CONTAINER}" \
-        php local/moodlecheck/cli/moodlecheck.php "-p=${PLUGIN_PATH}" -f=text "$@" 2>&1)
+        php local/moodlecheck/cli/moodlecheck.php "-p=${files}" -f=text "$@" 2>&1)
     status=$?
     printf '%s\n' "${output}"
     if [ "${status}" -ne 0 ]; then
         return "${status}"
     fi
-    # Match moodle-plugin-ci's default: fail on errors, allow documentation warnings.
-    if printf '%s\n' "${output}" | grep -E '^[[:space:]]+Line' | grep -qv '(warning)$'; then
+    # Match GitHub's --max-warnings 0, while also propagating checker crashes.
+    if printf '%s\n' "${output}" | grep -E '^[[:space:]]+Line' >/dev/null; then
         return 1
     fi
 }
@@ -195,37 +182,42 @@ run_phpdoc() {
 # Stricter phpcs run using .phpcs.xml.dist (moodle + moodle-extra,
 # amd/build/ excluded). Used by the `codecheck` subcommand.
 run_phpcs_direct() {
-    docker exec "${CONTAINER}" bash -c "cd ${PLUGIN_PATH} && ${PHPCS} --extensions=php,js --no-colors $*"
+    docker exec -w "${LIVE_PLUGIN_PATH}" "${CONTAINER}" "${PHPCS}" --extensions=php,js --no-colors "$@"
 }
 run_phpcbf_direct() {
-    docker exec "${CONTAINER}" bash -c "cd ${PLUGIN_PATH} && ${PHPCBF} --extensions=php,js --no-colors $*"
+    docker exec -w "${LIVE_PLUGIN_PATH}" "${CONTAINER}" "${PHPCBF}" --extensions=php,js --no-colors "$@"
 }
 
-# Run the lint/static-analysis suite. Fail-fast: aborts on first failure.
+# These dependency-free tests also run in GitHub Actions. Use the existing
+# container's Node installation and copy the current test files into it.
+run_js_tests() {
+    "${SCRIPT_DIR}/js-tests.sh" basic
+}
+
+# Same order and warning thresholds as .github/workflows/moodle-ci.yml.
 run_checks() {
-    for cmd in phpcs phpmd phpdoc validate savepoints mustache phplint grunt; do
-        section "Running: moodle-plugin-ci ${cmd}"
-        if [ "${cmd}" = "phpmd" ]; then
-            run_phpmd || die "${cmd}"
-        elif [ "${cmd}" = "phpdoc" ]; then
-            run_phpdoc || die "${cmd}"
-        else
-            run "${cmd} ${PLUGIN_PATH}" || die "${cmd}"
-        fi
+    local cmd
+    section "Verifying scanner scope"
+    run_scope_check || die "scanner scope"
+    for cmd in phplint phpcs phpdoc validate savepoints mustache; do
+        section "Running: ${cmd}"
+        case "${cmd}" in
+            phpcs) run phpcs --max-warnings 0 "${PLUGIN_PATH}" || die "${cmd}" ;;
+            phpdoc) run_phpdoc || die "${cmd}" ;;
+            *) run "${cmd}" "${PLUGIN_PATH}" || die "${cmd}" ;;
+        esac
     done
+    section "Running: JavaScript regression tests"
+    run_js_tests || die "JavaScript regression tests"
+    section "Running: Grunt"
+    run_grunt || die "grunt"
 }
 
-# Full CI: tests + checks. Fail-fast.
 run_full_ci() {
+    run_checks
     section "Running: tests (PHPUnit + Behat)"
     "${SCRIPT_DIR}/test.sh" all || die "test"
-
-    run_checks
-
-    echo ""
-    echo "============================================================"
     echo "All CI steps passed."
-    echo "============================================================"
 }
 
 case "${1:-default}" in
@@ -239,6 +231,14 @@ case "${1:-default}" in
         echo "All CI steps passed."
         echo "============================================================"
         ;;
+    js)
+        run_js_tests || die "JavaScript regression tests"
+        ;;
+    scope)
+        run_scope_check || die "scanner scope"
+        docker exec "${CONTAINER}" php "${PLUGIN_PATH}/dev/tests/ci_scope_test.php" \
+            --autoload=/opt/moodle-plugin-ci/vendor/autoload.php --command="${MPCI}" --plugin="${PLUGIN_PATH}"
+        ;;
     test)
         shift
         "${SCRIPT_DIR}/test.sh" "${@:-all}" || die "test"
@@ -248,31 +248,33 @@ case "${1:-default}" in
         case "${1:-}" in
             ""|all)
                 echo "Running phpcs (moodle + moodle-extra) on the plugin..."
-                run_phpcs_direct "--report=full ."
+                run_phpcs_direct --report=full .
                 ;;
             summary)
-                run_phpcs_direct "--report=summary ."
+                run_phpcs_direct --report=summary .
                 ;;
             fix)
                 echo "Auto-fixing with phpcbf..."
-                run_phpcbf_direct "." || true
+                run_phpcbf_direct . || true
                 echo ""
                 echo "Re-running phpcs to show what is left..."
-                run_phpcs_direct "--report=full ."
+                run_phpcs_direct --report=full .
                 ;;
             --)
                 shift
-                run_phpcs_direct "$*"
+                run_phpcs_direct "$@"
                 ;;
             *)
-                run_phpcs_direct "--report=full $(printf %q "$1")"
+                run_phpcs_direct --report=full "$@"
                 ;;
         esac
         ;;
     all)
         run_checks
+        section "Running: optional PHP Mess Detector"
+        run_phpmd || die "phpmd"
         section "Running: moodle-plugin-ci phpcpd"
-        run "phpcpd ${PLUGIN_PATH}" || die "phpcpd"
+        run phpcpd "${PLUGIN_PATH}" || die "phpcpd"
         echo ""
         echo "============================================================"
         echo "All CI steps passed."
@@ -285,12 +287,24 @@ case "${1:-default}" in
         shift
         run_phpdoc "$@"
         ;;
-    phpcs|phpcbf|phpcpd|phplint|validate|savepoints|mustache|grunt|parallel|install|behat|phpunit)
+    phpcs|grunt)
         cmd="$1"
         shift
-        run "${cmd} ${PLUGIN_PATH} $*"
+        if [ "${cmd}" = "phpcs" ]; then
+            run phpcs --max-warnings 0 "${PLUGIN_PATH}" "$@"
+        else
+            run_grunt "$@"
+        fi
+        ;;
+    phpunit|behat)
+        "${SCRIPT_DIR}/test.sh" "$@"
+        ;;
+    phpcbf|phpcpd|phplint|validate|savepoints|mustache|parallel|install)
+        cmd="$1"
+        shift
+        run "${cmd}" "${PLUGIN_PATH}" "$@"
         ;;
     *)
-        run "$*"
+        run "$@"
         ;;
 esac

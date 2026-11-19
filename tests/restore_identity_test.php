@@ -31,6 +31,7 @@ require_once($CFG->dirroot . '/mod/quiz/locallib.php');
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \restore_qtype_accounting_plugin
  */
+#[\PHPUnit\Framework\Attributes\CoversClass(\restore_qtype_accounting_plugin::class)]
 final class restore_identity_test extends \core_backup_backup_restore_base_testcase {
     /**
      * Repeated quiz duplication must reuse the existing question bank entries and versions.
@@ -64,7 +65,10 @@ final class restore_identity_test extends \core_backup_backup_restore_base_testc
     }
 
     /**
-     * A second restore must reuse questions even when chart and account IDs changed on the first restore.
+     * Repeated restore must not duplicate questions within an existing question bank.
+     *
+     * Moodle 5.1 restores another bank module on each course import, so check
+     * identity reuse within each bank and parity with the core control question.
      */
     public function test_repeated_course_restore_reuses_questions(): void {
         global $DB;
@@ -73,33 +77,52 @@ final class restore_identity_test extends \core_backup_backup_restore_base_testc
         $sourcechartid = $DB->get_field('qtype_accounting_options', 'chartofaccountsid', ['questionid' => $accounting->id]);
         $target = $this->getDataGenerator()->create_course();
         $targetcontext = \context_course::instance($target->id);
-        $firstentries = null;
+        $childcontext = $DB->sql_like('ctx.path', ':contextpath');
+        $contextparams = ['context' => $targetcontext->id, 'contextpath' => $targetcontext->path . '/%'];
+        $previousbanks = [];
 
         for ($i = 0; $i < 2; $i++) {
             get_file_storage()->delete_area_files($sourcecontext->id, 'backup', 'course');
             $this->perform_restore($this->perform_backup($source), $target);
             $entries = $DB->get_records_sql(
-                'SELECT b.id FROM {question_bank_entries} b
+                "SELECT DISTINCT b.id, c.contextid, q.qtype FROM {question_bank_entries} b
                    JOIN {question_categories} c ON c.id = b.questioncategoryid
-                  WHERE c.contextid = ? ORDER BY b.id',
-                [$targetcontext->id]
+                   JOIN {question_versions} v ON v.questionbankentryid = b.id
+                   JOIN {question} q ON q.id = v.questionid
+                   JOIN {context} ctx ON ctx.id = c.contextid
+                  WHERE (ctx.id = :context OR {$childcontext}) ORDER BY b.id",
+                $contextparams
             );
-            $this->assertCount(2, $entries);
-            if ($firstentries !== null) {
-                $this->assertEquals($firstentries, array_keys($entries));
+            $banks = [];
+            foreach ($entries as $entry) {
+                $banks[$entry->contextid][$entry->id] = $entry->qtype;
             }
-            $firstentries = array_keys($entries);
+            $this->assertNotEmpty($banks);
+            foreach ($banks as $contextid => $bankentries) {
+                $types = array_values($bankentries);
+                sort($types);
+                $this->assertSame(['accounting', 'truefalse'], $types);
+                if (isset($previousbanks[$contextid])) {
+                    $this->assertEquals($previousbanks[$contextid], $bankentries);
+                }
+            }
+            foreach (array_keys($previousbanks) as $contextid) {
+                $this->assertArrayHasKey($contextid, $banks);
+            }
+            $previousbanks = $banks;
         }
 
         $options = $DB->get_records_sql(
-            'SELECT o.* FROM {qtype_accounting_options} o
+            "SELECT o.* FROM {qtype_accounting_options} o
                JOIN {question_versions} v ON v.questionid = o.questionid
                JOIN {question_bank_entries} b ON b.id = v.questionbankentryid
                JOIN {question_categories} c ON c.id = b.questioncategoryid
-              WHERE c.contextid = ?',
-            [$targetcontext->id]
+               JOIN {context} ctx ON ctx.id = c.contextid
+              WHERE (ctx.id = :context OR {$childcontext})",
+            $contextparams
         );
-        $this->assertCount(2, $options);
+        // The source fixture has two versions of its accounting question.
+        $this->assertCount(2 * count($previousbanks), $options);
         foreach ($options as $option) {
             $this->assertNotEquals($sourcechartid, $option->chartofaccountsid);
             $question = \question_bank::load_question($option->questionid);

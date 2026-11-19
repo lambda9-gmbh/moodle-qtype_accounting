@@ -34,6 +34,7 @@ require_once($CFG->dirroot . '/question/type/accounting/question.php');
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting_question
  */
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting_question::class)]
 final class question_test extends \advanced_testcase {
     /**
      * Hint files follow interactive hint progression and feedback visibility.

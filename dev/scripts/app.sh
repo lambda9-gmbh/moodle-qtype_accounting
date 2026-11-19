@@ -5,6 +5,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEV_DIR="$(dirname "$SCRIPT_DIR")"
 ACTION="${1:-start}"
 
+# The emulator must run on the host. Reuse its existing SDK and Python rather
+# than provisioning a second toolchain.
+ANDROID_SDK="${ACCOUNTING_ANDROID_SDK:-$HOME/Library/Android/sdk}"
+export PATH="$ANDROID_SDK/platform-tools:$PATH"
+for tool in python3 adb curl; do
+    if ! command -v "$tool" >/dev/null; then
+        echo "Missing $tool. The Android helper requires existing Python, curl, and SDK platform-tools." >&2
+        exit 1
+    fi
+done
+
 if [[ "$ACTION" == start ]]; then
     COMPOSE=(docker compose -f "$DEV_DIR/docker-compose.yml")
     case "${ACCOUNTING_APP_DB:-pgsql}" in
@@ -21,5 +32,4 @@ elif [[ "$ACTION" == refresh ]]; then
     docker compose -f "$DEV_DIR/docker-compose.yml" exec -T moodle php admin/cli/purge_caches.php
 fi
 
-exec nix shell nixpkgs#android-tools nixpkgs#python3 nixpkgs#curl --command \
-    python3 "$DEV_DIR/mobile/native.py" "$ACTION"
+exec python3 "$DEV_DIR/mobile/native.py" "$ACTION"

@@ -30,6 +30,7 @@ require_once($CFG->dirroot . '/question/format/xml/format.php');
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting
  */
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting::class)]
 final class questiontype_test extends \advanced_testcase {
     /**
      * XML export and import retain hint ordering, formats, options and embedded files.
@@ -68,7 +69,10 @@ final class questiontype_test extends \advanced_testcase {
 
         $format = new \qformat_xml();
         $format->setCourse($course);
-        $xml = xmlize($format->writequestion($source));
+        $xmlsource = $format->writequestion($source);
+        $xml = class_exists(\core\xml_parser::class)
+            ? (new \core\xml_parser())->parse($xmlsource)
+            : xmlize($xmlsource);
         $imported = $this->qtype->import_from_xml($xml['question'], new \stdClass(), $format);
         $this->assertCount(3, $imported->hint);
         $this->assertSame($text, $imported->hint[0]['text']);

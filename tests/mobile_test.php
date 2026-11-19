@@ -24,6 +24,7 @@ namespace qtype_accounting;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting\output\mobile
  */
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\output\mobile::class)]
 final class mobile_test extends \advanced_testcase {
     /**
      * Angular expressions must survive server-side Mustache rendering.

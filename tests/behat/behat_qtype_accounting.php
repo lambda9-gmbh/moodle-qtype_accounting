@@ -47,10 +47,14 @@ class behat_qtype_accounting extends behat_base {
         $generator = testing_util::get_data_generator()->get_plugin_generator('core_question');
         foreach ($table->getHash() as $data) {
             $category = $DB->get_record('question_categories', ['name' => $data['questioncategory']], '*', MUST_EXIST);
-            $chart = \qtype_accounting\chart_manager::get_chart_by_name('Accounting test chart', $category->contextid);
+            // Moodle 5.1 course question banks use module contexts. Charts belong
+            // to the owning course, just as they do when created in the editor.
+            $categorycontext = \context::instance_by_id($category->contextid);
+            $chartcontext = $categorycontext->get_course_context(false) ?: $categorycontext;
+            $chart = \qtype_accounting\chart_manager::get_chart_by_name('Accounting test chart', $chartcontext->id);
             $chartid = $chart ? $chart->id : \qtype_accounting\chart_manager::create_chart(
                 'Accounting test chart',
-                $category->contextid
+                $chartcontext->id
             );
             $names = ['1200', '8400', '9998', '9999', $data['debitaccount'] ?? '1200', $data['creditaccount'] ?? '8400'];
             foreach (array_unique($names) as $name) {

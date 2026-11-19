@@ -30,6 +30,8 @@ require_once($CFG->dirroot . '/backup/tests/backup_restore_base_testcase.php');
  * @covers     \backup_qtype_accounting_plugin
  * @covers     \restore_qtype_accounting_plugin
  */
+#[\PHPUnit\Framework\Attributes\CoversClass(\backup_qtype_accounting_plugin::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\restore_qtype_accounting_plugin::class)]
 final class backup_test extends \core_backup_backup_restore_base_testcase {
     /**
      * Same-name charts with different contents must remain distinct, even for subset accounts.
@@ -149,14 +151,17 @@ final class backup_test extends \core_backup_backup_restore_base_testcase {
         }
         $target = $this->getDataGenerator()->create_course();
         $this->perform_restore($this->perform_backup($course), $target);
+        $targetcontext = \context_course::instance($target->id);
+        $childcontext = $DB->sql_like('ctx.path', ':contextpath');
         $options = $DB->get_records_sql(
             "SELECT o.* FROM {qtype_accounting_options} o
                JOIN {question} q ON q.id = o.questionid
                JOIN {question_versions} v ON v.questionid = q.id
                JOIN {question_bank_entries} b ON b.id = v.questionbankentryid
                JOIN {question_categories} c ON c.id = b.questioncategoryid
-              WHERE c.contextid = :context AND q.name = :name",
-            ['context' => \context_course::instance($target->id)->id, 'name' => 'Without chart']
+               JOIN {context} ctx ON ctx.id = c.contextid
+              WHERE (ctx.id = :context OR {$childcontext}) AND q.name = :name",
+            ['context' => $targetcontext->id, 'contextpath' => $targetcontext->path . '/%', 'name' => 'Without chart']
         );
         $this->assertCount(1, $options);
         $this->assertEquals(0, reset($options)->chartofaccountsid);
@@ -168,6 +173,7 @@ final class backup_test extends \core_backup_backup_restore_base_testcase {
      * @dataProvider chart_reuse_provider
      * @param bool $reusechart Whether to create a matching chart before restore.
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('chart_reuse_provider')]
     public function test_course_restore_preserves_accounts(bool $reusechart): void {
         global $DB;
 
@@ -228,14 +234,16 @@ final class backup_test extends \core_backup_backup_restore_base_testcase {
                 $accountsbyname[$account->accountname] = (int) $account->id;
             }
 
+            $childcontext = $DB->sql_like('ctx.path', ':contextpath');
             $questions = $DB->get_records_sql(
                 "SELECT q.*
                    FROM {question} q
                    JOIN {question_versions} v ON v.questionid = q.id
                    JOIN {question_bank_entries} b ON b.id = v.questionbankentryid
                    JOIN {question_categories} c ON c.id = b.questioncategoryid
-                  WHERE c.contextid = ? AND q.qtype = ?",
-                [$targetcontext->id, 'accounting']
+                   JOIN {context} ctx ON ctx.id = c.contextid
+                  WHERE (ctx.id = :context OR {$childcontext}) AND q.qtype = :qtype",
+                ['context' => $targetcontext->id, 'contextpath' => $targetcontext->path . '/%', 'qtype' => 'accounting']
             );
             $this->assertCount(2, $questions);
             foreach ($questions as $question) {

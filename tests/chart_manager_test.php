@@ -24,6 +24,7 @@ namespace qtype_accounting;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting\chart_manager
  */
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\chart_manager::class)]
 final class chart_manager_test extends \advanced_testcase {
     /**
      * Deleting a chart must not introduce one query per account.

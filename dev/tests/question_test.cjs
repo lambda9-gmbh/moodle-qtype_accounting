@@ -1,5 +1,4 @@
-// Run in the Nix shell with NODE_PATH pointing to the existing jsdom dependencies
-// and ACCOUNTING_JQUERY pointing to Moodle's lib/jquery/jquery-3.7.1.js.
+// Run with ./dev/scripts/js-tests.sh dom using the optional Docker test image.
 const {readFileSync} = require('node:fs');
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
@@ -32,7 +31,7 @@ function question() {
         </div><template id="entry-template">${row('__INDEX__', 'debit')}</template></form>`,
     {runScripts: 'outside-only'});
     const win = dom.window;
-    win.eval(readFileSync(process.env.ACCOUNTING_JQUERY, 'utf8'));
+    win.eval(readFileSync(process.env.ACCOUNTING_JQUERY || require.resolve('jquery/dist/jquery.js'), 'utf8'));
     win.M = {util: {get_string: key => key}};
     const load = (file, name, exports) => win.eval(`window.${name} = (() => {
         const $ = window.jQuery;

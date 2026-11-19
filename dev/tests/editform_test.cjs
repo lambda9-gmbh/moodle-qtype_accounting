@@ -1,5 +1,4 @@
-// Run with node --test dev/tests/editform_test.cjs in the Nix development shell.
-// Provide jsdom from the existing dev/tests/mobileapp Nix dependencies via NODE_PATH.
+// Run with ./dev/scripts/js-tests.sh dom using the optional Docker test image.
 const {readFileSync} = require('node:fs');
 const {execFileSync} = require('node:child_process');
 const {test} = require('node:test');

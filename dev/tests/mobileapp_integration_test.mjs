@@ -10,10 +10,7 @@ import {afterEach, test} from 'node:test';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import vm from 'node:vm';
 
-const dependencies = process.env.ACCOUNTING_MOBILE_TEST_DEPS;
-if (!dependencies) {
-    throw new Error('Set ACCOUNTING_MOBILE_TEST_DEPS to the Nix test dependency output (see README.md).');
-}
+const dependencies = process.env.ACCOUNTING_MOBILE_TEST_DEPS || path.join(path.dirname(fileURLToPath(import.meta.url)), 'mobileapp');
 const require = createRequire(path.join(dependencies, 'package.json'));
 const {JSDOM} = require('jsdom');
 const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {url: 'http://localhost/'});

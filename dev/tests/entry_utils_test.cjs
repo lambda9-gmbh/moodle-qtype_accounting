@@ -1,4 +1,4 @@
-// Run with node --test dev/tests/entry_utils_test.cjs inside the Nix development shell.
+// Run with ./dev/scripts/js-tests.sh basic (Node runs in the Moodle container).
 const {readFileSync} = require('node:fs');
 const {test} = require('node:test');
 const assert = require('node:assert/strict');

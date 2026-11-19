@@ -188,20 +188,39 @@ Services:
 ./dev/scripts/test.sh phpunit
 ./dev/scripts/test.sh behat
 
-./dev/scripts/ci.sh                  # Full CI: tests + all moodle-plugin-ci checks
-./dev/scripts/ci.sh checks           # Lint/static analysis only
+./dev/scripts/ci.sh                  # GitHub checks + JS regressions + PHPUnit + Behat
+./dev/scripts/ci.sh checks           # Static checks + standalone JS regressions
+./dev/scripts/ci.sh js               # Standalone JS regressions only
+./dev/scripts/ci.sh scope            # Complete-tree scanner manifests and scope regressions
+./dev/scripts/js-tests.sh dom        # Optional Docker image: browser and Angular DOM tests
+./dev/scripts/js-tests.sh runner     # Optional Docker image: CI script regressions
 ./dev/scripts/ci.sh codecheck        # phpcs (moodle + moodle-extra)
 ./dev/scripts/ci.sh codecheck fix    # phpcbf auto-fix
 ./dev/scripts/ci.sh phpcs            # moodle-plugin-ci phpcs
 ./dev/scripts/ci.sh phpmd
 ./dev/scripts/ci.sh phpdoc
 ./dev/scripts/ci.sh grunt            # eslint + stylelint + gherkinlint
-./dev/scripts/ci.sh all              # default check set + phpcpd
+./dev/scripts/ci.sh all              # check set + optional phpmd and phpcpd
 
 ./dev/scripts/build.sh               # Minify amd/src → amd/build
 ./dev/scripts/logs.sh                # docker compose logs -f
 ./dev/scripts/purge-cache.sh         # admin/cli/purge_caches.php
 ```
+
+CI reads uncommitted working files and matches the GitHub warning thresholds:
+PHPCS/PHPDoc/Grunt allow zero warnings, and PHPUnit uses `--fail-on-warning`.
+It requires existing tools and running services; it does not install dependencies
+or start Selenium. Local Behat uses the configured Firefox profile; GitHub uses Chrome.
+Node runs inside the existing Moodle container. Optional DOM/runner checks use
+`accounting-dom-tests`, built with `docker build -t accounting-dom-tests dev/tests/mobileapp`.
+Source scanners use a complete temporary working-tree copy, including `dev/`,
+and share `.moodle-plugin-ci.yml` with GitHub. PHPDoc uses that same file selector.
+The scope guard verifies development files are present but excluded and required
+plugin/test files are selected. GitHub also compares the installed and checkout
+manifests. Grunt uses a container-native snapshot in a minimal Moodle build
+layout, reusing the installed tools while keeping `qtype_accounting` as the
+component name. Its backup does not read host bind mounts. Runtime tests use the
+mounted Moodle component.
 
 ## Common gotchas
 
