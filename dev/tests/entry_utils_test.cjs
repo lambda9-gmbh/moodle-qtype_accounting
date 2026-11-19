@@ -33,3 +33,22 @@ test('canonical numbers format correctly without being parsed as display input',
     assert.equal(formatNumber('', 'de', 2), '');
     assert.equal(formatNumber(0, 'de', 2), '0,00');
 });
+
+test('monetary arithmetic uses integer cents, including large totals', async () => {
+    const {parseCents, formatCents, formatNumber} = await utilities;
+    for (const format of ['de', 'us']) {
+        const decimal = value => value.replace('.', format === 'de' ? ',' : '.');
+        assert.equal(parseCents(decimal('0.10'), format) + parseCents(decimal('0.20'), format), 30n);
+        assert.equal(parseCents(decimal('1.005'), format), 101n);
+        assert.equal(parseCents(decimal('-1.005'), format), -101n);
+        assert.equal(parseCents(decimal('9.995'), format), 1000n);
+        assert.equal(parseCents('', format), null);
+        assert.equal(parseCents('invalid', format), null);
+        const maximum = 999999999999999n;
+        const display = formatCents(maximum, format);
+        assert.equal(parseCents(display, format), maximum);
+        assert.equal(formatNumber(display, format), display);
+        assert.equal(parseCents(display, format) * 100n, 99999999999999900n);
+        assert.equal(formatNumber(decimal('1.005'), format), decimal('1.01'));
+    }
+});

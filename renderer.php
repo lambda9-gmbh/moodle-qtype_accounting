@@ -154,7 +154,7 @@ class qtype_accounting_renderer extends qtype_renderer {
         $html .= $this->render_header_row(!$options->readonly);
         $html .= \html_writer::start_tag('tbody', ['class' => 'qtype_accounting-entries']);
 
-        $feedbackmap = $options->readonly
+        $feedbackmap = $options->readonly && $options->correctness
             ? $this->feedback_calculator()->build_cell_feedback_map($question, $response)
             : [];
         for ($i = 0; $i < $visiblerows; $i++) {
@@ -595,7 +595,9 @@ class qtype_accounting_renderer extends qtype_renderer {
             }
             // Parse the amount (handles both German and US formats) then format for display.
             $spanclass .= ' qtype_accounting-amount-display';
-            $parsedvalue = \qtype_accounting\amount_helper::parse_amount($value, $numberformat);
+            $parsedvalue = \qtype_accounting\amount_helper::decimal_amount(
+                \qtype_accounting\amount_helper::parse_cents($value, $numberformat)
+            );
             $displayval = $this->format_amount_display($parsedvalue, $numberformat);
             $html = html_writer::span(s($displayval), $spanclass);
             $html .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => $name, 'value' => $value]);
@@ -663,12 +665,12 @@ class qtype_accounting_renderer extends qtype_renderer {
     /**
      * Format an amount for the student response control.
      *
-     * @param float $amount The amount value.
+     * @param string|int|float $amount Canonical decimal amount.
      * @param string $format The number format: 'de' for German (1.234,56) or 'us' for US (1,234.56).
      * @return string The formatted amount or empty string if zero.
      */
-    protected function format_amount_display(float $amount, string $format = 'de'): string {
-        if (abs($amount) < 0.01) {
+    protected function format_amount_display($amount, string $format = 'de'): string {
+        if (\qtype_accounting\amount_helper::parse_cents((string)$amount, 'us') === 0) {
             return '';
         }
         return \qtype_accounting\amount_helper::format_amount($amount, $format);

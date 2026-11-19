@@ -285,9 +285,8 @@ function setupNumberFormatChangeHandler() {
                 field.placeholder = placeholder;
                 // Reformat current value if present.
                 if (field.value) {
-                    const plain = Number(EntryUtils.parseNumber(field.value, previousNumberFormat));
-                    const formatted = EntryUtils.formatNumber(plain, fmt, 2);
-                    field.value = formatted;
+                    const cents = EntryUtils.parseCents(field.value, previousNumberFormat);
+                    field.value = cents === null ? '' : EntryUtils.formatCents(cents, fmt);
                 }
             });
 
@@ -614,8 +613,8 @@ function clearAccountErrors() {
  * @return {boolean} True if balanced, false if not.
  */
 function validateBalance() {
-    let totalDebit = 0;
-    let totalCredit = 0;
+    let totalDebit = 0n;
+    let totalCredit = 0n;
 
     let entryRows = editForm.querySelectorAll(ROW_SELECTOR);
     entryRows.forEach(function(row) {
@@ -631,20 +630,20 @@ function validateBalance() {
         let creditField = row.querySelector('.qtype_accounting-creditamount');
 
         if (debitField && debitField.value) {
-            let parsedDebit = parseFloat(EntryUtils.parseNumber(debitField.value, getNumberFormat()));
-            if (!isNaN(parsedDebit)) {
+            let parsedDebit = EntryUtils.parseCents(debitField.value, getNumberFormat());
+            if (parsedDebit !== null) {
                 totalDebit += parsedDebit;
             }
         }
         if (creditField && creditField.value) {
-            let parsedCredit = parseFloat(EntryUtils.parseNumber(creditField.value, getNumberFormat()));
-            if (!isNaN(parsedCredit)) {
+            let parsedCredit = EntryUtils.parseCents(creditField.value, getNumberFormat());
+            if (parsedCredit !== null) {
                 totalCredit += parsedCredit;
             }
         }
     });
 
-    if (Math.abs(totalDebit - totalCredit) > 0.001) {
+    if (totalDebit !== totalCredit) {
         showBalanceError();
         return false;
     }

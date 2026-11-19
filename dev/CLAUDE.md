@@ -129,11 +129,11 @@ Charts live at a **course context**; capability `qtype/accounting:managecharts` 
 
 1. Aggregate correct entries by `(side, account)` — summing amounts and per-field weights.
 2. Aggregate the student's response by `(side, account)` — summing amounts.
-3. For each correct `(side, account)` pair, award the account weight if the student named it, and award the amount weight if the summed amount is within 0.01 of the correct sum.
+3. For each correct `(side, account)` pair, award the account weight if the student named it, and award the amount weight if the summed integer cents match exactly.
 4. Apply per-extra-account deduction (`extraentrydeduction` option, configurable; floored at 0).
 5. If `allornothinggrading` is on, snap to {0, 1}.
 
-Account matching is case-insensitive on `accountname` (via the account_id lookup). Amount tolerance: 0.01.
+Account matching is case-insensitive on `accountname` (via the account_id lookup). Monetary arithmetic uses integer cents, parsed directly from decimal text. Extra precision rounds to the nearest cent, with ties away from zero. Database and XML boundaries retain canonical decimal strings. Browser balance totals use BigInt cents.
 
 ## Frontend (AMD modules)
 

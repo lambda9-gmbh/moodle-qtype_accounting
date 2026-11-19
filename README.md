@@ -66,7 +66,7 @@ After submission, every field is highlighted individually — green for correct,
 - Responsive mobile card layout for narrow viewports.
 - Moodle App question handler with separate debit/credit entry cards, saved-answer restoration, and read-only review.
 - App attempts retain at least one debit entry and one credit entry; Delete buttons appear only when that side has multiple entries.
-- Per-field feedback colouring after submission with a side-level summary message.
+- Per-field feedback colouring after submission, respecting the quiz's correctness visibility setting, with a side-level summary message.
 - Full correct-answer view rendered alongside the student's response.
 
 ### For instructors
@@ -215,14 +215,14 @@ ODS imports read one account name per row from column A of the first sheet. Othe
 2. **Aggregate the student's response** the same way.
 3. **Score each correct `(side, account)` pair.**
    - The **account weight** is awarded if the student named that account on that side at all.
-   - The **amount weight** is awarded if the student's summed amount for that pair is within `0.01` of the correct sum.
+   - The **amount weight** is awarded if the student's summed amount for that pair matches the correct sum in integer cents.
 4. **Apply penalties.** Subtract the configured percentage per extra account the student named that isn't in the correct answer (each side counted independently). Final score is floored at 0.
 5. **All-or-nothing.** If **No partial credit** is enabled, snap the result to 0 or 1.
 
 Notes:
 
 - Account-name matching is case-insensitive (matching is by account ID after lookup).
-- Floating-point amount comparison uses a `0.01` tolerance.
+- Amounts are parsed and summed as integer cents. Extra decimal places round to the nearest cent, with half cents rounding away from zero. Grading, feedback, hints, and balance validation compare cents exactly.
 - Re-grading after edits is supported via Moodle's standard re-grade mechanism.
 
 ---
@@ -230,6 +230,8 @@ Notes:
 ## Question import/export
 
 The plugin extends Moodle's XML format. Exporting a question writes its options, all correct-answer entries (with weights and explanations), and the **full chart of accounts** the question references. Importing the question recreates or reuses an existing chart with matching accounts in the destination context, so questions move between courses and sites without losing their account list.
+
+Interactive hints also survive XML export and import, including embedded files, text formats, and the clear-wrong and count-correct settings. Hint attachments are available only while that hint is applicable and feedback is visible.
 
 Use **Question bank → Export** / **Import** as you would for any other question type, picking **Moodle XML format**.
 

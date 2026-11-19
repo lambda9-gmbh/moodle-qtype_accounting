@@ -349,7 +349,9 @@ class qtype_accounting_edit_form extends question_edit_form {
         foreach (['debit', 'credit'] as $side) {
             $data[$side . 'account'] = $data[$side . 'account_display'] ?? [];
             $data[$side . 'amount'] = array_map(static function ($value) use ($format) {
-                return trim($value) === '' ? '' : (string)\qtype_accounting\amount_helper::parse_amount($value, $format);
+                return trim($value) === '' ? '' : \qtype_accounting\amount_helper::decimal_amount(
+                    \qtype_accounting\amount_helper::parse_cents($value, $format)
+                );
             }, $data[$side . 'amount_display'] ?? []);
             foreach (['account', 'amount'] as $field) {
                 $name = 'weight_' . $side . $field;

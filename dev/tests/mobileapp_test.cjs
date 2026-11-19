@@ -71,6 +71,22 @@ test('unanswered question has independent debit/credit entries and preserved opt
     assert.equal(fixture({format: 'us'}).question.accountingPlaceholder, '0.00');
 });
 
+test('app amount formatting rounds decimal cents without losing database precision', () => {
+    for (const format of ['de', 'us']) {
+        const {component} = fixture({format});
+        const decimal = value => value.replace('.', format === 'de' ? ',' : '.');
+        for (const [input, output] of [['1.005', '1.01'], ['-1.005', '-1.01'], ['9.995', '10.00']]) {
+            const entry = {amount: decimal(input)};
+            component.formatAmount(entry);
+            assert.equal(entry.amount, decimal(output));
+        }
+        const maximum = format === 'de' ? '9.999.999.999.999,99' : '9,999,999,999,999.99';
+        const entry = {amount: maximum};
+        component.formatAmount(entry);
+        assert.equal(entry.amount, maximum);
+    }
+});
+
 test('restores local rows absent from server HTML and preserves locale-formatted amounts', () => {
     const {question} = fixture({saved: {debitaccount_0: '101', debitamount_0: '100'},
         local: {debitamount_0: '1.234,56', debitaccount_2: '201', debitamount_2: '200,00'}});

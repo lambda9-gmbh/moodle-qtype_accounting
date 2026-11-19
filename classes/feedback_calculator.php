@@ -101,8 +101,7 @@ class feedback_calculator {
 
         $numberformat = $question->numberformat ?? 'de';
         $correctaggregated = $this->aggregate_entries_for_feedback($question->entries);
-        $studententries = $this->parse_student_response($response, $numberformat);
-        $studentaggregated = $this->aggregate_entries_for_feedback($studententries);
+        $studentaggregated = $this->aggregate_response_amounts($response, $this->max_response_index($response), $numberformat);
 
         $debit = $this->compare_side($correctaggregated['debit'], $studentaggregated['debit']);
         $credit = $this->compare_side($correctaggregated['credit'], $studentaggregated['credit']);
@@ -134,7 +133,7 @@ class feedback_calculator {
      * Aggregate entries by account ID on each side.
      *
      * @param array $entries Entries (each with debitaccountid/debitamount/creditaccountid/creditamount).
-     * @return array ['debit' => [accountid => amount], 'credit' => [accountid => amount]].
+     * @return array ['debit' => [accountid => cents], 'credit' => [accountid => cents]].
      */
     public function aggregate_entries_for_feedback(array $entries): array {
         $aggregated = ['debit' => [], 'credit' => []];
@@ -142,12 +141,12 @@ class feedback_calculator {
             $debitaccountid = (int)($entry['debitaccountid'] ?? 0);
             if ($debitaccountid > 0) {
                 $aggregated['debit'][$debitaccountid] = ($aggregated['debit'][$debitaccountid] ?? 0)
-                    + (float)($entry['debitamount'] ?? 0);
+                    + amount_helper::parse_cents((string)($entry['debitamount'] ?? 0), 'us');
             }
             $creditaccountid = (int)($entry['creditaccountid'] ?? 0);
             if ($creditaccountid > 0) {
                 $aggregated['credit'][$creditaccountid] = ($aggregated['credit'][$creditaccountid] ?? 0)
-                    + (float)($entry['creditamount'] ?? 0);
+                    + amount_helper::parse_cents((string)($entry['creditamount'] ?? 0), 'us');
             }
         }
         return $aggregated;
@@ -158,31 +157,10 @@ class feedback_calculator {
      *
      * @param array $response The response data.
      * @param string $numberformat The number format ('de' or 'us') for amount parsing.
-     * @return array Entry rows in the same shape as $question->entries.
+     * @return array Entry rows with account IDs and canonical decimal amount strings.
      */
     public function parse_student_response(array $response, string $numberformat = 'de'): array {
-        $entries = [];
-        $maxindex = $this->max_response_index($response);
-        for ($i = 0; $i <= $maxindex; $i++) {
-            $debitaccountid = (int)($response["debitaccount_{$i}"] ?? 0);
-            $creditaccountid = (int)($response["creditaccount_{$i}"] ?? 0);
-            if ($debitaccountid <= 0 && $creditaccountid <= 0) {
-                continue;
-            }
-            $entries[] = [
-                'debitaccountid' => $debitaccountid,
-                'debitamount' => amount_helper::parse_amount(
-                    $response["debitamount_{$i}"] ?? '',
-                    $numberformat
-                ),
-                'creditaccountid' => $creditaccountid,
-                'creditamount' => amount_helper::parse_amount(
-                    $response["creditamount_{$i}"] ?? '',
-                    $numberformat
-                ),
-            ];
-        }
-        return $entries;
+        return (new scorer(null, false, $numberformat))->parse_response($response);
     }
 
     /**
@@ -207,7 +185,7 @@ class feedback_calculator {
      * @param array $response The response data.
      * @param int $maxindex The highest valid index (from max_response_index()).
      * @param string $numberformat The number format ('de' or 'us').
-     * @return array ['debit' => [accountid => amount], 'credit' => [accountid => amount]].
+     * @return array ['debit' => [accountid => cents], 'credit' => [accountid => cents]].
      */
     protected function aggregate_response_amounts(array $response, int $maxindex, string $numberformat): array {
         $aggregated = ['debit' => [], 'credit' => []];
@@ -215,11 +193,11 @@ class feedback_calculator {
             $debitaccountid = (int)($response["debitaccount_{$i}"] ?? 0);
             $creditaccountid = (int)($response["creditaccount_{$i}"] ?? 0);
             if ($debitaccountid > 0) {
-                $amount = amount_helper::parse_amount($response["debitamount_{$i}"] ?? '', $numberformat);
+                $amount = amount_helper::parse_cents($response["debitamount_{$i}"] ?? '', $numberformat);
                 $aggregated['debit'][$debitaccountid] = ($aggregated['debit'][$debitaccountid] ?? 0) + $amount;
             }
             if ($creditaccountid > 0) {
-                $amount = amount_helper::parse_amount($response["creditamount_{$i}"] ?? '', $numberformat);
+                $amount = amount_helper::parse_cents($response["creditamount_{$i}"] ?? '', $numberformat);
                 $aggregated['credit'][$creditaccountid] = ($aggregated['credit'][$creditaccountid] ?? 0) + $amount;
             }
         }
@@ -242,7 +220,7 @@ class feedback_calculator {
                     continue;
                 }
                 $correctamount = $correctaggregated[$side][$account];
-                $amountstatus = (abs($studentamount - $correctamount) < 0.01) ? 'correct' : 'incorrect';
+                $amountstatus = ($studentamount === $correctamount) ? 'correct' : 'incorrect';
                 $accountstatus[$side][$account] = ['account' => 'correct', 'amount' => $amountstatus];
             }
         }
@@ -270,7 +248,7 @@ class feedback_calculator {
                     'student_amount' => null,
                     'status' => 'missing',
                 ];
-            } else if ($studentamount != $correctamount) {
+            } else if ($studentamount !== $correctamount) {
                 $details[] = [
                     'account' => $account,
                     'correct_amount' => $correctamount,

@@ -32,6 +32,94 @@ require_once($CFG->dirroot . '/question/format/xml/format.php');
  */
 final class questiontype_test extends \advanced_testcase {
     /**
+     * XML export and import retain hint ordering, formats, options and embedded files.
+     */
+    public function test_xml_round_trip_preserves_hints_and_files(): void {
+        global $CFG;
+        require_once($CFG->libdir . '/xmlize.php');
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $course = $this->getDataGenerator()->create_course();
+        $context = \context_course::instance($course->id);
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category(['contextid' => $context->id]);
+        $chart = chart_manager::create_chart('Hint chart', $context->id);
+        $bank = account_manager::add($chart, 'Bank');
+        $sales = account_manager::add($chart, 'Sales');
+        $text = '<p>Try again. <a href="@@PLUGINFILE@@/hint.txt">Read the hint</a></p>';
+        $source = $generator->create_question('accounting', null, [
+            'category' => $category->id, 'chartofaccountsid' => $chart,
+            'debitaccount' => [$bank], 'creditaccount' => [$sales],
+            'hint' => [
+                ['text' => $text, 'format' => FORMAT_HTML],
+                ['text' => 'Check the credit account.', 'format' => FORMAT_PLAIN],
+                ['text' => '', 'format' => FORMAT_HTML],
+            ],
+            'hintclearwrong' => [1, 0, 1], 'hintshownumcorrect' => [1, 0, 0],
+        ]);
+        $source = \question_bank::load_question_data($source->id);
+        $source->contextid = $context->id;
+        $fs = get_file_storage();
+        $firsthint = reset($source->hints);
+        $fs->create_file_from_string([
+            'contextid' => $context->id, 'component' => 'question', 'filearea' => 'hint',
+            'itemid' => $firsthint->id, 'filepath' => '/', 'filename' => 'hint.txt',
+        ], 'Hint attachment contents');
+
+        $format = new \qformat_xml();
+        $format->setCourse($course);
+        $xml = xmlize($format->writequestion($source));
+        $imported = $this->qtype->import_from_xml($xml['question'], new \stdClass(), $format);
+        $this->assertCount(3, $imported->hint);
+        $this->assertSame($text, $imported->hint[0]['text']);
+        $this->assertEquals([1, 0, 1], $imported->hintclearwrong);
+        $this->assertEquals([1, 0, 0], $imported->hintshownumcorrect);
+
+        $target = $generator->create_question('accounting', null, ['category' => $category->id]);
+        $imported->id = $target->id;
+        $imported->context = $context;
+        $this->qtype->save_question_options($imported);
+        $loaded = \question_bank::load_question($target->id);
+        $this->assertCount(3, $loaded->hints);
+        $this->assertInstanceOf(\question_hint_with_parts::class, $loaded->hints[0]);
+        $this->assertSame($text, $loaded->hints[0]->hint);
+        $this->assertEquals(FORMAT_HTML, $loaded->hints[0]->hintformat);
+        $this->assertEquals(1, $loaded->hints[0]->clearwrong);
+        $this->assertEquals(1, $loaded->hints[0]->shownumcorrect);
+        $this->assertSame('Check the credit account.', $loaded->hints[1]->hint);
+        $this->assertEquals(FORMAT_PLAIN, $loaded->hints[1]->hintformat);
+        $this->assertEquals(0, $loaded->hints[1]->clearwrong);
+        $this->assertEquals(0, $loaded->hints[1]->shownumcorrect);
+        $this->assertSame('', $loaded->hints[2]->hint);
+        $this->assertEquals(1, $loaded->hints[2]->clearwrong);
+        $file = $fs->get_file($context->id, 'question', 'hint', $loaded->hints[0]->id, '/', 'hint.txt');
+        $this->assertNotFalse($file);
+        $this->assertSame('Hint attachment contents', $file->get_content());
+    }
+
+    /**
+     * Saving and rendering preserve the last cent at the database's maximum precision.
+     */
+    public function test_save_preserves_decimal_cents(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category();
+        $question = $generator->create_question('accounting', null, [
+            'category' => $category->id,
+            'debitaccount' => [101], 'creditaccount' => [201],
+            'debitamount' => ['9999999999999.99'], 'creditamount' => ['9999999999999.99'],
+        ]);
+        $entry = $DB->get_record('qtype_accounting_entries', ['questionid' => $question->id], '*', MUST_EXIST);
+        $this->assertSame('9999999999999.99', $entry->debitamount);
+        $this->assertSame('9999999999999.99', $entry->creditamount);
+        $loaded = \question_bank::load_question($question->id);
+        $response = $loaded->get_correct_response();
+        $this->assertSame('9.999.999.999.999,99', $response['debitamount_0']);
+        $this->assertSame(1.0, $loaded->grade_response($response)[0]);
+    }
+
+    /**
      * Interactive hint options survive saving and question-engine loading.
      */
     public function test_interactive_hint_options_round_trip(): void {

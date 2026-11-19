@@ -173,9 +173,13 @@ class qtype_accounting extends question_type {
             $record->questionid = $questionid;
             $record->sortorder = $sortorder++;
             $record->debitaccountid = $debitaccountid ?: null;
-            $record->debitamount = floatval($arrays['debitamount'][$i] ?? 0);
+            $record->debitamount = \qtype_accounting\amount_helper::decimal_amount(
+                \qtype_accounting\amount_helper::parse_cents((string)($arrays['debitamount'][$i] ?? 0), 'us')
+            );
             $record->creditaccountid = $creditaccountid ?: null;
-            $record->creditamount = floatval($arrays['creditamount'][$i] ?? 0);
+            $record->creditamount = \qtype_accounting\amount_helper::decimal_amount(
+                \qtype_accounting\amount_helper::parse_cents((string)($arrays['creditamount'][$i] ?? 0), 'us')
+            );
             $record->weight_debitaccount = intval($arrays['weight_debitaccount'][$i] ?? 1);
             $record->weight_debitamount = intval($arrays['weight_debitamount'][$i] ?? 1);
             $record->weight_creditaccount = intval($arrays['weight_creditaccount'][$i] ?? 1);
@@ -347,6 +351,7 @@ class qtype_accounting extends question_type {
         array_shift($extraquestionfields); // Remove table name.
         $qo = $handler->import_options($data, $format, $qtype, $extraquestionfields);
         $handler->import_entries($data, $format, $qo);
+        $format->import_hints($qo, $data, true, false, $format->get_format($qo->questiontextformat));
 
         $contextid = $handler->resolve_contextid($format);
         $chartdata = $format->getpath($data, ['#', 'chartofaccounts', 0], null);

@@ -152,11 +152,11 @@ class scorer {
     /**
      * Aggregate entries by account ID on each side (Debit/Credit).
      *
-     * For each account on each side, sums the amounts. For correct entries, also sums the weights.
+     * For each account on each side, sums integer cents. For correct entries, also sums the weights.
      *
      * @param array $entries The entries to aggregate.
      * @param bool $includeweights Whether to include and aggregate weights (for correct entries).
-     * @return array Aggregated data with 'debit' and 'credit' keys.
+     * @return array Aggregated data with amounts in cents and 'debit' and 'credit' keys.
      */
     public function aggregate_entries(array $entries, bool $includeweights): array {
         $aggregated = ['debit' => [], 'credit' => []];
@@ -165,7 +165,7 @@ class scorer {
                 $aggregated,
                 'debit',
                 (int)($entry['debitaccountid'] ?? 0),
-                (float)($entry['debitamount'] ?? 0),
+                amount_helper::parse_cents((string)($entry['debitamount'] ?? 0), 'us'),
                 $includeweights,
                 (int)($entry['weight_debitaccount'] ?? 1),
                 (int)($entry['weight_debitamount'] ?? 1)
@@ -174,7 +174,7 @@ class scorer {
                 $aggregated,
                 'credit',
                 (int)($entry['creditaccountid'] ?? 0),
-                (float)($entry['creditamount'] ?? 0),
+                amount_helper::parse_cents((string)($entry['creditamount'] ?? 0), 'us'),
                 $includeweights,
                 (int)($entry['weight_creditaccount'] ?? 1),
                 (int)($entry['weight_creditamount'] ?? 1)
@@ -189,7 +189,7 @@ class scorer {
      * @param array $aggregated Aggregation accumulator (modified in place).
      * @param string $side 'debit' or 'credit'.
      * @param int $accountid Account ID; if 0, nothing is added.
-     * @param float $amount Amount to add.
+     * @param int $amount Amount to add in cents.
      * @param bool $includeweights Whether to also sum the weights.
      * @param int $weightaccount Weight contribution for the account match.
      * @param int $weightamount Weight contribution for the amount match.
@@ -198,7 +198,7 @@ class scorer {
         array &$aggregated,
         string $side,
         int $accountid,
-        float $amount,
+        int $amount,
         bool $includeweights,
         int $weightaccount,
         int $weightamount
@@ -217,22 +217,44 @@ class scorer {
     }
 
     /**
-     * Compare two amounts with floating-point tolerance.
+     * Compare monetary totals in integer cents.
      *
-     * @param float $amount1 First amount.
-     * @param float $amount2 Second amount.
-     * @param float $tolerance The tolerance for comparison (default 0.01).
-     * @return bool True if amounts are equal within tolerance.
+     * @param int $amount1 First total in cents.
+     * @param int $amount2 Second total in cents.
+     * @return bool Whether the totals match exactly.
      */
-    public function amounts_equal(float $amount1, float $amount2, float $tolerance = 0.01): bool {
-        return abs($amount1 - $amount2) < $tolerance;
+    public function amounts_equal(int $amount1, int $amount2): bool {
+        return $amount1 === $amount2;
+    }
+
+    /**
+     * Compare account and amount parts for interactive hints using normal grading aggregation.
+     *
+     * @param array $correctentries The teacher's correct entries.
+     * @param array $response Student response.
+     * @return array Correctness keyed by side and correct account ID.
+     */
+    public function response_parts(array $correctentries, array $response): array {
+        $correct = $this->aggregate_entries($correctentries, true);
+        $student = $this->aggregate_entries($this->parse_response($response), false);
+        $parts = ['debit' => [], 'credit' => []];
+        foreach ($correct as $side => $accounts) {
+            foreach ($accounts as $id => $account) {
+                $present = isset($student[$side][$id]);
+                $parts[$side][$id] = [
+                    $present,
+                    $present && $this->amounts_equal($student[$side][$id]['amount'], $account['amount']),
+                ];
+            }
+        }
+        return $parts;
     }
 
     /**
      * Parse a Moodle response array into structured entry rows.
      *
      * @param array $response The response data.
-     * @return array Entry rows in {debitaccountid, debitamount, creditaccountid, creditamount} shape.
+     * @return array Entry rows with account IDs and canonical decimal amount strings.
      */
     public function parse_response(array $response): array {
         $entries = [];
@@ -245,15 +267,15 @@ class scorer {
             }
             $entries[] = [
                 'debitaccountid' => $debitaccountid,
-                'debitamount' => amount_helper::parse_amount(
+                'debitamount' => amount_helper::decimal_amount(amount_helper::parse_cents(
                     $response["debitamount_{$i}"] ?? '',
                     $this->numberformat
-                ),
+                )),
                 'creditaccountid' => $creditaccountid,
-                'creditamount' => amount_helper::parse_amount(
+                'creditamount' => amount_helper::decimal_amount(amount_helper::parse_cents(
                     $response["creditamount_{$i}"] ?? '',
                     $this->numberformat
-                ),
+                )),
             ];
         }
         return $entries;

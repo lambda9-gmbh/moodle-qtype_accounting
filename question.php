@@ -63,6 +63,24 @@ class qtype_accounting_question extends question_graded_automatically {
     public $accountsmap = [];
 
     /**
+     * Allow files from the currently applicable hint when feedback is visible.
+     *
+     * @param question_attempt $qa The current question attempt.
+     * @param question_display_options $options The current display options.
+     * @param string $component File component.
+     * @param string $filearea File area.
+     * @param array $args File path arguments, starting with the item ID.
+     * @param bool $forcedownload Whether the file must be downloaded.
+     * @return bool Whether access is allowed.
+     */
+    public function check_file_access($qa, $options, $component, $filearea, $args, $forcedownload) {
+        if ($component === 'question' && $filearea === 'hint') {
+            return $this->check_hint_file_access($qa, $options, $args);
+        }
+        return parent::check_file_access($qa, $options, $component, $filearea, $args, $forcedownload);
+    }
+
+    /**
      * Find the highest entry index present across one or more response arrays.
      *
      * Scans array keys for patterns like debitaccount_N or creditaccount_N and returns
@@ -118,12 +136,12 @@ class qtype_accounting_question extends question_graded_automatically {
         foreach ($this->entries as $i => $entry) {
             $response["debitaccount_{$i}"] = $entry['debitaccountid'] ?? 0;
             $response["debitamount_{$i}"] = \qtype_accounting\amount_helper::format_amount(
-                (float)$entry['debitamount'],
+                $entry['debitamount'],
                 $this->numberformat
             );
             $response["creditaccount_{$i}"] = $entry['creditaccountid'] ?? 0;
             $response["creditamount_{$i}"] = \qtype_accounting\amount_helper::format_amount(
-                (float)$entry['creditamount'],
+                $entry['creditamount'],
                 $this->numberformat
             );
         }
@@ -151,11 +169,15 @@ class qtype_accounting_question extends question_graded_automatically {
                 $debitname = $this->accountsmap[$debitaccountid] ?? '';
                 $creditname = $this->accountsmap[$creditaccountid] ?? '';
                 $parts[] = sprintf(
-                    "%s %.2f / %s %.2f",
+                    "%s %s / %s %s",
                     $debitname,
-                    \qtype_accounting\amount_helper::parse_amount($debitamount, $this->numberformat),
+                    \qtype_accounting\amount_helper::decimal_amount(
+                        \qtype_accounting\amount_helper::parse_cents($debitamount, $this->numberformat)
+                    ),
                     $creditname,
-                    \qtype_accounting\amount_helper::parse_amount($creditamount, $this->numberformat)
+                    \qtype_accounting\amount_helper::decimal_amount(
+                        \qtype_accounting\amount_helper::parse_cents($creditamount, $this->numberformat)
+                    )
                 );
             }
         }
@@ -270,29 +292,6 @@ class qtype_accounting_question extends question_graded_automatically {
     }
 
     /**
-     * Compare account and amount parts using the same aggregation as normal grading.
-     *
-     * @param array $response Student response.
-     * @return array Correctness keyed by side and correct account ID.
-     */
-    protected function response_parts(array $response): array {
-        $scorer = new \qtype_accounting\scorer(null, false, $this->numberformat);
-        $correct = $scorer->aggregate_entries($this->entries, true);
-        $student = $scorer->aggregate_entries($scorer->parse_response($response), false);
-        $parts = ['debit' => [], 'credit' => []];
-        foreach ($correct as $side => $accounts) {
-            foreach ($accounts as $id => $account) {
-                $present = isset($student[$side][$id]);
-                $parts[$side][$id] = [
-                    $present,
-                    $present && $scorer->amounts_equal($student[$side][$id]['amount'], $account['amount']),
-                ];
-            }
-        }
-        return $parts;
-    }
-
-    /**
      * Clear incorrect parts for interactive hints, retaining correct split bookings.
      *
      * Moodle's standard interactive behaviour applies the configured try penalties.
@@ -301,7 +300,8 @@ class qtype_accounting_question extends question_graded_automatically {
      * @return array Response with incorrect controls cleared.
      */
     public function clear_wrong_from_response(array $response) {
-        $parts = $this->response_parts($response);
+        $scorer = new \qtype_accounting\scorer(null, false, $this->numberformat);
+        $parts = $scorer->response_parts($this->entries, $response);
         foreach ($response as $key => $value) {
             if (preg_match('/^(debit|credit)account_(\d+)$/', $key, $matches)) {
                 $status = $parts[$matches[1]][(int)$value] ?? [false, false];
@@ -325,7 +325,8 @@ class qtype_accounting_question extends question_graded_automatically {
     public function get_num_parts_right(array $response) {
         $right = 0;
         $total = 0;
-        foreach ($this->response_parts($response) as $accounts) {
+        $scorer = new \qtype_accounting\scorer(null, false, $this->numberformat);
+        foreach ($scorer->response_parts($this->entries, $response) as $accounts) {
             foreach ($accounts as $parts) {
                 $right += count(array_filter($parts));
                 $total += count($parts);

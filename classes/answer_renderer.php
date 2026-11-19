@@ -166,12 +166,12 @@ class answer_renderer {
     /**
      * Format an amount for display, showing empty for zero/non-existent amounts.
      *
-     * @param float $amount The amount value.
+     * @param string|int|float $amount Canonical decimal amount.
      * @param string $format 'de' (German 1.234,56) or 'us' (US 1,234.56).
      * @return string The formatted amount or '' if effectively zero.
      */
-    public function format_amount(float $amount, string $format = 'de'): string {
-        if (abs($amount) < 0.01) {
+    public function format_amount($amount, string $format = 'de'): string {
+        if (amount_helper::parse_cents((string)$amount, 'us') === 0) {
             return '';
         }
         return amount_helper::format_amount($amount, $format);

@@ -335,34 +335,59 @@ function parseNumber(value, format = 'us') {
 }
 
 /**
- * Format a number according to locale and decimal settings.
+ * Parse decimal text into integer cents, rounding half cents away from zero.
+ *
+ * BigInt keeps totals exact even when many large database amounts are combined.
+ *
+ * @param {string} value Decimal input.
+ * @param {string} format German or US number format.
+ * @return {bigint|null} Integer cents, or null for invalid input.
+ */
+function parseCents(value, format = 'us') {
+    const plain = parseNumber(value, format);
+    const match = plain.match(/^([+-]?)(\d*)(?:\.(\d*))?$/);
+    if (!match || !/\d/.test(plain)) {
+        return null;
+    }
+    const fraction = (match[3] || '').padEnd(3, '0');
+    const cents = BigInt((match[2] || '0') + fraction.slice(0, 2)) + (fraction[2] >= '5' ? 1n : 0n);
+    return match[1] === '-' ? -cents : cents;
+}
+
+/**
+ * Format a monetary amount with grouping and two decimal places.
  *
  * @param {string|number} value The number to format.
  * @param {string} locale The locale string: 'de' for German, 'us' for US.
- * @param {number} decimals The number of decimal places.
  * @return {string} The formatted number string, or empty string if invalid.
  */
-function formatNumber(value, locale, decimals) {
+function formatNumber(value, locale) {
     if (value === '' || value === null || value === undefined) {
         return '';
     }
 
-    const plainValue = typeof value === 'number' ? String(value) : parseNumber(value, locale);
-    let num = parseFloat(plainValue);
-
-    if (isNaN(num)) {
+    const cents = parseCents(value, typeof value === 'number' ? 'us' : locale);
+    if (cents === null) {
         return '';
     }
+    return formatCents(cents, locale);
+}
 
-    let localeStr = (locale === 'us') ? 'en-US' : 'de-DE';
-    return num.toLocaleString(localeStr, {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals
-    });
+/**
+ * Format integer cents without passing through floating-point amounts.
+ *
+ * @param {bigint} cents Amount in cents.
+ * @param {string} locale German or US number format.
+ * @return {string} Localised amount with grouping and two decimal places.
+ */
+function formatCents(cents, locale) {
+    const digits = String(cents < 0n ? -cents : cents).padStart(3, '0');
+    const whole = digits.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, locale === 'us' ? ',' : '.');
+    return (cents < 0n ? '-' : '') + whole + (locale === 'us' ? '.' : ',') + digits.slice(-2);
 }
 
 export {
     HIDDEN_CLASS, COL, applyEntryTypeVisibility, applyWeightRowVisibility,
     findIncompleteRow, updatePerLabels, clearEntrySideFields, detectEntryType,
-    isRowEmpty, parseNumber, formatNumber
+    isRowEmpty, parseNumber, parseCents, formatCents, formatNumber
 };

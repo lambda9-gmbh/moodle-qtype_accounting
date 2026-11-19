@@ -37,6 +37,24 @@ require_once($CFG->dirroot . '/question/type/accounting/edit_accounting_form.php
  */
 final class edit_form_test extends \advanced_testcase {
     /**
+     * Balance validation sums cents and detects a one-cent difference.
+     */
+    public function test_balance_uses_integer_cents(): void {
+        $validator = new entry_validator();
+        $data = [
+            'debitaccount' => [101, 101], 'debitamount' => ['0.10', '0.20'],
+            'creditaccount' => [201], 'creditamount' => ['0.30'],
+        ];
+        $this->assertSame([], $validator->validate($data, []));
+        $data['creditamount'][0] = '0.31';
+        $this->assertArrayHasKey('balancevalidation', $validator->validate($data, []));
+        $data['creditamount'][0] = '0.304';
+        $this->assertSame([], $validator->validate($data, []));
+        $data['creditamount'][0] = '0.305';
+        $this->assertArrayHasKey('balancevalidation', $validator->validate($data, []));
+    }
+
+    /**
      * The translated label is displayed for zero and round-trips as a numeric option.
      *
      * @dataProvider account_count_provider

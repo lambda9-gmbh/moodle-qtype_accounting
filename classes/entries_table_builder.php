@@ -445,20 +445,20 @@ class entries_table_builder {
         $amount = $entry->{$side . 'amount'} ?? '';
         $accountid = $entry->{$side . 'accountid'} ?? 0;
         // Saved one-sided entries store zero for the absent side.
-        if ($amount === '' || (!$accountid && (float)$amount == 0)) {
+        if ($amount === '' || (!$accountid && amount_helper::parse_cents((string)$amount, 'us') === 0)) {
             return '';
         }
-        return $this->format_amount((float)$amount, $numberformat);
+        return $this->format_amount($amount, $numberformat);
     }
 
     /**
-     * Format a float amount for display inside the edit form.
+     * Format a decimal amount for display inside the edit form.
      *
-     * @param float $amount The amount value.
+     * @param string|int|float $amount Canonical decimal amount.
      * @param string $numberformat 'de' or 'us'.
      * @return string The formatted amount.
      */
-    protected function format_amount(float $amount, string $numberformat = 'de'): string {
+    protected function format_amount($amount, string $numberformat = 'de'): string {
         return amount_helper::format_amount($amount, $numberformat);
     }
 }

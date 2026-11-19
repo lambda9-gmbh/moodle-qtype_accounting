@@ -14,6 +14,40 @@ const read = file => process.env.ACCOUNTING_EDITFORM_TEST_REVISION
         {cwd: root, encoding: 'utf8'})
     : readFileSync(path.join(root, file), 'utf8');
 
+test('balance validation uses cents for split amounts and large totals in both formats', () => {
+    for (const format of ['de', 'us']) {
+        const dom = new JSDOM(`<form><table class="qtype_accounting-edit-table"><tbody>
+            ${[0, 1].map(index => `<tr class="qtype_accounting-entry-row" data-entry-index="${index}">
+                <td><input class="qtype_accounting-debitamount"></td>
+                <td><input class="qtype_accounting-creditamount"></td></tr>`).join('')}
+            </tbody></table></form>`);
+        const document = dom.window.document;
+        const context = vm.createContext({document, M: {util: {get_string: key => key}}});
+        vm.runInContext(read('amd/src/entry_utils.js')
+            .replace(/^import .*;$/gm, '').replace(/export \{[\s\S]*?\};/, '') +
+            ';globalThis.EntryUtils = {parseCents};', context);
+        vm.runInContext(read('amd/src/editform.js')
+            .replace(/^import .*;$/gm, '').replace('export {init};', '') +
+            `;editForm = document.querySelector('form'); numberFormatSelect = {value: '${format}'};`, context);
+        const debits = document.querySelectorAll('.qtype_accounting-debitamount');
+        const credits = document.querySelectorAll('.qtype_accounting-creditamount');
+        const decimal = value => value.replace('.', format === 'de' ? ',' : '.');
+        debits[0].value = decimal('0.10');
+        debits[1].value = decimal('0.20');
+        credits[0].value = decimal('0.30');
+        assert.equal(vm.runInContext('validateBalance()', context), true);
+        credits[0].value = decimal('0.31');
+        assert.equal(vm.runInContext('validateBalance()', context), false);
+        debits[0].value = decimal('9999999999999.99');
+        debits[1].value = decimal('9999999999999.98');
+        credits[0].value = decimal('9999999999999.99');
+        credits[1].value = decimal('9999999999999.98');
+        assert.equal(vm.runInContext('validateBalance()', context), true);
+        credits[1].value = decimal('9999999999999.99');
+        assert.equal(vm.runInContext('validateBalance()', context), false);
+    }
+});
+
 function row(index, type = 'both') {
     return `<tr class="qtype_accounting-entry-row" data-entry-index="${index}" data-entry-type="${type}">
         <td></td><td><input value="bank"></td><td><input value="100"></td>

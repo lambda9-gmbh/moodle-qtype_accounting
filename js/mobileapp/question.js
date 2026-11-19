@@ -68,11 +68,17 @@ const accountingComponent = {
             }
             const value = String(entry.amount ?? '').trim();
             const plain = numberFormat === 'de' ? value.replace(/\./g, '').replace(',', '.') : value.replace(/,/g, '');
-            const amount = parseFloat(plain);
-            entry.amount = isNaN(amount) ? '' : amount.toLocaleString(numberFormat === 'us' ? 'en-US' : 'de-DE', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-            });
+            const match = plain.match(/^([+-]?)(\d*)(?:\.(\d*))?$/);
+            if (!match || !/\d/.test(plain)) {
+                entry.amount = '';
+                return;
+            }
+            const fraction = (match[3] || '').padEnd(3, '0');
+            const cents = BigInt((match[2] || '0') + fraction.slice(0, 2)) + (fraction[2] >= '5' ? 1n : 0n);
+            const digits = String(cents).padStart(3, '0');
+            const whole = digits.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, numberFormat === 'us' ? ',' : '.');
+            entry.amount = (match[1] === '-' && cents !== 0n ? '-' : '') + whole +
+                (numberFormat === 'us' ? '.' : ',') + digits.slice(-2);
         };
 
         // Local answers can contain rows not present in the server's last saved HTML.

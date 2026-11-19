@@ -36,6 +36,52 @@ require_once($CFG->dirroot . '/question/type/accounting/question.php');
  */
 final class question_test extends \advanced_testcase {
     /**
+     * Hint files follow interactive hint progression and feedback visibility.
+     */
+    public function test_hint_file_access_follows_applicable_hint(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $question = \test_question_maker::make_question('accounting', 'simple_debit_credit');
+        $question->hints = [
+            new \question_hint_with_parts(17, 'First hint', FORMAT_HTML, true, true),
+            new \question_hint_with_parts(18, 'Second hint', FORMAT_HTML, false, false),
+        ];
+        $usage = \question_engine::make_questions_usage_by_activity('core_question_preview', \context_system::instance());
+        $usage->set_preferred_behaviour('interactive');
+        $slot = $usage->add_question($question);
+        $usage->start_all_questions();
+        $qa = $usage->get_question_attempt($slot);
+        $options = new \question_display_options();
+        $options->feedback = \question_display_options::VISIBLE;
+        $this->assertFalse($question->check_file_access($qa, $options, 'question', 'hint', [17, 'hint.png'], false));
+
+        $response = $question->get_correct_response();
+        $response['debitamount_0'] = '12,50';
+        $usage->process_action($slot, $response + ['-submit' => 1]);
+        $this->assertEquals(17, $qa->get_applicable_hint()->id);
+        $this->assertTrue($question->check_file_access($qa, $options, 'question', 'hint', [17, 'hint.png'], false));
+        $this->assertFalse($question->check_file_access($qa, $options, 'question', 'hint', [18, 'hint.png'], false));
+        $options->feedback = \question_display_options::HIDDEN;
+        $this->assertFalse($question->check_file_access($qa, $options, 'question', 'hint', [17, 'hint.png'], false));
+
+        $options->feedback = \question_display_options::VISIBLE;
+        $usage->process_action($slot, ['-tryagain' => 1]);
+        $this->assertFalse($question->check_file_access($qa, $options, 'question', 'hint', [17, 'hint.png'], false));
+        $response['debitamount_0'] = '25,00';
+        $usage->process_action($slot, $response + ['-submit' => 1]);
+        $this->assertEquals(18, $qa->get_applicable_hint()->id);
+        $this->assertTrue($question->check_file_access($qa, $options, 'question', 'hint', [18, 'hint.png'], false));
+        $this->assertFalse($question->check_file_access($qa, $options, 'question', 'hint', [17, 'hint.png'], false));
+
+        // Other file areas still use the standard question access checks.
+        $this->assertTrue($question->check_file_access($qa, $options, 'question', 'questiontext', [$question->id], false));
+        $this->assertFalse($question->check_file_access($qa, $options, 'question', 'questiontext', [$question->id + 1], false));
+        $this->assertFalse($question->check_file_access($qa, $options, 'other', 'hint', [18], false));
+        $options->generalfeedback = \question_display_options::HIDDEN;
+        $this->assertFalse($question->check_file_access($qa, $options, 'question', 'generalfeedback', [$question->id], false));
+    }
+
+    /**
      * Test getting expected data keys.
      */
     public function test_get_expected_data(): void {
@@ -107,6 +153,59 @@ final class question_test extends \advanced_testcase {
         $response['debitamount_1'] = '600,00';
         $this->assertSame([4, 4], $question->get_num_parts_right($response));
         $this->assertSame($response, $question->clear_wrong_from_response($response));
+    }
+
+    /**
+     * Grading, summary feedback, cell feedback and hints agree on split decimal amounts.
+     */
+    public function test_split_cents_across_grading_feedback_and_hints(): void {
+        foreach (['de', 'us'] as $format) {
+            $question = \test_question_maker::make_question('accounting', 'simple_debit_credit');
+            $question->numberformat = $format;
+            $question->entries[0]['debitamount'] = '0.30';
+            $question->entries[0]['creditamount'] = '0.30';
+            $response = $question->get_correct_response();
+            $response['debitamount_0'] = amount_helper::format_cents(10, $format);
+            $response['debitaccount_1'] = 101;
+            $response['debitamount_1'] = amount_helper::format_cents(20, $format);
+            $feedback = new feedback_calculator();
+
+            $this->assertSame(1.0, $question->grade_response($response)[0]);
+            $this->assertTrue($feedback->calculate_aggregated_feedback($question, $response)['all_correct']);
+            $cells = $feedback->build_cell_feedback_map($question, $response);
+            $this->assertSame('qtype_accounting-correct', $cells[0]['debitamount']);
+            $this->assertSame([4, 4], $question->get_num_parts_right($response));
+            $this->assertSame($response, $question->clear_wrong_from_response($response));
+
+            // A difference of one cent is incorrect on both sides of the expected total.
+            foreach ([19, 21] as $cents) {
+                $response['debitamount_1'] = amount_helper::format_cents($cents, $format);
+                $this->assertSame(0.75, $question->grade_response($response)[0]);
+                $this->assertFalse($feedback->calculate_aggregated_feedback($question, $response)['all_correct']);
+                $cells = $feedback->build_cell_feedback_map($question, $response);
+                $this->assertSame('qtype_accounting-incorrect', $cells[1]['debitamount']);
+                $this->assertSame([3, 4], $question->get_num_parts_right($response));
+                $this->assertSame('', $question->clear_wrong_from_response($response)['debitamount_0']);
+            }
+        }
+    }
+
+    /**
+     * Correct answers split into several rows also aggregate as cents.
+     */
+    public function test_correct_answer_split_cents(): void {
+        $question = \test_question_maker::make_question('accounting', 'simple_debit_credit');
+        $first = $question->entries[0];
+        $first['debitamount'] = '0.10';
+        $first['creditamount'] = '0.10';
+        $second = $first;
+        $second['debitamount'] = '0.20';
+        $second['creditamount'] = '0.20';
+        $question->entries = [$first, $second];
+        $response = ['debitaccount_0' => 101, 'debitamount_0' => '0,30',
+            'creditaccount_0' => 201, 'creditamount_0' => '0,30'];
+        $this->assertSame(1.0, $question->grade_response($response)[0]);
+        $this->assertTrue((new feedback_calculator())->calculate_aggregated_feedback($question, $response)['all_correct']);
     }
 
     /**
@@ -285,16 +384,15 @@ final class question_test extends \advanced_testcase {
     }
 
     /**
-     * Test grading with floating point tolerance.
+     * Extra decimal places round to cents before grading.
      */
-    public function test_grade_response_float_tolerance(): void {
+    public function test_grade_response_cent_rounding(): void {
         $question = \test_question_maker::make_question('accounting', 'simple_debit_credit');
-        // Use US number format so the float -> string coercion ("1000.005") parses correctly.
+        // Use US number format so canonical decimal input parses correctly.
         // In German format, dots are thousand separators and would be stripped.
         $question->numberformat = 'us';
 
-        // Response with tiny floating point difference (under the 0.01 tolerance).
-        $response = qtype_accounting_test_helper::make_response(101, 1000.005, 201, 1000.005);
+        $response = qtype_accounting_test_helper::make_response(101, 1000.004, 201, 1000.004);
         [$fraction, $state] = $question->grade_response($response);
 
         $this->assertEquals(1.0, $fraction);
