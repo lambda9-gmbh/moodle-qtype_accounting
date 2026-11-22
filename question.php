@@ -93,27 +93,6 @@ class qtype_accounting_question extends question_graded_automatically {
     }
 
     /**
-     * Find the highest entry index present across one or more response arrays.
-     *
-     * Scans array keys for patterns like debitaccount_N or creditaccount_N and returns
-     * the highest N found, or -1 if no matching keys exist.
-     *
-     * @param array ...$responses One or more response arrays to scan.
-     * @return int The highest entry index found, or -1 if none.
-     */
-    protected static function get_max_entry_index(array ...$responses): int {
-        $maxindex = -1;
-        foreach ($responses as $response) {
-            foreach (array_keys($response) as $key) {
-                if (preg_match('/^(?:debitaccount|creditaccount)_(\d+)$/', $key, $matches)) {
-                    $maxindex = max($maxindex, (int)$matches[1]);
-                }
-            }
-        }
-        return $maxindex;
-    }
-
-    /**
      * Get the expected data keys for the question.
      *
      * Declares all fields offered by the web and app interfaces, retaining larger
@@ -169,7 +148,7 @@ class qtype_accounting_question extends question_graded_automatically {
      */
     public function summarise_response(array $response): ?string {
         $parts = [];
-        $max = self::get_max_entry_index($response);
+        $max = \qtype_accounting\aggregator::max_index($response);
 
         for ($i = 0; $i <= $max; $i++) {
             $debitaccountid = (int)($response["debitaccount_{$i}"] ?? 0);
@@ -205,7 +184,7 @@ class qtype_accounting_question extends question_graded_automatically {
      */
     public function is_complete_response(array $response): bool {
         // Response is complete if any entry has an account filled in.
-        $max = self::get_max_entry_index($response);
+        $max = \qtype_accounting\aggregator::max_index($response);
         for ($i = 0; $i <= $max; $i++) {
             $debitaccountid = (int)($response["debitaccount_{$i}"] ?? 0);
             $creditaccountid = (int)($response["creditaccount_{$i}"] ?? 0);
@@ -248,7 +227,7 @@ class qtype_accounting_question extends question_graded_automatically {
      * @return bool True if the responses are the same.
      */
     public function is_same_response(array $prevresponse, array $newresponse): bool {
-        $max = self::get_max_entry_index($prevresponse, $newresponse);
+        $max = \qtype_accounting\aggregator::max_index($prevresponse, $newresponse);
         for ($i = 0; $i <= $max; $i++) {
             $fields = ["debitaccount_{$i}", "debitamount_{$i}", "creditaccount_{$i}", "creditamount_{$i}"];
             foreach ($fields as $field) {

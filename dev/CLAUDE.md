@@ -41,6 +41,7 @@ moodle-qtype_accounting/                  # Unpacks to question/type/accounting/
 ├── backup/moodle2/                       # Backup + restore handlers
 ├── classes/                              # PSR-4 autoloaded under qtype_accounting\
 │   ├── account_manager.php               # Account CRUD
+│   ├── aggregator.php                    # Sums entries per side and account (grading + feedback)
 │   ├── account_provider.php              # Dropdown filtering + seeded shuffle
 │   ├── amount_helper.php                 # Number-format parsing/formatting
 │   ├── answer_renderer.php               # Renders the "correct answer" block

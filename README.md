@@ -223,7 +223,7 @@ Charts of deleted courses, question banks and course categories are removed, unl
 
 ## Grading model
 
-`classes/scorer.php` aggregates entries by `(side, account)` rather than matching rows positionally. This means the order in which a student types their entries does not matter — only the totals per account on each side. The flow is:
+`classes/scorer.php` aggregates entries by `(side, account)` (via `classes/aggregator.php`, which the field feedback uses as well) rather than matching rows positionally. This means the order in which a student types their entries does not matter — only the totals per account on each side. The flow is:
 
 1. **Aggregate the correct answer.** Sum amounts and per-field weights, grouped by `(side, account)`.
 2. **Aggregate the student's response** the same way.

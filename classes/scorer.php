@@ -99,7 +99,7 @@ class scorer {
      * @return int The maximum points.
      */
     public function max_points(array $correctentries): int {
-        $aggregated = $this->aggregate_entries($correctentries, false);
+        $aggregated = aggregator::aggregate($correctentries);
         return count($aggregated['debit']) + count($aggregated['credit']);
     }
 
@@ -118,9 +118,9 @@ class scorer {
         if (empty($correctentries)) {
             return 0;
         }
-        $studententries = $this->parse_response($response);
-        $correctaggregated = $this->aggregate_entries($correctentries, true);
-        $studentaggregated = $this->aggregate_entries($studententries, false);
+        $studententries = aggregator::parse_response($response, $this->numberformat);
+        $correctaggregated = aggregator::aggregate($correctentries, true);
+        $studentaggregated = aggregator::aggregate($studententries);
 
         if ($this->gradingmode === self::GRADINGMODE_POINTS) {
             $debit = $this->score_side_points($correctaggregated['debit'], $studentaggregated['debit']);
@@ -287,73 +287,6 @@ class scorer {
     }
 
     /**
-     * Aggregate entries by account ID on each side (Debit/Credit).
-     *
-     * For each account on each side, sums integer cents. For correct entries, also sums the weights.
-     *
-     * @param array $entries The entries to aggregate.
-     * @param bool $includeweights Whether to include and aggregate weights (for correct entries).
-     * @return array Aggregated data with amounts in cents and 'debit' and 'credit' keys.
-     */
-    public function aggregate_entries(array $entries, bool $includeweights): array {
-        $aggregated = ['debit' => [], 'credit' => []];
-        foreach ($entries as $entry) {
-            $this->add_to_side(
-                $aggregated,
-                'debit',
-                (int)($entry['debitaccountid'] ?? 0),
-                amount_helper::parse_cents((string)($entry['debitamount'] ?? 0), 'us'),
-                $includeweights,
-                (int)($entry['weight_debitaccount'] ?? 1),
-                (int)($entry['weight_debitamount'] ?? 1)
-            );
-            $this->add_to_side(
-                $aggregated,
-                'credit',
-                (int)($entry['creditaccountid'] ?? 0),
-                amount_helper::parse_cents((string)($entry['creditamount'] ?? 0), 'us'),
-                $includeweights,
-                (int)($entry['weight_creditaccount'] ?? 1),
-                (int)($entry['weight_creditamount'] ?? 1)
-            );
-        }
-        return $aggregated;
-    }
-
-    /**
-     * Add one entry's amount (and optionally weights) to the aggregation for one side.
-     *
-     * @param array $aggregated Aggregation accumulator (modified in place).
-     * @param string $side 'debit' or 'credit'.
-     * @param int $accountid Account ID; if 0, nothing is added.
-     * @param int $amount Amount to add in cents.
-     * @param bool $includeweights Whether to also sum the weights.
-     * @param int $weightaccount Weight contribution for the account match.
-     * @param int $weightamount Weight contribution for the amount match.
-     */
-    protected function add_to_side(
-        array &$aggregated,
-        string $side,
-        int $accountid,
-        int $amount,
-        bool $includeweights,
-        int $weightaccount,
-        int $weightamount
-    ): void {
-        if ($accountid <= 0) {
-            return;
-        }
-        if (!isset($aggregated[$side][$accountid])) {
-            $aggregated[$side][$accountid] = ['amount' => 0, 'weight_account' => 0, 'weight_amount' => 0];
-        }
-        $aggregated[$side][$accountid]['amount'] += $amount;
-        if ($includeweights) {
-            $aggregated[$side][$accountid]['weight_account'] += $weightaccount;
-            $aggregated[$side][$accountid]['weight_amount'] += $weightamount;
-        }
-    }
-
-    /**
      * Compare monetary totals in integer cents.
      *
      * @param int $amount1 First total in cents.
@@ -372,8 +305,8 @@ class scorer {
      * @return array Correctness keyed by side and correct account ID.
      */
     public function response_parts(array $correctentries, array $response): array {
-        $correct = $this->aggregate_entries($correctentries, true);
-        $student = $this->aggregate_entries($this->parse_response($response), false);
+        $correct = aggregator::aggregate($correctentries, true);
+        $student = aggregator::aggregate_response($response, $this->numberformat);
         $parts = ['debit' => [], 'credit' => []];
         foreach ($correct as $side => $accounts) {
             foreach ($accounts as $id => $account) {
@@ -385,52 +318,5 @@ class scorer {
             }
         }
         return $parts;
-    }
-
-    /**
-     * Parse a Moodle response array into structured entry rows.
-     *
-     * @param array $response The response data.
-     * @return array Entry rows with account IDs and canonical decimal amount strings.
-     */
-    public function parse_response(array $response): array {
-        $entries = [];
-        $max = $this->max_response_index($response);
-        for ($i = 0; $i <= $max; $i++) {
-            $debitaccountid = (int)($response["debitaccount_{$i}"] ?? 0);
-            $creditaccountid = (int)($response["creditaccount_{$i}"] ?? 0);
-            if ($debitaccountid <= 0 && $creditaccountid <= 0) {
-                continue;
-            }
-            $entries[] = [
-                'debitaccountid' => $debitaccountid,
-                'debitamount' => amount_helper::decimal_amount(amount_helper::parse_cents(
-                    $response["debitamount_{$i}"] ?? '',
-                    $this->numberformat
-                )),
-                'creditaccountid' => $creditaccountid,
-                'creditamount' => amount_helper::decimal_amount(amount_helper::parse_cents(
-                    $response["creditamount_{$i}"] ?? '',
-                    $this->numberformat
-                )),
-            ];
-        }
-        return $entries;
-    }
-
-    /**
-     * Find the highest entry index N present in the response (debitaccount_N / creditaccount_N).
-     *
-     * @param array $response The response data.
-     * @return int Highest index, or -1 if none.
-     */
-    protected function max_response_index(array $response): int {
-        $maxindex = -1;
-        foreach (array_keys($response) as $key) {
-            if (preg_match('/^(?:debitaccount|creditaccount)_(\d+)$/', $key, $matches)) {
-                $maxindex = max($maxindex, (int)$matches[1]);
-            }
-        }
-        return $maxindex;
     }
 }
