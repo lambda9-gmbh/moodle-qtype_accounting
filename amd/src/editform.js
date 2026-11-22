@@ -110,7 +110,7 @@ function init() {
 
     // Setup event handlers.
     setupChartChangeHandler();
-    const refreshCharts = createChartRefreshCallback(config.courseId);
+    const refreshCharts = createChartRefreshCallback(config.contextId);
     initChartOverlay(refreshCharts);
     setupNumberFormatChangeHandler();
     setupDebitaccountChangeHandler();
@@ -193,12 +193,12 @@ function setupChartChangeHandler() {
 /**
  * Create the refresh callback used when chart management closes, keeping the question form in place.
  *
- * @param {number} courseId Course ID.
+ * @param {number} contextId Question bank context ID.
  * @returns {Function|null} Refresh callback, or null outside a course.
  */
-function createChartRefreshCallback(courseId) {
+function createChartRefreshCallback(contextId) {
     const status = document.getElementById('qtype_accounting-refresh-status');
-    if (!status || !chartSelect || !courseId) {
+    if (!status || !chartSelect || !contextId) {
         return null;
     }
     let pendingRefresh = Promise.resolve();
@@ -212,7 +212,7 @@ function createChartRefreshCallback(courseId) {
             ]);
             const charts = await ajaxCall([{
                 methodname: 'qtype_accounting_get_charts',
-                args: {courseid: courseId},
+                args: {contextid: contextId},
             }])[0];
             unavailableMessage = messages[2];
             // Read selections after the request: the teacher may edit while it is in flight.
@@ -223,9 +223,9 @@ function createChartRefreshCallback(courseId) {
                 chartSelect.remove(1);
             }
             charts.forEach(function(chart) {
-                const label = document.createElement('div');
-                label.innerHTML = chart.name;
-                chartSelect.add(new Option(label.textContent, chart.id));
+                // The name is formatted for HTML output; the option needs its plain text.
+                const label = new DOMParser().parseFromString(chart.name, 'text/html').body.textContent;
+                chartSelect.add(new Option(label, chart.id));
                 freshAccounts[chart.id] = {};
                 chart.accounts.forEach(function(account) {
                     freshAccounts[chart.id][account.id] = account.name;

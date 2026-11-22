@@ -56,7 +56,7 @@ class qtype_accounting extends question_type {
     }
 
     /**
-     * Move files from the old area to the new.
+     * Move files from the old area to the new, and give the question a chart in its new question bank.
      *
      * @param int $questionid The question ID.
      * @param int $oldcontextid The old context ID.
@@ -65,6 +65,7 @@ class qtype_accounting extends question_type {
     public function move_files($questionid, $oldcontextid, $newcontextid): void {
         parent::move_files($questionid, $oldcontextid, $newcontextid);
         $this->move_files_in_hints($questionid, $oldcontextid, $newcontextid);
+        \qtype_accounting\chart_relocator::relocate_question((int)$questionid, \context::instance_by_id($newcontextid));
     }
 
     /**
@@ -139,6 +140,10 @@ class qtype_accounting extends question_type {
             $this->save_entries($question->id, $arrays);
 
             $this->save_hints($question, true);
+            if (!empty($question->context)) {
+                // A question saved into another question bank gets a chart in that bank.
+                \qtype_accounting\chart_relocator::relocate_question((int)$question->id, $question->context);
+            }
             $transaction->allow_commit();
         } catch (\Exception $exception) {
             $transaction->rollback($exception);

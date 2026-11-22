@@ -23,7 +23,7 @@ require_once($CFG->dirroot . '/question/type/accounting/tests/behat/behat_qtype_
 
 #[\PHPUnit\Framework\Attributes\CoversMethod(\behat_qtype_accounting::class, 'accounting_questions_exist')]
 /**
- * Test question fixture ownership across course and module question contexts.
+ * Test that question fixtures put charts into the question bank of their category.
  *
  * @package    qtype_accounting
  * @copyright  2026 Hochschule Flensburg / lambda9
@@ -32,9 +32,9 @@ require_once($CFG->dirroot . '/question/type/accounting/tests/behat/behat_qtype_
  */
 final class behat_fixture_test extends \advanced_testcase {
     /**
-     * A module-owned question must use a chart visible to its owning course.
+     * A module-owned question uses a chart of its own question bank, not of the course.
      */
-    public function test_module_question_chart_belongs_to_course(): void {
+    public function test_module_question_chart_belongs_to_question_bank(): void {
         global $DB;
         $this->resetAfterTest();
         $course = $this->getDataGenerator()->create_course();
@@ -49,9 +49,9 @@ final class behat_fixture_test extends \advanced_testcase {
             [$category->name, 'Module bank accounting question', '1200', '8400'],
         ]));
 
-        $chart = chart_manager::get_chart_by_name('Accounting test chart', $coursecontext->id);
+        $chart = chart_manager::get_chart_by_name('Accounting test chart', $modulecontext->id);
         $this->assertNotFalse($chart);
-        $this->assertFalse(chart_manager::get_chart_by_name('Accounting test chart', $modulecontext->id));
+        $this->assertFalse(chart_manager::get_chart_by_name('Accounting test chart', $coursecontext->id));
         $questionid = $DB->get_field('question', 'id', ['name' => 'Module bank accounting question'], MUST_EXIST);
         $this->assertEquals(
             $chart->id,

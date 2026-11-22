@@ -399,7 +399,7 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
      * Resolve the chart of accounts for the current question.
      *
      * 1. If no chart data in backup, return 0.
-     * 2. Find existing match in target course context, including charts created for earlier questions.
+     * 2. Find existing match in the question bank context, including charts created for earlier questions.
      * 3. If no match, create new chart + accounts.
      *
      * @return int The resolved chart ID, or 0 if no chart data.
@@ -409,10 +409,10 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
             return 0;
         }
 
-        // Determine target course context.
-        $courseid = $this->step->get_task()->get_courseid();
-        $coursecontext = context_course::instance($courseid);
-        $contextid = $coursecontext->id;
+        // Charts belong to the question bank of the restored question; fall back to the target course.
+        $context = \qtype_accounting\chart_manager::get_question_context($this->get_new_parentid('question'))
+            ?? context_course::instance($this->step->get_task()->get_courseid());
+        $contextid = (int)\qtype_accounting\chart_manager::get_chart_context($context)->id;
 
         // Build accounts array keyed by account name for matching.
         $accountsbyname = [];

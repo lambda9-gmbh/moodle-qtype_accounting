@@ -20,6 +20,9 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - Chart management opens in a desktop overlay from the question editor and automatically refreshes chart and account options on close while preserving unsaved question entries. The overlay protects unfinished chart edits and waits for saves to complete.
 - Charts of accounts can now be created directly in Moodle by entering a name, then adding accounts in the existing editor without uploading a CSV file.
 
+### Changed
+- Charts of accounts belong to the question bank of their questions instead of the course, matching Moodle 5 question banks. Moving a question to another question bank, or saving it into one, reuses or copies its chart there and switches the question and its attempts to that chart. The upgrade moves charts out of contexts that can no longer hold questions. The chart pages and the `qtype_accounting_get_charts` web service take a context ID instead of a course ID.
+
 ### Fixed
 - Charts of accounts of deleted courses, question banks and course categories are removed, unless a question still uses them. An upgrade step removes charts left behind earlier.
 - The student entry table stays inside the content area and switches to cards when the question is narrow, e.g. next to open drawers.

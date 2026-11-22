@@ -27,7 +27,7 @@ defined('MOODLE_INTERNAL') || die();
 $functions = [
     'qtype_accounting_get_charts' => [
         'classname' => \qtype_accounting\external\get_charts::class,
-        'description' => 'Get the current charts and accounts for a course.',
+        'description' => 'Get the current charts and accounts for a question bank.',
         'type' => 'read',
         'ajax' => true,
         'capabilities' => 'qtype/accounting:managecharts',

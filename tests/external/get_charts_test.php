@@ -31,20 +31,30 @@ use qtype_accounting\chart_manager;
  */
 final class get_charts_test extends \advanced_testcase {
     /**
-     * Return empty charts and fresh accounts, without exposing another course's data.
+     * Get the question bank context ID of a course, which owns the course's charts.
+     *
+     * @param \stdClass $course The course.
+     * @return int The context ID.
+     */
+    private function bank(\stdClass $course): int {
+        return (int)chart_manager::get_chart_context(\context_course::instance($course->id))->id;
+    }
+
+    /**
+     * Return empty charts and fresh accounts, without exposing another question bank's data.
      */
     public function test_fresh_course_options(): void {
         $this->resetAfterTest();
         $this->setAdminUser();
         $course = $this->getDataGenerator()->create_course();
-        $context = \context_course::instance($course->id);
+        $context = \context::instance_by_id($this->bank($course));
         $emptyid = chart_manager::create_chart('Empty', $context->id);
         $chartid = chart_manager::create_chart('Main', $context->id);
         $accountid = account_manager::add($chartid, 'Bank');
         $othercourse = $this->getDataGenerator()->create_course();
-        chart_manager::create_chart('Outside', \context_course::instance($othercourse->id)->id);
+        chart_manager::create_chart('Outside', $this->bank($othercourse));
 
-        $result = external_api::clean_returnvalue(get_charts::execute_returns(), get_charts::execute($course->id));
+        $result = external_api::clean_returnvalue(get_charts::execute_returns(), get_charts::execute($this->bank($course)));
         $this->assertSame([
             ['id' => (int)$emptyid, 'name' => 'Empty', 'accounts' => []],
             ['id' => (int)$chartid, 'name' => 'Main', 'accounts' => [
@@ -56,19 +66,19 @@ final class get_charts_test extends \advanced_testcase {
         chart_manager::update_chart($chartid, 'Renamed');
         account_manager::delete($accountid);
         $newaccountid = account_manager::add($chartid, 'Cash');
-        $result = external_api::clean_returnvalue(get_charts::execute_returns(), get_charts::execute($course->id));
+        $result = external_api::clean_returnvalue(get_charts::execute_returns(), get_charts::execute($this->bank($course)));
         $this->assertSame([
             ['id' => (int)$chartid, 'name' => 'Renamed', 'accounts' => [
                 ['id' => (int)$newaccountid, 'name' => 'Cash'],
             ]],
         ], $result);
         chart_manager::delete_chart($chartid);
-        $this->assertSame([], get_charts::execute($course->id));
+        $this->assertSame([], get_charts::execute($this->bank($course)));
 
         // Site charts are offered after the course charts and marked as such.
         $sitechartid = chart_manager::create_chart('Standard', \context_system::instance()->id);
         $siteaccountid = account_manager::add($sitechartid, 'Bank');
-        $result = external_api::clean_returnvalue(get_charts::execute_returns(), get_charts::execute($course->id));
+        $result = external_api::clean_returnvalue(get_charts::execute_returns(), get_charts::execute($this->bank($course)));
         $this->assertSame([
             ['id' => (int)$sitechartid, 'name' => get_string('sitechart_suffix', 'qtype_accounting', 'Standard'), 'accounts' => [
                 ['id' => (int)$siteaccountid, 'name' => 'Bank'],
@@ -84,9 +94,10 @@ final class get_charts_test extends \advanced_testcase {
         $course = $this->getDataGenerator()->create_course();
         $student = $this->getDataGenerator()->create_user();
         $this->getDataGenerator()->enrol_user($student->id, $course->id, 'student');
+        $bank = $this->bank($course);
         $this->setUser($student);
         $this->expectException(\required_capability_exception::class);
-        get_charts::execute($course->id);
+        get_charts::execute($bank);
     }
 
     /**
@@ -99,9 +110,11 @@ final class get_charts_test extends \advanced_testcase {
         $teacher = $this->getDataGenerator()->create_user();
         $this->getDataGenerator()->enrol_user($teacher->id, $course->id, 'editingteacher');
         $this->getDataGenerator()->enrol_user($teacher->id, $othercourse->id, 'student');
+        $bank = $this->bank($course);
+        $otherbank = $this->bank($othercourse);
         $this->setUser($teacher);
-        $this->assertSame([], get_charts::execute($course->id));
+        $this->assertSame([], get_charts::execute($bank));
         $this->expectException(\required_capability_exception::class);
-        get_charts::execute($othercourse->id);
+        get_charts::execute($otherbank);
     }
 }

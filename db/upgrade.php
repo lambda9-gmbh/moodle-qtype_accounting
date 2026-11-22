@@ -424,5 +424,11 @@ function xmldb_qtype_accounting_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026112206, 'qtype', 'accounting');
     }
 
+    if ($oldversion < 2026112207) {
+        // Charts belong to question banks: move them out of contexts that can no longer hold questions.
+        \qtype_accounting\chart_relocator::relocate_all();
+        upgrade_plugin_savepoint(true, 2026112207, 'qtype', 'accounting');
+    }
+
     return true;
 }

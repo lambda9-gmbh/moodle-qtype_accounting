@@ -38,23 +38,21 @@ class get_charts extends external_api {
      */
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
-            'courseid' => new external_value(PARAM_INT, 'Course ID'),
+            'contextid' => new external_value(PARAM_INT, 'Question bank context ID'),
         ]);
     }
 
     /**
-     * Get charts and accounts available in the requested course, including the site charts.
+     * Get charts and accounts available in the requested question bank, including the site charts.
      *
-     * @param int $courseid Course ID.
+     * @param int $contextid Question bank context ID.
      * @return array Chart records with their accounts.
      */
-    public static function execute(int $courseid): array {
+    public static function execute(int $contextid): array {
         global $DB;
 
-        $params = self::validate_parameters(self::execute_parameters(), ['courseid' => $courseid]);
-        $course = get_course($params['courseid']);
-        require_login($course);
-        $context = \context_course::instance($course->id);
+        $params = self::validate_parameters(self::execute_parameters(), ['contextid' => $contextid]);
+        $context = chart_manager::get_chart_context(\context::instance_by_id($params['contextid']));
         self::validate_context($context);
         require_capability('qtype/accounting:managecharts', $context);
 
@@ -92,10 +90,10 @@ class get_charts extends external_api {
     public static function execute_returns(): external_multiple_structure {
         return new external_multiple_structure(new external_single_structure([
             'id' => new external_value(PARAM_INT, 'Chart ID'),
-            'name' => new external_value(PARAM_RAW, 'Chart name'),
+            'name' => new external_value(PARAM_RAW, 'Chart name, formatted for HTML output'),
             'accounts' => new external_multiple_structure(new external_single_structure([
                 'id' => new external_value(PARAM_INT, 'Account ID'),
-                'name' => new external_value(PARAM_RAW, 'Account name'),
+                'name' => new external_value(PARAM_RAW, 'Account name, unformatted'),
             ])),
         ]));
     }

@@ -1,6 +1,6 @@
 # Accounting Entry (Buchungssatz) question type for Moodle
 
-A Moodle question type for practising double-entry bookkeeping. Students record one or more journal entries (Buchungssätze) by picking debit and credit accounts from a course-scoped chart of accounts and entering amounts. Grading is weighted per field, with an optional all-or-nothing mode and an optional penalty for extra entries.
+A Moodle question type for practising double-entry bookkeeping. Students record one or more journal entries (Buchungssätze) by picking debit and credit accounts from a chart of accounts of the question bank and entering amounts. Grading is weighted per field, with an optional all-or-nothing mode and an optional penalty for extra entries.
 
 Developed for **Hochschule Flensburg** by **lambda9**.
 
@@ -78,7 +78,7 @@ After submission, every field is highlighted individually — green for correct,
 - **Decoy accounts in dropdowns** — "Number of additional accounts in selection list" controls how many random extra accounts appear alongside the correct ones. `0` shows the entire chart.
 - **Number format toggle** — `1,234.56` (US) or `1.234,56` (DE).
 - **Currency symbol** — €, $, £, CHF or none after the amount fields; the site default is preselected.
-- Course-scoped charts of accounts, manageable directly from the question form.
+- Charts of accounts per question bank, manageable directly from the question form.
 - Chart management opens in a large overlay. Choose **Done** to return to the question; chart and account dropdowns refresh automatically while keeping unsaved question entries. Removed selections are flagged for replacement before saving. Unfinished chart edits require confirmation before closing.
 - Create charts of accounts directly in Moodle, import CSV/text or ODS files, and export CSV files (one account per line; UTF-8 or Windows-1252).
 - Question import and export through Moodle's standard XML format, with the embedded chart of accounts travelling with the question.
@@ -136,7 +136,7 @@ for the app theme, and submits explicit native hidden fields for every answer.
 1. Place the plugin source so that `version.php` sits at `<moodledir>/question/type/accounting/version.php`.
 2. As a site administrator, visit **Site administration → Notifications**. Moodle will detect the new plugin and run `install.xml`.
 
-The settings page (**Site administration → Plugins → Question types → Accounting Entry**) sets the default grading mode and the site-wide grading rules for points mode (see [Grading model](#grading-model)), controls whether the leading "Dr." / "Per" label column of the booking table is shown (default: shown), sets the minimum width of the amount inputs (default: 175 px), controls whether the question editor offers "Number of additional accounts in selection list" (default: offered), sets the default currency whose symbol is shown after the amount fields (default: €; each question can choose its own), and manages the site charts of accounts (see [Site charts of accounts](#site-charts-of-accounts)). All other configuration is per question, and course charts of accounts are scoped to courses.
+The settings page (**Site administration → Plugins → Question types → Accounting Entry**) sets the default grading mode and the site-wide grading rules for points mode (see [Grading model](#grading-model)), controls whether the leading "Dr." / "Per" label column of the booking table is shown (default: shown), sets the minimum width of the amount inputs (default: 175 px), controls whether the question editor offers "Number of additional accounts in selection list" (default: offered), sets the default currency whose symbol is shown after the amount fields (default: €; each question can choose its own), and manages the site charts of accounts (see [Site charts of accounts](#site-charts-of-accounts)). All other configuration is per question, and other charts of accounts belong to question banks.
 
 ---
 
@@ -181,7 +181,9 @@ Below those options is the **Correct Answer** table. Each row contributes to gra
 
 ## Managing charts of accounts
 
-Charts are stored per **course context**, so each course has its own list and one course's charts don't appear in another's question forms.
+Charts belong to the **question bank** that holds the question: the course question bank up to Moodle 4.5, the question bank activity (`mod_qbank`) or quiz from Moodle 5.0. Each question bank has its own list, and one bank's charts don't appear in another's question forms.
+
+When a question moves to another question bank, or is saved into a category of another bank, the chart moves with it: an identical chart in the target bank is reused, otherwise the chart is copied. The question's correct answer and saved attempts are switched to the accounts of that chart. Charts in course contexts that can no longer hold questions (Moodle 5.0 and later) move to the course's question bank, also during the plugin upgrade.
 
 You reach the management page from within the question authoring form: when you create or edit an Accounting Entry question, click **Manage Charts of Accounts** in the chart selector. The page requires the `qtype/accounting:managecharts` capability, granted to `manager` and `editingteacher` by default.
 
@@ -211,9 +213,11 @@ ODS imports read one account name per row from column A of the first sheet. Othe
 
 Administrators can provide standard charts for all courses on the plugin's settings page (**Site administration → Plugins → Question types → Accounting Entry**). It lists the site charts with edit, download and delete actions; **Create or upload a site chart of accounts** opens the same create and upload forms as in a course. Managing site charts requires `moodle/site:config`.
 
-Site charts appear in every question form after the course's own charts, marked as *(site default)*. In a course they are read-only: the course management page lists them with **Download** and **Copy to this course**, so teachers can adapt a copy. Teachers can still create and upload their own course charts.
+Site charts appear in every question form after the question bank's own charts, marked as *(site default)*. In a question bank they are read-only: the management page lists them with **Download** and **Copy to this question bank**, so teachers can adapt a copy. Teachers can still create and upload their own charts.
 
-When questions are restored or imported, a matching chart in the target course is reused first, then a matching site chart; otherwise a course chart is created.
+When questions are restored or imported, a matching chart in the target question bank is reused first, then a matching site chart; otherwise a chart is created in the target question bank.
+
+Charts of deleted courses, question banks and course categories are removed, unless a question still uses them.
 
 ---
 
@@ -263,7 +267,7 @@ Use **Question bank → Export** / **Import** as you would for any other questio
 
 ## Backup and restore
 
-The plugin implements both backup and restore via `backup/moodle2/`. Course backups include questions of this type along with their referenced chart of accounts. Restoring a course recreates the chart in the target course's context (deduplicating against any matching existing chart).
+The plugin implements both backup and restore via `backup/moodle2/`. Course backups include questions of this type along with their referenced chart of accounts. Restoring a course recreates the chart in the question bank of the restored questions (deduplicating against any matching existing chart).
 
 ---
 
@@ -271,7 +275,7 @@ The plugin implements both backup and restore via `backup/moodle2/`. Course back
 
 | Capability | Default roles | Risk | Purpose |
 |---|---|---|---|
-| `qtype/accounting:managecharts` | `manager`, `editingteacher` | `RISK_CONFIG` | Create, edit, upload, download, and delete charts of accounts at course level. |
+| `qtype/accounting:managecharts` | `manager`, `editingteacher` | `RISK_CONFIG` | Create, edit, upload, download, and delete charts of accounts of a question bank. |
 
 Authors of questions inherit existing Moodle question capabilities (`moodle/question:add`, etc.) — no extra capability is needed to write Buchungssatz questions beyond standard Moodle quiz/question permissions.
 
@@ -578,7 +582,7 @@ moodle-qtype_accounting/                 # Plugin root; unpacks to question/type
 │   └── questiontype_test.php            # PHPUnit: save/load + XML
 ├── edit_accounting_form.php             # Question authoring form
 ├── edit_chart.php                       # Edit a single chart's accounts
-├── manage_charts.php                    # Course-scoped chart list
+├── manage_charts.php                    # Chart list of a question bank, or the site charts
 ├── question.php                         # qtype_accounting_question
 ├── questiontype.php                     # qtype_accounting (question_type)
 ├── renderer.php                         # qtype_accounting_renderer

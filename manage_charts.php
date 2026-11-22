@@ -15,14 +15,15 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Manage charts of accounts for a course, or the site charts when no course is given.
+ * Manage charts of accounts for a question bank, or the site charts when no question bank is given.
  *
  * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require_once(__DIR__ . '/../../../config.php');
+// Login and capabilities are checked by chart_page::setup() for the requested context.
+require_once(__DIR__ . '/../../../config.php'); // phpcs:ignore moodle.Files.RequireLogin.Missing
 require_once($CFG->libdir . '/formslib.php');
 
 use qtype_accounting\chart_manager;
@@ -55,7 +56,7 @@ class qtype_accounting_chart_upload_form extends moodleform {
     }
 }
 
-$courseid = optional_param('courseid', 0, PARAM_INT);
+$bankcontext = \qtype_accounting\local\chart_page::get_requested_context();
 $action = optional_param('action', '', PARAM_ALPHA);
 $chartid = optional_param('chartid', 0, PARAM_INT);
 $sort = optional_param('sort', 'name', PARAM_ALPHA);
@@ -63,8 +64,8 @@ $dir = optional_param('dir', 'ASC', PARAM_ALPHA);
 $returnurl = optional_param('returnurl', '', PARAM_LOCALURL);
 $embedded = optional_param('embedded', false, PARAM_BOOL);
 
-// Without a course, the site charts offered to every course are managed.
-$urlparams = $courseid ? ['courseid' => $courseid] : [];
+// Without a question bank context, the site charts offered to every question bank are managed.
+$urlparams = \qtype_accounting\local\chart_page::url_params($bankcontext);
 $baseurl = new moodle_url('/question/type/accounting/manage_charts.php', $urlparams);
 if ($embedded) {
     $baseurl->param('embedded', 1);
@@ -72,26 +73,14 @@ if ($embedded) {
 if ($returnurl !== '') {
     $baseurl->param('returnurl', $returnurl);
 }
-if ($courseid) {
-    $course = get_course($courseid);
-    require_login($course);
-    $context = context_course::instance($course->id);
-    require_capability('qtype/accounting:managecharts', $context);
-    $PAGE->set_url($baseurl);
-    $PAGE->set_context($context);
-    $PAGE->set_pagelayout($embedded ? 'embedded' : 'incourse');
-    if ($embedded) {
-        $PAGE->add_body_class('qtype_accounting-chart-embedded');
-    }
-    $PAGE->set_title(get_string('managecharts', 'qtype_accounting'));
-    $PAGE->set_heading($course->fullname);
-} else {
-    require_once($CFG->libdir . '/adminlib.php');
-    admin_externalpage_setup('qtype_accounting_sitecharts', '', $baseurl->params(), $baseurl);
-    $context = context_system::instance();
-}
+$context = \qtype_accounting\local\chart_page::setup(
+    $bankcontext,
+    $baseurl,
+    get_string('managecharts', 'qtype_accounting'),
+    $embedded
+);
 // Site charts are listed on the plugin's settings page, so actions return there.
-$doneurl = $courseid ? $baseurl : new moodle_url('/admin/settings.php', ['section' => 'qtypesettingaccounting']);
+$doneurl = $bankcontext ? $baseurl : new moodle_url('/admin/settings.php', ['section' => 'qtypesettingaccounting']);
 
 // Handle delete action.
 if ($action === 'delete' && $chartid) {
@@ -121,7 +110,7 @@ if ($action === 'delete' && $chartid) {
     exit;
 }
 
-// Handle export action. Site charts can be exported from every course.
+// Handle export action. Site charts can be exported from every question bank.
 if ($action === 'export' && $chartid) {
     $chart = chart_manager::get_chart($chartid);
     if (!$chart || ((int)$chart->contextid !== (int)$context->id && !chart_manager::is_site_chart($chart))) {
@@ -137,8 +126,8 @@ if ($action === 'export' && $chartid) {
     exit;
 }
 
-// Copy a site chart into the course so that teachers can adapt it.
-if ($action === 'copysite' && $chartid && $courseid) {
+// Copy a site chart into the question bank so that teachers can adapt it.
+if ($action === 'copysite' && $chartid && $bankcontext) {
     require_sesskey();
     $chart = chart_manager::get_chart($chartid);
     if (!$chart || !chart_manager::is_site_chart($chart)) {
@@ -207,8 +196,8 @@ if ($data = $uploadform->get_data()) {
 // Display the page.
 $PAGE->requires->js_call_amd('qtype_accounting/manage_charts', 'init');
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string($courseid ? 'managecharts' : 'sitecharts_add', 'qtype_accounting'));
-if (!$courseid) {
+echo $OUTPUT->heading(get_string($bankcontext ? 'managecharts' : 'sitecharts_add', 'qtype_accounting'));
+if (!$bankcontext) {
     echo html_writer::link($doneurl, '&laquo; ' . get_string('sitecharts', 'qtype_accounting'));
 }
 
@@ -220,9 +209,9 @@ echo $OUTPUT->heading(get_string('uploadchartcsv', 'qtype_accounting'), 3);
 $uploadform->display();
 
 // Charts table. Site charts are listed on the settings page instead.
-$charts = $courseid ? chart_manager::get_charts_for_context($context->id, $sort, $dir) : [];
+$charts = $bankcontext ? chart_manager::get_charts_for_context($context->id, $sort, $dir) : [];
 
-if (empty($charts) && $courseid) {
+if (empty($charts) && $bankcontext) {
     echo html_writer::tag('p', get_string('nocharts', 'qtype_accounting'), ['class' => 'alert alert-info']);
 } else if ($charts) {
     // Build sortable table headers.
@@ -293,11 +282,11 @@ if (empty($charts) && $courseid) {
     echo html_writer::table($table);
 }
 
-// Site charts are read-only in a course, but can be exported or copied into the course.
-$sitecharts = $courseid ? chart_manager::get_charts_for_context(context_system::instance()->id) : [];
+// Site charts are read-only in a question bank, but can be exported or copied into it.
+$sitecharts = $bankcontext ? chart_manager::get_charts_for_context(context_system::instance()->id) : [];
 if ($sitecharts) {
     echo $OUTPUT->heading(get_string('sitecharts', 'qtype_accounting'), 3);
-    echo html_writer::tag('p', get_string('sitecharts_course_desc', 'qtype_accounting'));
+    echo html_writer::tag('p', get_string('sitecharts_bank_desc', 'qtype_accounting'));
     [$insql, $params] = $DB->get_in_or_equal(array_keys($sitecharts));
     $counts = $DB->get_records_sql_menu(
         "SELECT chartid, COUNT(1) FROM {qtype_accounting_accounts} WHERE chartid $insql GROUP BY chartid",
@@ -318,7 +307,7 @@ if ($sitecharts) {
                 $OUTPUT->pix_icon('i/export', get_string('exportaccounts', 'qtype_accounting'))
             ) . ' ' . html_writer::link(
                 $copyurl,
-                $OUTPUT->pix_icon('t/copy', get_string('copytocourse', 'qtype_accounting'))
+                $OUTPUT->pix_icon('t/copy', get_string('copytobank', 'qtype_accounting'))
             ),
         ];
     }

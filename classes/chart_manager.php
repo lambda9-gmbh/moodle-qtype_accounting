@@ -167,18 +167,84 @@ class chart_manager {
     }
 
     /**
-     * Get the charts a question in the given course may use: the course's own charts and the site charts.
+     * Whether questions are kept in modules (question banks) only, as from Moodle 5.0.
      *
-     * Course charts come first, then site charts; each group is sorted by name.
+     * @return bool True if course and category contexts no longer hold questions.
+     */
+    public static function questions_in_modules_only(): bool {
+        return \core_component::get_component_directory('mod_qbank') !== null;
+    }
+
+    /**
+     * Whether charts may belong to a context: a question bank context or the system context (site charts).
      *
-     * @param int|null $coursecontextid The course context ID, or null outside a course (site charts only).
+     * Charts belong to the question bank that holds the questions using them. Up to Moodle 4.5 questions
+     * live in course, course category or module contexts; from Moodle 5.0 only in module contexts.
+     *
+     * @param \context $context The context.
+     * @return bool True if charts may be stored in this context.
+     */
+    public static function is_chart_context(\context $context): bool {
+        if ($context->contextlevel == CONTEXT_SYSTEM || $context->contextlevel == CONTEXT_MODULE) {
+            return true;
+        }
+        return !self::questions_in_modules_only()
+            && in_array($context->contextlevel, [CONTEXT_COURSE, CONTEXT_COURSECAT]);
+    }
+
+    /**
+     * Get the context whose charts a question in the given context uses.
+     *
+     * This is the question bank context. A course context, which from Moodle 5.0 no longer holds questions,
+     * maps to the course's default question bank; other contexts without question banks map to the site charts.
+     *
+     * @param \context $context The question category context, or another context in the course.
+     * @return \context The chart context.
+     */
+    public static function get_chart_context(\context $context): \context {
+        if (self::is_chart_context($context)) {
+            return $context;
+        }
+        if ($context->contextlevel == CONTEXT_COURSE) {
+            $course = get_course($context->instanceid);
+            $cm = \core_question\local\bank\question_bank_helper::get_default_open_instance_system_type($course, true);
+            return \context_module::instance($cm->id);
+        }
+        return \context_system::instance();
+    }
+
+    /**
+     * Get the context of the category that holds a question.
+     *
+     * @param int $questionid The question ID.
+     * @return \context|null The question category context, or null if the question has no category.
+     */
+    public static function get_question_context(int $questionid): ?\context {
+        global $DB;
+        $contextid = $DB->get_field_sql(
+            "SELECT qc.contextid
+               FROM {question_versions} qv
+               JOIN {question_bank_entries} qbe ON qbe.id = qv.questionbankentryid
+               JOIN {question_categories} qc ON qc.id = qbe.questioncategoryid
+              WHERE qv.questionid = ?",
+            [$questionid]
+        );
+        return $contextid ? \context::instance_by_id($contextid, IGNORE_MISSING) ?: null : null;
+    }
+
+    /**
+     * Get the charts a question in the given chart context may use: the context's own charts and the site charts.
+     *
+     * Own charts come first, then site charts; each group is sorted by name.
+     *
+     * @param int|null $contextid The chart context ID (see {@see get_chart_context()}), or null for site charts only.
      * @return array The chart records keyed by ID.
      */
-    public static function get_available_charts(?int $coursecontextid): array {
+    public static function get_available_charts(?int $contextid): array {
         global $DB;
 
         $systemcontextid = (int)\context_system::instance()->id;
-        $contextids = array_unique(array_filter([(int)$coursecontextid, $systemcontextid]));
+        $contextids = array_unique(array_filter([(int)$contextid, $systemcontextid]));
         [$insql, $params] = $DB->get_in_or_equal($contextids, SQL_PARAMS_NAMED);
         $params['syscontextid'] = $systemcontextid;
         return $DB->get_records_sql(
@@ -207,7 +273,7 @@ class chart_manager {
      * Find a chart that contains the given accounts, preferring the target context over site charts.
      *
      * @param string $name Chart name to search for.
-     * @param int $contextid Target context ID (usually the course context).
+     * @param int $contextid Target chart context ID (see {@see get_chart_context()}).
      * @param array $accounts Array of account data keyed by account name.
      * @param bool $exact Require exactly these accounts in the same order, see {@see find_matching_chart_in_context()}.
      * @return int|null Chart ID if a matching chart is found, null otherwise.

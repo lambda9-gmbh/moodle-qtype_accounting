@@ -162,27 +162,23 @@ class xml_handler {
     }
 
     /**
-     * Determine the target course context ID for chart resolution during import.
+     * Determine the target chart context ID for chart resolution during import.
      *
-     * Falls back through course → category context → 0.
+     * Charts belong to the question bank of the target category; without a category the course's
+     * question bank is used.
      *
      * @param \qformat_xml $format The XML format helper (carries $course / $category metadata).
      * @return int The context ID to use, or 0 if none could be resolved.
      */
     public function resolve_contextid(\qformat_xml $format): int {
-        if (!empty($format->course->id)) {
-            return \context_course::instance($format->course->id)->id;
+        $context = null;
+        if (!empty($format->category->contextid)) {
+            $context = \context::instance_by_id($format->category->contextid, IGNORE_MISSING);
         }
-        if (empty($format->category->contextid)) {
-            return 0;
+        if (!$context && !empty($format->course->id)) {
+            $context = \context_course::instance($format->course->id);
         }
-        // Category context may be a course context or a system context.
-        $catcontext = \context::instance_by_id($format->category->contextid, IGNORE_MISSING);
-        if (!$catcontext) {
-            return 0;
-        }
-        $coursecontext = $catcontext->get_course_context(false);
-        return $coursecontext ? $coursecontext->id : $catcontext->id;
+        return $context ? (int)chart_manager::get_chart_context($context)->id : 0;
     }
 
     /**

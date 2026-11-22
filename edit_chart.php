@@ -22,7 +22,8 @@
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require_once(__DIR__ . '/../../../config.php');
+// Login and capabilities are checked by chart_page::setup() for the requested context.
+require_once(__DIR__ . '/../../../config.php'); // phpcs:ignore moodle.Files.RequireLogin.Missing
 require_once($CFG->libdir . '/formslib.php');
 
 use qtype_accounting\chart_manager;
@@ -55,7 +56,7 @@ class qtype_accounting_chart_account_import_form extends moodleform {
     }
 }
 
-$courseid = optional_param('courseid', 0, PARAM_INT);
+$bankcontext = \qtype_accounting\local\chart_page::get_requested_context();
 $chartid = required_param('chartid', PARAM_INT);
 $action = optional_param('action', '', PARAM_ALPHA);
 $accountid = optional_param('accountid', 0, PARAM_INT);
@@ -63,9 +64,9 @@ $editaccount = optional_param('editaccount', 0, PARAM_INT);
 $returnurl = optional_param('returnurl', '', PARAM_LOCALURL);
 $embedded = optional_param('embedded', false, PARAM_BOOL);
 
-// Without a course, a site chart is edited from the plugin's settings page.
-$urlparams = $courseid ? ['courseid' => $courseid] : [];
-if ($courseid) {
+// Without a question bank context, a site chart is edited from the plugin's settings page.
+$urlparams = \qtype_accounting\local\chart_page::url_params($bankcontext);
+if ($bankcontext) {
     $manageurl = new moodle_url('/question/type/accounting/manage_charts.php', $urlparams);
     if ($returnurl !== '') {
         $manageurl->param('returnurl', $returnurl);
@@ -82,36 +83,25 @@ if ($embedded) {
     $baseurl->param('embedded', 1);
 }
 
-if ($courseid) {
-    $course = get_course($courseid);
-    require_login($course);
-    $context = context_course::instance($course->id);
-    require_capability('qtype/accounting:managecharts', $context);
-} else {
-    require_once($CFG->libdir . '/adminlib.php');
-    admin_externalpage_setup('qtype_accounting_sitecharts', '', $baseurl->params(), $baseurl);
-    $context = context_system::instance();
-}
+$chart = chart_manager::get_chart($chartid);
+$context = \qtype_accounting\local\chart_page::setup(
+    $bankcontext,
+    $baseurl,
+    get_string('editchart', 'qtype_accounting') . ($chart ? ': ' . format_string(
+        $chart->name,
+        true,
+        ['context' => $bankcontext ?? context_system::instance()]
+    ) : ''),
+    $embedded
+);
 
 // Verify chart belongs to this context.
-$chart = chart_manager::get_chart($chartid);
 if (!$chart || (int)$chart->contextid !== (int)$context->id) {
     throw new moodle_exception('chartnotfound', 'qtype_accounting');
 }
 
-if ($courseid) {
-    $PAGE->set_url($baseurl);
-    $PAGE->set_context($context);
-    $PAGE->set_pagelayout($embedded ? 'embedded' : 'incourse');
-    $PAGE->set_heading($course->fullname);
-    if ($embedded) {
-        $PAGE->add_body_class('qtype_accounting-chart-embedded');
-    }
-}
-$PAGE->set_title(get_string('editchart', 'qtype_accounting') . ': ' . format_string($chart->name));
-
 // Breadcrumbs. On the admin page the site charts entry is already part of the navigation.
-if ($courseid) {
+if ($bankcontext) {
     $PAGE->navbar->add(
         get_string('managecharts', 'qtype_accounting'),
         $manageurl
@@ -407,7 +397,7 @@ echo html_writer::start_div(
     'qtype_accounting-chart-actions d-flex flex-wrap justify-content-center align-items-center mt-4 mb-3',
     ['style' => 'gap: 0.5rem;']
 );
-echo html_writer::link($manageurl, '&laquo; ' . get_string($courseid ? 'managecharts' : 'sitecharts', 'qtype_accounting'), [
+echo html_writer::link($manageurl, '&laquo; ' . get_string($bankcontext ? 'managecharts' : 'sitecharts', 'qtype_accounting'), [
     'class' => 'btn btn-primary',
 ]);
 echo html_writer::link($exporturl, get_string('exportaccounts', 'qtype_accounting'), [

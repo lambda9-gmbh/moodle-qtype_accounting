@@ -230,8 +230,8 @@ class qtype_accounting_edit_form extends question_edit_form {
             ])),
             $select,
         ];
-        $coursecontext = $this->context->get_course_context(false);
-        if ($coursecontext) {
+        $chartcontext = $this->get_chart_context();
+        if ($chartcontext) {
             $elements[] = $mform->createElement('html', html_writer::span('', 'mx-2', [
                 'id' => 'qtype_accounting-refresh-status',
                 'role' => 'status',
@@ -251,12 +251,12 @@ class qtype_accounting_edit_form extends question_edit_form {
             ));
         }
 
-        if (!$coursecontext) {
+        if (!$chartcontext) {
             return;
         }
         $manageurl = new moodle_url(
             '/question/type/accounting/manage_charts.php',
-            ['courseid' => $coursecontext->instanceid]
+            ['contextid' => $chartcontext->id]
         );
         $mform->addElement(
             'static',
@@ -355,12 +355,12 @@ class qtype_accounting_edit_form extends question_edit_form {
             }
         }
 
-        $coursecontext = $this->context->get_course_context(false);
+        $chartcontext = $this->get_chart_context();
         $jsdata = [
             'accounts' => $allaccounts,
             'chartId' => $currentchartid,
             'entries' => $existingentries,
-            'courseId' => $coursecontext ? $coursecontext->instanceid : 0,
+            'contextId' => $chartcontext ? $chartcontext->id : 0,
             'numberFormat' => $effectiveformat,
             'maxEntries' => max(\qtype_accounting\entry_helper::MAX_ENTRIES, $entrycount),
         ];
@@ -454,12 +454,12 @@ class qtype_accounting_edit_form extends question_edit_form {
             $entries,
             $format
         ));
-        $coursecontext = $this->context->get_course_context(false);
+        $chartcontext = $this->get_chart_context();
         $config = [
             'accounts' => $allaccounts,
             'chartId' => $chartid,
             'entries' => $entries,
-            'courseId' => $coursecontext ? $coursecontext->instanceid : 0,
+            'contextId' => $chartcontext ? $chartcontext->id : 0,
             'numberFormat' => $format,
             'maxEntries' => max(\qtype_accounting\entry_helper::MAX_ENTRIES, count($entries)),
         ];
@@ -549,15 +549,25 @@ class qtype_accounting_edit_form extends question_edit_form {
     }
 
     /**
-     * Get available charts of accounts: the course's own charts and the site charts.
+     * Get the context whose own charts this question bank offers.
+     *
+     * @return \context|null The question bank context, or null for question banks that only offer site charts.
+     */
+    protected function get_chart_context(): ?\context {
+        $context = \qtype_accounting\chart_manager::get_chart_context($this->context);
+        return $context->contextlevel == CONTEXT_SYSTEM ? null : $context;
+    }
+
+    /**
+     * Get available charts of accounts: the question bank's own charts and the site charts.
      *
      * @return array The available charts keyed by ID.
      */
     protected function get_available_charts(): array {
         $charts = [0 => get_string('nochartselected', 'qtype_accounting')];
 
-        $coursecontext = $this->context->get_course_context(false);
-        $records = \qtype_accounting\chart_manager::get_available_charts($coursecontext ? (int)$coursecontext->id : null);
+        $chartcontext = $this->get_chart_context();
+        $records = \qtype_accounting\chart_manager::get_available_charts($chartcontext ? (int)$chartcontext->id : null);
         foreach ($records as $record) {
             $charts[$record->id] = \qtype_accounting\chart_manager::get_display_name($record, $this->context, false);
         }

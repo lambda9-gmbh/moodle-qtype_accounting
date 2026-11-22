@@ -2,7 +2,7 @@
 
 Internal developer notes. Not shipped: `dev/` is `export-ignore`d in `.gitattributes`.
 
-The plugin lets instructors author accounting journal-entry questions (Buchungssätze) where students pick debit/credit accounts from a course-scoped chart of accounts and enter amounts. Developed for **Hochschule Flensburg** by **lambda9**.
+The plugin lets instructors author accounting journal-entry questions (Buchungssätze) where students pick debit/credit accounts from a chart of accounts of the question bank and enter amounts. Developed for **Hochschule Flensburg** by **lambda9**.
 
 ## Coding standards
 
@@ -77,7 +77,7 @@ moodle-qtype_accounting/                  # Unpacks to question/type/accounting/
 │   └── questiontype_test.php
 ├── edit_accounting_form.php              # qtype_accounting_edit_form (question authoring)
 ├── edit_chart.php                        # Per-chart edit page (manages accounts in one chart)
-├── manage_charts.php                     # Course-scoped chart list / upload / delete
+├── manage_charts.php                     # Chart list / upload / delete of a question bank or the site
 ├── question.php                          # qtype_accounting_question (question_graded_automatically)
 ├── questiontype.php                      # qtype_accounting (question_type)
 ├── renderer.php                          # qtype_accounting_renderer
@@ -121,7 +121,7 @@ All tables are frankenstyle-prefixed `qtype_accounting_`:
 | `qtype_accounting_options` | Per-question settings | `id`, `questionid`, `chartofaccountsid`, `accountsindropdown`, `numberformat`, `extraentrydeduction`, `allornothinggrading`, `allowmultipleentries`, `maxentries` |
 | `qtype_accounting_entries` | Correct-answer rows | `id`, `questionid`, `sortorder`, `debitaccountid`, `debitamount`, `creditaccountid`, `creditamount`, `weight_debit/credit_account/amount`, `explanation` |
 
-Charts live at a **course context**; capability `qtype/accounting:managecharts` is required to edit them. The chart-of-accounts ID is referenced from `qtype_accounting_options.chartofaccountsid`.
+Charts live in the **question bank context** of their questions (course context up to Moodle 4.5, `mod_qbank`/quiz module context from 5.0) or in the system context (site charts); `chart_relocator` moves or copies them when questions change banks. Capability `qtype/accounting:managecharts` is required to edit them. The chart-of-accounts ID is referenced from `qtype_accounting_options.chartofaccountsid`.
 
 ## Grading model
 
