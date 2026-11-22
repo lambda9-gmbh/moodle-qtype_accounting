@@ -344,7 +344,7 @@ Development scripts use the Docker containers for PHP, Composer, Node, database
 clients, and tests. No host language toolchain is required for builds or CI.
 GitHub Actions uses the standard Moodle Plugin CI setup with
 `shivammathur/setup-php` and `moodle-plugin-ci`, running Moodle checks, PHPUnit,
-and Behat against Moodle 4.5/5.1 with both MariaDB and PostgreSQL.
+and Behat against Moodle 4.5/5.1/5.2/5.3 with both MariaDB and PostgreSQL.
 
 ### Bring up the stack
 
@@ -535,7 +535,7 @@ size errors. Runtime tests use the mounted Moodle installation.
 Run against an already provisioned development stack. These scripts do not
 install missing tools or start services. The local run covers the current
 Moodle/PHP/database environment with the configured Firefox browser; GitHub
-Actions covers Moodle 4.5/5.1 with MariaDB/PostgreSQL using PHP 8.3 and Chrome.
+Actions covers Moodle 4.5/5.1/5.2/5.3 with MariaDB/PostgreSQL using PHP 8.3 and Chrome.
 The browser runner copies current upload fixtures into Selenium so file uploads
 can resolve the same paths as Moodle without recreating containers.
 

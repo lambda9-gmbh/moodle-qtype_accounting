@@ -21,6 +21,7 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - Charts of accounts can now be created directly in Moodle by entering a name, then adding accounts in the existing editor without uploading a CSV file.
 
 ### Changed
+- GitHub Actions also run the full check suite against Moodle 5.2 and 5.3 on MariaDB and PostgreSQL.
 - The booking table, the correct answer, the feedback summary and the editor's entry table are rendered from Mustache templates (renderables in `classes/output/`), so themes can override them. The HTML structure used by the JavaScript and the Moodle App is unchanged.
 - Charts of accounts belong to the question bank of their questions instead of the course, matching Moodle 5 question banks. Moving a question to another question bank, or saving it into one, reuses or copies its chart there and switches the question and its attempts to that chart. The upgrade moves charts out of contexts that can no longer hold questions. The chart pages and the `qtype_accounting_get_charts` web service take a context ID instead of a course ID.
 
