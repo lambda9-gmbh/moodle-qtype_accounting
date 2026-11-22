@@ -8,6 +8,10 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 ## [Unreleased]
 
 ### Added
+- Points grading mode: one point per account-amount pair, with the default mark derived from the correct answer, site-wide rules for strict pairs and accounts without amounts, and a point deduction per extra account.
+- Site-wide charts of accounts managed on the plugin settings page; they are offered in every course after the course charts, are read-only in courses, can be copied into a course, and are reused on restore and XML import.
+- Site settings to hide the leading "Dr." / "Per" column, set the minimum width of the amount inputs, and hide the "Number of additional accounts in selection list" option.
+- Selectable currency symbol (€, $, £, CHF or none) after the amount fields, in the review and in the correct answer, with a site default.
 - ODS chart uploads and account imports, reading column A of the first worksheet with the same header and duplicate handling as CSV imports.
 - GitHub Actions checks for Moodle 4.5 and 5.1 on MariaDB and PostgreSQL, using the standard Moodle Plugin CI setup. Added number-format, restore-attempt, hint-option, no-JavaScript form, and atomic-import regressions.
 - Working interactive hint options for clearing incorrect fields and showing correct parts, random-question selection, and response-analysis classifications.
@@ -17,6 +21,9 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - Charts of accounts can now be created directly in Moodle by entering a name, then adding accounts in the existing editor without uploading a CSV file.
 
 ### Fixed
+- The student entry table stays inside the content area and switches to cards when the question is narrow, e.g. next to open drawers.
+- Students can no longer delete the last entry of the debit or credit side.
+- Delete buttons fit the narrow table columns, and the chart editor no longer uses Bootstrap 4 classes removed in Bootstrap 5.
 - Updated question-form and restore fixtures for Moodle 5.1 module question banks, preserving per-bank identity and account-mapping assertions. Tests use the current XML parser and PHPUnit attribute metadata while remaining compatible with Moodle 4.5/PHPUnit 9.
 - Local Grunt checks build a container-native snapshot to avoid Docker Desktop file-size races during backup. Behat question fixtures keep charts in the owning course when question categories live in a Moodle 5.1 question-bank module context.
 - Local source scanners now inspect a complete working-tree snapshot and share explicit development/dependency exclusions with GitHub. Both runners verify scanner scope before linting; scope regressions reproduce the previously hidden GitHub failures when the filter is removed.
