@@ -1,0 +1,120 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle. If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template qtype_accounting/edit_entry_table
+
+    Table of correct entries in the question editor. Each entry has a row with accounts, amounts and
+    delete buttons and a row with the weights. The last entry is a <template> that
+    qtype_accounting/editform clones for new entries.
+
+    Context variables required for this template:
+    * hideper - Whether the leading Dr./Per column is hidden (site setting).
+    * weighttooltip - Explanation of the weights (HTML).
+    * rows - Entries with index, entrytype, istemplate, placeholder and sides; each side with isdebit, side,
+      hidden, options (value, label, selected), amount, amountid, accountlabel, amountlabel, error and
+      weights (field, label, tooltip, options with value and selected).
+
+    Example context (json): {
+        "hideper": false,
+        "weighttooltip": "Weights from 1 to 3.",
+        "rows": [
+            {"index": 0, "entrytype": "both", "istemplate": false, "placeholder": "0,00", "sides": [
+                {"isdebit": true, "side": "debit", "hidden": false, "amount": "12,50", "amountid": "id_debitamount_display_0",
+                    "accountlabel": "Debit Account", "amountlabel": "Debit Amount", "error": "",
+                    "options": [{"value": "12", "label": "Bank", "selected": true} ],
+                    "weights": [{"field": "debitaccount", "label": "Weight: Debit Account", "tooltip": true,
+                        "options": [{"value": 1, "selected": true}, {"value": 2, "selected": false} ] } ] },
+                {"isdebit": false, "side": "credit", "hidden": false, "amount": "", "amountid": "id_creditamount_display_0",
+                    "accountlabel": "Credit Account", "amountlabel": "Credit Amount", "error": "Enter an amount.",
+                    "options": [{"value": "14", "label": "Cash", "selected": false} ],
+                    "weights": [{"field": "creditaccount", "label": "Weight: Credit Account", "tooltip": false,
+                        "options": [{"value": 1, "selected": true} ] } ] }
+            ] }
+        ]
+    }
+}}
+<table class="table table-bordered qtype_accounting-edit-table{{#hideper}} qtype_accounting-hideper{{/hideper}}" id="qtype_accounting-entries-table">
+    <thead>
+        <tr>
+            <th class="qtype_accounting-edit-label"></th>
+            <th colspan="2" class="text-center">{{#str}}debit, qtype_accounting{{/str}}</th>
+            <th class="qtype_accounting-edit-label"></th>
+            <th colspan="2" class="text-center">{{#str}}credit, qtype_accounting{{/str}}</th>
+            <th class="qtype_accounting-edit-actions"></th>
+        </tr>
+        <tr>
+            <th class="qtype_accounting-edit-label">{{#str}}per, qtype_accounting{{/str}}</th>
+            <th>{{#str}}account, qtype_accounting{{/str}}</th>
+            <th>{{#str}}amount, qtype_accounting{{/str}}</th>
+            <th class="qtype_accounting-edit-label">{{#str}}an, qtype_accounting{{/str}}</th>
+            <th>{{#str}}account, qtype_accounting{{/str}}</th>
+            <th>{{#str}}amount, qtype_accounting{{/str}}</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody id="qtype_accounting-entries-body">
+        {{#rows}}
+        {{#istemplate}}<template id="qtype_accounting-entry-template">{{/istemplate}}
+        <tr class="qtype_accounting-entry-row" data-entry-index="{{index}}" data-entry-type="{{entrytype}}">
+            {{#sides}}
+            {{#isdebit}}<td class="qtype_accounting-edit-label{{#hidden}} qtype_accounting-hidden-cell{{/hidden}}"></td>{{/isdebit}}
+            <td class="qtype_accounting-edit-data{{#hidden}} qtype_accounting-hidden-cell{{/hidden}}">
+                <select name="{{side}}account_display[{{index}}]" data-index="{{index}}" class="form-control qtype_accounting-{{side}}account" aria-label="{{accountlabel}}">
+                    {{#options}}<option value="{{value}}"{{#selected}} selected{{/selected}}>{{label}}</option>{{/options}}
+                </select>
+            </td>
+            <td class="qtype_accounting-edit-data{{#hidden}} qtype_accounting-hidden-cell{{/hidden}}">
+                <input type="text" name="{{side}}amount_display[{{index}}]" id="{{amountid}}" value="{{amount}}" class="form-control qtype_accounting-{{side}}amount{{#error}} is-invalid{{/error}}" data-index="{{index}}" placeholder="{{placeholder}}" aria-label="{{amountlabel}}"{{#error}} aria-invalid="true" aria-describedby="{{amountid}}_error"{{/error}}>
+                {{#error}}<div class="qtype_accounting-account-error form-control-feedback invalid-feedback d-block" id="{{amountid}}_error">{{error}}</div>{{/error}}
+            </td>
+            {{#isdebit}}
+            <td class="qtype_accounting-edit-label{{#hidden}} qtype_accounting-hidden-cell{{/hidden}}"><button type="button" class="btn btn-sm btn-outline-danger qtype_accounting-delete-debit" data-index="{{index}}" title="{{#cleanstr}}deletedebit, qtype_accounting{{/cleanstr}}" aria-label="{{#cleanstr}}deletedebit, qtype_accounting{{/cleanstr}}">{{#pix}}t/delete, core{{/pix}}</button></td>
+            {{/isdebit}}
+            {{^isdebit}}
+            <td class="qtype_accounting-edit-actions{{#hidden}} qtype_accounting-hidden-cell{{/hidden}}"><button type="button" class="btn btn-sm btn-outline-danger qtype_accounting-delete-credit" data-index="{{index}}" title="{{#cleanstr}}deletecredit, qtype_accounting{{/cleanstr}}" aria-label="{{#cleanstr}}deletecredit, qtype_accounting{{/cleanstr}}">{{#pix}}t/delete, core{{/pix}}</button></td>
+            {{/isdebit}}
+            {{/sides}}
+        </tr>
+        <tr class="qtype_accounting-weight-row" data-entry-index="{{index}}">
+            {{#sides}}
+            {{#isdebit}}<td class="{{#hidden}}qtype_accounting-hidden-cell{{/hidden}}"></td>{{/isdebit}}
+            {{#weights}}
+            <td class="qtype_accounting-weight-cell{{#hidden}} qtype_accounting-hidden-cell{{/hidden}}">{{#str}}weight, qtype_accounting{{/str}}:
+                <select name="weight_{{field}}_display[{{index}}]" class="form-control qtype_accounting-weight" data-index="{{index}}" data-field="{{field}}" aria-label="{{label}}">
+                    {{#options}}<option value="{{value}}"{{#selected}} selected{{/selected}}>{{value}}</option>{{/options}}
+                </select>
+                {{#tooltip}}<a class="btn btn-link p-0" role="button" data-container="body" data-toggle="popover" data-placement="right" data-trigger="click" data-html="true" data-content="{{weighttooltip}}" tabindex="0">{{#pix}}help, core, {{#cleanstr}}weight, qtype_accounting{{/cleanstr}}{{/pix}}</a>{{/tooltip}}
+            </td>
+            {{/weights}}
+            <td class="{{#hidden}}qtype_accounting-hidden-cell{{/hidden}}"></td>
+            {{/sides}}
+        </tr>
+        {{#istemplate}}</template>{{/istemplate}}
+        {{/rows}}
+    </tbody>
+    <tfoot class="qtype_accounting-controls-footer">
+        <tr>
+            <td></td>
+            <td><button type="button" class="btn btn-secondary btn-sm qtype_accounting-add-debit-entry" id="qtype_accounting-add-debit-entry">+ {{#str}}adddebitentry, qtype_accounting{{/str}}</button></td>
+            <td></td>
+            <td></td>
+            <td><button type="button" class="btn btn-secondary btn-sm qtype_accounting-add-credit-entry" id="qtype_accounting-add-credit-entry">+ {{#str}}addcreditentry, qtype_accounting{{/str}}</button></td>
+            <td></td>
+            <td></td>
+        </tr>
+    </tfoot>
+</table>

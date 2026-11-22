@@ -29,7 +29,7 @@ require_once($CFG->dirroot . '/question/type/accounting/tests/helper.php');
  * @copyright  2026 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting_renderer
- * @covers     \qtype_accounting\answer_renderer
+ * @covers     \qtype_accounting\output\answer_table
  */
 final class walkthrough_test extends \qbehaviour_walkthrough_test_base {
     /**

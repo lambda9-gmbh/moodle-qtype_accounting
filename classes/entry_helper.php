@@ -48,64 +48,33 @@ class entry_helper {
     }
 
     /**
-     * Get CSS hidden classes for debit/credit cells based on entry type.
+     * Get which sides of an entry row are hidden for an entry type.
      *
-     * @param string $entrytype The entry type: 'both', 'debit', or 'credit'.
-     * @return array Associative array with 'debit' and 'credit' keys containing CSS class suffixes.
+     * @param string $entrytype 'both', 'debit', or 'credit'.
+     * @return array ['debit' => bool, 'credit' => bool], true where the side is hidden.
      */
-    public static function get_hidden_classes(string $entrytype): array {
-        $hiddenclass = 'qtype_accounting-hidden-cell';
-        return [
-            'debit' => ($entrytype === 'credit') ? ' ' . $hiddenclass : '',
-            'credit' => ($entrytype === 'debit') ? ' ' . $hiddenclass : '',
-        ];
+    public static function get_hidden_sides(string $entrytype): array {
+        return ['debit' => $entrytype === 'credit', 'credit' => $entrytype === 'debit'];
     }
 
     /**
-     * Render a delete button for one side of an entry.
+     * Build the template context of the options of an account select.
      *
-     * @param string $side The side: 'debit' or 'credit'.
-     * @param int|string $index The entry index.
-     * @param string $indexattr The data attribute name for the index (e.g., 'data-entry' or 'data-index').
-     * @return string The HTML for the delete button.
+     * @param array $accounts Account records keyed by ID, or account names keyed by ID.
+     * @param string $selected The selected account ID.
+     * @return array Options with the keys 'value', 'label' and 'selected'.
      */
-    public static function render_delete_button(string $side, $index, string $indexattr): string {
-        $cssclass = ($side === 'debit') ? 'qtype_accounting-delete-debit' : 'qtype_accounting-delete-credit';
-        $titlekey = ($side === 'debit') ? 'debit' : 'credit';
-        $title = get_string($titlekey, 'qtype_accounting');
-
-        return '<button type="button" class="btn btn-sm btn-outline-danger ' . $cssclass . '" ' .
-            $indexattr . '="' . s($index) . '" title="' . s($title) . '">' .
-            '<i class="fa fa-trash"></i>' .
-            '</button>';
-    }
-
-    /**
-     * Build HTML option elements for an account select dropdown.
-     *
-     * @param array $accounts Associative array of accountname => label, or array of objects with accountname.
-     * @param string $selected The currently selected account name.
-     * @param string $placeholder The placeholder text for the empty option.
-     * @return string The HTML option elements.
-     */
-    public static function build_account_options(array $accounts, string $selected, string $placeholder = ''): string {
-        $html = '';
-        if ($placeholder !== '') {
-            $html .= '<option value="">' . s($placeholder) . '</option>';
-        }
+    public static function account_options(array $accounts, string $selected): array {
+        $options = [];
         foreach ($accounts as $key => $value) {
-            if (is_object($value)) {
-                $optionvalue = (string)$value->id;
-                $label = $value->accountname;
-            } else {
-                // Associative array: key = account ID, value = account name.
-                $optionvalue = (string)$key;
-                $label = $value;
-            }
-            $selectedattr = ($optionvalue === (string)$selected) ? ' selected' : '';
-            $html .= '<option value="' . s($optionvalue) . '"' . $selectedattr . '>' . s($label) . '</option>';
+            $optionvalue = is_object($value) ? (string)$value->id : (string)$key;
+            $options[] = [
+                'value' => $optionvalue,
+                'label' => is_object($value) ? $value->accountname : $value,
+                'selected' => $optionvalue === (string)$selected,
+            ];
         }
-        return $html;
+        return $options;
     }
 
     /**

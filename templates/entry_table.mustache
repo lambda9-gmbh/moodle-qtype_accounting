@@ -1,0 +1,110 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle. If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template qtype_accounting/entry_table
+
+    Booking table in which students enter or review their entries. In edit mode the last row
+    is a <template> that qtype_accounting/question clones for new entries.
+
+    Context variables required for this template:
+    * hideper - Whether the leading Dr./Per column is hidden (site setting).
+    * style - CSS custom properties with the column widths.
+    * editable - Whether entries can be added and deleted.
+    * templateid - DOM ID of the row template.
+    * rows - Entry rows with index, entrytype, istemplate and sides; each side with isdebit, hidden and
+      the field contexts account and amount (see qtype_accounting/account_field and qtype_accounting/amount_field).
+
+    Example context (json): {
+        "hideper": false,
+        "style": "--qtype-accounting-amount-width: 175px;",
+        "editable": true,
+        "templateid": "qtype_accounting-entry-template-1",
+        "rows": [
+            {"index": 0, "entrytype": "both", "istemplate": false, "sides": [
+                {"isdebit": true, "hidden": false,
+                    "account": {"name": "q1:1_debitaccount_0", "value": "1", "options": [{"value": "1", "label": "Bank", "selected": true} ] },
+                    "amount": {"name": "q1:1_debitamount_0", "value": "100,00", "placeholder": "0,00", "currencysymbol": "€"} },
+                {"isdebit": false, "hidden": false,
+                    "account": {"name": "q1:1_creditaccount_0", "value": "", "options": [{"value": "1", "label": "Bank", "selected": false} ] },
+                    "amount": {"name": "q1:1_creditamount_0", "value": "", "placeholder": "0,00", "currencysymbol": "€"} }
+            ] }
+        ]
+    }
+}}
+<table class="table table-bordered qtype_accounting-student-table{{#hideper}} qtype_accounting-hideper{{/hideper}}" style="{{style}}">
+    <colgroup>
+        <col class="qtype_accounting-col-label">
+        <col class="qtype_accounting-col-account">
+        <col class="qtype_accounting-col-amount">
+        <col class="qtype_accounting-col-label{{#editable}} qtype_accounting-col-label-actions{{/editable}}">
+        <col class="qtype_accounting-col-account">
+        <col class="qtype_accounting-col-amount">
+        {{#editable}}<col class="qtype_accounting-col-actions">{{/editable}}
+    </colgroup>
+    <thead>
+        <tr>
+            <th class="qtype_accounting-label-cell"></th>
+            <th colspan="2" class="text-center">{{#str}}debit, qtype_accounting{{/str}}</th>
+            <th class="qtype_accounting-label-cell"></th>
+            <th colspan="2" class="text-center">{{#str}}credit, qtype_accounting{{/str}}</th>
+            {{#editable}}<th class="qtype_accounting-actions-cell"></th>{{/editable}}
+        </tr>
+        <tr>
+            <th class="qtype_accounting-label-cell">{{#str}}per, qtype_accounting{{/str}}</th>
+            <th>{{#str}}account, qtype_accounting{{/str}}</th>
+            <th>{{#str}}amount, qtype_accounting{{/str}}</th>
+            <th class="qtype_accounting-label-cell">{{#str}}an, qtype_accounting{{/str}}</th>
+            <th>{{#str}}account, qtype_accounting{{/str}}</th>
+            <th>{{#str}}amount, qtype_accounting{{/str}}</th>
+            {{#editable}}<th></th>{{/editable}}
+        </tr>
+    </thead>
+    <tbody class="qtype_accounting-entries">
+        {{#rows}}
+        {{#istemplate}}<template id="{{templateid}}">{{/istemplate}}
+        <tr class="qtype_accounting-entry-row" data-entry="{{index}}" data-entry-type="{{entrytype}}">
+            {{#sides}}
+            {{#isdebit}}
+            <td class="qtype_accounting-label-cell{{#hidden}} qtype_accounting-hidden-cell{{/hidden}}" data-section="debit" data-heading="{{#cleanstr}}debit, qtype_accounting{{/cleanstr}}"></td>
+            {{/isdebit}}
+            <td class="qtype_accounting-data-cell{{#hidden}} qtype_accounting-hidden-cell{{/hidden}}" data-label="{{#cleanstr}}account, qtype_accounting{{/cleanstr}}">{{#account}}{{> qtype_accounting/account_field}}{{/account}}</td>
+            <td class="qtype_accounting-data-cell{{#hidden}} qtype_accounting-hidden-cell{{/hidden}}" data-label="{{#cleanstr}}amount, qtype_accounting{{/cleanstr}}">{{#amount}}{{> qtype_accounting/amount_field}}{{/amount}}</td>
+            {{#isdebit}}
+            <td class="qtype_accounting-label-cell{{#hidden}} qtype_accounting-hidden-cell{{/hidden}}" data-section="credit" data-heading="{{#cleanstr}}credit, qtype_accounting{{/cleanstr}}">{{#editable}}<button type="button" class="btn btn-sm btn-outline-danger qtype_accounting-delete-debit" data-entry="{{index}}" title="{{#cleanstr}}deletedebit, qtype_accounting{{/cleanstr}}" aria-label="{{#cleanstr}}deletedebit, qtype_accounting{{/cleanstr}}">{{#pix}}t/delete, core{{/pix}}</button>{{/editable}}</td>
+            {{/isdebit}}
+            {{^isdebit}}{{#editable}}
+            <td class="qtype_accounting-actions-cell{{#hidden}} qtype_accounting-hidden-cell{{/hidden}}"><button type="button" class="btn btn-sm btn-outline-danger qtype_accounting-delete-credit" data-entry="{{index}}" title="{{#cleanstr}}deletecredit, qtype_accounting{{/cleanstr}}" aria-label="{{#cleanstr}}deletecredit, qtype_accounting{{/cleanstr}}">{{#pix}}t/delete, core{{/pix}}</button></td>
+            {{/editable}}{{/isdebit}}
+            {{/sides}}
+        </tr>
+        {{#istemplate}}</template>{{/istemplate}}
+        {{/rows}}
+    </tbody>
+    {{#editable}}
+    <tfoot class="qtype_accounting-controls-footer">
+        <tr>
+            <td></td>
+            <td><button type="button" class="btn btn-secondary btn-sm qtype_accounting-add-debit-entry">{{#str}}adddebitentry, qtype_accounting{{/str}}</button></td>
+            <td></td>
+            <td></td>
+            <td><button type="button" class="btn btn-secondary btn-sm qtype_accounting-add-credit-entry">{{#str}}addcreditentry, qtype_accounting{{/str}}</button></td>
+            <td></td>
+            <td></td>
+        </tr>
+    </tfoot>
+    {{/editable}}
+</table>

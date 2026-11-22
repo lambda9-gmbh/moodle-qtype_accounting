@@ -1,0 +1,49 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle. If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template qtype_accounting/account_field
+
+    Account select of an entry, or the selected account in review.
+
+    Context variables required for this template:
+    * name, value - Field name and selected account ID.
+    * readonly - Whether the account is shown for review.
+    * display, feedbackclass, correct, incorrect - Review text and correctness.
+    * options - Select options (value, label, selected).
+    * textinput - Whether a text input is shown instead, if the question has no chart.
+
+    Example context (json): {
+        "name": "q1:1_debitaccount_0",
+        "value": "1",
+        "readonly": false,
+        "options": [{"value": "1", "label": "Bank", "selected": true}]
+    }
+}}
+{{#readonly}}
+<span class="qtype_accounting-readonly{{#feedbackclass}} {{feedbackclass}}{{/feedbackclass}}">{{display}}</span>{{> qtype_accounting/correctness}}<input type="hidden" name="{{name}}" value="{{value}}">
+{{/readonly}}
+{{^readonly}}
+{{^textinput}}
+<select name="{{name}}" id="{{name}}" class="form-control qtype_accounting-account-select" aria-label="{{#cleanstr}}account, qtype_accounting{{/cleanstr}}">
+    <option value="">{{#str}}selectaccount, qtype_accounting{{/str}}</option>
+    {{#options}}<option value="{{value}}"{{#selected}} selected{{/selected}}>{{label}}</option>{{/options}}
+</select>
+{{/textinput}}
+{{#textinput}}
+<input type="text" name="{{name}}" id="{{name}}" value="{{value}}" class="form-control qtype_accounting-account-input" placeholder="{{#cleanstr}}enteraccount, qtype_accounting{{/cleanstr}}" aria-label="{{#cleanstr}}account, qtype_accounting{{/cleanstr}}">
+{{/textinput}}
+{{/readonly}}

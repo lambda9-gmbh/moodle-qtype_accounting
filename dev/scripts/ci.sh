@@ -243,6 +243,8 @@ run_checks() {
         case "${cmd}" in
             phpcs) run_phpcs || die "${cmd}" ;;
             phpdoc) run_phpdoc || die "${cmd}" ;;
+            # Moodle's template linter only accepts templates inside the Moodle directory.
+            mustache) run "${cmd}" "${LIVE_PLUGIN_PATH}" || die "${cmd}" ;;
             *) run "${cmd}" "${PLUGIN_PATH}" || die "${cmd}" ;;
         esac
     done
