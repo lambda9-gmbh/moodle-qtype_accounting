@@ -40,7 +40,7 @@ function question() {
     })();`);
     load('amd/src/entry_utils.js', 'EntryUtils',
         'formatNumber, isRowEmpty, detectEntryType, applyEntryTypeVisibility, updatePerLabels, ' +
-        'findIncompleteRow, clearEntrySideFields, HIDDEN_CLASS');
+        'findIncompleteRow, countSideRows, clearEntrySideFields, HIDDEN_CLASS');
     load('amd/src/mobile_layout.js', 'MobileLayout', 'init, refreshMobileView, buildMobileView, destroyMobileView');
     load('amd/src/question.js', 'Question', 'init');
     win.Question.init('question');
