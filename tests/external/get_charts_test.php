@@ -117,6 +117,21 @@ final class get_charts_test extends \advanced_testcase {
     }
 
     /**
+     * Names are returned as plain text, as the question editor sets them as option text.
+     */
+    public function test_names_are_plain_text(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $course = $this->getDataGenerator()->create_course();
+        $chartid = chart_manager::create_chart('Soll & Haben', $this->bank($course));
+        account_manager::add($chartid, 'Forderungen a. LL & sonstige');
+
+        $result = external_api::clean_returnvalue(get_charts::execute_returns(), get_charts::execute($this->bank($course)));
+        $this->assertSame('Soll & Haben', $result[0]['name']);
+        $this->assertSame('Forderungen a. LL & sonstige', $result[0]['accounts'][0]['name']);
+    }
+
+    /**
      * Assert that the current user cannot read the charts of a question bank.
      *
      * From Moodle 5.0 the default question bank of a course is a hidden module, so users who may not

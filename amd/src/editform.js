@@ -227,9 +227,7 @@ function createChartRefreshCallback(contextId) {
                 chartSelect.remove(1);
             }
             charts.forEach(function(chart) {
-                // The name is formatted for HTML output; the option needs its plain text.
-                const label = new DOMParser().parseFromString(chart.name, 'text/html').body.textContent;
-                chartSelect.add(new Option(label, chart.id));
+                chartSelect.add(new Option(chart.name, chart.id));
                 freshAccounts[chart.id] = {};
                 chart.accounts.forEach(function(account) {
                     freshAccounts[chart.id][account.id] = account.name;

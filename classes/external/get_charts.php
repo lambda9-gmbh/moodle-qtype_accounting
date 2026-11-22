@@ -75,7 +75,7 @@ class get_charts extends external_api {
         foreach ($charts as $chart) {
             $result[] = [
                 'id' => $chart->id,
-                'name' => chart_manager::get_display_name($chart, $context),
+                'name' => chart_manager::get_display_name($chart, $context, false),
                 'accounts' => $accountsbychart[$chart->id] ?? [],
             ];
         }
@@ -90,10 +90,10 @@ class get_charts extends external_api {
     public static function execute_returns(): external_multiple_structure {
         return new external_multiple_structure(new external_single_structure([
             'id' => new external_value(PARAM_INT, 'Chart ID'),
-            'name' => new external_value(PARAM_RAW, 'Chart name, formatted for HTML output'),
+            'name' => new external_value(PARAM_TEXT, 'Chart name as plain text, with filters applied'),
             'accounts' => new external_multiple_structure(new external_single_structure([
                 'id' => new external_value(PARAM_INT, 'Account ID'),
-                'name' => new external_value(PARAM_RAW, 'Account name, unformatted'),
+                'name' => new external_value(PARAM_TEXT, 'Account name as plain text'),
             ])),
         ]));
     }
