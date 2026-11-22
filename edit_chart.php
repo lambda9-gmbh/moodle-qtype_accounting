@@ -340,8 +340,7 @@ echo html_writer::end_div();
 // Bottom action row: Back button on the left, Export button next to it.
 $exporturl = new moodle_url($baseurl, ['action' => 'export', 'sesskey' => sesskey()]);
 echo html_writer::start_div(
-    'qtype_accounting-chart-actions d-flex flex-wrap justify-content-center align-items-center mt-4 mb-3',
-    ['style' => 'gap: 0.5rem;']
+    'qtype_accounting-chart-actions d-flex flex-wrap justify-content-center align-items-center mt-4 mb-3'
 );
 echo html_writer::link($manageurl, '&laquo; ' . get_string($bankcontext ? 'managecharts' : 'sitecharts', 'qtype_accounting'), [
     'class' => 'btn btn-primary',
