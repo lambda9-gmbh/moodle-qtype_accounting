@@ -42,6 +42,31 @@ final class chart_manager_test extends \advanced_testcase {
     }
 
     /**
+     * Deleting a course removes its unused charts but keeps charts that questions still use.
+     *
+     * @covers \qtype_accounting\observer
+     */
+    public function test_course_deletion_removes_orphaned_charts(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $course = $this->getDataGenerator()->create_course();
+        $coursecontextid = \context_course::instance($course->id)->id;
+        $unused = chart_manager::create_chart('Unused', $coursecontextid);
+        account_manager::add($unused, 'Bank');
+        $used = chart_manager::create_chart('Used', $coursecontextid);
+        $site = chart_manager::create_chart('Site', \context_system::instance()->id);
+        $DB->insert_record('qtype_accounting_options', (object)['questionid' => 0, 'chartofaccountsid' => $used]);
+
+        delete_course($course, false);
+
+        $this->assertFalse(chart_manager::get_chart($unused));
+        $this->assertFalse($DB->record_exists('qtype_accounting_accounts', ['chartid' => $unused]));
+        $this->assertNotFalse(chart_manager::get_chart($used));
+        $this->assertNotFalse(chart_manager::get_chart($site));
+    }
+
+    /**
      * Test creating and retrieving a chart.
      */
     public function test_create_and_get_chart(): void {

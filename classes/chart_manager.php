@@ -94,6 +94,35 @@ class chart_manager {
     }
 
     /**
+     * Delete charts whose context no longer exists and which no question uses.
+     *
+     * Deleting a course, question bank or category removes its context but leaves the
+     * plugin's charts behind. Charts that are still referenced by a question are kept,
+     * so that such questions can still be graded and displayed.
+     *
+     * @return int The number of deleted charts.
+     */
+    public static function delete_orphaned_charts(): int {
+        global $DB;
+
+        $chartids = $DB->get_fieldset_sql(
+            "SELECT ch.id
+               FROM {qtype_accounting_charts} ch
+          LEFT JOIN {context} ctx ON ctx.id = ch.contextid
+              WHERE ctx.id IS NULL
+                AND NOT EXISTS (
+                    SELECT 1
+                      FROM {qtype_accounting_options} o
+                     WHERE o.chartofaccountsid = ch.id
+                )"
+        );
+        foreach ($chartids as $chartid) {
+            self::delete_chart((int)$chartid);
+        }
+        return count($chartids);
+    }
+
+    /**
      * Get a chart by ID.
      *
      * @param int $chartid Chart ID.

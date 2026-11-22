@@ -418,5 +418,11 @@ function xmldb_qtype_accounting_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026112205, 'qtype', 'accounting');
     }
 
+    if ($oldversion < 2026112206) {
+        // Remove charts left behind by courses deleted before the cleanup observers existed.
+        \qtype_accounting\chart_manager::delete_orphaned_charts();
+        upgrade_plugin_savepoint(true, 2026112206, 'qtype', 'accounting');
+    }
+
     return true;
 }

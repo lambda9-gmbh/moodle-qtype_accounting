@@ -21,6 +21,7 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - Charts of accounts can now be created directly in Moodle by entering a name, then adding accounts in the existing editor without uploading a CSV file.
 
 ### Fixed
+- Charts of accounts of deleted courses, question banks and course categories are removed, unless a question still uses them. An upgrade step removes charts left behind earlier.
 - The student entry table stays inside the content area and switches to cards when the question is narrow, e.g. next to open drawers.
 - Students can no longer delete the last entry of the debit or credit side.
 - Delete buttons fit the narrow table columns, and the chart editor no longer uses Bootstrap 4 classes removed in Bootstrap 5.
