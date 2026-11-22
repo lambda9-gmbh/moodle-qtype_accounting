@@ -30,6 +30,7 @@ services:
       - ../edit_accounting_form.php:/var/www/html/question/type/accounting/edit_accounting_form.php
       - ../edit_chart.php:/var/www/html/question/type/accounting/edit_chart.php
       - ../manage_charts.php:/var/www/html/question/type/accounting/manage_charts.php
+      - ../settings.php:/var/www/html/question/type/accounting/settings.php
       - ../styles.css:/var/www/html/question/type/accounting/styles.css
       # README.md, CHANGES.md, LICENSE are NOT bind-mounted. macOS Docker Desktop's
       # filesystem layer occasionally returns a stale filesize() for single-file
