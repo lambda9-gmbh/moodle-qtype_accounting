@@ -24,6 +24,7 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - Charts of accounts belong to the question bank of their questions instead of the course, matching Moodle 5 question banks. Moving a question to another question bank, or saving it into one, reuses or copies its chart there and switches the question and its attempts to that chart. The upgrade moves charts out of contexts that can no longer hold questions. The chart pages and the `qtype_accounting_get_charts` web service take a context ID instead of a course ID.
 
 ### Fixed
+- Attempts keep the points-mode grading rules (strict pairs, accounts without amounts) that applied when they started, so changing these site settings no longer changes the grades of existing attempts on regrade.
 - The Debit and Credit headings of the narrow table layout are translated instead of being fixed English text in the stylesheet.
 - Charts of accounts of deleted courses, question banks and course categories are removed, unless a question still uses them. An upgrade step removes charts left behind earlier.
 - The student entry table stays inside the content area and switches to cards when the question is narrow, e.g. next to open drawers.

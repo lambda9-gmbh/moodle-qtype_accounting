@@ -247,6 +247,8 @@ Each question uses one of two grading modes. The site default is set in **Site a
 
 The teacher's correct answer always contains accounts and amounts. If the site setting **Points mode: one point for correct accounts without amounts** is enabled, a student who names exactly the correct accounts on both sides (none missing, none extra) but enters no amounts at all receives one point in points mode. Without the setting, such an answer earns nothing when only fully correct pairs count. If the weighted split already yields more than one point, the higher value is kept; **No partial credit** still applies.
 
+Both site settings apply to attempts started after the change; existing attempts keep the rules they started with, also when they are regraded.
+
 Notes:
 
 - Account-name matching is case-insensitive (matching is by account ID after lookup).

@@ -99,6 +99,59 @@ final class question_test extends \advanced_testcase {
     }
 
     /**
+     * Started attempts keep the site grading rules of points mode they started with, also on regrade.
+     */
+    public function test_attempts_keep_their_grading_rules(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        set_config('strictpairs', 0, 'qtype_accounting');
+        $course = $this->getDataGenerator()->create_course();
+        $context = chart_manager::get_chart_context(\context_course::instance($course->id));
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category(['contextid' => $context->id]);
+        $chartid = chart_manager::create_chart('Main', $context->id);
+        $bank = account_manager::add($chartid, 'Bank');
+        $sales = account_manager::add($chartid, 'Sales');
+        $saved = $generator->create_question('accounting', null, [
+            'category' => $category->id, 'chartofaccountsid' => $chartid, 'gradingmode' => 'points',
+            'debitaccount' => [$bank], 'creditaccount' => [$sales],
+            'debitamount' => [100], 'creditamount' => [100],
+        ]);
+
+        $quba = \question_engine::make_questions_usage_by_activity('core_question_preview', \context_system::instance());
+        $quba->set_preferred_behaviour('deferredfeedback');
+        $slot = $quba->add_question(\question_bank::load_question($saved->id));
+        $quba->start_all_questions();
+        // Both accounts are right, the debit amount is wrong: half a point for that pair without strict pairs.
+        $quba->process_action($slot, [
+            'debitaccount_0' => $bank, 'debitamount_0' => '50,00',
+            'creditaccount_0' => $sales, 'creditamount_0' => '100,00',
+        ]);
+        $quba->finish_all_questions();
+        \question_engine::save_questions_usage_by_activity($quba);
+        $fraction = $quba->get_question_fraction($slot);
+        $this->assertEqualsWithDelta(0.75, $fraction, 0.0001);
+
+        set_config('strictpairs', 1, 'qtype_accounting');
+        \question_bank::notify_question_edited($saved->id);
+        $quba = \question_engine::load_questions_usage_by_activity($quba->get_id());
+        $quba->regrade_all_questions();
+        $this->assertEqualsWithDelta($fraction, $quba->get_question_fraction($slot), 0.0001);
+
+        // New attempts use the current setting.
+        $new = \question_engine::make_questions_usage_by_activity('core_question_preview', \context_system::instance());
+        $new->set_preferred_behaviour('deferredfeedback');
+        $newslot = $new->add_question(\question_bank::load_question($saved->id));
+        $new->start_all_questions();
+        $new->process_action($newslot, [
+            'debitaccount_0' => $bank, 'debitamount_0' => '50,00',
+            'creditaccount_0' => $sales, 'creditamount_0' => '100,00',
+        ]);
+        $new->finish_all_questions();
+        $this->assertEqualsWithDelta(0.5, $new->get_question_fraction($newslot), 0.0001);
+    }
+
+    /**
      * Test getting the correct response.
      */
     public function test_get_correct_response(): void {

@@ -377,6 +377,9 @@ class qtype_accounting_question extends question_graded_automatically {
     public function start_attempt(question_attempt_step $step, $variant): void {
         parent::start_attempt($step, $variant);
         $step->set_qt_var('_dropdownseed', (string) mt_rand());
+        // Later changes of the site grading rules must not change the grades of started attempts.
+        $step->set_qt_var('_strictpairs', $this->strictpairs ? '1' : '0');
+        $step->set_qt_var('_accountsonlyexception', $this->accountsonlyexception ? '1' : '0');
     }
 
     /**
@@ -392,6 +395,13 @@ class qtype_accounting_question extends question_graded_automatically {
         } else {
             // Fallback for attempts started before this feature.
             $this->dropdownseed = crc32('accounting_' . $this->id);
+        }
+        // Attempts started before the grading rules were stored keep using the current site settings.
+        foreach (['strictpairs', 'accountsonlyexception'] as $rule) {
+            $value = $step->get_qt_var('_' . $rule);
+            if ($value !== null) {
+                $this->$rule = $value === '1';
+            }
         }
     }
 
