@@ -398,7 +398,7 @@ final class edit_form_test extends \advanced_testcase {
         $this->setAdminUser();
         $PAGE->set_url('/question/bank/editquestion/question.php');
         $course = $this->getDataGenerator()->create_course();
-        $context = \context_course::instance($course->id);
+        $context = $this->bank_context($course);
         $category = $this->getDataGenerator()->get_plugin_generator('core_question')
             ->create_question_category(['contextid' => $context->id]);
         $questioncontext = \context::instance_by_id($category->contextid);
@@ -520,7 +520,7 @@ final class edit_form_test extends \advanced_testcase {
         }
         $category = $this->getDataGenerator()->get_plugin_generator('core_question')
             ->create_question_category(['contextid' => $bankcontext->id]);
-        $chartid = chart_manager::create_chart('Main', \context_course::instance($course->id)->id);
+        $chartid = chart_manager::create_chart('Main', $bankcontext->id);
         $render = function () use ($bankcontext, $category, $chartid, $USER): \DOMXPath {
             $question = (object)[
                 'qtype' => 'accounting',
@@ -585,7 +585,7 @@ final class edit_form_test extends \advanced_testcase {
     public function test_stale_account_validation(): void {
         $this->resetAfterTest();
         $course = $this->getDataGenerator()->create_course();
-        $context = \context_course::instance($course->id);
+        $context = $this->bank_context($course);
         $chartid = chart_manager::create_chart('Main', $context->id);
         $accountid = account_manager::add($chartid, 'Bank');
         $otherchartid = chart_manager::create_chart('Other', $context->id);
@@ -604,6 +604,16 @@ final class edit_form_test extends \advanced_testcase {
         $this->assertArrayHasKey('balancevalidation', $method->invoke($form, $data, []));
         chart_manager::delete_chart($chartid);
         $this->assertArrayHasKey('chartofaccountsid', $method->invoke($form, $data, []));
+    }
+
+    /**
+     * Get the question bank context of a course: the course itself up to Moodle 4.5, its default question bank from 5.0.
+     *
+     * @param \stdClass $course The course.
+     * @return \context The context that holds the course's questions and charts.
+     */
+    private function bank_context(\stdClass $course): \context {
+        return chart_manager::get_chart_context(\context_course::instance($course->id));
     }
 
     /**
@@ -627,7 +637,7 @@ final class edit_form_test extends \advanced_testcase {
     public function test_accounts_grouped_and_sorted_in_course(): void {
         $this->resetAfterTest();
         $course = $this->getDataGenerator()->create_course();
-        $context = \context_course::instance($course->id);
+        $context = $this->bank_context($course);
         $zchart = chart_manager::create_chart('Zulu', $context->id);
         $emptychart = chart_manager::create_chart('Empty', $context->id);
         $achart = chart_manager::create_chart('Alpha', $context->id);
@@ -637,7 +647,7 @@ final class edit_form_test extends \advanced_testcase {
         $sitechart = chart_manager::create_chart('Aardvark site chart', \context_system::instance()->id);
         $siteaccount = account_manager::add($sitechart, 'Site account', 0);
         $othercourse = $this->getDataGenerator()->create_course();
-        $outsidechart = chart_manager::create_chart('Outside', \context_course::instance($othercourse->id)->id);
+        $outsidechart = chart_manager::create_chart('Outside', $this->bank_context($othercourse)->id);
         account_manager::add($outsidechart, 'Hidden account', 0);
 
         $this->assertSame([
@@ -669,7 +679,7 @@ final class edit_form_test extends \advanced_testcase {
         global $DB;
         $this->resetAfterTest();
         $course = $this->getDataGenerator()->create_course();
-        $context = \context_course::instance($course->id);
+        $context = $this->bank_context($course);
         for ($i = 0; $i < 10; $i++) {
             $chartid = chart_manager::create_chart('Chart ' . $i, $context->id);
             account_manager::add($chartid, 'Bank');

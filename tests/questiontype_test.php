@@ -811,10 +811,10 @@ final class questiontype_test extends \advanced_testcase {
         $this->resetAfterTest(true);
 
         $course = $this->getDataGenerator()->create_course();
-        $coursecontext = \context_course::instance($course->id);
+        $bankcontext = chart_manager::get_chart_context(\context_course::instance($course->id));
 
-        // Pre-create a chart in the course context.
-        $existingchartid = chart_manager::create_chart('Reuse Chart', $coursecontext->id);
+        // Pre-create a chart in the course's question bank.
+        $existingchartid = chart_manager::create_chart('Reuse Chart', $bankcontext->id);
         account_manager::add($existingchartid, '1200 Bank', 0);
         account_manager::add($existingchartid, '8400 Erlöse', 1);
 

@@ -96,8 +96,7 @@ final class get_charts_test extends \advanced_testcase {
         $this->getDataGenerator()->enrol_user($student->id, $course->id, 'student');
         $bank = $this->bank($course);
         $this->setUser($student);
-        $this->expectException(\required_capability_exception::class);
-        get_charts::execute($bank);
+        $this->assert_access_denied($bank);
     }
 
     /**
@@ -114,7 +113,23 @@ final class get_charts_test extends \advanced_testcase {
         $otherbank = $this->bank($othercourse);
         $this->setUser($teacher);
         $this->assertSame([], get_charts::execute($bank));
-        $this->expectException(\required_capability_exception::class);
-        get_charts::execute($otherbank);
+        $this->assert_access_denied($otherbank);
+    }
+
+    /**
+     * Assert that the current user cannot read the charts of a question bank.
+     *
+     * From Moodle 5.0 the default question bank of a course is a hidden module, so users who may not
+     * see hidden activities are rejected by the login check before the capability check.
+     *
+     * @param int $contextid The question bank context ID.
+     */
+    private function assert_access_denied(int $contextid): void {
+        try {
+            get_charts::execute($contextid);
+            $this->fail('Access to the charts was not denied.');
+        } catch (\core\exception\required_capability_exception | \core\exception\require_login_exception $exception) {
+            $this->assertNotEmpty($exception->getMessage());
+        }
     }
 }
