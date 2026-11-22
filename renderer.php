@@ -412,7 +412,12 @@ class qtype_accounting_renderer extends qtype_renderer {
         string $currencysymbol = ''
     ): string {
         $debithidden = $hiddenclasses['debit'];
-        $html = \html_writer::tag('td', '', ['class' => 'qtype_accounting-label-cell' . $debithidden, 'data-section' => 'debit']);
+        // In the narrow layout the label cells show the translated side headings.
+        $html = \html_writer::tag('td', '', [
+            'class' => 'qtype_accounting-label-cell' . $debithidden,
+            'data-section' => 'debit',
+            'data-heading' => get_string('debit', 'qtype_accounting'),
+        ]);
         $html .= html_writer::start_tag('td', [
             'class' => 'qtype_accounting-data-cell' . $debithidden,
             'data-label' => get_string('account', 'qtype_accounting'),
@@ -440,7 +445,9 @@ class qtype_accounting_renderer extends qtype_renderer {
         $html .= \html_writer::end_tag('td');
         // The "an" label cell - contains debit delete button if editable.
         $html .= \html_writer::start_tag('td', [
-            'class' => 'qtype_accounting-label-cell' . $debithidden, 'data-section' => 'credit',
+            'class' => 'qtype_accounting-label-cell' . $debithidden,
+            'data-section' => 'credit',
+            'data-heading' => get_string('credit', 'qtype_accounting'),
         ]);
         if ($showdelete) {
             $html .= \qtype_accounting\entry_helper::render_delete_button('debit', $index, 'data-entry');

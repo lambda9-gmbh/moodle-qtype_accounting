@@ -32,6 +32,33 @@ require_once($CFG->dirroot . '/question/type/accounting/tests/helper.php');
  */
 final class renderer_test extends \advanced_testcase {
     /**
+     * The side headings of the narrow layout come from the language pack, not from the stylesheet.
+     */
+    public function test_side_headings_are_translatable(): void {
+        global $PAGE;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $context = \context_system::instance();
+        $PAGE->set_context($context);
+        $PAGE->set_url('/question/preview.php');
+        $question = \test_question_maker::make_question('accounting', 'simple_debit_credit');
+        $question->contextid = $context->id;
+        $usage = \question_engine::make_questions_usage_by_activity('core_question_preview', $context);
+        $usage->set_preferred_behaviour('deferredfeedback');
+        $slot = $usage->add_question($question);
+        $usage->start_all_questions();
+        $html = $PAGE->get_renderer('qtype_accounting')->formulation_and_controls(
+            $usage->get_question_attempt($slot),
+            new \question_display_options()
+        );
+
+        $this->assertStringContainsString('data-heading="' . get_string('debit', 'qtype_accounting') . '"', $html);
+        $this->assertStringContainsString('data-heading="' . get_string('credit', 'qtype_accounting') . '"', $html);
+        $css = file_get_contents(__DIR__ . '/../styles.css');
+        $this->assertDoesNotMatchRegularExpression('/content:\s*"(Debit|Credit)"/', $css);
+    }
+
+    /**
      * Field colours depend on correctness visibility independently of specific feedback.
      */
     public function test_review_colours_respect_correctness_visibility(): void {

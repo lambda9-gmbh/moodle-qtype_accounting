@@ -364,10 +364,10 @@
     }
 
     .qtype_accounting-student-table td.qtype_accounting-label-cell[data-section="debit"]::before {
-        content: "Debit";
+        content: attr(data-heading);
     }
 
-    /* Hide original Per text on mobile, show Debit instead */
+    /* Hide original Per text on mobile, show the translated side heading instead */
     .qtype_accounting-student-table td.qtype_accounting-label-cell[data-section="debit"] {
         font-size: 0;
     }
@@ -387,7 +387,7 @@
     }
 
     .qtype_accounting-student-table td.qtype_accounting-label-cell[data-section="credit"]::before {
-        content: "Credit";
+        content: attr(data-heading);
     }
 
     .qtype_accounting-student-table td.qtype_accounting-label-cell[data-section="credit"] {
@@ -844,7 +844,7 @@ table.qtype_accounting-student-table {
     /* Ensure the ::before content for "Credit" shows for credit-only */
     .qtype_accounting-student-table tr[data-entry-type="credit"]
     td.qtype_accounting-label-cell[data-section="credit"].qtype_accounting-hidden-cell::before {
-        content: "Credit" !important;
+        content: attr(data-heading) !important;
         font-size: 1rem !important;
     }
 }
