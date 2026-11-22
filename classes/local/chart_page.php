@@ -85,4 +85,42 @@ class chart_page {
         $PAGE->set_heading($heading);
         return $context;
     }
+
+    /**
+     * Redirect after an import and report the number of imported accounts and any errors.
+     *
+     * @param \moodle_url $url The URL to return to.
+     * @param array $result The import result with the keys 'imported' and 'errors'.
+     */
+    public static function redirect_import_result(\moodle_url $url, array $result): void {
+        if ($result['imported'] > 0) {
+            $msg = get_string('imported', 'qtype_accounting', $result['imported']);
+            if (!empty($result['errors'])) {
+                $msg .= ' ' . get_string('witherrors', 'qtype_accounting') . ': ' . implode(', ', $result['errors']);
+            }
+            redirect($url, $msg, null, \core\output\notification::NOTIFY_SUCCESS);
+        }
+        $msg = get_string('chartimportfailed', 'qtype_accounting');
+        if (!empty($result['errors'])) {
+            $msg .= ': ' . implode(', ', $result['errors']);
+        }
+        redirect($url, $msg, null, \core\output\notification::NOTIFY_ERROR);
+    }
+
+    /**
+     * Send a chart as a download with one account name per line, the format the imports read.
+     *
+     * @param \stdClass $chart The chart record.
+     */
+    public static function send_chart_file(\stdClass $chart): void {
+        send_file(
+            chart_manager::export_to_csv((int)$chart->id),
+            clean_filename($chart->name) . '.csv',
+            0,
+            0,
+            true,
+            true,
+            'text/csv'
+        );
+    }
 }

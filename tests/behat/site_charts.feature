@@ -39,7 +39,7 @@ Feature: Provide site charts of accounts
     And I switch to "qtype_accounting-chart-frame" iframe
     Then I should see "Site charts of accounts"
     And I should see "No charts of accounts"
-    When I click on "Copy to this question bank" "link" in the "Standard chart" "table_row"
+    When I press "Copy to this question bank"
     Then I should see "Chart of accounts copied to this question bank."
     And I should see "1200 Bank"
     And I switch to the main frame

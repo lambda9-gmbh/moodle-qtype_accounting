@@ -24,37 +24,8 @@
 
 // Login and capabilities are checked by chart_page::setup() for the requested context.
 require_once(__DIR__ . '/../../../config.php'); // phpcs:ignore moodle.Files.RequireLogin.Missing
-require_once($CFG->libdir . '/formslib.php');
 
 use qtype_accounting\chart_manager;
-use qtype_accounting\account_manager;
-
-/**
- * Form for uploading a chart of accounts CSV, text or ODS file.
- *
- * @package    qtype_accounting
- * @copyright  2024 Hochschule Flensburg / lambda9
- * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-class qtype_accounting_chart_upload_form extends moodleform {
-    /**
-     * Define the form elements.
-     */
-    protected function definition() {
-        $mform = $this->_form;
-
-        $mform->addElement(
-            'filepicker',
-            'chartcsvfile',
-            get_string('csvfile', 'qtype_accounting'),
-            null,
-            ['maxbytes' => 2097152, 'accepted_types' => ['.csv', '.txt', '.ods']]
-        );
-        $mform->addHelpButton('chartcsvfile', 'csvfile', 'qtype_accounting');
-
-        $this->add_action_buttons(false, get_string('uploadchartcsv_btn', 'qtype_accounting'));
-    }
-}
 
 $bankcontext = \qtype_accounting\local\chart_page::get_requested_context();
 $action = optional_param('action', '', PARAM_ALPHA);
@@ -117,17 +88,11 @@ if ($action === 'export' && $chartid) {
         throw new moodle_exception('chartnotfound', 'qtype_accounting');
     }
 
-    $csv = chart_manager::export_to_csv($chartid);
-    $filename = clean_filename($chart->name) . '.csv';
-
-    header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="' . $filename . '"');
-    echo $csv;
-    exit;
+    \qtype_accounting\local\chart_page::send_chart_file($chart);
 }
 
 // Copy a site chart into the question bank so that teachers can adapt it.
-if ($action === 'copysite' && $chartid && $bankcontext) {
+if ($action === 'copysite' && $chartid && $bankcontext && data_submitted()) {
     require_sesskey();
     $chart = chart_manager::get_chart($chartid);
     if (!$chart || !chart_manager::is_site_chart($chart)) {
@@ -159,38 +124,16 @@ if ($data = $createform->get_data()) {
 }
 
 // Handle chart upload via Moodle filepicker form.
-$uploadform = new qtype_accounting_chart_upload_form($baseurl);
-if ($data = $uploadform->get_data()) {
-    global $USER;
-
-    $draftitemid = $data->chartcsvfile;
-    $fs = get_file_storage();
-    $usercontext = context_user::instance($USER->id);
-    $files = $fs->get_area_files($usercontext->id, 'user', 'draft', $draftitemid, 'id DESC', false);
-
-    if (!empty($files)) {
-        $file = reset($files);
-        $csvcontent = $file->get_content();
-        $filename = $file->get_filename();
-
-        $result = chart_manager::import_chart_from_csv($csvcontent, $context->id, $filename);
-
-        if ($result['imported'] > 0) {
-            $msg = get_string('imported', 'qtype_accounting', $result['imported']);
-            if (!empty($result['errors'])) {
-                $msg .= ' ' . get_string('witherrors', 'qtype_accounting') . ': ' . implode(', ', $result['errors']);
-            }
-            redirect($doneurl, $msg, null, \core\output\notification::NOTIFY_SUCCESS);
-        } else {
-            $msg = get_string('chartimportfailed', 'qtype_accounting');
-            if (!empty($result['errors'])) {
-                $msg .= ': ' . implode(', ', $result['errors']);
-            }
-            redirect($doneurl, $msg, null, \core\output\notification::NOTIFY_ERROR);
-        }
-    } else {
+$uploadform = new \qtype_accounting\form\chart_file_form($baseurl, [
+    'submitlabel' => get_string('uploadchartcsv_btn', 'qtype_accounting'),
+]);
+if ($uploadform->get_data()) {
+    $file = $uploadform->get_uploaded_file();
+    if (!$file) {
         redirect($doneurl, get_string('csvfilerequired', 'qtype_accounting'), null, \core\output\notification::NOTIFY_ERROR);
     }
+    $result = chart_manager::import_chart_from_csv($file->get_content(), $context->id, $file->get_filename());
+    \qtype_accounting\local\chart_page::redirect_import_result($doneurl, $result);
 }
 
 // Display the page.
@@ -298,17 +241,29 @@ if ($sitecharts) {
         get_string('actions')];
     foreach ($sitecharts as $chart) {
         $exporturl = new moodle_url($baseurl, ['action' => 'export', 'chartid' => $chart->id]);
-        $copyurl = new moodle_url($baseurl, ['action' => 'copysite', 'chartid' => $chart->id, 'sesskey' => sesskey()]);
+        // Copying changes data, so it is a form submission rather than a link.
+        $copyform = html_writer::tag(
+            'form',
+            html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()])
+                . html_writer::tag('button', $OUTPUT->pix_icon('t/copy', ''), [
+                    'type' => 'submit',
+                    'class' => 'btn btn-link p-0 align-baseline',
+                    'title' => get_string('copytobank', 'qtype_accounting'),
+                    'aria-label' => get_string('copytobank', 'qtype_accounting'),
+                ]),
+            [
+                'method' => 'post',
+                'action' => (new moodle_url($baseurl, ['action' => 'copysite', 'chartid' => $chart->id]))->out(false),
+                'class' => 'd-inline',
+            ]
+        );
         $sitetable->data[] = [
             format_string($chart->name),
             (int)($counts[$chart->id] ?? 0),
             html_writer::link(
                 $exporturl,
                 $OUTPUT->pix_icon('i/export', get_string('exportaccounts', 'qtype_accounting'))
-            ) . ' ' . html_writer::link(
-                $copyurl,
-                $OUTPUT->pix_icon('t/copy', get_string('copytobank', 'qtype_accounting'))
-            ),
+            ) . ' ' . $copyform,
         ];
     }
     echo html_writer::table($sitetable);

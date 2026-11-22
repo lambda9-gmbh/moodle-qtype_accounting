@@ -24,37 +24,9 @@
 
 // Login and capabilities are checked by chart_page::setup() for the requested context.
 require_once(__DIR__ . '/../../../config.php'); // phpcs:ignore moodle.Files.RequireLogin.Missing
-require_once($CFG->libdir . '/formslib.php');
 
 use qtype_accounting\chart_manager;
 use qtype_accounting\account_manager;
-
-/**
- * Form for importing accounts into an existing chart from CSV, text or ODS.
- *
- * @package    qtype_accounting
- * @copyright  2024 Hochschule Flensburg / lambda9
- * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-class qtype_accounting_chart_account_import_form extends moodleform {
-    /**
-     * Define the form elements.
-     */
-    protected function definition() {
-        $mform = $this->_form;
-
-        $mform->addElement(
-            'filepicker',
-            'chartcsvfile',
-            get_string('csvfile', 'qtype_accounting'),
-            null,
-            ['maxbytes' => 2097152, 'accepted_types' => ['.csv', '.txt', '.ods']]
-        );
-        $mform->addHelpButton('chartcsvfile', 'csvfile', 'qtype_accounting');
-
-        $this->add_action_buttons(false, get_string('importchart', 'qtype_accounting'));
-    }
-}
 
 $bankcontext = \qtype_accounting\local\chart_page::get_requested_context();
 $chartid = required_param('chartid', PARAM_INT);
@@ -110,7 +82,7 @@ if ($bankcontext) {
 $PAGE->navbar->add(format_string($chart->name));
 
 // Handle rename.
-if ($action === 'rename' && confirm_sesskey()) {
+if ($action === 'rename' && data_submitted() && confirm_sesskey()) {
     $newname = required_param('chartname', PARAM_TEXT);
     $newname = trim($newname);
     if (!empty($newname)) {
@@ -121,7 +93,7 @@ if ($action === 'rename' && confirm_sesskey()) {
 }
 
 // Handle add account.
-if ($action === 'addaccount' && confirm_sesskey()) {
+if ($action === 'addaccount' && data_submitted() && confirm_sesskey()) {
     $accountname = required_param('accountname', PARAM_TEXT);
     $accountname = trim($accountname);
 
@@ -141,7 +113,7 @@ if ($action === 'addaccount' && confirm_sesskey()) {
 }
 
 // Handle update account.
-if ($action === 'updateaccount' && $accountid && confirm_sesskey()) {
+if ($action === 'updateaccount' && $accountid && data_submitted() && confirm_sesskey()) {
     global $DB;
     // Verify account belongs to this chart.
     $account = $DB->get_record('qtype_accounting_accounts', ['id' => $accountid, 'chartid' => $chartid]);
@@ -196,48 +168,22 @@ if ($action === 'deleteaccount' && $accountid) {
 }
 
 // Handle account import to existing chart via Moodle filepicker form.
-$importform = new qtype_accounting_chart_account_import_form($baseurl);
-if ($data = $importform->get_data()) {
-    global $USER;
-
-    $draftitemid = $data->chartcsvfile;
-    $fs = get_file_storage();
-    $usercontext = context_user::instance($USER->id);
-    $files = $fs->get_area_files($usercontext->id, 'user', 'draft', $draftitemid, 'id DESC', false);
-
-    if (!empty($files)) {
-        $file = reset($files);
-        $csvcontent = $file->get_content();
-        $result = account_manager::import_into_chart($chartid, $csvcontent, $file->get_filename());
-
-        if ($result['imported'] > 0) {
-            $msg = get_string('imported', 'qtype_accounting', $result['imported']);
-            if (!empty($result['errors'])) {
-                $msg .= ' ' . get_string('witherrors', 'qtype_accounting') . ': ' . implode(', ', $result['errors']);
-            }
-            redirect($baseurl, $msg, null, \core\output\notification::NOTIFY_SUCCESS);
-        } else {
-            $msg = get_string('chartimportfailed', 'qtype_accounting');
-            if (!empty($result['errors'])) {
-                $msg .= ': ' . implode(', ', $result['errors']);
-            }
-            redirect($baseurl, $msg, null, \core\output\notification::NOTIFY_ERROR);
-        }
-    } else {
+$importform = new \qtype_accounting\form\chart_file_form($baseurl, [
+    'submitlabel' => get_string('importchart', 'qtype_accounting'),
+]);
+if ($importform->get_data()) {
+    $file = $importform->get_uploaded_file();
+    if (!$file) {
         redirect($baseurl, get_string('csvfilerequired', 'qtype_accounting'), null, \core\output\notification::NOTIFY_ERROR);
     }
+    $result = account_manager::import_into_chart($chartid, $file->get_content(), $file->get_filename());
+    \qtype_accounting\local\chart_page::redirect_import_result($baseurl, $result);
 }
 
 // Handle export.
 if ($action === 'export') {
     require_sesskey();
-    $csv = chart_manager::export_to_csv($chartid);
-    $filename = clean_filename($chart->name) . '.csv';
-
-    header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="' . $filename . '"');
-    echo $csv;
-    exit;
+    \qtype_accounting\local\chart_page::send_chart_file($chart);
 }
 
 // Display the page.
