@@ -26,6 +26,7 @@ import ModalSaveCancel from 'core/modal_save_cancel';
 import ModalEvents from 'core/modal_events';
 import {get_strings as getStrings} from 'core/str';
 import {exception} from 'core/notification';
+import Pending from 'core/pending';
 
 /**
  * Read all successful form controls, including inputs associated using the form attribute.
@@ -200,7 +201,12 @@ export const init = refreshCharts => {
             modal.messages = messages;
             modal.getRoot().addClass('qtype_accounting-chart-overlay');
             modal.frame = modal.getBody().find('iframe')[0];
-            modal.frame.addEventListener('load', () => modal.trackPage());
+            // Other scripts and Behat wait until the chart page has loaded inside the overlay.
+            const loading = new Pending('qtype_accounting/chart_overlay:load');
+            modal.frame.addEventListener('load', () => {
+                modal.trackPage();
+                loading.resolve();
+            });
             modal.getFooter().find('button').on('click', () => modal.destroy());
             // An accidental click outside must not interrupt chart editing.
             modal.getRoot().on(ModalEvents.outsideClick, event => event.preventDefault());
