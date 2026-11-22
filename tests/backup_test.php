@@ -37,9 +37,8 @@ final class backup_test extends \core_backup_backup_restore_base_testcase {
      * Same-name charts with different contents must remain distinct, even for subset accounts.
      */
     public function test_restore_preserves_different_same_name_charts(): void {
-        global $DB;
         $source = $this->getDataGenerator()->create_course();
-        $context = \context_course::instance($source->id);
+        $context = $this->bank_context($source);
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $category = $generator->create_question_category(['contextid' => $context->id]);
         foreach ([['Bank', 'Sales'], ['Bank']] as $names) {
@@ -56,10 +55,9 @@ final class backup_test extends \core_backup_backup_restore_base_testcase {
         }
         $target = $this->getDataGenerator()->create_course();
         $this->perform_restore($this->perform_backup($source), $target);
-        $charts = $DB->get_records('qtype_accounting_charts', [
-            'contextid' => \context_course::instance($target->id)->id, 'name' => 'Same name',
-        ]);
+        $charts = $this->get_course_charts($target);
         $this->assertCount(2, $charts);
+        $this->assertSame(['Same name'], array_values(array_unique(array_column($charts, 'name'))));
         $sizes = array_map(static fn($chart) => count(account_manager::get_for_chart($chart->id)), $charts);
         sort($sizes);
         $this->assertSame([1, 2], $sizes);
@@ -75,11 +73,11 @@ final class backup_test extends \core_backup_backup_restore_base_testcase {
         $student = $this->getDataGenerator()->create_user();
         $this->getDataGenerator()->enrol_user($student->id, $course->id);
         $context = \context_course::instance($course->id);
-        $chartid = chart_manager::create_chart('Attempt chart', $context->id);
+        $chartid = chart_manager::create_chart('Attempt chart', $this->bank_context($course)->id);
         $bank = account_manager::add($chartid, 'Bank');
         $sales = account_manager::add($chartid, 'Sales');
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
-        $category = $generator->create_question_category(['contextid' => $context->id]);
+        $category = $generator->create_question_category(['contextid' => $this->bank_context($course)->id]);
         $question = $generator->create_question('accounting', null, [
             'category' => $category->id, 'chartofaccountsid' => $chartid,
             'debitaccount' => [$bank], 'creditaccount' => [$sales], 'debitamount' => [100.50], 'creditamount' => [100.50],
@@ -127,9 +125,8 @@ final class backup_test extends \core_backup_backup_restore_base_testcase {
                 'id' => $response['debitaccount_0'],
             ]));
         }
-        $this->assertEquals(1, $DB->count_records('qtype_accounting_charts', [
-            'contextid' => \context_course::instance($target->id)->id,
-        ]));
+        // Up to Moodle 4.5 both restores share the course question bank; from 5.0 each restore adds a question bank.
+        $this->assertCount(chart_manager::questions_in_modules_only() ? 2 : 1, $this->get_course_charts($target));
     }
 
     /**
@@ -179,13 +176,14 @@ final class backup_test extends \core_backup_backup_restore_base_testcase {
 
         $course = $this->getDataGenerator()->create_course();
         $context = \context_course::instance($course->id);
-        $chartid = chart_manager::create_chart('Backup chart', $context->id);
+        $bankcontext = $this->bank_context($course);
+        $chartid = chart_manager::create_chart('Backup chart', $bankcontext->id);
         $bankid = account_manager::add($chartid, '1200 Bank', 0);
         $salesid = account_manager::add($chartid, '8400 Sales', 1);
         account_manager::add($chartid, '1000 Cash', 2);
 
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
-        $category = $generator->create_question_category(['contextid' => $context->id]);
+        $category = $generator->create_question_category(['contextid' => $bankcontext->id]);
         // Two questions share the chart; the second contains one-sided compound booking rows.
         foreach (['Sale', 'Compound sale'] as $name) {
             $compound = $name === 'Compound sale';
@@ -208,7 +206,7 @@ final class backup_test extends \core_backup_backup_restore_base_testcase {
             $targetcontext = \context_course::instance($target->id);
             $existingchartid = null;
             if ($reusechart) {
-                $existingchartid = chart_manager::create_chart('Backup chart', $targetcontext->id);
+                $existingchartid = chart_manager::create_chart('Backup chart', $this->bank_context($target)->id);
                 // Reverse insertion order so source IDs cannot accidentally match the target accounts.
                 account_manager::add($existingchartid, '8400 Sales', 1);
                 account_manager::add($existingchartid, '1200 Bank', 0);
@@ -220,23 +218,9 @@ final class backup_test extends \core_backup_backup_restore_base_testcase {
             $backupid = $this->perform_backup($course);
             $this->perform_restore($backupid, $target);
 
-            $charts = $DB->get_records('qtype_accounting_charts', ['contextid' => $targetcontext->id]);
-            $this->assertCount(1, $charts);
-            $restoredchart = reset($charts);
-            $this->assertNotEquals($chartid, $restoredchart->id);
-            if ($reusechart) {
-                $this->assertEquals($existingchartid, $restoredchart->id);
-            }
-            $accounts = account_manager::get_for_chart($restoredchart->id);
-            $this->assertCount(3, $accounts);
-            $accountsbyname = [];
-            foreach ($accounts as $account) {
-                $accountsbyname[$account->accountname] = (int) $account->id;
-            }
-
             $childcontext = $DB->sql_like('ctx.path', ':contextpath');
             $questions = $DB->get_records_sql(
-                "SELECT q.*
+                "SELECT q.*, c.contextid
                    FROM {question} q
                    JOIN {question_versions} v ON v.questionid = q.id
                    JOIN {question_bank_entries} b ON b.id = v.questionbankentryid
@@ -246,6 +230,29 @@ final class backup_test extends \core_backup_backup_restore_base_testcase {
                 ['context' => $targetcontext->id, 'contextpath' => $targetcontext->path . '/%', 'qtype' => 'accounting']
             );
             $this->assertCount(2, $questions);
+            $chartids = array_unique(array_map(
+                static fn($question) => (int)\question_bank::load_question($question->id)->chartofaccountsid,
+                $questions
+            ));
+            $this->assertCount(1, $chartids);
+            $restoredchart = chart_manager::get_chart(reset($chartids));
+            $this->assertNotEquals($chartid, $restoredchart->id);
+            // The chart belongs to the question bank its questions were restored to.
+            $this->assertEquals(reset($questions)->contextid, $restoredchart->contextid);
+            // An existing chart is reused if the questions are restored into its question bank, which from
+            // Moodle 5.0 cannot happen because restore creates a new question bank module.
+            $reused = $reusechart && !chart_manager::questions_in_modules_only();
+            if ($reused) {
+                $this->assertEquals($existingchartid, $restoredchart->id);
+            }
+            $this->assertCount($reusechart && !$reused ? 2 : 1, $this->get_course_charts($target));
+            $accounts = account_manager::get_for_chart($restoredchart->id);
+            $this->assertCount(3, $accounts);
+            $accountsbyname = [];
+            foreach ($accounts as $account) {
+                $accountsbyname[$account->accountname] = (int) $account->id;
+            }
+
             foreach ($questions as $question) {
                 $loaded = \question_bank::load_question($question->id);
                 $this->assertEquals($restoredchart->id, $loaded->chartofaccountsid);
@@ -267,6 +274,35 @@ final class backup_test extends \core_backup_backup_restore_base_testcase {
                 $this->assertSame('8400 Sales', $loaded->accountsmap[$creditentry['creditaccountid']]);
             }
         }
+    }
+
+    /**
+     * Get the question bank context of a course: the course itself up to Moodle 4.5, its default question bank from 5.0.
+     *
+     * @param \stdClass $course The course.
+     * @return \context The context that holds the course's questions and charts.
+     */
+    private function bank_context(\stdClass $course): \context {
+        return chart_manager::get_chart_context(\context_course::instance($course->id));
+    }
+
+    /**
+     * Get the charts in a course and its question banks.
+     *
+     * @param \stdClass $course The course.
+     * @return array Chart records keyed by ID.
+     */
+    private function get_course_charts(\stdClass $course): array {
+        global $DB;
+        $context = \context_course::instance($course->id);
+        $childcontext = $DB->sql_like('ctx.path', ':contextpath');
+        return $DB->get_records_sql(
+            "SELECT ch.*
+               FROM {qtype_accounting_charts} ch
+               JOIN {context} ctx ON ctx.id = ch.contextid
+              WHERE ctx.id = :context OR {$childcontext}",
+            ['context' => $context->id, 'contextpath' => $context->path . '/%']
+        );
     }
 
     /**

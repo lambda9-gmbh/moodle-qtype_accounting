@@ -48,6 +48,9 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
     /** @var array Target account IDs keyed by name, also used for legacy entries. */
     protected $targetaccountsbyname = [];
 
+    /** @var int[] Charts created by this restore. */
+    protected $createdchartids = [];
+
     /**
      * Convert custom backup elements into question data for restore identity comparison.
      *
@@ -201,7 +204,7 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
     /**
      * Process the options element.
      *
-     * Resolves the chart (find existing or create new in target course context),
+     * Resolves the chart (find existing or create new in the question bank context),
      * then inserts the options record with the resolved chartofaccountsid.
      *
      * @param array $data The options data from backup.
@@ -410,9 +413,13 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
         }
 
         // Charts belong to the question bank of the restored question; fall back to the target course.
+        // Categories of module question banks wait in the course context until the end of the restore,
+        // so their charts wait there as well; after_restore_question() moves them to the final bank.
         $context = \qtype_accounting\chart_manager::get_question_context($this->get_new_parentid('question'))
             ?? context_course::instance($this->step->get_task()->get_courseid());
-        $contextid = (int)\qtype_accounting\chart_manager::get_chart_context($context)->id;
+        $contextid = $context->contextlevel == CONTEXT_COURSE
+            ? (int)$context->id
+            : (int)\qtype_accounting\chart_manager::get_chart_context($context)->id;
 
         // Build accounts array keyed by account name for matching.
         $accountsbyname = [];
@@ -434,6 +441,7 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
         if (!$chartid) {
             // Create new chart + accounts.
             $chartid = \qtype_accounting\chart_manager::create_chart($this->chartname, $contextid);
+            $this->createdchartids[] = (int)$chartid;
             foreach ($this->chartaccounts as $acc) {
                 \qtype_accounting\account_manager::add(
                     $chartid,
@@ -444,6 +452,36 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
         }
 
         return $chartid;
+    }
+
+    /**
+     * Move the charts of the restored questions into the question banks the questions ended up in.
+     *
+     * Restore moves the categories of module question banks out of the course context only after the
+     * questions have been restored. Charts created by this restore that are no longer used are removed.
+     */
+    public function after_restore_question() {
+        global $DB;
+
+        $questionids = $DB->get_fieldset_sql(
+            "SELECT bi.newitemid
+               FROM {backup_ids_temp} bi
+               JOIN {qtype_accounting_options} o ON o.questionid = bi.newitemid
+              WHERE bi.backupid = ? AND bi.itemname = ?",
+            [$this->get_restoreid(), 'question_created']
+        );
+        foreach ($questionids as $questionid) {
+            $context = \qtype_accounting\chart_manager::get_question_context((int)$questionid);
+            if ($context) {
+                \qtype_accounting\chart_relocator::relocate_question((int)$questionid, $context);
+            }
+        }
+        foreach (array_unique($this->createdchartids) as $chartid) {
+            if (!$DB->record_exists('qtype_accounting_options', ['chartofaccountsid' => $chartid])) {
+                \qtype_accounting\chart_manager::delete_chart($chartid);
+            }
+        }
+        $this->createdchartids = [];
     }
 
     /**
