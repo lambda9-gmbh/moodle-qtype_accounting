@@ -204,6 +204,10 @@ export const init = refreshCharts => {
             // Other scripts and Behat wait until the chart page has loaded inside the overlay.
             const loading = new Pending('qtype_accounting/chart_overlay:load');
             modal.frame.addEventListener('load', () => {
+                // The frame first loads a blank document, before its address is set.
+                if (modal.frame.contentWindow.location.href === 'about:blank') {
+                    return;
+                }
                 modal.trackPage();
                 loading.resolve();
             });
