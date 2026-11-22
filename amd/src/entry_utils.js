@@ -171,6 +171,28 @@ function findIncompleteRow(container, entryType, rowSelector) {
 }
 
 /**
+ * Count the visible entry rows that show the given side.
+ *
+ * @param {Element|jQuery} container The container element.
+ * @param {string} rowSelector The CSS selector for entry rows.
+ * @param {string} side 'debit' or 'credit'.
+ * @return {number} The number of rows with this side.
+ */
+function countSideRows(container, rowSelector, side) {
+    const el = container.jquery ? container[0] : container;
+    if (!el) {
+        return 0;
+    }
+    return Array.from(el.querySelectorAll(rowSelector)).filter(row => {
+        if (row.classList.contains('qtype_accounting-deleted-row') || row.style.display === 'none') {
+            return false;
+        }
+        const type = row.getAttribute('data-entry-type') || 'both';
+        return type === 'both' || type === side;
+    }).length;
+}
+
+/**
  * Update "Per" labels so it only appears on the first visible debit entry.
  *
  * @param {Element|jQuery} container The container element.
@@ -388,6 +410,6 @@ function formatCents(cents, locale) {
 
 export {
     HIDDEN_CLASS, COL, applyEntryTypeVisibility, applyWeightRowVisibility,
-    findIncompleteRow, updatePerLabels, clearEntrySideFields, detectEntryType,
+    findIncompleteRow, countSideRows, updatePerLabels, clearEntrySideFields, detectEntryType,
     isRowEmpty, parseNumber, parseCents, formatCents, formatNumber
 };

@@ -239,6 +239,7 @@ function addEntry(container, template, tbody, nextIndex, entryType) {
         EntryUtils.applyEntryTypeVisibility(incompleteRow, 'both');
 
         EntryUtils.updatePerLabels(container, ROW_SELECTOR);
+        updateDeleteButtons(container);
         return nextIndex;
     }
 
@@ -355,7 +356,8 @@ function deleteEntry(container, entryIndex) {
 function deleteEntrySide(container, entryIndex, side) {
     const entryRow = container.find(ROW_SELECTOR + '[data-entry="' + entryIndex + '"]');
 
-    if (entryRow.length === 0) {
+    // Each side keeps at least one entry.
+    if (entryRow.length === 0 || EntryUtils.countSideRows(container, ROW_SELECTOR, side) <= 1) {
         return;
     }
 
@@ -373,6 +375,7 @@ function deleteEntrySide(container, entryIndex, side) {
         EntryUtils.clearEntrySideFields(entryRow[0], side);
 
         EntryUtils.updatePerLabels(container, ROW_SELECTOR);
+        updateDeleteButtons(container);
     } else if ((currentType === 'debit' && side === 'debit') ||
                (currentType === 'credit' && side === 'credit')) {
         // Row only has this side - delete the entire row.
@@ -383,26 +386,16 @@ function deleteEntrySide(container, entryIndex, side) {
 
 /**
  * Update delete button visibility.
- * Hide delete buttons if only one entry is visible.
+ * Hide the delete buttons of a side if it has only one entry left.
  *
  * @param {jQuery} container The question container.
  */
 function updateDeleteButtons(container) {
-    const visibleRows = container.find(ROW_SELECTOR).filter(function() {
-        return !$(this).hasClass('qtype_accounting-deleted-row');
+    ['debit', 'credit'].forEach(function(side) {
+        const isOnlyOne = EntryUtils.countSideRows(container, ROW_SELECTOR, side) <= 1;
+        container.find(ROW_SELECTOR + ' .qtype_accounting-delete-' + side)
+            .toggleClass('qtype_accounting-delete-hidden', isOnlyOne);
     });
-
-    if (visibleRows.length <= 1) {
-        container.find('.qtype_accounting-delete-debit, .qtype_accounting-delete-credit')
-            .addClass('qtype_accounting-delete-hidden');
-    } else {
-        container.find(ROW_SELECTOR).each(function() {
-            if (!$(this).hasClass('qtype_accounting-deleted-row')) {
-                $(this).find('.qtype_accounting-delete-debit, .qtype_accounting-delete-credit')
-                    .removeClass('qtype_accounting-delete-hidden');
-            }
-        });
-    }
 }
 
 export {init};
