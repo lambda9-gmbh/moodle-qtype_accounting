@@ -19,7 +19,7 @@
  *
  * Runs synchronously on submit, so the messages are loaded beforehand with {@see loadStrings}.
  *
- * @module     qtype_accounting/editform_validation
+ * @module     qtype_accounting/editform/validation
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

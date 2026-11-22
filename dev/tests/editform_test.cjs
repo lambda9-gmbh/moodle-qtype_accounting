@@ -13,6 +13,10 @@ const read = file => process.env.ACCOUNTING_EDITFORM_TEST_REVISION
         {cwd: root, encoding: 'utf8'})
     : readFileSync(path.join(root, file), 'utf8');
 
+// Load an ES module into a shared script context; editform modules import each other by name.
+const loadModule = file => read(file).replace(/^import [^;]*;$/gms, '').replace(/^export \{[^}]*\};$/gm, '')
+    .replace(/^export /gm, '');
+
 test('balance validation uses cents for split amounts and large totals in both formats', () => {
     for (const format of ['de', 'us']) {
         const dom = new JSDOM(`<form><table class="qtype_accounting-edit-table"><tbody>
@@ -25,8 +29,7 @@ test('balance validation uses cents for split amounts and large totals in both f
         vm.runInContext(read('amd/src/entry_utils.js')
             .replace(/^import .*;$/gm, '').replace(/export \{[\s\S]*?\};/, '') +
             ';globalThis.EntryUtils = {parseCents};', context);
-        vm.runInContext(read('amd/src/editform_validation.js')
-            .replace(/^import .*;$/gm, '').replace(/^export /gm, ''), context);
+        vm.runInContext(loadModule('amd/src/editform/validation.js'), context);
         vm.runInContext(`const balanced = () => validateBalance(document.querySelector('form'),
             '.qtype_accounting-entry-row', '${format}');`, context);
         const debits = document.querySelectorAll('.qtype_accounting-debitamount');
@@ -71,9 +74,9 @@ function form() {
         .replace(/^import .*;$/gm, '').replace(/export \{[\s\S]*?\};/, '') +
         ';globalThis.EntryUtils = {applyEntryTypeVisibility, applyWeightRowVisibility, ' +
         'clearEntrySideFields, updatePerLabels, findIncompleteRow};', context);
-    vm.runInContext(read('amd/src/editform.js')
-        .replace(/^import .*;$/gm, '').replace('export {init};', '') +
-        ';editForm = document.querySelector("form"); nextEntryIndex = 1;' +
+    vm.runInContext(['state', 'fields', 'field_states', 'charts', 'rows']
+        .map(name => loadModule(`amd/src/editform/${name}.js`)).join('\n') +
+        ';state.form = document.querySelector("form"); state.nextEntryIndex = 1;' +
         'setupDeleteEntryHandler(); setupAddEntryHandler(); updateDeleteButtonStates();', context);
     return {
         add(side) { document.getElementById(`qtype_accounting-add-${side}-entry`).click(); },

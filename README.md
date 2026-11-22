@@ -562,8 +562,8 @@ moodle-qtype_accounting/                 # Plugin root; unpacks to question/type
 ├── amd/
 │   ├── src/                             # ES module sources
 │   │   ├── chart_overlay.js             # Chart management overlay in the question editor
-│   │   ├── editform.js                  # Authoring form behaviour
-│   │   ├── editform_validation.js       # Submit validation of the authoring form
+│   │   ├── editform.js                  # Authoring form setup and input handlers
+│   │   ├── editform/                    # Authoring form modules: state, fields, field_states, charts, rows, validation
 │   │   ├── entry_utils.js               # Shared helpers
 │   │   ├── manage_charts.js             # Delete confirmations on the chart pages
 │   │   ├── mobile_layout.js             # Card layout for narrow questions
