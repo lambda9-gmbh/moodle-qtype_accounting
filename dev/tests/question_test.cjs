@@ -33,6 +33,13 @@ function question() {
     const win = dom.window;
     win.eval(readFileSync(process.env.ACCOUNTING_JQUERY || require.resolve('jquery/dist/jquery.js'), 'utf8'));
     win.M = {util: {get_string: key => key}};
+    // core/str and core/pending stand-ins for the stripped imports.
+    win.getStrings = requests => Promise.resolve(requests.map(request => request.key));
+    win.Pending = class {
+        resolve() {
+            return undefined;
+        }
+    };
     const load = (file, name, exports) => win.eval(`window.${name} = (() => {
         const $ = window.jQuery;
         ${read(file).replace(/^import .*;$/gm, '').replace(/export \{[\s\S]*?\};/, '')}

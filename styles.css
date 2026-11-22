@@ -1011,7 +1011,8 @@ table.qtype_accounting-student-table {
     margin-bottom: 0;
 }
 
-.qtype_accounting-mobile-field label {
+.qtype_accounting-mobile-field label,
+.qtype_accounting-mobile-field .qtype_accounting-mobile-label {
     display: block;
     font-size: 0.75rem;
     color: var(--bs-secondary-color, #6c757d);
@@ -1020,7 +1021,8 @@ table.qtype_accounting-student-table {
 }
 
 .qtype_accounting-mobile-field select,
-.qtype_accounting-mobile-field input {
+.qtype_accounting-mobile-field input,
+.qtype_accounting-mobile-field .qtype_accounting-mobile-proxy {
     width: 100%;
     min-height: 44px;
     font-size: 16px; /* Prevents iOS zoom */

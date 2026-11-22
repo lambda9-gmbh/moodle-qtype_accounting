@@ -372,9 +372,11 @@ class qtype_accounting_edit_form extends question_edit_form {
         $PAGE->requires->string_for_js('err_balancemismatch', 'qtype_accounting');
         $PAGE->requires->string_for_js('err_debitaccountrequired', 'qtype_accounting');
         $PAGE->requires->string_for_js('err_creditaccountrequired', 'qtype_accounting');
-        $PAGE->requires->strings_for_js(['err_debitamountrequired', 'err_creditamountrequired'], 'qtype_accounting');
+        // Preloaded so that core/str resolves them without a request; validation runs synchronously on submit.
         $PAGE->requires->strings_for_js([
-            'refreshchartsdone', 'refreshchartsfailed', 'refreshchartsmissing', 'err_accountunavailable',
+            'err_accountunavailable', 'err_debitaccountrequired', 'err_creditaccountrequired',
+            'err_debitamountrequired', 'err_creditamountrequired', 'err_balancemismatch',
+            'refreshchartsdone', 'refreshchartsfailed', 'refreshchartsmissing',
         ], 'qtype_accounting');
         $PAGE->requires->js_call_amd('qtype_accounting/editform', 'init', []);
     }

@@ -21,29 +21,30 @@ test('balance validation uses cents for split amounts and large totals in both f
                 <td><input class="qtype_accounting-creditamount"></td></tr>`).join('')}
             </tbody></table></form>`);
         const document = dom.window.document;
-        const context = vm.createContext({document, M: {util: {get_string: key => key}}});
+        const context = vm.createContext({document});
         vm.runInContext(read('amd/src/entry_utils.js')
             .replace(/^import .*;$/gm, '').replace(/export \{[\s\S]*?\};/, '') +
             ';globalThis.EntryUtils = {parseCents};', context);
-        vm.runInContext(read('amd/src/editform.js')
-            .replace(/^import .*;$/gm, '').replace('export {init};', '') +
-            `;editForm = document.querySelector('form'); numberFormatSelect = {value: '${format}'};`, context);
+        vm.runInContext(read('amd/src/editform_validation.js')
+            .replace(/^import .*;$/gm, '').replace(/^export /gm, ''), context);
+        vm.runInContext(`const balanced = () => validateBalance(document.querySelector('form'),
+            '.qtype_accounting-entry-row', '${format}');`, context);
         const debits = document.querySelectorAll('.qtype_accounting-debitamount');
         const credits = document.querySelectorAll('.qtype_accounting-creditamount');
         const decimal = value => value.replace('.', format === 'de' ? ',' : '.');
         debits[0].value = decimal('0.10');
         debits[1].value = decimal('0.20');
         credits[0].value = decimal('0.30');
-        assert.equal(vm.runInContext('validateBalance()', context), true);
+        assert.equal(vm.runInContext('balanced()', context), true);
         credits[0].value = decimal('0.31');
-        assert.equal(vm.runInContext('validateBalance()', context), false);
+        assert.equal(vm.runInContext('balanced()', context), false);
         debits[0].value = decimal('9999999999999.99');
         debits[1].value = decimal('9999999999999.98');
         credits[0].value = decimal('9999999999999.99');
         credits[1].value = decimal('9999999999999.98');
-        assert.equal(vm.runInContext('validateBalance()', context), true);
+        assert.equal(vm.runInContext('balanced()', context), true);
         credits[1].value = decimal('9999999999999.99');
-        assert.equal(vm.runInContext('validateBalance()', context), false);
+        assert.equal(vm.runInContext('balanced()', context), false);
     }
 });
 

@@ -23,10 +23,12 @@
 
 import $ from 'jquery';
 import * as Str from 'core/str';
+import Pending from 'core/pending';
 import Log from 'core/log';
 import {call as ajaxCall} from 'core/ajax';
 import * as EntryUtils from 'qtype_accounting/entry_utils';
 import {init as initChartOverlay} from 'qtype_accounting/chart_overlay';
+import * as Validation from 'qtype_accounting/editform_validation';
 
 // Module-level state.
 let accountsByChart = {};
@@ -57,6 +59,8 @@ function init() {
     if (!editForm) {
         return;
     }
+    const pending = new Pending('qtype_accounting/editform:strings');
+    Validation.loadStrings().then(() => pending.resolve()).catch(Log.error);
     setupAccountCountHandler();
     let config = {};
     if (dataElement) {
@@ -249,7 +253,8 @@ function createChartRefreshCallback(contextId) {
     };
     // Queue refreshes when overlays are closed before an earlier refresh completes.
     const refreshCharts = () => {
-        pendingRefresh = pendingRefresh.then(refresh, refresh);
+        const pending = new Pending('qtype_accounting/editform:refreshcharts');
+        pendingRefresh = pendingRefresh.then(refresh, refresh).finally(() => pending.resolve());
         return pendingRefresh;
     };
     return refreshCharts;
@@ -490,8 +495,8 @@ function setupFormSubmitHandler() {
                 return;
             }
             syncAllDisplayToHidden();
-            let valid = validateAccounts();
-            if (!validateBalance()) {
+            let valid = Validation.validateAccounts(form, chartSelect, ROW_SELECTOR);
+            if (!Validation.validateBalance(form, ROW_SELECTOR, getNumberFormat())) {
                 valid = false;
             }
             if (!valid) {
@@ -507,175 +512,6 @@ function setupFormSubmitHandler() {
                 control.name = names[i];
             }), 0);
         });
-    }
-}
-
-/**
- * Validate that every visible entry side has an account selected.
- *
- * @return {boolean} True if all visible sides have accounts, false if not.
- */
-function validateAccounts() {
-    let errors = [];
-    clearAccountErrors();
-    if (chartSelect && chartSelect.selectedOptions[0] && chartSelect.selectedOptions[0].dataset.unavailable) {
-        showAccountError(chartSelect, 'err_accountunavailable');
-        errors.push('chart');
-    }
-
-    let entryRows = editForm.querySelectorAll(ROW_SELECTOR);
-    entryRows.forEach(function(row) {
-        if (row.style.display === 'none') {
-            return;
-        }
-        let index = row.getAttribute('data-entry-index');
-        if (index === '__INDEX__') {
-            return;
-        }
-
-        let entryType = row.getAttribute('data-entry-type') || 'both';
-        let debitAccount = row.querySelector('.qtype_accounting-debitaccount');
-        let creditAccount = row.querySelector('.qtype_accounting-creditaccount');
-
-        // Debit side is visible for 'debit' and 'both' entries.
-        if (entryType === 'debit' || entryType === 'both') {
-            let hasDebitAccount = debitAccount && debitAccount.value && debitAccount.value !== '';
-            if (hasDebitAccount && debitAccount.selectedOptions[0].dataset.unavailable) {
-                showAccountError(debitAccount, 'err_accountunavailable');
-                errors.push(index);
-            } else if (!hasDebitAccount) {
-                showAccountError(debitAccount, 'err_debitaccountrequired');
-                errors.push(index);
-            }
-        }
-
-        // Credit side is visible for 'credit' and 'both' entries.
-        if (entryType === 'credit' || entryType === 'both') {
-            let hasCreditAccount = creditAccount && creditAccount.value && creditAccount.value !== '';
-            if (hasCreditAccount && creditAccount.selectedOptions[0].dataset.unavailable) {
-                showAccountError(creditAccount, 'err_accountunavailable');
-                errors.push(index);
-            } else if (!hasCreditAccount) {
-                showAccountError(creditAccount, 'err_creditaccountrequired');
-                errors.push(index);
-            }
-        }
-        ['debit', 'credit'].forEach(side => {
-            const account = row.querySelector('.qtype_accounting-' + side + 'account');
-            const amount = row.querySelector('.qtype_accounting-' + side + 'amount');
-            if ((entryType === 'both' || entryType === side) && account && account.value && amount &&
-                    amount.value.trim() === '') {
-                showAccountError(amount, 'err_' + side + 'amountrequired');
-                errors.push(index);
-            }
-        });
-    });
-
-    return errors.length === 0;
-}
-
-/**
- * Show an inline validation error below a specific field.
- *
- * @param {HTMLElement} field The field element to show the error below.
- * @param {string} stringKey The language string key for the error message.
- */
-function showAccountError(field, stringKey) {
-    let errorSpan = document.createElement('span');
-    errorSpan.className = 'qtype_accounting-account-error form-control-feedback invalid-feedback d-block';
-    errorSpan.id = field.id ? field.id + '_error' : 'qtype_accounting-error-' + field.name.replace(/[^a-z0-9_-]/gi, '_');
-    errorSpan.textContent = M.util.get_string(stringKey, 'qtype_accounting');
-    field.classList.add('is-invalid');
-    field.setAttribute('aria-invalid', 'true');
-    field.setAttribute('aria-describedby', errorSpan.id);
-    field.parentNode.appendChild(errorSpan);
-}
-
-/**
- * Clear all inline account validation errors.
- */
-function clearAccountErrors() {
-    let existing = editForm.querySelectorAll('.qtype_accounting-account-error');
-    existing.forEach(function(el) {
-        const field = el.parentNode.querySelector('[aria-describedby="' + el.id + '"]');
-        if (field) {
-            field.classList.remove('is-invalid');
-            field.removeAttribute('aria-invalid');
-            field.removeAttribute('aria-describedby');
-        }
-        el.remove();
-    });
-}
-
-/**
- * Validate that total debit amounts equal total credit amounts.
- *
- * @return {boolean} True if balanced, false if not.
- */
-function validateBalance() {
-    let totalDebit = 0n;
-    let totalCredit = 0n;
-
-    let entryRows = editForm.querySelectorAll(ROW_SELECTOR);
-    entryRows.forEach(function(row) {
-        if (row.style.display === 'none') {
-            return;
-        }
-        let index = row.getAttribute('data-entry-index');
-        if (index === '__INDEX__') {
-            return;
-        }
-
-        let debitField = row.querySelector('.qtype_accounting-debitamount');
-        let creditField = row.querySelector('.qtype_accounting-creditamount');
-
-        if (debitField && debitField.value) {
-            let parsedDebit = EntryUtils.parseCents(debitField.value, getNumberFormat());
-            if (parsedDebit !== null) {
-                totalDebit += parsedDebit;
-            }
-        }
-        if (creditField && creditField.value) {
-            let parsedCredit = EntryUtils.parseCents(creditField.value, getNumberFormat());
-            if (parsedCredit !== null) {
-                totalCredit += parsedCredit;
-            }
-        }
-    });
-
-    if (totalDebit !== totalCredit) {
-        showBalanceError();
-        return false;
-    }
-
-    clearBalanceError();
-    return true;
-}
-
-/**
- * Show balance validation error below the entries table.
- */
-function showBalanceError() {
-    clearBalanceError();
-    let table = editForm.querySelector('.qtype_accounting-edit-table');
-    if (!table) {
-        return;
-    }
-    let errorDiv = document.createElement('div');
-    errorDiv.id = 'qtype_accounting-balance-error';
-    errorDiv.className = 'form-control-feedback invalid-feedback d-block mt-2';
-    errorDiv.setAttribute('role', 'alert');
-    errorDiv.textContent = M.util.get_string('err_balancemismatch', 'qtype_accounting');
-    table.parentNode.insertBefore(errorDiv, table.nextSibling);
-}
-
-/**
- * Clear the balance validation error if present.
- */
-function clearBalanceError() {
-    let existing = document.getElementById('qtype_accounting-balance-error');
-    if (existing) {
-        existing.remove();
     }
 }
 

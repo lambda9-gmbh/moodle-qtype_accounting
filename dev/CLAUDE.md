@@ -34,6 +34,7 @@ moodle-qtype_accounting/                  # Unpacks to question/type/accounting/
 ├── amd/
 │   ├── src/                              # ES-module sources
 │   │   ├── editform.js                   # Question authoring UI
+│   │   ├── editform_validation.js        # Synchronous submit validation (accounts, amounts, balance)
 │   │   ├── entry_utils.js                # Shared entry helpers
 │   │   ├── mobile_layout.js              # Mobile card layout
 │   │   └── question.js                   # Student quiz interaction

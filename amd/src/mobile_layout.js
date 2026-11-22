@@ -25,6 +25,8 @@
  */
 
 import $ from 'jquery';
+import {getStrings} from 'core/str';
+import Pending from 'core/pending';
 
 // Breakpoint for mobile layout (must match CSS).
 let MOBILE_BREAKPOINT = 768;
@@ -37,6 +39,27 @@ let ACTIVE_CLASS = 'qtype_accounting-mobile-active';
 
 // Keep each question's layout options and resize timer independent.
 const questionSettings = new WeakMap();
+
+const STRING_KEYS = [
+    'debitentries', 'creditentries', 'adddebitentry', 'addcreditentry',
+    'account', 'amount', 'debit', 'credit', 'deletedebit', 'deletecredit',
+];
+
+// Labels keyed by language string; the keys are used until the strings have loaded.
+let strings = Object.fromEntries(STRING_KEYS.map(key => [key, key]));
+
+/**
+ * Load the labels of the card view.
+ *
+ * @return {Promise} Resolved when the labels are available.
+ */
+const loadStrings = async() => {
+    const values = await getStrings(STRING_KEYS.map(key => ({key, component: 'qtype_accounting'})));
+    strings = Object.fromEntries(STRING_KEYS.map((key, i) => [key, values[i]]));
+};
+
+// Each card field gets a unique ID, so that its label can refer to it.
+let fieldCounter = 0;
 
 /**
  * Whether the card view should be used for a question.
@@ -81,10 +104,14 @@ function init(container, selector, readonly) {
         new ResizeObserver(scheduleResize).observe(container[0]);
     }
 
-    // Build mobile view if already too narrow.
-    if (isCompact(container)) {
-        buildMobileView(container);
-    }
+    // Build mobile view if already too narrow, once its labels are available.
+    const pending = new Pending('qtype_accounting/mobile_layout:init');
+    loadStrings().catch(() => null).finally(() => {
+        if (isCompact(container)) {
+            buildMobileView(container);
+        }
+        pending.resolve();
+    });
 }
 
 /**
@@ -122,29 +149,17 @@ function buildMobileView(container) {
     // Clear any existing content.
     mobileView.empty();
 
-    // Get translated strings.
-    let debitLabel = M.util.get_string('debitentries', 'qtype_accounting');
-    let creditLabel = M.util.get_string('creditentries', 'qtype_accounting');
-    let addDebitLabel = M.util.get_string('adddebitentry', 'qtype_accounting');
-    let addCreditLabel = M.util.get_string('addcreditentry', 'qtype_accounting');
-
-    // Create debit section.
-    let debitSection = $('<div class="qtype_accounting-mobile-section" data-section="debit">');
-    debitSection.append(
-        '<div class="qtype_accounting-mobile-section-header qtype_accounting-mobile-debit-header">' +
-        '<h4>' + debitLabel + '</h4></div>'
-    );
-    let debitCards = $('<div class="qtype_accounting-mobile-cards">');
-    debitSection.append(debitCards);
-
-    // Create credit section.
-    let creditSection = $('<div class="qtype_accounting-mobile-section" data-section="credit">');
-    creditSection.append(
-        '<div class="qtype_accounting-mobile-section-header qtype_accounting-mobile-credit-header">' +
-        '<h4>' + creditLabel + '</h4></div>'
-    );
-    let creditCards = $('<div class="qtype_accounting-mobile-cards">');
-    creditSection.append(creditCards);
+    const section = side => {
+        const element = $('<div class="qtype_accounting-mobile-section">').attr('data-section', side);
+        element.append($('<div class="qtype_accounting-mobile-section-header">')
+            .addClass('qtype_accounting-mobile-' + side + '-header')
+            .append($('<h4>').text(strings[side + 'entries'])));
+        const cards = $('<div class="qtype_accounting-mobile-cards">');
+        element.append(cards);
+        return [element, cards];
+    };
+    const [debitSection, debitCards] = section('debit');
+    const [creditSection, creditCards] = section('credit');
 
     // Iterate visible entry rows and create cards.
     container.find(settings.selector).each(function() {
@@ -179,14 +194,11 @@ function buildMobileView(container) {
 
     // Add buttons (only in edit mode).
     if (!settings.readonly) {
-        debitSection.append(
-            '<button type="button" class="btn btn-secondary qtype_accounting-add-debit-entry">' +
-            addDebitLabel + '</button>'
-        );
-        creditSection.append(
-            '<button type="button" class="btn btn-secondary qtype_accounting-add-credit-entry">' +
-            addCreditLabel + '</button>'
-        );
+        [[debitSection, 'debit'], [creditSection, 'credit']].forEach(([element, side]) => {
+            element.append($('<button type="button" class="btn btn-secondary">')
+                .addClass('qtype_accounting-add-' + side + '-entry')
+                .text(strings['add' + side + 'entry']));
+        });
     }
 
     // Activate mobile layout.
@@ -203,56 +215,54 @@ function buildMobileView(container) {
  * @return {jQuery} The card element.
  */
 function createMobileCard($row, side, entryIndex, settings) {
-    let accountLabel = M.util.get_string('account', 'qtype_accounting');
-    let amountLabel = M.util.get_string('amount', 'qtype_accounting');
+    const cells = $row.find('td');
+    // Debit account and amount are cells 1 and 2, credit account and amount cells 4 and 5.
+    const accountCell = cells.eq(side === 'debit' ? 1 : 4);
+    const amountCell = cells.eq(side === 'debit' ? 2 : 5);
 
-    let cells = $row.find('td');
-
-    // Determine which cells to read based on side.
-    let accountCell, amountCell;
-    if (side === 'debit') {
-        accountCell = cells.eq(1); // Debit Account (cell index 1).
-        amountCell = cells.eq(2); // Debit Amount (cell index 2).
-    } else {
-        accountCell = cells.eq(4); // Credit Account (cell index 4).
-        amountCell = cells.eq(5); // Credit Amount (cell index 5).
-    }
-
-    // Build the card.
-    let sideLabel = (side === 'debit')
-        ? M.util.get_string('debit', 'qtype_accounting')
-        : M.util.get_string('credit', 'qtype_accounting');
-
-    let card = $('<div class="qtype_accounting-mobile-card" data-entry="' + entryIndex +
-        '" data-side="' + side + '" role="group" aria-label="' + sideLabel + ' ' + (parseInt(entryIndex, 10) + 1) + '">');
-
-    let cardBody = $('<div class="qtype_accounting-mobile-card-body">');
+    const card = $('<div class="qtype_accounting-mobile-card" role="group">')
+        .attr('data-entry', entryIndex)
+        .attr('data-side', side)
+        .attr('aria-label', strings[side] + ' ' + (parseInt(entryIndex, 10) + 1));
+    const cardBody = $('<div class="qtype_accounting-mobile-card-body">');
 
     if (settings.readonly) {
         // Readonly mode: clone display spans.
-        cardBody.append(createReadonlyField(accountLabel, accountCell));
-        cardBody.append(createReadonlyField(amountLabel, amountCell));
+        cardBody.append(createReadonlyField(strings.account, accountCell));
+        cardBody.append(createReadonlyField(strings.amount, amountCell));
     } else {
         // Edit mode: create proxy inputs.
-        cardBody.append(createProxyAccountField(accountLabel, accountCell));
-        cardBody.append(createProxyAmountField(amountLabel, amountCell, settings.numberFormat, settings.currencySymbol));
+        cardBody.append(createProxyAccountField(strings.account, accountCell));
+        cardBody.append(createProxyAmountField(strings.amount, amountCell, settings.numberFormat, settings.currencySymbol));
     }
-
     card.append(cardBody);
 
-    // Add delete button in edit mode.
     if (!settings.readonly) {
-        let deleteClass = (side === 'debit') ? 'qtype_accounting-delete-debit' : 'qtype_accounting-delete-credit';
-        let actionsDiv = $('<div class="qtype_accounting-mobile-card-actions">');
-        actionsDiv.append(
-            '<button type="button" class="btn btn-sm btn-outline-danger ' + deleteClass +
-            '" data-entry="' + entryIndex + '" title="' + sideLabel + '">' +
-            '<i class="fa fa-trash"></i></button>'
-        );
-        card.append(actionsDiv);
+        const label = strings['delete' + side];
+        const button = $('<button type="button" class="btn btn-sm btn-outline-danger">')
+            .addClass('qtype_accounting-delete-' + side)
+            .attr('data-entry', entryIndex)
+            .attr('title', label)
+            .attr('aria-label', label)
+            .append($('<i class="fa fa-trash" aria-hidden="true">'));
+        card.append($('<div class="qtype_accounting-mobile-card-actions">').append(button));
     }
 
     return card;
+}
+
+/**
+ * Create the wrapper of a card field with a label for the given control ID.
+ *
+ * @param {string} label The field label text.
+ * @param {string|null} controlId The ID of the labelled control, or null for text that is not a control.
+ * @return {jQuery} The field wrapper element.
+ */
+function createField(label, controlId) {
+    const field = $('<div class="qtype_accounting-mobile-field">');
+    const labelElement = controlId ? $('<label>').attr('for', controlId) : $('<span class="qtype_accounting-mobile-label">');
+    field.append(labelElement.text(label));
+    return field;
 }
 
 /**
@@ -263,16 +273,11 @@ function createMobileCard($row, side, entryIndex, settings) {
  * @return {jQuery} The field wrapper element.
  */
 function createReadonlyField(label, cell) {
-    let field = $('<div class="qtype_accounting-mobile-field">');
-    field.append('<label>' + label + '</label>');
-
-    let span = cell.find('.qtype_accounting-readonly').first();
-    if (span.length) {
-        field.append(span.clone());
-    } else {
-        field.append('<span class="qtype_accounting-readonly"></span>');
-    }
-
+    const field = createField(label, null);
+    const span = cell.find('.qtype_accounting-readonly').first();
+    field.append(span.length ? span.clone() : $('<span class="qtype_accounting-readonly">'));
+    // Keep the correctness text for screen readers that follows the reviewed value.
+    field.append(cell.find('.accesshide').clone());
     return field;
 }
 
@@ -284,37 +289,31 @@ function createReadonlyField(label, cell) {
  * @return {jQuery} The field wrapper element.
  */
 function createProxyAccountField(label, cell) {
-    let field = $('<div class="qtype_accounting-mobile-field">');
-    field.append('<label>' + label + '</label>');
+    const id = 'qtype_accounting-mobile-field-' + (++fieldCounter);
+    const field = createField(label, id);
 
-    let realSelect = cell.find('select').first();
+    const realSelect = cell.find('select').first();
     if (realSelect.length === 0) {
         // Text input fallback (no accounts available).
-        let realInput = cell.find('input').first();
-        let proxyInput = $('<input type="text" class="form-control qtype_accounting-mobile-proxy">')
+        const realInput = cell.find('input').first();
+        const proxyInput = $('<input type="text" class="form-control qtype_accounting-mobile-proxy">')
+            .attr('id', id)
             .val(realInput.val())
-            .attr('placeholder', realInput.attr('placeholder') || '')
-            .attr('aria-label', label);
-
+            .attr('placeholder', realInput.attr('placeholder') || '');
         proxyInput.on('input', function() {
             realInput.val($(this).val());
         });
-
         field.append(proxyInput);
         return field;
     }
 
-    // Clone the select element (options and all), remove name/id.
-    let proxySelect = realSelect.clone()
+    // Clone the select element (options and all) without its name.
+    const proxySelect = realSelect.clone()
         .removeAttr('name')
-        .removeAttr('id')
-        .addClass('qtype_accounting-mobile-proxy')
-        .attr('aria-label', label);
-
-    // Set current value.
+        .removeAttr('aria-label')
+        .attr('id', id)
+        .addClass('qtype_accounting-mobile-proxy');
     proxySelect.val(realSelect.val());
-
-    // Sync proxy → real.
     proxySelect.on('change', function() {
         realSelect.val($(this).val()).trigger('change');
     });
@@ -333,27 +332,23 @@ function createProxyAccountField(label, cell) {
  * @return {jQuery} The field wrapper element.
  */
 function createProxyAmountField(label, cell, numberFormat, currencySymbol) {
-    let field = $('<div class="qtype_accounting-mobile-field">');
-    field.append('<label>' + label + '</label>');
+    const id = 'qtype_accounting-mobile-field-' + (++fieldCounter);
+    const field = createField(label, id);
 
-    let realInput = cell.find('input').first();
-    let placeholder = (numberFormat === 'us') ? '0.00' : '0,00';
-
-    let proxyInput = $('<input type="text" class="form-control qtype_accounting-mobile-proxy qtype_accounting-amount-input">')
+    const realInput = cell.find('input').first();
+    const proxyInput = $('<input type="text" class="form-control qtype_accounting-mobile-proxy qtype_accounting-amount-input">')
+        .attr('id', id)
         .val(realInput.val())
-        .attr('placeholder', placeholder)
-        .attr('inputmode', 'decimal')
-        .attr('aria-label', label);
+        .attr('placeholder', numberFormat === 'us' ? '0.00' : '0,00')
+        .attr('inputmode', 'decimal');
 
     // Sync proxy → real on input.
     proxyInput.on('input', function() {
         realInput.val($(this).val());
     });
 
-    // Also sync on blur (after formatting by the existing blur handler in question.js).
+    // The amount formatting handler in question.js fires on blur; sync the formatted value afterwards.
     proxyInput.on('blur', function() {
-        // The amount formatting handler in question.js fires on .qtype_accounting-amount-input blur.
-        // After formatting, sync the formatted value to the real input.
         setTimeout(function() {
             realInput.val(proxyInput.val());
         }, 0);
