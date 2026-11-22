@@ -21,11 +21,15 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - Charts of accounts can now be created directly in Moodle by entering a name, then adding accounts in the existing editor without uploading a CSV file.
 
 ### Changed
+- The question editor's JavaScript is split into modules under `amd/src/editform/` (state, hidden fields, field states, charts, entry rows, validation); `editform.js` only sets up the form.
+- The `get_charts` web service returns chart and account names as plain text (`PARAM_TEXT`).
 - GitHub Actions also run the full check suite against Moodle 5.2 and 5.3 on MariaDB and PostgreSQL.
 - The booking table, the correct answer, the feedback summary and the editor's entry table are rendered from Mustache templates (renderables in `classes/output/`), so themes can override them. The HTML structure used by the JavaScript and the Moodle App is unchanged.
 - Charts of accounts belong to the question bank of their questions instead of the course, matching Moodle 5 question banks. Moving a question to another question bank, or saving it into one, reuses or copies its chart there and switches the question and its attempts to that chart. The upgrade moves charts out of contexts that can no longer hold questions. The chart pages and the `qtype_accounting_get_charts` web service take a context ID instead of a course ID.
 
 ### Fixed
+- Restored questions from question bank modules (Moodle 5.0+) keep their chart in their own question bank instead of the target course's default bank.
+- The chart overlay no longer reports its page as loaded while the frame still holds its blank initial document.
 - Card view labels are linked to their controls, delete buttons there have accessible names, and account selects use the full card width.
 - Delete buttons have accessible names ("Delete debit entry", "Delete credit entry"), and reviewed fields state their correctness for screen readers instead of by colour alone.
 - Chart changes (rename, add or edit accounts, copy a site chart) are only accepted as form submissions, and chart downloads use Moodle's file delivery.
