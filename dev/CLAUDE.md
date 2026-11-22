@@ -30,74 +30,77 @@ Key conventions:
 ## Repository layout
 
 ```
-moodle-qtype_accounting/                  # Unpacks to question/type/accounting/ in Moodle
+moodle-qtype_accounting/                 # Plugin root; unpacks to question/type/accounting/
 ├── amd/
-│   ├── src/                              # ES-module sources
-│   │   ├── editform.js                   # Question authoring UI
-│   │   ├── editform_validation.js        # Synchronous submit validation (accounts, amounts, balance)
-│   │   ├── entry_utils.js                # Shared entry helpers
-│   │   ├── mobile_layout.js              # Mobile card layout
-│   │   └── question.js                   # Student quiz interaction
-│   └── build/                            # Minified output (committed; rebuilt via grunt)
-├── backup/moodle2/                       # Backup + restore handlers
-├── classes/                              # PSR-4 autoloaded under qtype_accounting\
-│   ├── account_manager.php               # Account CRUD
-│   ├── aggregator.php                    # Sums entries per side and account (grading + feedback)
-│   ├── account_provider.php              # Dropdown filtering + seeded shuffle
-│   ├── amount_helper.php                 # Number-format parsing/formatting
-│   ├── answer_renderer.php               # Renders the "correct answer" block
-│   ├── chart_manager.php                 # Chart CRUD + CSV import/export
-│   ├── entries_table_builder.php         # Edit-form entry table HTML
-│   ├── entry_helper.php                  # Shared entry-row helpers
-│   ├── entry_validator.php               # Edit-form validation
-│   ├── feedback_calculator.php           # Per-entry feedback computation
-│   ├── feedback_renderer.php             # Student-side feedback HTML
-│   ├── import_helper.php                 # CSV parsing utilities
-│   ├── privacy/provider.php              # GDPR provider (usermodified only)
-│   ├── scorer.php                        # Aggregation-based weighted scoring
-│   └── xml_handler.php                   # Moodle XML import/export
+│   ├── src/                             # ES module sources
+│   │   ├── chart_overlay.js             # Chart management overlay in the question editor
+│   │   ├── editform.js                  # Authoring form behaviour
+│   │   ├── editform_validation.js       # Submit validation of the authoring form
+│   │   ├── entry_utils.js               # Shared helpers
+│   │   ├── manage_charts.js             # Delete confirmations on the chart pages
+│   │   ├── mobile_layout.js             # Card layout for narrow questions
+│   │   └── question.js                  # Student quiz interaction
+│   └── build/                           # Minified output (committed)
+├── backup/moodle2/                      # Backup + restore handlers
+├── classes/                             # Autoloaded under qtype_accounting\
+│   ├── admin/setting_sitecharts.php     # Site charts list on the settings page
+│   ├── external/get_charts.php          # Web service: charts of a question bank
+│   ├── form/                            # Chart create and file upload forms
+│   ├── local/chart_page.php             # Shared setup of the chart pages
+│   ├── output/                          # Renderables for the templates, Moodle App handler
+│   ├── privacy/provider.php             # Privacy API
+│   ├── account_manager.php              # Account CRUD and imports into a chart
+│   ├── account_provider.php             # Accounts offered in a question's selects
+│   ├── aggregator.php                   # Sums entries per side and account
+│   ├── amount_helper.php                # Amounts in integer cents
+│   ├── chart_manager.php                # Chart CRUD, chart contexts, matching
+│   ├── chart_relocator.php              # Keeps charts in the question bank of their questions
+│   ├── currency_helper.php              # Currency symbols
+│   ├── entries_table_builder.php        # Submitted editor entries, editor table
+│   ├── entry_helper.php                 # Entry row helpers
+│   ├── entry_validator.php              # Server-side validation of the editor
+│   ├── feedback_calculator.php          # Field and side feedback
+│   ├── import_helper.php                # CSV, text and ODS parsing
+│   ├── observer.php                     # Removes charts of deleted contexts
+│   ├── scorer.php                       # Grading (percentage and points)
+│   └── xml_handler.php                  # Moodle XML import/export
 ├── db/
-│   ├── access.php                        # qtype/accounting:managecharts capability
-│   ├── install.xml                       # XMLDB schema
-│   └── upgrade.php                       # xmldb_qtype_accounting_upgrade()
+│   ├── access.php                       # Capability definitions
+│   ├── events.php                       # Event observers
+│   ├── install.xml                      # XMLDB schema
+│   ├── mobile.php                       # Moodle App handler
+│   ├── services.php                     # Web services
+│   └── upgrade.php                      # Per-version DB migrations
+├── docs/screenshots/                    # README screenshots
+├── js/mobileapp/question.js             # Moodle App controller
 ├── lang/
-│   ├── en/qtype_accounting.php           # English (shipped)
-│   └── de/qtype_accounting.php           # German (export-ignored; ship via AMOS)
-├── pix/icon.svg                          # Question type icon
+│   ├── en/qtype_accounting.php          # English (shipped)
+│   └── de/qtype_accounting.php          # German (dev-only; export-ignored)
+├── pix/icon.svg                         # Question-type icon
+├── templates/                           # Mustache templates (question, answer, feedback, editor table, app)
 ├── tests/
-│   ├── behat/                            # Acceptance tests
-│   │   ├── attempt_question.feature
-│   │   ├── behat_qtype_accounting.php
-│   │   ├── create_question.feature
-│   │   └── grading.feature
-│   ├── generator/lib.php                 # Test data generator
-│   ├── account_manager_test.php
-│   ├── chart_manager_test.php
-│   ├── helper.php
-│   ├── import_helper_test.php
-│   ├── question_test.php
-│   └── questiontype_test.php
-├── edit_accounting_form.php              # qtype_accounting_edit_form (question authoring)
-├── edit_chart.php                        # Per-chart edit page (manages accounts in one chart)
-├── manage_charts.php                     # Chart list / upload / delete of a question bank or the site
-├── question.php                          # qtype_accounting_question (question_graded_automatically)
-├── questiontype.php                      # qtype_accounting (question_type)
-├── renderer.php                          # qtype_accounting_renderer
-├── styles.css                            # .qtype_accounting-* rules
+│   ├── behat/                           # Acceptance tests
+│   ├── generator/                       # Test data generator
+│   └── *_test.php                       # PHPUnit tests
+├── edit_accounting_form.php             # Question authoring form
+├── edit_chart.php                       # Edit a single chart's accounts
+├── manage_charts.php                    # Chart list of a question bank, or the site charts
+├── question.php                         # qtype_accounting_question
+├── questiontype.php                     # qtype_accounting (question_type)
+├── renderer.php                         # qtype_accounting_renderer
+├── settings.php                         # Site settings
+├── styles.css                           # .qtype_accounting-* selectors
 ├── version.php
 ├── README.md
 ├── CHANGES.md
 ├── LICENSE
-├── .gitattributes                        # Marks dev/, lang/de/, .idea/, .claude/ export-ignore
-├── .phpcs.xml.dist                       # moodle + moodle-extra ruleset
-└── .phpmd.xml
+└── dev/                                 # Dev tooling — not shipped in release ZIP
 ```
 
-Notable absences (intentional):
-- No `settings.php` — the plugin has no admin settings.
-- No `ajax/` — earlier endpoints were dead code; chart import now goes through Moodle's filepicker form in `manage_charts.php` / `edit_chart.php`.
-- No `db/services.php` / `classes/external/` — no external web service surface.
-- Browser output uses `html_writer` / direct HTML strings. Moodle App support is registered in
+Notes:
+- Browser output uses renderables in `classes/output/` and Mustache templates in `templates/`.
+  JavaScript and the Moodle App rely on their class names, field names and data attributes.
+  Moodle App support is registered in
   `db/mobile.php`; `classes/output/mobile.php` serves `templates/mobileapp/question.mustache`
   and `js/mobileapp/question.js`. The app controller is evaluated by the app, not loaded as AMD.
   Bind template actions inside `componentInit`: other returned methods override the handler and

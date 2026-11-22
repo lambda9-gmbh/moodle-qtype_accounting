@@ -561,33 +561,62 @@ For deeper architectural notes, see [`dev/CLAUDE.md`](dev/CLAUDE.md).
 moodle-qtype_accounting/                 # Plugin root; unpacks to question/type/accounting/
 ├── amd/
 │   ├── src/                             # ES module sources
+│   │   ├── chart_overlay.js             # Chart management overlay in the question editor
 │   │   ├── editform.js                  # Authoring form behaviour
+│   │   ├── editform_validation.js       # Submit validation of the authoring form
 │   │   ├── entry_utils.js               # Shared helpers
-│   │   ├── mobile_layout.js             # Card layout for narrow viewports
+│   │   ├── manage_charts.js             # Delete confirmations on the chart pages
+│   │   ├── mobile_layout.js             # Card layout for narrow questions
 │   │   └── question.js                  # Student quiz interaction
 │   └── build/                           # Minified output (committed)
 ├── backup/moodle2/                      # Backup + restore handlers
-├── classes/                             # PSR-4 autoloaded under qtype_accounting\
+├── classes/                             # Autoloaded under qtype_accounting\
+│   ├── admin/setting_sitecharts.php     # Site charts list on the settings page
+│   ├── external/get_charts.php          # Web service: charts of a question bank
+│   ├── form/                            # Chart create and file upload forms
+│   ├── local/chart_page.php             # Shared setup of the chart pages
+│   ├── output/                          # Renderables for the templates, Moodle App handler
+│   ├── privacy/provider.php             # Privacy API
+│   ├── account_manager.php              # Account CRUD and imports into a chart
+│   ├── account_provider.php             # Accounts offered in a question's selects
+│   ├── aggregator.php                   # Sums entries per side and account
+│   ├── amount_helper.php                # Amounts in integer cents
+│   ├── chart_manager.php                # Chart CRUD, chart contexts, matching
+│   ├── chart_relocator.php              # Keeps charts in the question bank of their questions
+│   ├── currency_helper.php              # Currency symbols
+│   ├── entries_table_builder.php        # Submitted editor entries, editor table
+│   ├── entry_helper.php                 # Entry row helpers
+│   ├── entry_validator.php              # Server-side validation of the editor
+│   ├── feedback_calculator.php          # Field and side feedback
+│   ├── import_helper.php                # CSV, text and ODS parsing
+│   ├── observer.php                     # Removes charts of deleted contexts
+│   ├── scorer.php                       # Grading (percentage and points)
+│   └── xml_handler.php                  # Moodle XML import/export
 ├── db/
 │   ├── access.php                       # Capability definitions
+│   ├── events.php                       # Event observers
 │   ├── install.xml                      # XMLDB schema
+│   ├── mobile.php                       # Moodle App handler
+│   ├── services.php                     # Web services
 │   └── upgrade.php                      # Per-version DB migrations
 ├── docs/screenshots/                    # README screenshots
+├── js/mobileapp/question.js             # Moodle App controller
 ├── lang/
 │   ├── en/qtype_accounting.php          # English (shipped)
 │   └── de/qtype_accounting.php          # German (dev-only; export-ignored)
 ├── pix/icon.svg                         # Question-type icon
+├── templates/                           # Mustache templates (question, answer, feedback, editor table, app)
 ├── tests/
 │   ├── behat/                           # Acceptance tests
 │   ├── generator/                       # Test data generator
-│   ├── question_test.php                # PHPUnit: grading
-│   └── questiontype_test.php            # PHPUnit: save/load + XML
+│   └── *_test.php                       # PHPUnit tests
 ├── edit_accounting_form.php             # Question authoring form
 ├── edit_chart.php                       # Edit a single chart's accounts
 ├── manage_charts.php                    # Chart list of a question bank, or the site charts
 ├── question.php                         # qtype_accounting_question
 ├── questiontype.php                     # qtype_accounting (question_type)
 ├── renderer.php                         # qtype_accounting_renderer
+├── settings.php                         # Site settings
 ├── styles.css                           # .qtype_accounting-* selectors
 ├── version.php
 ├── README.md                            # This file
