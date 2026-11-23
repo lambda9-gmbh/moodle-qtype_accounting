@@ -126,7 +126,7 @@ $string['editchartname'] = 'Namen des Kontenplans bearbeiten';
 $string['enteraccount'] = 'Kontonummer eingeben';
 $string['entriesimported'] = 'Buchungen importiert.';
 $string['entry'] = 'Buchungszeile {no}';
-$string['entryrows'] = 'Anzahl der Buchungszeilen';
+$string['entryno'] = 'Buchung {no}';
 $string['err_accountduplicate'] = 'Das Konto „{$a}“ steht mehrfach in der Liste.';
 $string['err_accountnametoolong'] = 'Kontonamen dürfen höchstens {$a} Zeichen lang sein.';
 $string['err_accountsindropdown'] = 'Geben Sie Alle oder eine nicht negative ganze Zahl ein.';
@@ -212,11 +212,8 @@ $string['pluginnameediting'] = 'Buchungssatz-Frage bearbeiten';
 $string['pluginnamesummary'] = 'Ein Fragetyp zum Üben von Buchungssätzen. Studierende wählen Konten aus einem Kontenplan und geben Soll-/Haben-Beträge ein.';
 $string['privacy:metadata:qtype_accounting_charts'] = 'Die Kontenpläne-Tabelle speichert, wer den jeweiligen Kontenplan zuletzt geändert hat.';
 $string['privacy:metadata:qtype_accounting_charts:usermodified'] = 'Die ID des Benutzers, der den Kontenplan zuletzt geändert hat.';
-$string['refreshentries'] = 'Kontenplan und Zeilen aktualisieren';
 $string['regradeaccountschanged'] = 'Die Konten dieser Frage unterscheiden sich zwischen den Versionen, daher können Versuche nicht mit der anderen Version neu bewertet werden.';
 $string['selectaccount'] = '-- Konto auswählen --';
-$string['selectcreditaccountfirst'] = 'Bitte zuerst ein Habenkonto auswählen';
-$string['selectdebitaccountfirst'] = 'Bitte zuerst ein Sollkonto auswählen';
 $string['settings_display'] = 'Darstellung';
 $string['settings_grading'] = 'Bewertung';
 $string['showaccountsindropdown'] = 'Option „Anzahl zusätzlicher Konten in der Auswahlliste“ anzeigen';
@@ -234,9 +231,4 @@ $string['uploadchartcsv_btn'] = 'Hochladen';
 $string['uploadchartcsv_help'] = 'Laden Sie eine Textdatei hoch, um einen neuen Kontenplan für diese Fragensammlung zu erstellen. Der Kontenplan erscheint sofort nach dem Hochladen in der Auswahlliste. Format: eine Kontobezeichnung pro Zeile.';
 $string['weight'] = 'Gewicht';
 $string['weight_help'] = 'Gewichtung für dieses Feld bei der Bewertung (1, 2 oder 3). Höhere Werte bedeuten mehr Punkte. Beispiel: Hat ein Konto das Gewicht 3 und der zugehörige Betrag das Gewicht 1, ist das Konto dreimal so wichtig wie der Betrag für die Bewertung.';
-$string['weight_tooltip'] = 'Die Eingabefelder (Konten, Beträge) können mit einem Gewicht von 1–3 versehen werden. Das Gewicht ist für die Berechnung der Teilpunkte relevant. Teilpunkte werden wie folgt berechnet: (Σ Gewichte richtiger Eingabefelder) ÷ (Σ Gewichte aller Eingabefelder) × Erreichbare Punkte.
-
-Wichtig: Konto und Betrag sind verknüpft – ein richtiger Betrag zählt nur, wenn auch das zugehörige Konto korrekt ausgewählt wurde. Ein richtig eingetragenes Konto ohne korrekten Betrag wird hingegen anteilig gewertet.
-
-Die Gewichtung wird überschrieben bzw. hat keinen Effekt, sobald die Option „Keine Teilpunkte vergeben" aktiviert ist.';
 $string['witherrors'] = 'mit Fehlern';

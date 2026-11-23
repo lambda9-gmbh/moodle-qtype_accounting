@@ -38,14 +38,14 @@ Feature: Choose the grading mode of an accounting question
       | Grading mode             | Points (one point per account-amount pair) |
       | Question name            | Points question                            |
       | Question text            | Record the transaction.                    |
-      | debitaccount_display[0]  | Bank                                       |
-      | debitamount_display[0]   | 100                                        |
-      | creditaccount_display[0] | Sales                                      |
-      | creditamount_display[0]  | 100                                        |
-      | debitaccount_display[1]  | Cash                                       |
-      | debitamount_display[1]   | 50                                         |
-      | creditaccount_display[1] | Sales                                      |
-      | creditamount_display[1]  | 50                                         |
+      | debitaccount[0]  | Bank                                       |
+      | debitamount[0]   | 100                                        |
+      | creditaccount[0] | Sales                                      |
+      | creditamount[0]  | 100                                        |
+      | debitaccount[1]  | Cash                                       |
+      | debitamount[1]   | 50                                         |
+      | creditaccount[1] | Sales                                      |
+      | creditamount[1]  | 50                                         |
     And I press "id_submitbutton"
     Then I should see "Points question"
     When I choose "Edit question" action for "Points question" in the question bank

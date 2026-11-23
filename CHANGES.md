@@ -24,9 +24,9 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - Template pages use Moodle's building blocks: templates and their accounts are renamed in place, accounts are added in a modal form, deletions are confirmed in modals, and the lists are Mustache templates.
 - Requires Moodle 4.5.2, which provides the question identity hash API used to avoid duplicate questions on restore (MDL-83541).
 - Each question version has its own account list (`qtype_accounting_qaccounts`), entered in the question form one account per line. Changing a template, another question or a later version no longer changes existing questions, their correct answers or their attempts. Accounts keep their key across versions while their name is unchanged; regrading with another version is refused if that version does not keep every account. The upgrade copies each course chart's accounts into the questions using it, with the former account IDs as keys, so correct answers and saved attempts stay valid; course charts are then removed and site-wide charts remain as templates. Backups and XML exports of earlier versions are imported the same way.
-- The question editor's JavaScript is split into modules under `amd/src/editform/` (state, hidden fields, field states, accounts, entry rows, validation); `editform.js` only sets up the form.
+- The correct answer in the question form uses Moodle's form API: one repeated group per entry with debit and credit account and amount, a weights group, **Add Entry** and a **Delete** button per entry (`repeat_elements`). The hand-built entry table, its JSON configuration, the hidden-field synchronisation and the no-JavaScript fallback controls are gone; amounts are entered in the question's number format, and JavaScript only updates the account options while the account list is edited and formats the amounts.
 - GitHub Actions also run the full check suite against Moodle 5.2 and 5.3 on MariaDB and PostgreSQL.
-- The booking table, the correct answer, the feedback summary and the editor's entry table are rendered from Mustache templates (renderables in `classes/output/`), so themes can override them. The HTML structure used by the JavaScript and the Moodle App is unchanged.
+- The booking table, the correct answer and the feedback summary are rendered from Mustache templates (renderables in `classes/output/`), so themes can override them. The HTML structure used by the JavaScript and the Moodle App is unchanged.
 
 ### Removed
 - The Dockerised development environment in `dev/` and the CI steps that depended on it; README and CONTRIBUTING describe the standard Moodle Plugin CI workflow instead.
@@ -34,7 +34,6 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ### Fixed
 - Template downloads quote account names containing commas, quotes or line breaks as CSV fields, and imports read such quoted names back.
-- The question editor's no-submit buttons (copy accounts, update rows) no longer run the client-side validation of the correct answer.
 - Numeric account names such as `1200` are kept as text when importing Moodle XML.
 - Card view labels are linked to their controls, delete buttons there have accessible names, and account selects use the full card width.
 - Delete buttons have accessible names ("Delete debit entry", "Delete credit entry"), and reviewed fields state their correctness for screen readers instead of by colour alone.

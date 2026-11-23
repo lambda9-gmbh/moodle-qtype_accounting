@@ -126,7 +126,7 @@ $string['editchartname'] = 'Edit chart name';
 $string['enteraccount'] = 'Enter account number';
 $string['entriesimported'] = 'entries imported.';
 $string['entry'] = 'Entry {no}';
-$string['entryrows'] = 'Number of entry rows';
+$string['entryno'] = 'Entry {no}';
 $string['err_accountduplicate'] = 'The account "{$a}" is listed more than once.';
 $string['err_accountnametoolong'] = 'Account names can have at most {$a} characters.';
 $string['err_accountsindropdown'] = 'Enter All or a non-negative whole number.';
@@ -212,11 +212,8 @@ $string['pluginnameediting'] = 'Editing an Accounting Entry question';
 $string['pluginnamesummary'] = 'A question type for practicing accounting entries. Students select accounts from a chart of accounts and enter debit/credit amounts.';
 $string['privacy:metadata:qtype_accounting_charts'] = 'The charts of accounts table stores who last modified each chart.';
 $string['privacy:metadata:qtype_accounting_charts:usermodified'] = 'The ID of the user who last modified the chart of accounts.';
-$string['refreshentries'] = 'Update chart and rows';
 $string['regradeaccountschanged'] = 'The accounts of this question differ between the versions, so attempts cannot be regraded with the other version.';
 $string['selectaccount'] = '-- Select account --';
-$string['selectcreditaccountfirst'] = 'Please select a credit account first';
-$string['selectdebitaccountfirst'] = 'Please select a debit account first';
 $string['settings_display'] = 'Display';
 $string['settings_grading'] = 'Grading';
 $string['showaccountsindropdown'] = 'Show "Number of additional accounts in selection list"';
@@ -234,9 +231,4 @@ $string['uploadchartcsv_btn'] = 'Upload';
 $string['uploadchartcsv_help'] = 'Upload a text file to create a new chart of accounts for this question bank. The chart will appear in the dropdown immediately after upload. Format: one account name per line.';
 $string['weight'] = 'Weight';
 $string['weight_help'] = 'Weight for this field in grading (1, 2, or 3). Higher values mean more points. For example, if an account has weight 3 and its amount has weight 1, the account is three times as important as the amount for scoring.';
-$string['weight_tooltip'] = 'Input fields (accounts, amounts) can be assigned a weight from 1–3. The weight is used to calculate partial credit as follows: (Σ weights of correct fields) ÷ (Σ weights of all fields) × achievable points.
-
-Important: Account and amount are linked – a correct amount only counts if the associated account is also correct. A correctly entered account without the correct amount is still partially credited.
-
-The weighting is overridden and has no effect when the option "No partial credit" is enabled.';
 $string['witherrors'] = 'with errors';

@@ -28,7 +28,7 @@ require_once($CFG->dirroot . '/question/type/accounting/tests/helper.php');
 #[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'validate_available_accounts')]
 #[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'definition_after_data')]
 #[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\entry_validator::class)]
-#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\entries_table_builder::class)]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'add_entries_section')]
 /**
  * Tests for the accounting editing form's account data.
  *
@@ -41,7 +41,7 @@ require_once($CFG->dirroot . '/question/type/accounting/tests/helper.php');
  * @covers     \qtype_accounting_edit_form::definition_after_data
  * @covers     \qtype_accounting_edit_form::add_display_options_section
  * @covers     \qtype_accounting\entry_validator
- * @covers     \qtype_accounting\entries_table_builder
+ * @covers     \qtype_accounting_edit_form::add_entries_section
  */
 final class edit_form_test extends \advanced_testcase {
     /**
@@ -120,15 +120,11 @@ final class edit_form_test extends \advanced_testcase {
             'defaultmark' => 1, 'penalty' => 0.3333333,
             'accounts' => 'Bank', 'accountkeys' => json_encode(['Bank' => 1]), 'numberformat' => 'de',
             'accountsindropdown' => $input ?? get_string('all'),
-            'accounting_js' => 1,
             'debitaccount' => [$account], 'creditaccount' => [$account],
             'debitamount' => [100], 'creditamount' => [100],
         ]);
         $form = new \qtype_accounting_edit_form($url, $question, $category, $contexts);
         $form->set_data(clone $question);
-        if ($expected === 0) {
-            $this->assertSame(get_string('all'), $form->get_submitted_data()->accountsindropdown);
-        }
         $data = $form->get_data();
         if ($expected === null) {
             $this->assertEmpty($data);
@@ -207,19 +203,19 @@ final class edit_form_test extends \advanced_testcase {
         $xpath = new \DOMXPath($dom);
         $this->assertSame("Cash\nBank", trim($xpath->evaluate('string(//textarea[@name="accounts"])')));
         $this->assertSame('{"Cash":4,"Bank":5}', $xpath->evaluate('string(//input[@name="accountkeys"]/@value)'));
-        $this->assertSame('Bank', $xpath->evaluate('string(//select[@name="debitaccount_display[0]"]/option[@selected])'));
-        $this->assertSame('Cash', $xpath->evaluate('string(//select[@name="creditaccount_display[0]"]/option[@selected])'));
+        $this->assertSame('Bank', $xpath->evaluate('string(//select[@name="debitaccount[0]"]/option[@selected])'));
+        $this->assertSame('Cash', $xpath->evaluate('string(//select[@name="creditaccount[0]"]/option[@selected])'));
+        $this->assertSame('100,00', $xpath->evaluate('string(//input[@name="debitamount[0]"]/@value)'));
     }
 
     /**
-     * Deleted saved rows must not be filled back in from question defaults on submit.
+     * A saved entry deleted with its delete button is neither shown nor saved again.
      *
      * @dataProvider deleted_row_provider
-     * @param int $remainingindex Index of the row retained in the editor.
-     * @param bool $javascript Submit canonical or no-JavaScript display fields.
+     * @param int $remainingindex Index of the entry retained in the editor.
      */
     #[\PHPUnit\Framework\Attributes\DataProvider('deleted_row_provider')]
-    public function test_deleted_saved_row_stays_deleted(int $remainingindex, bool $javascript): void {
+    public function test_deleted_saved_row_stays_deleted(int $remainingindex): void {
         global $DB, $PAGE;
         $this->resetAfterTest();
         $this->setAdminUser();
@@ -244,20 +240,17 @@ final class edit_form_test extends \advanced_testcase {
             'canedit' => true, 'canmove' => false, 'cansaveasnew' => false,
         ];
         $amount = $remainingindex === 0 ? 100 : 200;
-        $submission = [
+        \qtype_accounting_edit_form::mock_submit([
             'category' => $category->id . ',' . $questioncontext->id,
             'name' => 'Deleted row',
             'questiontext' => ['text' => 'Record the transaction.', 'format' => FORMAT_HTML],
             'defaultmark' => 1, 'penalty' => 0.3333333,
             'accounts' => "Bank\nCash", 'accountkeys' => json_encode(['Bank' => 1, 'Cash' => 2]), 'numberformat' => 'de',
-            'accounting_js' => (int)$javascript, 'accounting_displayformat' => 'de',
-        ];
-        foreach (['debit' => $bank, 'credit' => $cash] as $side => $account) {
-            $suffix = $javascript ? '' : '_display';
-            $submission[$side . 'account' . $suffix] = [$remainingindex => $account];
-            $submission[$side . 'amount' . $suffix] = [$remainingindex => $javascript ? $amount : $amount . ',00'];
-        }
-        \qtype_accounting_edit_form::mock_submit($submission);
+            'noentries' => 2,
+            'deleteentry-hidden' => [1 - $remainingindex => 1],
+            'debitaccount' => [$remainingindex => $bank], 'creditaccount' => [$remainingindex => $cash],
+            'debitamount' => [$remainingindex => $amount . ',00'], 'creditamount' => [$remainingindex => $amount . ',00'],
+        ]);
         $form = new \qtype_accounting_edit_form(
             new \moodle_url('/question/bank/editquestion/question.php'),
             $question,
@@ -266,11 +259,15 @@ final class edit_form_test extends \advanced_testcase {
         );
         // The real editor supplies saved defaults after constructing the submitted form.
         $form->set_data(clone $question);
+        $dom = new \DOMDocument();
+        @$dom->loadHTML($form->render());
+        $xpath = new \DOMXPath($dom);
+        $this->assertSame(0, $xpath->query('//select[@name="debitaccount[' . (1 - $remainingindex) . ']"]')->length);
         $data = $form->get_data();
         $this->assertNotFalse($data);
         foreach (['debit', 'credit'] as $side) {
-            $this->assertEmpty($data->{$side . 'account'}[1 - $remainingindex] ?? '');
-            $this->assertEmpty($data->{$side . 'amount'}[1 - $remainingindex] ?? '');
+            $this->assertArrayNotHasKey(1 - $remainingindex, $data->{$side . 'account'});
+            $this->assertSame(amount_helper::decimal_amount($amount * 100), $data->{$side . 'amount'}[$remainingindex]);
         }
         $data->id = $saved->id;
         $data->context = $context;
@@ -283,12 +280,12 @@ final class edit_form_test extends \advanced_testcase {
     }
 
     /**
-     * Cover deletion of either saved row with and without JavaScript.
+     * Cover deletion of either saved entry.
      *
      * @return array Submission variants.
      */
     public static function deleted_row_provider(): array {
-        return [[0, true], [1, true], [0, false], [1, false]];
+        return [[0], [1]];
     }
 
     /**
@@ -320,157 +317,179 @@ final class edit_form_test extends \advanced_testcase {
     }
 
     /**
-     * Disabling the site setting showpercolumn marks the editor table so that styles.css hides the "Per" column.
-     */
-    public function test_show_per_column_setting(): void {
-        $this->resetAfterTest();
-        $build = fn() => (new entries_table_builder())->build_table(['' => 'Select'], ['' => 'Select'], 1, [], 'de');
-        $this->assertStringNotContainsString('qtype_accounting-hideper', $build());
-        set_config('showpercolumn', 1, 'qtype_accounting');
-        $this->assertStringNotContainsString('qtype_accounting-hideper', $build());
-        set_config('showpercolumn', 0, 'qtype_accounting');
-        $this->assertStringContainsString('qtype_accounting-edit-table qtype_accounting-hideper', $build());
-    }
-
-    /**
-     * Rendering saved one-sided entries must not add an amount on the absent side.
-     */
-    public function test_saved_one_sided_entry_keeps_absent_amount_empty(): void {
-        $html = (new entries_table_builder())->build_table(
-            ['' => 'Select', 12 => 'Bank'],
-            ['' => 'Select', 14 => 'Cash'],
-            1,
-            [(object)['debitaccountid' => 12, 'debitamount' => '12.5000', 'creditaccountid' => 0, 'creditamount' => '0.0000']],
-            'de'
-        );
-        $dom = new \DOMDocument();
-        @$dom->loadHTML($html);
-        $xpath = new \DOMXPath($dom);
-        $this->assertSame('12,50', $xpath->evaluate('string(//input[@name="debitamount_display[0]"]/@value)'));
-        $this->assertSame('', $xpath->evaluate('string(//input[@name="creditamount_display[0]"]/@value)'));
-    }
-
-    /**
-     * A failed submission restores the chart, sparse rows, amounts, and weights.
+     * Create a question category in a new course's question bank.
      *
-     * @dataProvider failed_submission_provider
-     * @param string $format Submitted display format.
-     * @param bool $existing Whether the form starts with saved options and entries.
-     * @param bool $javascript Whether canonical fields or ordinary display controls are submitted.
+     * @return \stdClass The question category.
      */
-    #[\PHPUnit\Framework\Attributes\DataProvider('failed_submission_provider')]
-    public function test_failed_submission_preserves_custom_controls(
-        string $format,
-        bool $existing,
-        bool $javascript = true
-    ): void {
-        global $PAGE, $USER;
-        $this->resetAfterTest();
-        $this->setAdminUser();
+    protected function create_category(): \stdClass {
+        global $PAGE;
         $PAGE->set_url('/question/bank/editquestion/question.php');
         $course = $this->getDataGenerator()->create_course();
         $context = \qtype_accounting_test_helper::question_bank_context($course);
-        $category = $this->getDataGenerator()->get_plugin_generator('core_question')
+        return $this->getDataGenerator()->get_plugin_generator('core_question')
             ->create_question_category(['contextid' => $context->id]);
-        $questioncontext = \context::instance_by_id($category->contextid);
-        // New accounts follow the keys of the edited version.
-        [$bank, $cash] = $existing ? [8, 9] : [1, 2];
-        $submitted = [
-            'category' => $category->id . ',' . $questioncontext->id,
-            'name' => 'Missing amounts',
-            'accountsindropdown' => $existing ? '0' : '',
-            'questiontext' => ['text' => 'Record the transaction.', 'format' => FORMAT_HTML],
-            'defaultmark' => 1,
-            'penalty' => 0.3333333,
-            'accounts' => "Bank\nCash",
-            'accountkeys' => json_encode($existing ? ['Previous account' => 7] : []),
-            'numberformat' => $format,
-            'accounting_js' => (int)$javascript,
-            'accounting_displayformat' => $format,
-            'debitaccount' => [0 => $bank, 1 => '', 24 => $bank, 46 => $cash],
-            'creditaccount' => [0 => $cash, 1 => '', 24 => '', 46 => $bank],
-            'debitamount' => [0 => '', 1 => '', 24 => '12.50', 46 => '0'],
-            'creditamount' => [0 => '', 1 => '', 24 => '', 46 => '0'],
-            'weight_debitaccount' => [0 => 3, 24 => 2],
-        ];
-        if (!$javascript) {
-            foreach (['debit', 'credit'] as $side) {
-                $submitted[$side . 'account_display'] = $submitted[$side . 'account'];
-                $submitted[$side . 'amount_display'] = array_map(static function ($value) use ($format) {
-                    return $value === '' ? '' : amount_helper::format_amount((float)$value, $format);
-                }, $submitted[$side . 'amount']);
-                unset($submitted[$side . 'account'], $submitted[$side . 'amount']);
-            }
-            $submitted['weight_debitaccount_display'] = $submitted['weight_debitaccount'];
-            unset($submitted['weight_debitaccount']);
-        }
-        \qtype_accounting_edit_form::mock_submit($submitted);
-        $question = (object)[
+    }
+
+    /**
+     * Create a question form.
+     *
+     * @param \stdClass $category The question category.
+     * @param \stdClass|null $question The question, or null for a new question.
+     * @return array The form and the completed question.
+     */
+    protected function create_form(\stdClass $category, ?\stdClass $question = null): array {
+        global $USER;
+        $context = \context::instance_by_id($category->contextid);
+        $question = (object)((array)($question ?? new \stdClass()) + [
             'qtype' => 'accounting',
-            'contextid' => $questioncontext->id,
+            'contextid' => $context->id,
             'createdby' => $USER->id,
             'category' => $category->id,
             'questiontext' => '',
             'generalfeedback' => '',
             'formoptions' => (object)['mustbeusable' => false, 'repeatelements' => true],
-        ];
-        if ($existing) {
-            $otheraccountid = 7;
-            $question->options = (object)[
-                'accounts' => [7 => (object)['accountkey' => 7, 'accountname' => 'Previous account', 'sortorder' => 0]],
-                'numberformat' => $format === 'de' ? 'us' : 'de',
-                'entries' => [(object)[
-                    'debitaccountid' => $otheraccountid,
-                    'creditaccountid' => $otheraccountid,
-                    'debitamount' => 100,
-                    'creditamount' => 100,
-                ]],
-            ];
-        }
+        ]);
         $form = new \qtype_accounting_edit_form(
             new \moodle_url('/question/bank/editquestion/question.php'),
             $question,
             $category,
-            new \core_question\local\bank\question_edit_contexts($questioncontext)
+            new \core_question\local\bank\question_edit_contexts($context)
         );
+        return [$form, $question];
+    }
+
+    /**
+     * Render a form and return an XPath for its HTML.
+     *
+     * @param \qtype_accounting_edit_form $form The form.
+     * @return \DOMXPath The XPath.
+     */
+    protected function render_form(\qtype_accounting_edit_form $form): \DOMXPath {
+        $dom = new \DOMDocument();
+        @$dom->loadHTML($form->render());
+        return new \DOMXPath($dom);
+    }
+
+    /**
+     * Disabling the site setting showpercolumn replaces the "Dr." and "Per" labels of the entries with the side names.
+     */
+    public function test_show_per_column_setting(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $category = $this->create_category();
+        $labels = fn() => array_map(
+            fn($node) => $node->textContent,
+            iterator_to_array($this->render_form($this->create_form($category)[0])
+                ->query('//span[contains(@class, "qtype_accounting-edit-label")]'))
+        );
+        $per = get_string('per', 'qtype_accounting');
+        $an = get_string('an', 'qtype_accounting');
+        // Two entries with a label on each side.
+        $this->assertSame([$per, $an, $per, $an], $labels());
+        set_config('showpercolumn', 0, 'qtype_accounting');
+        $debit = get_string('debit', 'qtype_accounting');
+        $credit = get_string('credit', 'qtype_accounting');
+        $this->assertSame([$debit, $credit, $debit, $credit], $labels());
+    }
+
+    /**
+     * Saved amounts are shown in the question's number format; the absent side of a one-sided entry stays empty.
+     */
+    public function test_saved_one_sided_entry_keeps_absent_amount_empty(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $question = (object)['options' => (object)[
+            'accounts' => [12 => (object)['accountkey' => 12, 'accountname' => 'Bank', 'sortorder' => 0]],
+            'numberformat' => 'de',
+            'entries' => [(object)[
+                'debitaccountid' => 12, 'debitamount' => '1234.5000', 'creditaccountid' => null, 'creditamount' => '0.0000',
+                'weight_debitaccount' => 2, 'weight_debitamount' => 1, 'weight_creditaccount' => 1, 'weight_creditamount' => 1,
+            ]],
+        ]];
+        [$form, $question] = $this->create_form($this->create_category(), $question);
+        $form->set_data($question);
+        $xpath = $this->render_form($form);
+        $this->assertSame('1.234,50', $xpath->evaluate('string(//input[@name="debitamount[0]"]/@value)'));
+        $this->assertSame('', $xpath->evaluate('string(//input[@name="creditamount[0]"]/@value)'));
+        $this->assertSame('2', $xpath->evaluate('string(//select[@name="weight_debitaccount[0]"]/option[@selected]/@value)'));
+        // A saved question shows its entries, at least two.
+        $this->assertSame(2, $xpath->query('//select[starts-with(@name, "debitaccount[")]')->length);
+    }
+
+    /**
+     * A failed submission keeps the entered entries and shows the errors at the affected entry.
+     *
+     * @dataProvider failed_submission_provider
+     * @param string $format Submitted number format.
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('failed_submission_provider')]
+    public function test_failed_submission_preserves_entries(string $format): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $amount = $format === 'de' ? '12,50' : '12.50';
+        $category = $this->create_category();
+        \qtype_accounting_edit_form::mock_submit([
+            'category' => $category->id . ',' . $category->contextid,
+            'name' => 'Missing amounts',
+            'questiontext' => ['text' => 'Record the transaction.', 'format' => FORMAT_HTML],
+            'defaultmark' => 1,
+            'penalty' => 0.3333333,
+            'accounts' => "Bank\nCash",
+            'accountkeys' => '[]',
+            'numberformat' => $format,
+            'noentries' => 3,
+            'debitaccount' => [1, 1, 2],
+            'creditaccount' => [2, 0, 1],
+            'debitamount' => ['', $amount, '5'],
+            'creditamount' => ['', '', '5'],
+            'weight_debitaccount' => [3, 2, 1],
+        ]);
+        [$form] = $this->create_form($category);
         $this->assertFalse($form->is_validated());
-        $submitteddata = $form->get_submitted_data();
-        $this->assertEquals(12.5, $submitteddata->debitamount[24]);
-        $this->assertEquals($cash, $submitteddata->debitaccount[46]);
-        $html = $form->render();
+        $xpath = $this->render_form($form);
+        $html = $xpath->document->saveHTML();
         $this->assertStringContainsString(get_string('err_debitamountrequired', 'qtype_accounting'), $html);
         $this->assertStringContainsString(get_string('err_creditamountrequired', 'qtype_accounting'), $html);
-        $dom = new \DOMDocument();
-        @$dom->loadHTML($html);
-        $xpath = new \DOMXPath($dom);
-        $this->assertSame(
-            get_string('all'),
-            $xpath->evaluate('string(//input[@name="accountsindropdown"]/@value)')
-        );
-        foreach (['debit', 'credit'] as $side) {
-            $input = $xpath->query('//input[@name="' . $side . 'amount_display[0]"]')->item(0);
-            $this->assertStringContainsString('is-invalid', $input->getAttribute('class'));
-            $this->assertSame('true', $input->getAttribute('aria-invalid'));
-            $feedbackid = $input->getAttribute('aria-describedby');
-            $feedback = $xpath->query('//div[@id="' . $feedbackid . '"]')->item(0);
-            $this->assertNotNull($feedback);
-            $this->assertStringContainsString('form-control-feedback invalid-feedback', $feedback->getAttribute('class'));
-            $this->assertSame(get_string('err_' . $side . 'amountrequired', 'qtype_accounting'), $feedback->textContent);
-        }
+        $this->assertStringContainsString(get_string('err_balancemismatch', 'qtype_accounting'), $html);
         $this->assertSame("Bank\nCash", trim($xpath->evaluate('string(//textarea[@name="accounts"])')));
-        $this->assertSame('Bank', $xpath->evaluate('string(//select[@name="debitaccount_display[0]"]/option[@selected])'));
-        $this->assertSame('Cash', $xpath->evaluate('string(//select[@name="creditaccount_display[0]"]/option[@selected])'));
-        $this->assertSame('', $xpath->evaluate('string(//input[@name="debitamount_display[0]"]/@value)'));
-        $this->assertSame('3', $xpath->evaluate('string(//select[@name="weight_debitaccount_display[0]"]/option[@selected])'));
-        $this->assertSame('Bank', $xpath->evaluate('string(//select[@name="debitaccount_display[1]"]/option[@selected])'));
-        $amount = $format === 'de' ? '12,50' : '12.50';
-        $this->assertSame($amount, $xpath->evaluate('string(//input[@name="debitamount_display[1]"]/@value)'));
-        $this->assertSame('2', $xpath->evaluate('string(//select[@name="weight_debitaccount_display[1]"]/option[@selected])'));
-        $zero = $format === 'de' ? '0,00' : '0.00';
-        $this->assertSame($zero, $xpath->evaluate('string(//input[@name="debitamount_display[2]"]/@value)'));
-        $this->assertSame($zero, $xpath->evaluate('string(//input[@name="creditamount_display[2]"]/@value)'));
-        $rows = $xpath->query('//tbody[@id="qtype_accounting-entries-body"]/tr[contains(@class, "entry-row")]');
-        $this->assertSame(3, $rows->length);
+        $this->assertSame('Bank', $xpath->evaluate('string(//select[@name="debitaccount[0]"]/option[@selected])'));
+        $this->assertSame('Cash', $xpath->evaluate('string(//select[@name="creditaccount[0]"]/option[@selected])'));
+        $this->assertSame($amount, $xpath->evaluate('string(//input[@name="debitamount[1]"]/@value)'));
+        $this->assertSame('3', $xpath->evaluate('string(//select[@name="weight_debitaccount[0]"]/option[@selected])'));
+        $this->assertSame('2', $xpath->evaluate('string(//select[@name="weight_debitaccount[1]"]/option[@selected])'));
+        $this->assertSame(3, $xpath->query('//select[starts-with(@name, "debitaccount[")]')->length);
+    }
+
+    /**
+     * Amounts are read in the submitted number format and saved as decimal numbers.
+     */
+    public function test_amounts_follow_number_format(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $category = $this->create_category();
+        foreach (['de' => '1.234,50', 'us' => '1,234.50'] as $format => $amount) {
+            \qtype_accounting_edit_form::mock_submit([
+                'category' => $category->id . ',' . $category->contextid,
+                'name' => 'Amounts',
+                'questiontext' => ['text' => 'Record the transaction.', 'format' => FORMAT_HTML],
+                'defaultmark' => 1,
+                'penalty' => 0.3333333,
+                'accounts' => "Bank\nCash",
+                'accountkeys' => '[]',
+                'numberformat' => $format,
+                'noentries' => 2,
+                'debitaccount' => [1, 0],
+                'creditaccount' => [2, 0],
+                'debitamount' => [$amount, ''],
+                'creditamount' => [$amount, ''],
+            ]);
+            [$form] = $this->create_form($category);
+            $data = $form->get_data();
+            $this->assertNotEmpty($data, $format);
+            $this->assertSame('1234.50', $data->debitamount[0]);
+            $this->assertSame('1234.50', $data->creditamount[0]);
+            $this->assertSame('', $data->debitamount[1]);
+        }
     }
 
     /**
@@ -532,18 +551,14 @@ final class edit_form_test extends \advanced_testcase {
     }
 
     /**
-     * Cover new and previously populated forms in both display formats.
+     * Cover both number formats.
      *
      * @return array Submission variants.
      */
     public static function failed_submission_provider(): array {
         return [
-            'new German' => ['de', false],
-            'new US' => ['us', false],
-            'existing German' => ['de', true],
-            'existing US' => ['us', true],
-            'no JavaScript German' => ['de', false, false],
-            'no JavaScript US' => ['us', true, false],
+            'German' => ['de'],
+            'US' => ['us'],
         ];
     }
 
@@ -609,7 +624,7 @@ final class edit_form_test extends \advanced_testcase {
         $render = function (string $source) use ($category, $context, $USER): \DOMXPath {
             \qtype_accounting_edit_form::mock_submit([
                 'category' => $category->id . ',' . $context->id, 'accounts' => 'Own account',
-                'copyaccounts' => 1, 'copyaccountsfrom' => $source, 'accounting_js' => 1,
+                'copyaccounts' => 1, 'copyaccountsfrom' => $source,
             ]);
             $form = new \qtype_accounting_edit_form(
                 new \moodle_url('/question/bank/editquestion/question.php'),
@@ -628,7 +643,7 @@ final class edit_form_test extends \advanced_testcase {
 
         $xpath = $render('t-' . $template);
         $this->assertSame("Template A\nTemplate B", trim($xpath->evaluate('string(//textarea[@name="accounts"])')));
-        $this->assertSame('Template A', $xpath->evaluate('string(//select[@name="debitaccount_display[0]"]/option[2])'));
+        $this->assertSame('Template A', $xpath->evaluate('string(//select[@name="debitaccount[0]"]/option[2])'));
         $this->assertSame('Sibling', trim(explode(':', $xpath->evaluate(
             'string(//select[@name="copyaccountsfrom"]/optgroup[2]/option[1])'
         ))[1] ?? ''));

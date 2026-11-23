@@ -323,73 +323,14 @@
     }
 }
 
-/* Edit form table styles */
-.qtype_accounting-edit-table {
-    table-layout: fixed;
-    width: 100%;
-    margin-bottom: 0;
-}
-
-.qtype_accounting-edit-table th,
-.qtype_accounting-edit-table td {
-    vertical-align: middle;
-    padding: 0.5rem;
-}
-
-.qtype_accounting-edit-table thead th {
-    background-color: var(--bs-secondary-bg, #e9ecef);
-    font-weight: 600;
-    text-align: center;
-}
-
+/* Edit form: the "Dr." and "Per" labels of an entry. */
 .qtype_accounting-edit-label {
-    width: 50px;
-    text-align: center;
-    background-color: var(--bs-tertiary-bg, #f8f9fa);
-    font-weight: normal;
     font-style: italic;
     color: var(--bs-secondary-color, #6c757d);
 }
 
-.qtype_accounting-edit-data {
-    background-color: var(--bs-body-bg, #fffef0);
-}
-
-.qtype_accounting-edit-data select,
-.qtype_accounting-edit-data input {
-    width: 100%;
-}
-
-.qtype_accounting-edit-actions {
-    width: 50px;
-    text-align: center;
-    background-color: var(--bs-tertiary-bg, #f8f9fa);
-}
-
 .qtype_accounting-entry-row td {
     border-bottom: none;
-}
-
-.qtype_accounting-weight-row {
-    background-color: var(--bs-tertiary-bg, #f8f9fa);
-}
-
-.qtype_accounting-weight-row td {
-    padding-top: 0.25rem;
-    padding-bottom: 0.5rem;
-    border-top: none;
-    font-size: 0.875rem;
-    color: var(--bs-secondary-color, #6c757d);
-}
-
-.qtype_accounting-weight-cell {
-    white-space: nowrap;
-}
-
-.qtype_accounting-weight-cell input {
-    display: inline-block;
-    width: 60px;
-    text-align: center;
 }
 
 /* Hide the template element */
@@ -679,10 +620,6 @@ table.qtype_accounting-student-table {
     .qtype_accounting-account-select {
         border: 1px solid #000;
     }
-
-    .qtype_accounting-edit-table {
-        border: 1px solid #000;
-    }
 }
 
 /* ========================================
@@ -836,16 +773,6 @@ table.qtype_accounting-student-table {
     padding: 1rem;
 }
 
-.qtype_accounting-edit-table .qtype_accounting-weight {
-    width: auto;
-    display: inline-block;
-}
-
-.qtype_accounting-edit-table :disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
 .qtype_accounting-col-label {
     width: 40px;
 }
@@ -868,16 +795,6 @@ table.qtype_accounting-student-table {
     text-align: end;
 }
 
-/* Both sides remain editable when the JavaScript row controls are unavailable. */
-.qtype_accounting-edit-table:not([data-enhanced]) .qtype_accounting-hidden-cell,
-.qtype_accounting-edit-table:not([data-enhanced]) .qtype_accounting-hidden-cell * {
-    visibility: visible !important;
-}
-
-.qtype_accounting-edit-table:not([data-enhanced]) td.qtype_accounting-hidden-cell {
-    display: table-cell !important;
-}
-
 /* State classes shared by the desktop table and mobile cards. */
 .qtype_accounting-question-container .qtype_accounting-deleted-row {
     display: none !important;
@@ -889,11 +806,6 @@ table.qtype_accounting-student-table {
 
 /* Points mode derives the default mark from the correct answer. */
 form:has(#id_gradingmode option[value="points"]:checked) #fitem_id_defaultmark {
-    display: none;
-}
-
-/* Points mode with strict pairs ignores the per-field weights. */
-form:has(#id_gradingmode option[value="points"]:checked):has(.qtype_accounting-strictpairs) .qtype_accounting-weight-row {
     display: none;
 }
 

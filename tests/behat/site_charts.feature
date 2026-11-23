@@ -40,14 +40,14 @@ Feature: Copy accounts from chart of accounts templates into questions
     And I set the field "copyaccountsfrom" to "Standard chart"
     And I press "id_copyaccounts"
     And I set the following fields to these values:
-      | debitaccount_display[0]  | 1200 Bank  |
-      | debitamount_display[0]   | 100        |
-      | creditaccount_display[0] | 8400 Sales |
-      | creditamount_display[0]  | 100        |
-      | debitaccount_display[1]  | 8400 Sales |
-      | debitamount_display[1]   | 50         |
-      | creditaccount_display[1] | 1200 Bank  |
-      | creditamount_display[1]  | 50         |
+      | debitaccount[0]  | 1200 Bank  |
+      | debitamount[0]   | 100        |
+      | creditaccount[0] | 8400 Sales |
+      | creditamount[0]  | 100        |
+      | debitaccount[1]  | 8400 Sales |
+      | debitamount[1]   | 50         |
+      | creditaccount[1] | 1200 Bank  |
+      | creditamount[1]  | 50         |
     And I press "id_submitbutton"
     Then I should see "Template question"
     And I log out
@@ -63,5 +63,5 @@ Feature: Copy accounts from chart of accounts templates into questions
       1200 Bank
       8400 Sales
       """
-    And the field "debitaccount_display[0]" matches value "1200 Bank"
-    And the field "creditaccount_display[0]" matches value "8400 Sales"
+    And the field "debitaccount[0]" matches value "1200 Bank"
+    And the field "creditaccount[0]" matches value "8400 Sales"

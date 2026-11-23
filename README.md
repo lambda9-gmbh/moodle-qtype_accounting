@@ -171,11 +171,13 @@ The question form follows Moodle's standard layout. The accounting-specific sect
 | Deduction for extra entries | None | Percentage subtracted per extra account the student names that isn't in the correct answer. |
 | No partial credit | Off | If on, the question grades 0 or full marks only. |
 
-Below those options is the **Correct Answer** table. Each row contributes to grading; you can:
+Below those options is the **Correct Answer** section with one line per entry: a debit account and amount, and a credit account and amount. Leave one side empty for an entry with only a debit or only a credit side. Each entry contributes to grading; you can:
 
-- Add as many rows as you need with **Add Debit Entry** / **Add Credit Entry**.
-- Set the four per-field weights for each row (1, 2, or 3) — these become the inputs to the partial-credit calculation described below.
-- Delete a row with the trash button on either side.
+- Add as many entries as you need with **Add Entry**.
+- Set the four per-field weights for each entry (1, 2, or 3) — these become the inputs to the partial-credit calculation described below.
+- Delete an entry with its **Delete** button.
+
+Amounts are entered in the question's number format. An amount can only be entered once its account is selected.
 
 ---
 
@@ -192,9 +194,10 @@ To share accounts:
 
 On a template you can rename it and its accounts in place (click the name), add accounts in a dialogue, delete accounts, import further accounts from a file, or download it as CSV. As questions keep their own copy, changing or deleting a template only affects questions that copy its accounts later. Duplicate account names are rejected, and a failed import leaves existing data intact.
 
-The editor and student interfaces support up to 100 entry rows. Existing imported
-solutions above that limit remain supported. Without JavaScript, enter the accounts
-and the row count, then use **Update chart and rows** before completing the question.
+The student interfaces support up to 100 entry rows. Existing imported solutions
+above that limit remain supported. The question form also works without JavaScript:
+the account selects then offer the edited account list after **Add Entry**,
+**Copy** or a rejected save.
 
 CSV files may be UTF-8 or Windows-1252 (Excel's default); a UTF-8 BOM, if present, is stripped automatically.
 
@@ -363,8 +366,8 @@ The project follows the [Moodle Coding Style Guide](https://moodledev.io/general
 moodle-qtype_accounting/                 # Plugin root; unpacks to question/type/accounting/
 ├── amd/
 │   ├── src/                             # ES module sources
-│   │   ├── editform.js                  # Authoring form setup and input handlers
-│   │   ├── editform/                    # Authoring form modules: state, fields, field_states, accounts, rows, validation
+│   │   ├── editform.js                  # Authoring form enhancements (amount format, account limit)
+│   │   ├── editform/accounts.js         # Account options of the authoring form follow its account list
 │   │   ├── entry_utils.js               # Shared helpers
 │   │   ├── manage_charts.js             # Delete confirmations and the add account dialogue on the template pages
 │   │   ├── mobile_layout.js             # Card layout for narrow questions
@@ -383,7 +386,6 @@ moodle-qtype_accounting/                 # Plugin root; unpacks to question/type
 │   ├── amount_helper.php                # Amounts in integer cents
 │   ├── chart_manager.php                # Template CRUD, CSV import and export
 │   ├── currency_helper.php              # Currency symbols
-│   ├── entries_table_builder.php        # Submitted editor entries, editor table
 │   ├── entry_helper.php                 # Entry row helpers
 │   ├── entry_validator.php              # Server-side validation of the editor
 │   ├── feedback_calculator.php          # Field and side feedback
@@ -401,7 +403,7 @@ moodle-qtype_accounting/                 # Plugin root; unpacks to question/type
 │   ├── en/qtype_accounting.php          # English (shipped)
 │   └── de/qtype_accounting.php          # German (dev-only; export-ignored)
 ├── pix/icon.svg                         # Question-type icon
-├── templates/                           # Mustache templates (question, answer, feedback, editor table, app, template pages)
+├── templates/                           # Mustache templates (question, answer, feedback, app, template pages)
 ├── tests/
 │   ├── behat/                           # Acceptance tests
 │   ├── generator/                       # Test data generator

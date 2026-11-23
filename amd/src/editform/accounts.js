@@ -21,9 +21,8 @@
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-import {state} from 'qtype_accounting/editform/state';
-import {syncAllDisplayToHidden} from 'qtype_accounting/editform/fields';
-import {updateAllDebitamountStates, updateAllWeightStates} from 'qtype_accounting/editform/field_states';
+/** Selector of the account selects of the entries. */
+const ACCOUNT_SELECTS = 'select[data-accounting-field="debitaccount"], select[data-accounting-field="creditaccount"]';
 
 /**
  * Split the account list into names: one per line, trimmed, without blank lines and later duplicates.
@@ -61,30 +60,14 @@ export const assignKeys = (names, knownKeys) => {
 };
 
 /**
- * Read the account list into the state.
- */
-export function readAccounts() {
-    state.accounts = assignKeys(parseNames(state.accountsInput ? state.accountsInput.value : ''), state.knownKeys);
-}
-
-/**
- * Rebuild the account options while the account list is edited.
- */
-export function setupAccountListHandler() {
-    if (state.accountsInput) {
-        state.accountsInput.addEventListener('input', () => updateAccountDropdowns());
-    }
-}
-
-/**
- * Mark a selection which is no longer in the account list; the submit validation explains it.
+ * Mark a selection which is no longer in the account list; saving explains it.
  *
  * @param {HTMLSelectElement} select Account selector.
  */
-export function checkOptionAvailability(select) {
+const markAvailability = select => {
     const missing = select.selectedOptions[0] && select.selectedOptions[0].dataset.unavailable;
     select.classList.toggle('is-invalid', !!missing);
-}
+};
 
 /**
  * Update the account options of all entries to the account list.
@@ -92,46 +75,75 @@ export function checkOptionAvailability(select) {
  * Selections follow their account name, as new accounts may get other keys when the list changes.
  * A selected account that is not in the list stays selected and is marked as unavailable; it is selected
  * again when its name returns to the list, for example after a typing mistake has been corrected.
+ *
+ * @param {HTMLFormElement} form The question form.
+ * @param {string} list The account list.
+ * @param {Object} knownKeys Keys of the edited version, keyed by account name.
  */
-export function updateAccountDropdowns() {
-    readAccounts();
+export const updateAccountSelects = (form, list, knownKeys) => {
+    const accounts = assignKeys(parseNames(list), knownKeys);
     const keysByName = {};
-    Object.entries(state.accounts).forEach(([key, name]) => {
+    Object.entries(accounts).forEach(([key, name]) => {
         keysByName[name] = key;
     });
     // Sort by name like the server, which compares bytes.
-    const sorted = Object.entries(state.accounts).sort((a, b) => {
+    const sorted = Object.entries(accounts).sort((a, b) => {
         if (a[1] === b[1]) {
             return 0;
         }
         return a[1] < b[1] ? -1 : 1;
     });
 
-    state.form.querySelectorAll('select.qtype_accounting-debitaccount, select.qtype_accounting-creditaccount')
-        .forEach(function(select) {
-            const currentValue = select.value;
-            const currentOption = select.selectedOptions[0];
-            // The option text is the account name, also for an option marked as unavailable.
-            const name = currentValue && currentOption ? currentOption.text : null;
-            // Keep the first option (placeholder).
-            while (select.options.length > 1) {
-                select.remove(1);
+    form.querySelectorAll(ACCOUNT_SELECTS).forEach(select => {
+        const currentValue = select.value;
+        const currentOption = select.selectedOptions[0];
+        const name = currentValue && currentOption ? currentOption.text : null;
+        // Keep the first option (placeholder).
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
+        sorted.forEach(([key, accountName]) => select.add(new Option(accountName, key)));
+        if (currentValue) {
+            if (name !== null && Object.prototype.hasOwnProperty.call(keysByName, name)) {
+                select.value = keysByName[name];
+                delete currentOption.dataset.unavailable;
+            } else {
+                // Keep showing the selection, but with a value no account has: a new account may have got its key.
+                // The server reports it as no longer in the list.
+                currentOption.dataset.unavailable = 'true';
+                currentOption.value = String(-Math.abs(Number(currentValue)));
+                select.add(currentOption);
+                currentOption.selected = true;
             }
-            sorted.forEach(([key, accountName]) => select.add(new Option(accountName, key)));
-            if (currentValue) {
-                if (name !== null && Object.prototype.hasOwnProperty.call(keysByName, name)) {
-                    select.value = keysByName[name];
-                } else {
-                    // Select the option itself: a new account may have got the same key.
-                    currentOption.dataset.unavailable = 'true';
-                    select.add(currentOption);
-                    currentOption.selected = true;
-                }
-            }
-            checkOptionAvailability(select);
-        });
+        }
+        markAvailability(select);
+        if (select.value !== currentValue) {
+            // Lets the form dependencies enable or disable the amount and weights.
+            select.dispatchEvent(new Event('change', {bubbles: true}));
+        }
+    });
+};
 
-    updateAllDebitamountStates();
-    updateAllWeightStates();
-    syncAllDisplayToHidden();
-}
+/**
+ * Follow the account list and the account selects.
+ *
+ * @param {HTMLFormElement} form The question form.
+ */
+export const init = form => {
+    const input = form.elements.accounts;
+    const keysField = form.elements.accountkeys;
+    let knownKeys = {};
+    try {
+        knownKeys = JSON.parse(keysField ? keysField.value : '{}') || {};
+    } catch (e) {
+        knownKeys = {};
+    }
+    if (input) {
+        input.addEventListener('input', () => updateAccountSelects(form, input.value, knownKeys));
+    }
+    form.addEventListener('change', e => {
+        if (e.target.matches && e.target.matches(ACCOUNT_SELECTS)) {
+            markAvailability(e.target);
+        }
+    });
+};

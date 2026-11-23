@@ -26,32 +26,22 @@ Feature: Create and edit Buchungssatz questions
     And I should see "Correct Answer"
 
   @javascript
-  Scenario Outline: Each accounting side keeps at least one entry after adding and deleting rows
+  Scenario: Entries can be added and deleted
     Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."
     And I set the field "Accounting Entry" to "1"
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
-    And I click on ".qtype_accounting-delete-debit[data-index='1']" "css_element"
-    And I click on ".qtype_accounting-delete-credit[data-index='1']" "css_element"
-    Then ".qtype_accounting-delete-debit[data-index='0'][disabled]" "css_element" should exist
-    And ".qtype_accounting-delete-credit[data-index='0'][disabled]" "css_element" should exist
-    When I click on "Add <side> Entry" "button"
-    Then ".qtype_accounting-delete-<other>[data-index='0'][disabled]" "css_element" should exist
-    And ".qtype_accounting-delete-<type>[data-index='0']:not([disabled])" "css_element" should exist
-    When I click on ".qtype_accounting-delete-<type>[data-index='0']" "css_element"
-    Then ".qtype_accounting-delete-<type>[data-index='2'][disabled]" "css_element" should exist
-    And ".qtype_accounting-delete-<other>[data-index='0'][disabled]" "css_element" should exist
-    When I click on "Add <side> Entry" "button"
-    Then ".qtype_accounting-delete-<type>[data-index='0']:not([disabled])" "css_element" should exist
-    And ".qtype_accounting-delete-<type>[data-index='2']:not([disabled])" "css_element" should exist
-    When I click on ".qtype_accounting-delete-<type>[data-index='2']" "css_element"
-    Then ".qtype_accounting-delete-<type>[data-index='0'][disabled]" "css_element" should exist
-    And ".qtype_accounting-delete-<other>[data-index='0'][disabled]" "css_element" should exist
-
-    Examples:
-      | side   | type   | other  |
-      | Debit  | debit  | credit |
-      | Credit | credit | debit  |
+    Then "debitaccount[1]" "field" should exist
+    And "debitaccount[2]" "field" should not exist
+    When I press "Add Entry"
+    Then "debitaccount[2]" "field" should exist
+    And the field "Question name" matches value ""
+    When I set the field "Question name" to "Kept while editing entries"
+    And I click on "Delete" "button" in the "#fgroup_id_entry_1" "css_element"
+    Then "debitaccount[1]" "field" should not exist
+    And "debitaccount[0]" "field" should exist
+    And "debitaccount[2]" "field" should exist
+    And the field "Question name" matches value "Kept while editing entries"
 
   @javascript
   Scenario: Empty and zero account limits visibly mean all accounts
@@ -93,11 +83,10 @@ Feature: Create and edit Buchungssatz questions
       Bank
       Cash
       """
-    And I set the field "debitaccount_display[0]" to "Bank"
-    And I set the field "debitamount_display[0]" to "100"
+    And I set the field "debitaccount[0]" to "Bank"
+    And I set the field "debitamount[0]" to "100"
     And I press "id_submitbutton"
-    Then I should see "Please select an account, or remove this entry."
-    And I should see "Total debit amount must equal total credit amount for a valid accounting entry."
+    Then I should see "Total debit amount must equal total credit amount for a valid accounting entry."
     When I press "Cancel"
     Then I should see "Create a new question ..."
     And I should not see "Adding an Accounting Entry question"
@@ -160,17 +149,6 @@ Feature: Create and edit Buchungssatz questions
     Then I should see "Multiple tries"
 
   @javascript
-  Scenario: Add entry button works
-    Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
-    When I press "Create a new question ..."
-    And I set the field "Accounting Entry" to "1"
-    And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
-    Then I should see "Add Debit Entry"
-    When I click on "Add Debit Entry" "button"
-    Then ".qtype_accounting-entry-row" "css_element" should exist
-    And "#id_debitamount_display_2" "css_element" should exist
-
-  @javascript
   Scenario Outline: Missing solution amounts show guidance and preserve selections after saving
     Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."
@@ -184,32 +162,29 @@ Feature: Create and edit Buchungssatz questions
       Bank
       Cash
       """
-    And I set the field "debitaccount_display[0]" to "Bank"
-    And I set the field "creditaccount_display[0]" to "Cash"
-    And I set the field "debitaccount_display[1]" to "Bank"
-    And I set the field "creditaccount_display[1]" to "Cash"
-    And I set the field "weight_debitaccount_display[0]" to "3"
+    And I set the field "debitaccount[0]" to "Bank"
+    And I set the field "creditaccount[0]" to "Cash"
+    And I set the field "debitaccount[1]" to "Bank"
+    And I set the field "creditaccount[1]" to "Cash"
+    And I set the field "weight_debitaccount[0]" to "3"
     And I press "id_submitbutton"
     Then I should see "Debit amount is required."
     And I should see "Credit amount is required."
-    And "input[name='debitamount_display[0]'].is-invalid" "css_element" should exist
-    And "input[name='creditamount_display[0]'].is-invalid" "css_element" should exist
-    And "#id_debitamount_display_0_error.form-control-feedback.invalid-feedback" "css_element" should exist
-    And "#id_creditamount_display_0_error.form-control-feedback.invalid-feedback" "css_element" should exist
+    And "#fgroup_id_error_entry_0.invalid-feedback" "css_element" should exist
     And the field "Accounts of this question" matches multiline:
       """
       Bank
       Cash
       """
-    And the field "debitaccount_display[0]" matches value "Bank"
-    And the field "creditaccount_display[0]" matches value "Cash"
-    And the field "debitaccount_display[1]" matches value "Bank"
-    And the field "creditaccount_display[1]" matches value "Cash"
-    And the field "weight_debitaccount_display[0]" matches value "3"
-    When I set the field "debitamount_display[0]" to "<amount>"
-    And I set the field "creditamount_display[0]" to "<amount>"
-    And I set the field "debitamount_display[1]" to "<amount>"
-    And I set the field "creditamount_display[1]" to "<amount>"
+    And the field "debitaccount[0]" matches value "Bank"
+    And the field "creditaccount[0]" matches value "Cash"
+    And the field "debitaccount[1]" matches value "Bank"
+    And the field "creditaccount[1]" matches value "Cash"
+    And the field "weight_debitaccount[0]" matches value "3"
+    When I set the field "debitamount[0]" to "<amount>"
+    And I set the field "creditamount[0]" to "<amount>"
+    And I set the field "debitamount[1]" to "<amount>"
+    And I set the field "creditamount[1]" to "<amount>"
     And I press "id_submitbutton"
     Then I should see "Missing solution amounts"
     And I should not see "Adding an Accounting Entry question"
@@ -233,14 +208,14 @@ Feature: Create and edit Buchungssatz questions
       Bank
       Cash
       """
-    And I set the field "debitaccount_display[0]" to "Bank"
-    And I set the field "debitamount_display[0]" to "100"
-    And I set the field "creditaccount_display[0]" to "Cash"
-    And I set the field "creditamount_display[0]" to "100"
-    And I set the field "debitaccount_display[1]" to "Cash"
-    And I set the field "debitamount_display[1]" to "50"
-    And I set the field "creditaccount_display[1]" to "Bank"
-    And I set the field "creditamount_display[1]" to "50"
+    And I set the field "debitaccount[0]" to "Bank"
+    And I set the field "debitamount[0]" to "100"
+    And I set the field "creditaccount[0]" to "Cash"
+    And I set the field "creditamount[0]" to "100"
+    And I set the field "debitaccount[1]" to "Cash"
+    And I set the field "debitamount[1]" to "50"
+    And I set the field "creditaccount[1]" to "Bank"
+    And I set the field "creditamount[1]" to "50"
     And I set the field "Accounts of this question" to multiline:
       """
       Assets
@@ -248,21 +223,21 @@ Feature: Create and edit Buchungssatz questions
       Cash
       """
     And I set the field "Question name" to "Edited account list"
-    Then the field "debitaccount_display[0]" matches value "Bank"
-    And the field "creditaccount_display[0]" matches value "Cash"
+    Then the field "debitaccount[0]" matches value "Bank"
+    And the field "creditaccount[0]" matches value "Cash"
     When I set the field "Accounts of this question" to "Cash"
     And I set the field "Question name" to "Edited account list"
     And I press "id_submitbutton"
     Then I should see "This account is no longer in the account list. Please choose another account."
-    And the field "debitamount_display[0]" matches value "100,00"
-    When I set the field "debitaccount_display[0]" to "Cash"
-    And I set the field "creditaccount_display[1]" to "Cash"
+    And the field "debitamount[0]" matches value "100,00"
+    When I set the field "debitaccount[0]" to "Cash"
+    And I set the field "creditaccount[1]" to "Cash"
     And I press "id_submitbutton"
     Then I should see "Edited account list"
     And I should not see "Adding an Accounting Entry question"
     When I choose "Edit question" action for "Edited account list" in the question bank
     Then the field "Accounts of this question" matches value "Cash"
-    And the field "debitaccount_display[0]" matches value "Cash"
+    And the field "debitaccount[0]" matches value "Cash"
 
   @javascript
   Scenario: Copy accounts from a template or from another question of the question bank
@@ -286,8 +261,8 @@ Feature: Create and edit Buchungssatz questions
       8400 Sales
       """
     And the field "Question name" matches value "Copied accounts"
-    When I set the field "debitaccount_display[0]" to "8400 Sales"
-    Then the field "debitaccount_display[0]" matches value "8400 Sales"
+    When I set the field "debitaccount[0]" to "8400 Sales"
+    Then the field "debitaccount[0]" matches value "8400 Sales"
     When I set the field "copyaccountsfrom" to "Test questions: Existing question"
     And I press "id_copyaccounts"
     Then the field "Accounts of this question" matches multiline:

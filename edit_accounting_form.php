@@ -194,9 +194,7 @@ class qtype_accounting_edit_form extends question_edit_form {
             'gradingmode_pointsinfo',
             '',
             html_writer::div(
-                get_string($strict ? 'gradingmode_points_info_strict' : 'gradingmode_points_info', 'qtype_accounting'),
-                // The marker class lets styles.css hide the then irrelevant weight selectors.
-                $strict ? 'qtype_accounting-strictpairs' : ''
+                get_string($strict ? 'gradingmode_points_info_strict' : 'gradingmode_points_info', 'qtype_accounting')
             )
         );
         $mform->hideIf('gradingmode_pointsinfo', 'gradingmode', 'neq', \qtype_accounting\scorer::GRADINGMODE_POINTS);
@@ -286,10 +284,34 @@ class qtype_accounting_edit_form extends question_edit_form {
     }
 
     /**
-     * Add the correct-answer-entries section: the entries table, hidden form fields, and JS hookup.
+     * Get the account list the form is built with: the submitted list, the list copied with
+     * the copy button, or the edited version's accounts.
+     *
+     * @return string|null The account list, or null for the edited version's accounts.
+     */
+    protected function get_submitted_account_list(): ?string {
+        // The submission is only processed after the definition, so read the submitted list directly.
+        $list = $this->optional_param('accounts', null, PARAM_TEXT);
+        if ($list === null) {
+            return null;
+        }
+        $source = (string)$this->optional_param('copyaccountsfrom', '', PARAM_ALPHANUMEXT);
+        if ((string)$this->optional_param('copyaccounts', '', PARAM_RAW) !== '' && $source !== '') {
+            $names = \qtype_accounting\question_accounts::get_source_names($source, $this->get_bank_context());
+            if ($names) {
+                $list = implode("\n", $names);
+            }
+        }
+        return $list;
+    }
+
+    /**
+     * Add the correct-answer-entries section: one repeated group of debit and credit fields per entry.
+     *
+     * An entry may leave one side empty. Amounts are entered in the question's number format.
      *
      * @param \MoodleQuickForm $mform The form being built.
-     * @param string $effectiveformat The number format to render existing entries with ('de' or 'us').
+     * @param string $effectiveformat The number format of the saved amounts ('de' or 'us').
      */
     protected function add_entries_section($mform, string $effectiveformat): void {
         global $PAGE;
@@ -298,213 +320,131 @@ class qtype_accounting_edit_form extends question_edit_form {
         $mform->setExpanded('answerhdr', true);
         $mform->addElement('static', 'balancevalidation', '', '');
 
-        $accounts = $this->get_current_accounts();
-        $accountoptions = ['' => get_string('selectaccount', 'qtype_accounting')] + $accounts;
+        $list = $this->get_submitted_account_list();
+        $accounts = ['' => get_string('selectaccount', 'qtype_accounting')] + $this->get_current_accounts($list);
+        $placeholder = $effectiveformat === 'us' ? '0.00' : '0,00';
+        $hideper = (string)get_config('qtype_accounting', 'showpercolumn') === '0';
+        $weights = [1 => 1, 2 => 2, 3 => 3];
 
-        $existingentries = !empty($this->question->options->entries)
-            ? array_values($this->question->options->entries)
-            : [];
-        // Default to 2 entries for new questions, otherwise use the number of existing entries.
-        $entrycount = count($existingentries) > 0 ? count($existingentries) : 2;
-        $requestedrows = optional_param('accounting_rowcount', $entrycount, PARAM_INT);
-        $entrycount = max($entrycount, min(\qtype_accounting\entry_helper::MAX_ENTRIES, max(1, $requestedrows)));
-        $mform->addElement('hidden', 'accounting_js', 0);
-        $mform->setType('accounting_js', PARAM_BOOL);
-        $mform->addElement('hidden', 'accounting_displayformat', $effectiveformat);
-        $mform->setType('accounting_displayformat', PARAM_ALPHA);
-        $mform->registerNoSubmitButton('refreshentries');
-        $mform->addGroup([
-            $mform->createElement('text', 'accounting_rowcount', get_string('entryrows', 'qtype_accounting'), [
-                'aria-label' => get_string('entryrows', 'qtype_accounting'), 'size' => 4,
-            ]),
-            $mform->createElement('submit', 'refreshentries', get_string('refreshentries', 'qtype_accounting')),
-        ], 'accountingservercontrols', get_string('entryrows', 'qtype_accounting'), ' ', false);
-        $mform->setType('accounting_rowcount', PARAM_INT);
-        $mform->setDefault('accounting_rowcount', $entrycount);
-
-        $table = $mform->createElement('html', $this->build_entries_table(
-            $accountoptions,
-            $accountoptions,
-            $entrycount,
-            $existingentries,
-            $effectiveformat
-        ));
-        $table->setName('entrytable');
-        $mform->addElement($table);
-
-        // Register every submitted index, including sparse indices after repeated add/delete operations.
-        $indices = range(0, $entrycount - 1);
-        foreach (['debitaccount', 'creditaccount', 'debitaccount_display', 'creditaccount_display'] as $field) {
-            $indices = array_merge($indices, array_keys(optional_param_array($field, [], PARAM_INT)));
+        $entry = [];
+        foreach (['debit', 'credit'] as $side) {
+            // The site setting showpercolumn replaces the booking labels "Dr." and "Per" with the side names.
+            $label = $hideper ? $side : ($side === 'debit' ? 'per' : 'an');
+            $entry[] = $mform->createElement('static', $side . 'label', '', html_writer::span(
+                get_string($label, 'qtype_accounting'),
+                'qtype_accounting-edit-label'
+            ));
+            $entry[] = $mform->createElement(
+                'select',
+                $side . 'account',
+                get_string($side . 'account', 'qtype_accounting'),
+                $accounts,
+                ['data-accounting-field' => $side . 'account']
+            );
+            $entry[] = $mform->createElement('text', $side . 'amount', get_string($side . 'amount', 'qtype_accounting'), [
+                'size' => 12,
+                'placeholder' => $placeholder,
+                'inputmode' => 'decimal',
+                'data-accounting-field' => $side . 'amount',
+            ]);
         }
-        foreach (array_unique($indices) as $i) {
-            $mform->addElement('hidden', "debitaccount[$i]", '');
-            $mform->setType("debitaccount[$i]", PARAM_RAW);
-            $mform->addElement('hidden', "debitamount[$i]", '');
-            $mform->setType("debitamount[$i]", PARAM_RAW);
-            $mform->addElement('hidden', "creditaccount[$i]", '');
-            $mform->setType("creditaccount[$i]", PARAM_RAW);
-            $mform->addElement('hidden', "creditamount[$i]", '');
-            $mform->setType("creditamount[$i]", PARAM_RAW);
-            $mform->addElement('hidden', "weight_debitaccount[$i]", '1');
-            $mform->setType("weight_debitaccount[$i]", PARAM_INT);
-            $mform->addElement('hidden', "weight_debitamount[$i]", '1');
-            $mform->setType("weight_debitamount[$i]", PARAM_INT);
-            $mform->addElement('hidden', "weight_creditaccount[$i]", '1');
-            $mform->setType("weight_creditaccount[$i]", PARAM_INT);
-            $mform->addElement('hidden', "weight_creditamount[$i]", '1');
-            $mform->setType("weight_creditamount[$i]", PARAM_INT);
-            $fields = ['debitaccount', 'debitamount', 'creditaccount', 'creditamount',
-                'weight_debitaccount', 'weight_debitamount', 'weight_creditaccount', 'weight_creditamount'];
-            foreach ($fields as $field) {
-                // Without JavaScript, submit display controls only; the fallback normalises them.
-                $mform->getElement($field . '[' . $i . ']')->updateAttributes(['disabled' => 'disabled']);
+        // Function repeat_elements() only marks delete buttons outside groups to skip the client-side validation.
+        $entry[] = $mform->createElement('submit', 'deleteentry', get_string('deleteentry', 'qtype_accounting'), [
+            'data-skip-validation' => 1,
+            'data-no-submit' => 1,
+            'onclick' => 'skipClientValidation = true;',
+        ], false);
+
+        $weightelements = [];
+        foreach (['debitaccount', 'debitamount', 'creditaccount', 'creditamount'] as $field) {
+            $weightelements[] = $mform->createElement(
+                'select',
+                'weight_' . $field,
+                get_string('weight', 'qtype_accounting') . ': ' . get_string($field, 'qtype_accounting'),
+                $weights,
+                ['data-accounting-field' => 'weight_' . $field]
+            );
+        }
+
+        $repeated = [
+            $mform->createElement('group', 'entry', get_string('entryno', 'qtype_accounting'), $entry, ' ', false),
+            $mform->createElement('group', 'weights', get_string('weight', 'qtype_accounting'), $weightelements, ' ', false),
+        ];
+        $options = [
+            'debitaccount' => ['type' => PARAM_INT],
+            'creditaccount' => ['type' => PARAM_INT],
+            'debitamount' => ['type' => PARAM_RAW_TRIMMED, 'disabledif' => ['debitaccount', 'eq', '']],
+            'creditamount' => ['type' => PARAM_RAW_TRIMMED, 'disabledif' => ['creditaccount', 'eq', '']],
+            'weights' => ['hideif' => ['allornothinggrading', 'checked']],
+        ];
+        foreach (['debit', 'credit'] as $side) {
+            foreach (['account', 'amount'] as $field) {
+                // No default: the first option is weight 1, and a default would hide the saved weights.
+                $options['weight_' . $side . $field] = [
+                    'type' => PARAM_INT,
+                    'disabledif' => [$side . 'account', 'eq', ''],
+                ];
             }
         }
 
-        $jsdata = [
-            'accountKeys' => (object)$this->get_known_keys(),
-            'entries' => $existingentries,
-            'numberFormat' => $effectiveformat,
-            'maxEntries' => max(\qtype_accounting\entry_helper::MAX_ENTRIES, $entrycount),
-        ];
-        $config = $mform->createElement('html', '<script type="application/json" id="qtype_accounting-editform-data">' .
-            json_encode($jsdata, JSON_HEX_TAG | JSON_HEX_AMP) . '</script>');
-        $config->setName('entryconfig');
-        $mform->addElement($config);
+        $existing = count($this->question->options->entries ?? []);
+        $repeats = $this->repeat_elements(
+            $repeated,
+            max(2, $existing),
+            $options,
+            'noentries',
+            'addentries',
+            1,
+            get_string('addentry', 'qtype_accounting'),
+            true,
+            'deleteentry'
+        );
+        $strict = (bool)get_config('qtype_accounting', 'strictpairs');
+        for ($i = 0; $i < $repeats; $i++) {
+            // Deleted entries have no elements.
+            if (!$mform->elementExists("weights[$i]")) {
+                continue;
+            }
+            $mform->addHelpButton("weights[$i]", 'weight', 'qtype_accounting');
+            if ($strict) {
+                // Strict pairs grade every account-amount pair alike in points mode, so the weights do not apply.
+                $mform->hideIf("weights[$i]", 'gradingmode', 'eq', \qtype_accounting\scorer::GRADINGMODE_POINTS);
+            }
+        }
 
-        $PAGE->requires->string_for_js('err_balancemismatch', 'qtype_accounting');
-        $PAGE->requires->string_for_js('err_debitaccountrequired', 'qtype_accounting');
-        $PAGE->requires->string_for_js('err_creditaccountrequired', 'qtype_accounting');
-        // Preloaded so that core/str resolves them without a request; validation runs synchronously on submit.
-        $PAGE->requires->strings_for_js([
-            'err_accountunavailable', 'err_debitaccountrequired', 'err_creditaccountrequired',
-            'err_debitamountrequired', 'err_creditamountrequired', 'err_balancemismatch',
-        ], 'qtype_accounting');
-        $PAGE->requires->js_call_amd('qtype_accounting/editform', 'init', []);
+        $PAGE->requires->js_call_amd('qtype_accounting/editform', 'init');
     }
 
     /**
-     * Restore the custom controls after QuickForm has processed a submission.
-     *
-     * Unlike registered form elements, raw HTML does not retain submitted values.
+     * Show the copied account list after the copy button was pressed.
      */
     public function definition_after_data() {
         parent::definition_after_data();
         $mform = $this->_form;
-        if (!$mform->isSubmitted()) {
-            return;
-        }
-        $data = $mform->getSubmitValues();
-        if (!empty($data['copyaccounts']) && !empty($data['copyaccountsfrom'])) {
-            $names = \qtype_accounting\question_accounts::get_source_names(
-                (string)$data['copyaccountsfrom'],
-                $this->get_bank_context()
-            );
-            if ($names) {
-                $data['accounts'] = implode("\n", $names);
-                // The copied list replaces the submitted one in the redisplayed form.
-                $mform->setConstant('accounts', $data['accounts']);
+        if ($mform->isSubmitted() && (string)$this->optional_param('copyaccounts', '', PARAM_RAW) !== '') {
+            $list = $this->get_submitted_account_list();
+            if ($list !== null) {
+                $mform->setConstant('accounts', $list);
             }
         }
-        $this->update_submitted_entries($data);
     }
 
-    // phpcs:disable PSR2.Methods.MethodDeclaration.Underscore -- Moodle lifecycle API.
     /**
-     * Support ordinary HTML submissions when JavaScript is disabled or fails to load.
+     * Convert the entered amounts from the question's number format to plain decimal numbers.
      *
-     * @param string $method Form submission method.
+     * @param array $data Submitted form values.
+     * @return array The values with decimal amounts; empty amounts stay empty.
      */
-    public function _process_submission($method) {
-        parent::_process_submission($method);
-        $data = $this->_form->getSubmitValues();
-        if (!$data) {
-            return;
-        }
-        $accountcount = trim((string)($data['accountsindropdown'] ?? ''));
-        if (
-            $accountcount === '' || preg_match('/^-?0+$/D', $accountcount) ||
-            strcasecmp($accountcount, get_string('all')) === 0
-        ) {
-            $data['accountsindropdown'] = get_string('all');
-            $this->_form->updateSubmission($data, $_FILES);
-        }
-        if (!empty($data['accounting_js']) || !isset($data['debitaccount_display'])) {
-            return;
-        }
-        $format = $data['accounting_displayformat'] ?? $data['numberformat'] ?? 'de';
-        foreach (['debit', 'credit'] as $side) {
-            $data[$side . 'account'] = $data[$side . 'account_display'] ?? [];
-            $data[$side . 'amount'] = array_map(static function ($value) use ($format) {
-                return trim($value) === '' ? '' : \qtype_accounting\amount_helper::decimal_amount(
-                    \qtype_accounting\amount_helper::parse_cents($value, $format)
-                );
-            }, $data[$side . 'amount_display'] ?? []);
-            foreach (['account', 'amount'] as $field) {
-                $name = 'weight_' . $side . $field;
-                $data[$name] = $data[$name . '_display'] ?? [];
+    protected function normalise_amounts(array $data): array {
+        $format = ($data['numberformat'] ?? 'de') === 'us' ? 'us' : 'de';
+        foreach (['debitamount', 'creditamount'] as $field) {
+            foreach ((array)($data[$field] ?? []) as $i => $value) {
+                $value = trim((string)$value);
+                $data[$field][$i] = $value === '' ? '' :
+                    \qtype_accounting\amount_helper::decimal_amount(\qtype_accounting\amount_helper::parse_cents($value, $format));
             }
         }
-        $data['accounting_displayformat'] = $data['numberformat'] ?? 'de';
-        $this->_form->updateSubmission($data, $_FILES);
-    }
-    // phpcs:enable PSR2.Methods.MethodDeclaration.Underscore
-
-    /**
-     * Render submitted controls with field errors using Moodle's normal error styling.
-     *
-     * @param array $data Submitted values.
-     * @param array $errors Validation errors keyed by field name.
-     */
-    protected function update_submitted_entries(array $data, array $errors = []): void {
-        $mform = $this->_form;
-        $entries = (new \qtype_accounting\entries_table_builder())->get_submitted_entries($data, $errors);
-        $format = $data['numberformat'] ?? 'de';
-        $accounts = $this->get_current_accounts((string)($data['accounts'] ?? ''));
-        $mform->getElement('entrytable')->setValue($this->build_entries_table(
-            ['' => get_string('selectaccount', 'qtype_accounting')] + $accounts,
-            ['' => get_string('selectaccount', 'qtype_accounting')] + $accounts,
-            max(1, count($entries), min(\qtype_accounting\entry_helper::MAX_ENTRIES, (int)($data['accounting_rowcount'] ?? 0))),
-            $entries,
-            $format
-        ));
-        $config = [
-            'accountKeys' => (object)$this->get_known_keys(),
-            'entries' => $entries,
-            'numberFormat' => $format,
-            'maxEntries' => max(\qtype_accounting\entry_helper::MAX_ENTRIES, count($entries)),
-        ];
-        $mform->getElement('entryconfig')->setValue(
-            '<script type="application/json" id="qtype_accounting-editform-data">' .
-            json_encode($config, JSON_HEX_TAG | JSON_HEX_AMP) . '</script>'
-        );
-    }
-
-    /**
-     * Build the entries table HTML.
-     *
-     * @param array $debitaccountoptions Options for debit account select.
-     * @param array $creditaccountoptions Options for credit account select.
-     * @param int $entrycount Number of entries to show.
-     * @param array $existingentries Existing entry data.
-     * @param string $numberformat The number format ('de' or 'us').
-     * @return string The HTML for the entries table.
-     */
-    protected function build_entries_table(
-        array $debitaccountoptions,
-        array $creditaccountoptions,
-        int $entrycount,
-        array $existingentries,
-        string $numberformat = 'de'
-    ): string {
-        return (new \qtype_accounting\entries_table_builder())->build_table(
-            $debitaccountoptions,
-            $creditaccountoptions,
-            $entrycount,
-            $existingentries,
-            $numberformat
-        );
+        return $data;
     }
 
     /**
@@ -590,17 +530,19 @@ class qtype_accounting_edit_form extends question_edit_form {
      * @param object $question The question being preprocessed (modified in place).
      */
     protected function populate_entry_fields(object $question): void {
-        // Saved entries are initial defaults only. On submission, absent indices
-        // represent deleted rows and must not be restored by QuickForm defaults.
-        if ($this->_form->isSubmitted() || empty($question->options->entries)) {
+        if (empty($question->options->entries)) {
             return;
         }
+        $format = $question->options->numberformat ?? 'de';
         $i = 0;
         foreach ($question->options->entries as $entry) {
-            $question->debitaccount[$i] = $entry->debitaccountid ?? '';
-            $question->debitamount[$i] = $entry->debitamount;
-            $question->creditaccount[$i] = $entry->creditaccountid ?? '';
-            $question->creditamount[$i] = $entry->creditamount;
+            foreach (['debit', 'credit'] as $side) {
+                $accountid = $entry->{$side . 'accountid'} ?? '';
+                $question->{$side . 'account'}[$i] = $accountid;
+                // Saved one-sided entries store zero for the absent side, which stays empty.
+                $question->{$side . 'amount'}[$i] = $accountid ?
+                    \qtype_accounting\amount_helper::format_amount($entry->{$side . 'amount'}, $format) : '';
+            }
             $question->weight_debitaccount[$i] = $entry->weight_debitaccount ?? 1;
             $question->weight_debitamount[$i] = $entry->weight_debitamount ?? 1;
             $question->weight_creditaccount[$i] = $entry->weight_creditaccount ?? 1;
@@ -619,14 +561,24 @@ class qtype_accounting_edit_form extends question_edit_form {
     public function validation($data, $files): array {
         $errors = parent::validation($data, $files);
         $accountcount = trim((string)($data['accountsindropdown'] ?? ''));
-        if ($accountcount !== '' && $accountcount !== get_string('all') && !preg_match('/^-?\d+$/D', $accountcount)) {
+        $isall = strcasecmp($accountcount, get_string('all')) === 0;
+        if ($accountcount !== '' && !$isall && !preg_match('/^-?\d+$/D', $accountcount)) {
             $errors['accountsindropdown'] = get_string('err_accountsindropdown', 'qtype_accounting');
         } else if ((int)$accountcount < 0) {
             $errors['accountsindropdown'] = get_string('err_accountsindropdown_negative', 'qtype_accounting');
         }
-        $errors = $this->validate_available_accounts($data, $errors);
-        $errors = (new \qtype_accounting\entry_validator())->validate($data, $errors);
-        $this->update_submitted_entries($data, $errors);
+        // Selections of accounts that are no longer in the list are not among the select options, so they
+        // are missing from the validated data; the raw submission still holds them.
+        $selected = array_intersect_key($this->_form->getSubmitValues(), ['debitaccount' => 1, 'creditaccount' => 1]);
+        $errors = $this->validate_available_accounts($selected + $data, $errors);
+        $entryerrors = (new \qtype_accounting\entry_validator())->validate($this->normalise_amounts($data), []);
+        foreach ($entryerrors as $field => $message) {
+            // Errors of fields within an entry are shown at the entry's group.
+            if (preg_match('/^(?:debit|credit)amount\[(\d+)\]$/', $field, $matches)) {
+                $field = 'entry[' . $matches[1] . ']';
+            }
+            $errors[$field] = isset($errors[$field]) ? $errors[$field] . ' ' . $message : $message;
+        }
         return $errors;
     }
 
@@ -639,6 +591,7 @@ class qtype_accounting_edit_form extends question_edit_form {
         $data = parent::get_data();
         if ($data) {
             $data->accountsindropdown = (int)$data->accountsindropdown;
+            $data = (object)$this->normalise_amounts((array)$data);
         }
         return $data;
     }
@@ -658,8 +611,8 @@ class qtype_accounting_edit_form extends question_edit_form {
             return $errors;
         }
         $keys = array_filter(array_map('intval', array_merge(
-            $data['debitaccount'] ?? [],
-            $data['creditaccount'] ?? []
+            (array)($data['debitaccount'] ?? []),
+            (array)($data['creditaccount'] ?? [])
         )));
         if ($keys && array_diff($keys, array_keys($this->get_current_accounts($list)))) {
             $errors['balancevalidation'] = get_string('err_accountunavailable', 'qtype_accounting');
