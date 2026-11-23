@@ -364,6 +364,8 @@ class qtype_accounting extends question_type {
     public function get_possible_responses($questiondata): array {
         return [$questiondata->id => [
             1 => new question_possible_response(get_string('correct', 'question'), 1),
+            // The class covers every partial grade; the classified responses carry the actual fraction.
+            2 => new question_possible_response(get_string('partiallycorrect', 'question'), 0.5),
             0 => new question_possible_response(get_string('incorrect', 'question'), 0),
             null => question_possible_response::no_response(),
         ]];

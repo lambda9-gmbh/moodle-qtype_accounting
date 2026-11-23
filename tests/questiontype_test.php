@@ -444,15 +444,16 @@ final class questiontype_test extends \advanced_testcase {
     }
 
     /**
-     * Response analysis declares correct, incorrect and unanswered categories.
+     * Response analysis declares correct, partially correct, incorrect and unanswered categories.
      */
     public function test_get_possible_responses(): void {
         $questiondata = (object)['id' => 123];
         $responses = $this->qtype->get_possible_responses($questiondata);
 
         $this->assertIsArray($responses);
-        $this->assertCount(3, $responses[123]);
+        $this->assertCount(4, $responses[123]);
         $this->assertEquals(1, $responses[123][1]->fraction);
+        $this->assertEquals(0.5, $responses[123][2]->fraction);
         $this->assertEquals(0, $responses[123][0]->fraction);
     }
 

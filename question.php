@@ -340,8 +340,15 @@ class qtype_accounting_question extends question_graded_automatically {
             return [$this->id => question_classified_response::no_response()];
         }
         $fraction = $this->calculate_fraction($response);
+        if ($fraction >= 1) {
+            $class = 1;
+        } else if ($fraction > 0) {
+            $class = 2;
+        } else {
+            $class = 0;
+        }
         return [$this->id => new question_classified_response(
-            $fraction >= 1 ? 1 : 0,
+            $class,
             $this->summarise_response($response),
             $fraction
         )];

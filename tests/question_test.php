@@ -273,11 +273,19 @@ final class question_test extends \advanced_testcase {
         $this->assertStringContainsString('1000.00', $full->response);
         $response['debitamount_0'] = '50,00';
         $partial = $question->classify_response($response)[$question->id];
-        $this->assertEquals(0, $partial->responseclassid);
+        $this->assertEquals(2, $partial->responseclassid);
         $this->assertGreaterThan(0, $partial->fraction);
         $this->assertLessThan(1, $partial->fraction);
+        $response['debitaccount_0'] = $response['creditaccount_0'];
+        $response['creditaccount_0'] = $question->get_correct_response()['debitaccount_0'];
+        $response['debitamount_0'] = '1,00';
+        $response['creditamount_0'] = '1,00';
+        $wrong = $question->classify_response($response)[$question->id];
+        $this->assertEquals(0, $wrong->fraction);
+        $this->assertEquals(0, $wrong->responseclassid);
         $this->assertNull($question->classify_response([])[$question->id]->responseclassid);
     }
+
 
     /**
      * The declared response fields include all rows permitted by both interfaces.
