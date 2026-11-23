@@ -106,14 +106,12 @@ final class question_test extends \advanced_testcase {
         $this->setAdminUser();
         set_config('strictpairs', 0, 'qtype_accounting');
         $course = $this->getDataGenerator()->create_course();
-        $context = chart_manager::get_chart_context(\context_course::instance($course->id));
+        $context = \qtype_accounting_test_helper::question_bank_context($course);
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $category = $generator->create_question_category(['contextid' => $context->id]);
-        $chartid = chart_manager::create_chart('Main', $context->id);
-        $bank = account_manager::add($chartid, 'Bank');
-        $sales = account_manager::add($chartid, 'Sales');
+        [$bank, $sales] = [1, 2];
         $saved = $generator->create_question('accounting', null, [
-            'category' => $category->id, 'chartofaccountsid' => $chartid, 'gradingmode' => 'points',
+            'category' => $category->id, 'accounts' => ['Bank', 'Sales'], 'accountkeys' => [], 'gradingmode' => 'points',
             'debitaccount' => [$bank], 'creditaccount' => [$sales],
             'debitamount' => [100], 'creditamount' => [100],
         ]);

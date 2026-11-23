@@ -14,7 +14,6 @@ Feature: Choose the grading mode of an accounting question
     And the following "course enrolments" exist:
       | user     | course | role           |
       | teacher1 | C1     | editingteacher |
-    And the accounting chart "Main" with accounts "Bank, Cash, Sales" exists in course "Course 1"
 
   Scenario: The site default is preselected and points mode derives the default mark
     Given the following config values are set as admin:
@@ -29,11 +28,16 @@ Feature: Choose the grading mode of an accounting question
     When I set the field "Grading mode" to "Percentage (weighted)"
     Then I should see "Default mark"
     And I should not see "A pair only earns its point if both account and amount are correct"
-    When I set the following fields to these values:
+    When I set the field "Accounts of this question" to multiline:
+      """
+      Bank
+      Cash
+      Sales
+      """
+    And I set the following fields to these values:
       | Grading mode             | Points (one point per account-amount pair) |
       | Question name            | Points question                            |
       | Question text            | Record the transaction.                    |
-      | Chart of Accounts        | Main                                       |
       | debitaccount_display[0]  | Bank                                       |
       | debitamount_display[0]   | 100                                        |
       | creditaccount_display[0] | Sales                                      |

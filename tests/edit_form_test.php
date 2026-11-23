@@ -21,9 +21,10 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 require_once($CFG->dirroot . '/question/type/edit_question_form.php');
 require_once($CFG->dirroot . '/question/type/accounting/edit_accounting_form.php');
+require_once($CFG->dirroot . '/question/type/accounting/tests/helper.php');
 
-#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'get_all_accounts_by_chart')]
-#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'add_chart_section')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'add_accounts_section')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'get_current_accounts')]
 #[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'validate_available_accounts')]
 #[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting_edit_form::class, 'definition_after_data')]
 #[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\entry_validator::class)]
@@ -34,8 +35,8 @@ require_once($CFG->dirroot . '/question/type/accounting/edit_accounting_form.php
  * @package    qtype_accounting
  * @copyright  2026 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers     \qtype_accounting_edit_form::get_all_accounts_by_chart
- * @covers     \qtype_accounting_edit_form::add_chart_section
+ * @covers     \qtype_accounting_edit_form::add_accounts_section
+ * @covers     \qtype_accounting_edit_form::get_current_accounts
  * @covers     \qtype_accounting_edit_form::validate_available_accounts
  * @covers     \qtype_accounting_edit_form::definition_after_data
  * @covers     \qtype_accounting_edit_form::add_display_options_section
@@ -82,10 +83,9 @@ final class edit_form_test extends \advanced_testcase {
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $category = $generator->create_question_category(['contextid' => $context->id]);
         $questioncontext = \context::instance_by_id($category->contextid);
-        $chartid = chart_manager::create_chart('Main', $context->id);
-        $account = account_manager::add($chartid, 'Bank');
+        $account = 1;
         $saved = $generator->create_question('accounting', null, [
-            'category' => $category->id, 'chartofaccountsid' => $chartid,
+            'category' => $category->id, 'accounts' => ['Bank'], 'accountkeys' => [],
             'accountsindropdown' => $savedcount,
             'debitaccount' => [$account], 'creditaccount' => [$account],
             'debitamount' => [100], 'creditamount' => [100],
@@ -118,7 +118,7 @@ final class edit_form_test extends \advanced_testcase {
             'name' => 'Account count',
             'questiontext' => ['text' => 'Record the transaction.', 'format' => FORMAT_HTML],
             'defaultmark' => 1, 'penalty' => 0.3333333,
-            'chartofaccountsid' => $chartid, 'numberformat' => 'de',
+            'accounts' => 'Bank', 'accountkeys' => json_encode(['Bank' => 1]), 'numberformat' => 'de',
             'accountsindropdown' => $input ?? get_string('all'),
             'accounting_js' => 1,
             'debitaccount' => [$account], 'creditaccount' => [$account],
@@ -168,74 +168,47 @@ final class edit_form_test extends \advanced_testcase {
     }
 
     /**
-     * Opening an existing question warns immediately if its chart has been deleted.
-     *
-     * @dataProvider chart_state_provider
-     * @param string $state Whether the question has no chart, an existing chart, or a deleted chart.
+     * The editor shows the question's own accounts, also after the template they were copied from is deleted.
      */
-    #[\PHPUnit\Framework\Attributes\DataProvider('chart_state_provider')]
-    public function test_opening_question_with_deleted_chart(string $state): void {
-        global $PAGE, $USER;
+    public function test_opening_question_lists_its_accounts(): void {
+        global $PAGE;
         $this->resetAfterTest();
         $this->setAdminUser();
         $PAGE->set_url('/question/bank/editquestion/question.php');
         $course = $this->getDataGenerator()->create_course();
-        $context = \context_course::instance($course->id);
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
-        $category = $generator->create_question_category(['contextid' => $context->id]);
+        $category = $generator->create_question_category(['contextid' => \context_course::instance($course->id)->id]);
         $questioncontext = \context::instance_by_id($category->contextid);
-        $question = (object)[
-            'qtype' => 'accounting',
-            'contextid' => $questioncontext->id,
-            'createdby' => $USER->id,
-            'category' => $category->id,
-            'questiontext' => '',
-            'generalfeedback' => '',
-            'beingcopied' => false,
-            'formoptions' => (object)[
-                'mustbeusable' => false, 'repeatelements' => true,
-                'canedit' => true, 'canmove' => false, 'cansaveasnew' => false,
-            ],
+        $template = chart_manager::create_chart('Template', \context_system::instance()->id);
+        account_manager::add($template, 'Cash');
+        $saved = $generator->create_question('accounting', null, [
+            'category' => $category->id, 'accounts' => "Cash\nBank", 'accountkeys' => ['Cash' => 4],
+            'debitaccount' => [5], 'creditaccount' => [4],
+            'debitamount' => [100], 'creditamount' => [100],
+        ]);
+        chart_manager::delete_chart($template);
+
+        $question = \question_bank::load_question_data($saved->id);
+        $question->contextid = $questioncontext->id;
+        $question->beingcopied = false;
+        $question->formoptions = (object)[
+            'mustbeusable' => false, 'repeatelements' => true,
+            'canedit' => true, 'canmove' => false, 'cansaveasnew' => false,
         ];
-        if ($state !== 'none') {
-            $chartid = chart_manager::create_chart('Main', $context->id);
-            $bank = account_manager::add($chartid, 'Bank');
-            $cash = account_manager::add($chartid, 'Cash');
-            $saved = $generator->create_question('accounting', null, [
-                'category' => $category->id, 'chartofaccountsid' => $chartid,
-                'debitaccount' => [$bank], 'creditaccount' => [$cash],
-                'debitamount' => [100], 'creditamount' => [100],
-            ]);
-            if ($state === 'deleted') {
-                chart_manager::delete_chart($chartid);
-            }
-            $question = (object)array_merge((array)$question, (array)\question_bank::load_question_data($saved->id));
-        }
         $form = new \qtype_accounting_edit_form(
             new \moodle_url('/question/bank/editquestion/question.php'),
             $question,
             $category,
             new \core_question\local\bank\question_edit_contexts($questioncontext)
         );
-        $html = $form->render();
-        $message = get_string('err_chartdeleted', 'qtype_accounting');
-        if ($state === 'deleted') {
-            $this->assertStringContainsString($message, $html);
-            $this->assertStringContainsString('role="alert"', $html);
-            $this->assertStringContainsString('name="chartofaccountsid"', $html);
-            $this->assertStringContainsString('100,00', $html);
-        } else {
-            $this->assertStringNotContainsString($message, $html);
-        }
-    }
-
-    /**
-     * Cover new questions, intact charts, and deleted charts.
-     *
-     * @return array Chart states.
-     */
-    public static function chart_state_provider(): array {
-        return [['none'], ['existing'], ['deleted']];
+        $form->set_data(clone $question);
+        $dom = new \DOMDocument();
+        @$dom->loadHTML($form->render());
+        $xpath = new \DOMXPath($dom);
+        $this->assertSame("Cash\nBank", trim($xpath->evaluate('string(//textarea[@name="accounts"])')));
+        $this->assertSame('{"Cash":4,"Bank":5}', $xpath->evaluate('string(//input[@name="accountkeys"]/@value)'));
+        $this->assertSame('Bank', $xpath->evaluate('string(//select[@name="debitaccount_display[0]"]/option[@selected])'));
+        $this->assertSame('Cash', $xpath->evaluate('string(//select[@name="creditaccount_display[0]"]/option[@selected])'));
     }
 
     /**
@@ -256,12 +229,10 @@ final class edit_form_test extends \advanced_testcase {
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $category = $generator->create_question_category(['contextid' => $context->id]);
         $questioncontext = \context::instance_by_id($category->contextid);
-        $chartid = chart_manager::create_chart('Main', $context->id);
-        $bank = account_manager::add($chartid, 'Bank');
-        $cash = account_manager::add($chartid, 'Cash');
+        [$bank, $cash] = [1, 2];
         $saved = $generator->create_question('accounting', null, [
             'category' => $category->id,
-            'chartofaccountsid' => $chartid,
+            'accounts' => ['Bank', 'Cash'], 'accountkeys' => [],
             'debitaccount' => [$bank, $bank], 'creditaccount' => [$cash, $cash],
             'debitamount' => [100, 200], 'creditamount' => [100, 200],
         ]);
@@ -278,7 +249,7 @@ final class edit_form_test extends \advanced_testcase {
             'name' => 'Deleted row',
             'questiontext' => ['text' => 'Record the transaction.', 'format' => FORMAT_HTML],
             'defaultmark' => 1, 'penalty' => 0.3333333,
-            'chartofaccountsid' => $chartid, 'numberformat' => 'de',
+            'accounts' => "Bank\nCash", 'accountkeys' => json_encode(['Bank' => 1, 'Cash' => 2]), 'numberformat' => 'de',
             'accounting_js' => (int)$javascript, 'accounting_displayformat' => 'de',
         ];
         foreach (['debit' => $bank, 'credit' => $cash] as $side => $account) {
@@ -398,13 +369,12 @@ final class edit_form_test extends \advanced_testcase {
         $this->setAdminUser();
         $PAGE->set_url('/question/bank/editquestion/question.php');
         $course = $this->getDataGenerator()->create_course();
-        $context = $this->bank_context($course);
+        $context = \qtype_accounting_test_helper::question_bank_context($course);
         $category = $this->getDataGenerator()->get_plugin_generator('core_question')
             ->create_question_category(['contextid' => $context->id]);
         $questioncontext = \context::instance_by_id($category->contextid);
-        $chartid = chart_manager::create_chart('Main', $context->id);
-        $bank = account_manager::add($chartid, 'Bank');
-        $cash = account_manager::add($chartid, 'Cash');
+        // New accounts follow the keys of the edited version.
+        [$bank, $cash] = $existing ? [8, 9] : [1, 2];
         $submitted = [
             'category' => $category->id . ',' . $questioncontext->id,
             'name' => 'Missing amounts',
@@ -412,7 +382,8 @@ final class edit_form_test extends \advanced_testcase {
             'questiontext' => ['text' => 'Record the transaction.', 'format' => FORMAT_HTML],
             'defaultmark' => 1,
             'penalty' => 0.3333333,
-            'chartofaccountsid' => $chartid,
+            'accounts' => "Bank\nCash",
+            'accountkeys' => json_encode($existing ? ['Previous account' => 7] : []),
             'numberformat' => $format,
             'accounting_js' => (int)$javascript,
             'accounting_displayformat' => $format,
@@ -444,10 +415,9 @@ final class edit_form_test extends \advanced_testcase {
             'formoptions' => (object)['mustbeusable' => false, 'repeatelements' => true],
         ];
         if ($existing) {
-            $otherchartid = chart_manager::create_chart('Previous chart', $context->id);
-            $otheraccountid = account_manager::add($otherchartid, 'Previous account');
+            $otheraccountid = 7;
             $question->options = (object)[
-                'chartofaccountsid' => $otherchartid,
+                'accounts' => [7 => (object)['accountkey' => 7, 'accountname' => 'Previous account', 'sortorder' => 0]],
                 'numberformat' => $format === 'de' ? 'us' : 'de',
                 'entries' => [(object)[
                     'debitaccountid' => $otheraccountid,
@@ -487,7 +457,7 @@ final class edit_form_test extends \advanced_testcase {
             $this->assertStringContainsString('form-control-feedback invalid-feedback', $feedback->getAttribute('class'));
             $this->assertSame(get_string('err_' . $side . 'amountrequired', 'qtype_accounting'), $feedback->textContent);
         }
-        $this->assertSame('Main', $xpath->evaluate('string(//select[@name="chartofaccountsid"]/option[@selected])'));
+        $this->assertSame("Bank\nCash", trim($xpath->evaluate('string(//textarea[@name="accounts"])')));
         $this->assertSame('Bank', $xpath->evaluate('string(//select[@name="debitaccount_display[0]"]/option[@selected])'));
         $this->assertSame('Cash', $xpath->evaluate('string(//select[@name="creditaccount_display[0]"]/option[@selected])'));
         $this->assertSame('', $xpath->evaluate('string(//input[@name="debitamount_display[0]"]/@value)'));
@@ -520,8 +490,7 @@ final class edit_form_test extends \advanced_testcase {
         }
         $category = $this->getDataGenerator()->get_plugin_generator('core_question')
             ->create_question_category(['contextid' => $bankcontext->id]);
-        $chartid = chart_manager::create_chart('Main', $bankcontext->id);
-        $render = function () use ($bankcontext, $category, $chartid, $USER): \DOMXPath {
+        $render = function () use ($bankcontext, $category, $USER): \DOMXPath {
             $question = (object)[
                 'qtype' => 'accounting',
                 'contextid' => $bankcontext->id,
@@ -531,7 +500,6 @@ final class edit_form_test extends \advanced_testcase {
                 'generalfeedback' => '',
                 'formoptions' => (object)['mustbeusable' => false, 'repeatelements' => true],
                 'options' => (object)[
-                    'chartofaccountsid' => $chartid,
                     'accountsindropdown' => 3,
                     'numberformat' => 'de',
                     'entries' => [],
@@ -580,114 +548,93 @@ final class edit_form_test extends \advanced_testcase {
     }
 
     /**
-     * Reject stale chart IDs and accounts that no longer belong to the selected chart.
+     * The account list must be valid, and entries may only use accounts of the list.
      */
-    public function test_stale_account_validation(): void {
-        $this->resetAfterTest();
-        $course = $this->getDataGenerator()->create_course();
-        $context = $this->bank_context($course);
-        $chartid = chart_manager::create_chart('Main', $context->id);
-        $accountid = account_manager::add($chartid, 'Bank');
-        $otherchartid = chart_manager::create_chart('Other', $context->id);
-        $otheraccountid = account_manager::add($otherchartid, 'Cash');
+    public function test_account_list_validation(): void {
         $form = $this->getMockBuilder(\qtype_accounting_edit_form::class)
             ->disableOriginalConstructor()->onlyMethods([])->getMock();
-        $form->context = $context;
+        $property = new \ReflectionProperty(\qtype_accounting_edit_form::class, 'question');
+        $property->setAccessible(true);
+        $property->setValue($form, (object)['options' => (object)['accounts' => [
+            4 => (object)['accountkey' => 4, 'accountname' => 'Bank', 'sortorder' => 0],
+        ]]]);
         $method = new \ReflectionMethod(\qtype_accounting_edit_form::class, 'validate_available_accounts');
         $method->setAccessible(true);
-        $data = ['chartofaccountsid' => $chartid, 'debitaccount' => [$accountid]];
+
+        // Bank keeps its key 4, Cash gets the next free key.
+        $data = ['accounts' => " Bank \n\nCash", 'debitaccount' => [4], 'creditaccount' => [5]];
         $this->assertSame([], $method->invoke($form, $data, []));
-        $data['creditaccount'] = [$otheraccountid];
+        $data['creditaccount'] = [6];
         $this->assertArrayHasKey('balancevalidation', $method->invoke($form, $data, []));
-        unset($data['creditaccount']);
-        account_manager::delete($accountid);
+        $data['accounts'] = "Cash";
+        $data['creditaccount'] = [5];
         $this->assertArrayHasKey('balancevalidation', $method->invoke($form, $data, []));
-        chart_manager::delete_chart($chartid);
-        $this->assertArrayHasKey('chartofaccountsid', $method->invoke($form, $data, []));
+        $data['accounts'] = "Bank\nBank";
+        $this->assertSame(
+            get_string('err_accountduplicate', 'qtype_accounting', 'Bank'),
+            $method->invoke($form, $data, [])['accounts']
+        );
+        $data['accounts'] = str_repeat('x', 256);
+        $this->assertArrayHasKey('accounts', $method->invoke($form, $data, []));
     }
 
     /**
-     * Get the question bank context of a course: the course itself up to Moodle 4.5, its default question bank from 5.0.
-     *
-     * @param \stdClass $course The course.
-     * @return \context The context that holds the course's questions and charts.
+     * Accounts can be copied from a site template or from another question of the same question bank only.
      */
-    private function bank_context(\stdClass $course): \context {
-        return chart_manager::get_chart_context(\context_course::instance($course->id));
-    }
-
-    /**
-     * Read the account data without constructing the unrelated form UI.
-     *
-     * @param \context $context The form context.
-     * @return array Accounts keyed by chart and account IDs.
-     */
-    private function get_accounts(\context $context): array {
-        $form = $this->getMockBuilder(\qtype_accounting_edit_form::class)
-            ->disableOriginalConstructor()->onlyMethods([])->getMock();
-        $form->context = $context;
-        $method = new \ReflectionMethod(\qtype_accounting_edit_form::class, 'get_all_accounts_by_chart');
-        $method->setAccessible(true);
-        return $method->invoke($form);
-    }
-
-    /**
-     * Preserve chart order, account-name order, empty charts, IDs, and course isolation; site charts follow.
-     */
-    public function test_accounts_grouped_and_sorted_in_course(): void {
+    public function test_copy_accounts(): void {
+        global $PAGE, $USER;
         $this->resetAfterTest();
+        $this->setAdminUser();
+        $PAGE->set_url('/question/bank/editquestion/question.php');
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $course = $this->getDataGenerator()->create_course();
-        $context = $this->bank_context($course);
-        $zchart = chart_manager::create_chart('Zulu', $context->id);
-        $emptychart = chart_manager::create_chart('Empty', $context->id);
-        $achart = chart_manager::create_chart('Alpha', $context->id);
-        $zaccount = account_manager::add($achart, 'Zulu account', 0);
-        $aaccount = account_manager::add($achart, 'Alpha account', 1);
-        $otheraccount = account_manager::add($zchart, 'Alpha account', 0);
-        $sitechart = chart_manager::create_chart('Aardvark site chart', \context_system::instance()->id);
-        $siteaccount = account_manager::add($sitechart, 'Site account', 0);
+        $context = \qtype_accounting_test_helper::question_bank_context($course);
+        $category = $generator->create_question_category(['contextid' => $context->id]);
+        $template = chart_manager::create_chart('Template', \context_system::instance()->id);
+        account_manager::add($template, 'Template B', 1);
+        account_manager::add($template, 'Template A', 0);
+        $sibling = $generator->create_question('accounting', null, [
+            'category' => $category->id, 'name' => 'Sibling', 'accounts' => ['Sibling account'], 'accountkeys' => [],
+            'debitaccount' => [1], 'creditaccount' => [1],
+        ]);
         $othercourse = $this->getDataGenerator()->create_course();
-        $outsidechart = chart_manager::create_chart('Outside', $this->bank_context($othercourse)->id);
-        account_manager::add($outsidechart, 'Hidden account', 0);
+        $othercategory = $generator->create_question_category([
+            'contextid' => \qtype_accounting_test_helper::question_bank_context($othercourse)->id,
+        ]);
+        $outsider = $generator->create_question('accounting', null, [
+            'category' => $othercategory->id, 'accounts' => ['Outside account'], 'accountkeys' => [],
+            'debitaccount' => [1], 'creditaccount' => [1],
+        ]);
 
-        $this->assertSame([
-            $achart => [$aaccount => 'Alpha account', $zaccount => 'Zulu account'],
-            $emptychart => [],
-            $zchart => [$otheraccount => 'Alpha account'],
-            $sitechart => [$siteaccount => 'Site account'],
-        ], $this->get_accounts($context));
-    }
+        $render = function (string $source) use ($category, $context, $USER): \DOMXPath {
+            \qtype_accounting_edit_form::mock_submit([
+                'category' => $category->id . ',' . $context->id, 'accounts' => 'Own account',
+                'copyaccounts' => 1, 'copyaccountsfrom' => $source, 'accounting_js' => 1,
+            ]);
+            $form = new \qtype_accounting_edit_form(
+                new \moodle_url('/question/bank/editquestion/question.php'),
+                (object)[
+                    'qtype' => 'accounting', 'contextid' => $context->id, 'createdby' => $USER->id,
+                    'category' => $category->id, 'questiontext' => '', 'generalfeedback' => '',
+                    'formoptions' => (object)['mustbeusable' => false, 'repeatelements' => true],
+                ],
+                $category,
+                new \core_question\local\bank\question_edit_contexts($context)
+            );
+            $dom = new \DOMDocument();
+            @$dom->loadHTML($form->render());
+            return new \DOMXPath($dom);
+        };
 
-    /**
-     * Without course or site charts the result is empty; site charts are offered everywhere.
-     */
-    public function test_no_available_charts(): void {
-        $this->resetAfterTest();
-        $course = $this->getDataGenerator()->create_course();
-        $this->assertSame([], $this->get_accounts(\context_course::instance($course->id)));
-        $this->assertSame([], $this->get_accounts(\context_system::instance()));
-        $chartid = chart_manager::create_chart('System chart', \context_system::instance()->id);
-        $accountid = account_manager::add($chartid, 'Bank');
-        $this->assertSame([$chartid => [$accountid => 'Bank']], $this->get_accounts(\context_system::instance()));
-        $this->assertSame([$chartid => [$accountid => 'Bank']], $this->get_accounts(\context_course::instance($course->id)));
-    }
-
-    /**
-     * Loading accounts must use one chart read and one account read, regardless of chart count.
-     */
-    public function test_accounts_use_bounded_reads(): void {
-        global $DB;
-        $this->resetAfterTest();
-        $course = $this->getDataGenerator()->create_course();
-        $context = $this->bank_context($course);
-        for ($i = 0; $i < 10; $i++) {
-            $chartid = chart_manager::create_chart('Chart ' . $i, $context->id);
-            account_manager::add($chartid, 'Bank');
-        }
-        $before = $DB->perf_get_reads();
-        $accounts = $this->get_accounts($context);
-        $reads = $DB->perf_get_reads() - $before;
-        $this->assertCount(10, $accounts);
-        $this->assertEquals(2, $reads);
+        $xpath = $render('t-' . $template);
+        $this->assertSame("Template A\nTemplate B", trim($xpath->evaluate('string(//textarea[@name="accounts"])')));
+        $this->assertSame('Template A', $xpath->evaluate('string(//select[@name="debitaccount_display[0]"]/option[2])'));
+        $this->assertSame('Sibling', trim(explode(':', $xpath->evaluate(
+            'string(//select[@name="copyaccountsfrom"]/optgroup[2]/option[1])'
+        ))[1] ?? ''));
+        $xpath = $render('q-' . $sibling->id);
+        $this->assertSame('Sibling account', trim($xpath->evaluate('string(//textarea[@name="accounts"])')));
+        $xpath = $render('q-' . $outsider->id);
+        $this->assertSame('Own account', trim($xpath->evaluate('string(//textarea[@name="accounts"])')));
     }
 }

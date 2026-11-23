@@ -36,26 +36,6 @@ namespace qtype_accounting;
  */
 class account_provider {
     /**
-     * Get all accounts from the chart, keyed by ID.
-     *
-     * Returns an empty array if no chart is configured.
-     *
-     * @param int $chartid The chart of accounts ID.
-     * @return array The list of account records keyed by ID.
-     */
-    public function get_for_chart(int $chartid): array {
-        global $DB;
-        if ($chartid <= 0) {
-            return [];
-        }
-        return $DB->get_records(
-            'qtype_accounting_accounts',
-            ['chartid' => $chartid],
-            'accountname'
-        );
-    }
-
-    /**
      * Build the filtered account list used by all dropdowns on this question.
      *
      * In edit mode with a per-question dropdown limit, the list is narrowed to the
@@ -65,10 +45,10 @@ class account_provider {
      * @param object $question The question definition.
      * @param array $response The current student response (used to preserve selected accounts).
      * @param bool $readonly True when rendering the review/feedback view (no filtering).
-     * @return array Account records keyed by ID.
+     * @return array Account records keyed by account key.
      */
     public function build_filtered_accounts(object $question, array $response, bool $readonly): array {
-        $accounts = $this->get_for_chart($question->chartofaccountsid);
+        $accounts = $question->accounts ?? [];
         $accountslimit = $question->accountsindropdown ?? 0;
         if ($accountslimit <= 0 || $readonly) {
             return $accounts;
@@ -94,7 +74,7 @@ class account_provider {
      * Builds a shared pool: all correct accounts + all student-selected accounts +
      * N additional random accounts chosen via a seeded shuffle.
      *
-     * @param array $allaccounts All available accounts from the chart.
+     * @param array $allaccounts All accounts of the question.
      * @param array $correctaccountids Array of correct account IDs from all entries.
      * @param int $limit Number of additional random accounts to include (0 = all).
      * @param array $selectedaccountids Array of student-selected account IDs.

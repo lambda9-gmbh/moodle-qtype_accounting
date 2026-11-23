@@ -319,36 +319,6 @@ final class import_helper_test extends \advanced_testcase {
     }
 
     /**
-     * Test finding matching chart by account names.
-     */
-    public function test_find_matching_chart(): void {
-        $this->resetAfterTest();
-
-        // Create a chart with accounts.
-        $contextid = \context_system::instance()->id;
-        $chartid = chart_manager::create_chart('Test Chart', $contextid);
-        account_manager::add($chartid, 'Account 1', 0);
-        account_manager::add($chartid, 'Account 2', 1);
-        account_manager::add($chartid, 'Account 3', 2);
-
-        // Test finding chart with matching accounts.
-        $accounts = [
-            'Account 1' => ['accountname' => 'Account 1', 'sortorder' => 0],
-            'Account 2' => ['accountname' => 'Account 2', 'sortorder' => 1],
-        ];
-        $foundid = import_helper::find_matching_chart($accounts);
-        $this->assertEquals($chartid, $foundid);
-
-        // Test not finding chart when account is missing.
-        $accounts = [
-            'Account 1' => ['accountname' => 'Account 1', 'sortorder' => 0],
-            'NonExistent' => ['accountname' => 'NonExistent', 'sortorder' => 1],
-        ];
-        $foundid = import_helper::find_matching_chart($accounts);
-        $this->assertNull($foundid);
-    }
-
-    /**
      * Test full import workflow with chart_manager.
      *
      */

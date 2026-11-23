@@ -25,106 +25,58 @@
 /**
  * Restore plugin class that provides the necessary information to restore Buchungssatz questions.
  *
- * Collects chart data in instance variables, then creates everything in
- * process_accounting_options() which runs after chart elements due to XML ordering.
+ * Each question carries its own accounts. Backups of earlier versions carry the shared chart of the
+ * question instead; its account IDs become the account keys, which the entries and responses in
+ * those backups already store, so no response needs recoding.
  *
  * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class restore_qtype_accounting_plugin extends restore_qtype_plugin {
-    /** @var string Chart name from the backup XML. */
-    protected $chartname = '';
+    /** @var array Accounts (accountkey, sortorder) keyed by account name, collected for the current question. */
+    protected $accounts = [];
 
-    /** @var array Account data collected from backup XML. */
-    protected $chartaccounts = [];
-
-    /** @var array Map of source account IDs to IDs in the current question's restored chart. */
-    protected $accountidmap = [];
-
-    /** @var int|null Source question owning the transient chart data. */
-    protected $chartquestionid = null;
-
-    /** @var array Target account IDs keyed by name, also used for legacy entries. */
-    protected $targetaccountsbyname = [];
-
-    /** @var int[] Charts created by this restore. */
-    protected $createdchartids = [];
+    /** @var int|null Source question owning the collected accounts. */
+    protected $accountsquestionid = null;
 
     /**
      * Convert custom backup elements into question data for restore identity comparison.
      *
      * @param array $backupdata Parsed question backup data.
-     * @return \stdClass Question data with portable chart and account references.
+     * @return \stdClass Question data in the structure of {@see qtype_accounting::get_question_options()}.
      */
     public static function convert_backup_to_questiondata(array $backupdata): \stdClass {
         $questiondata = parent::convert_backup_to_questiondata($backupdata);
         $plugin = $backupdata['plugin_qtype_accounting_question'] ?? [];
         $options = (object) ($plugin['accounting_options'][0] ?? []);
-        $options->entries = array_map(
-            fn($entry) => (object) $entry,
-            $plugin['accounting_entries']['entry'] ?? []
-        );
-        $chart = $plugin['accounting_chart'][0] ?? [];
-        $accounts = array_map(fn($account) => (object) $account, $chart['chart_accounts']['chart_account'] ?? []);
-        $questiondata->options = self::prepare_identity_options($options, $chart['name'] ?? '', $accounts);
-        return $questiondata;
-    }
-
-    /**
-     * Compare portable chart and account data instead of database IDs that change during restore.
-     *
-     * @param \stdClass $questiondata Question data from a backup or the database.
-     * @param array $excludefields Paths excluded by the identity hash caller.
-     * @return \stdClass Normalised question data.
-     */
-    public static function remove_excluded_question_data(\stdClass $questiondata, array $excludefields = []): \stdClass {
-        $questiondata = clone $questiondata;
-        if (!isset($questiondata->options->chartname)) {
-            $options = $questiondata->options;
-            $chartid = (int) ($options->chartofaccountsid ?? 0);
-            $chart = $chartid ? \qtype_accounting\chart_manager::get_chart($chartid) : false;
-            $accounts = $chart ? \qtype_accounting\account_manager::get_for_chart($chartid) : [];
-            $questiondata->options = self::prepare_identity_options($options, $chart->name ?? '', $accounts);
+        unset($options->chartofaccountsid);
+        $records = $plugin['accounting_accounts']['account'] ?? [];
+        if (!$records) {
+            // Backups of earlier versions store the question's chart; account IDs serve as keys.
+            $records = array_map(fn($account) => [
+                'accountkey' => $account['id'] ?? 0,
+                'accountname' => $account['accountname'] ?? '',
+                'sortorder' => $account['sortorder'] ?? 0,
+            ], $plugin['accounting_chart'][0]['chart_accounts']['chart_account'] ?? []);
         }
-        return parent::remove_excluded_question_data($questiondata, $excludefields);
-    }
-
-    /**
-     * Build the same identity representation for backup and database options without modifying either.
-     *
-     * @param \stdClass $options Accounting options and answer entries.
-     * @param string $chartname Chart name.
-     * @param array $accounts Chart accounts, including their source IDs.
-     * @return \stdClass Options using account names and portable chart contents.
-     */
-    private static function prepare_identity_options(\stdClass $options, string $chartname, array $accounts): \stdClass {
-        $options = clone $options;
-        $options->chartname = $chartname;
-        $options->chartaccounts = [];
-        $accountnames = [];
-        foreach ($accounts as $account) {
-            $accountnames[$account->id] = $account->accountname;
-            $options->chartaccounts[] = (object) [
-                'accountname' => $account->accountname,
-                'sortorder' => $account->sortorder ?? 0,
+        $options->accounts = [];
+        $keysbyname = [];
+        foreach ($records as $record) {
+            $options->accounts[(int)$record['accountkey']] = (object)[
+                'accountkey' => (int)$record['accountkey'],
+                'accountname' => $record['accountname'],
+                'sortorder' => (int)$record['sortorder'],
             ];
+            $keysbyname[$record['accountname']] = (int)$record['accountkey'];
         }
-        $options->entries = array_map(function ($entry) use ($accountnames) {
-            $entry = clone $entry;
-            foreach (['debitaccount', 'creditaccount'] as $field) {
-                $idfield = $field . 'id';
-                $entry->$idfield = $accountnames[$entry->$idfield ?? 0] ?? ($entry->$field ?? null);
-                unset($entry->$field);
-            }
-            foreach (['weight_debitaccount', 'weight_debitamount', 'weight_creditaccount', 'weight_creditamount'] as $field) {
-                $entry->$field = $entry->$field ?? 1;
-            }
-            $entry->explanation = $entry->explanation ?? '';
-            unset($entry->fraction);
+        $options->entries = array_map(function ($entry) use ($keysbyname) {
+            $entry = (object) $entry;
+            self::normalise_entry($entry, $keysbyname);
             return $entry;
-        }, $options->entries ?? []);
-        return $options;
+        }, $plugin['accounting_entries']['entry'] ?? []);
+        $questiondata->options = $options;
+        return $questiondata;
     }
 
     /**
@@ -139,73 +91,65 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
     /**
      * Returns the paths to be handled by the plugin at question level.
      *
-     * @return array
+     * @return restore_path_element[] The restore path elements.
      */
     protected function define_question_plugin_structure() {
-        $paths = [];
-
-        // Chart data (processed first in XML order).
-        $elepath = $this->get_pathfor('/accounting_chart');
-        $paths[] = new restore_path_element('accounting_chart', $elepath);
-
-        $elepath = $this->get_pathfor('/accounting_chart/chart_accounts/chart_account');
-        $paths[] = new restore_path_element('accounting_chart_account', $elepath);
-
-        // Options (processed after chart data).
-        $elepath = $this->get_pathfor('/accounting_options');
-        $paths[] = new restore_path_element('accounting_options', $elepath);
-
-        // Entries.
-        $elepath = $this->get_pathfor('/accounting_entries/entry');
-        $paths[] = new restore_path_element('accounting_entry', $elepath);
-
-        return $paths;
+        return [
+            new restore_path_element('accounting_account', $this->get_pathfor('/accounting_accounts/account')),
+            // Backups of earlier versions.
+            new restore_path_element('accounting_chart', $this->get_pathfor('/accounting_chart')),
+            new restore_path_element(
+                'accounting_chart_account',
+                $this->get_pathfor('/accounting_chart/chart_accounts/chart_account')
+            ),
+            new restore_path_element('accounting_options', $this->get_pathfor('/accounting_options')),
+            new restore_path_element('accounting_entry', $this->get_pathfor('/accounting_entries/entry')),
+        ];
     }
 
     /**
-     * Reset state for every question, including questions without a chart.
-     *
+     * Start collecting the accounts of another question.
      */
     protected function reset_question_state(): void {
         $questionid = $this->get_old_parentid('question');
-        if ($this->chartquestionid === $questionid) {
+        if ($this->accountsquestionid === $questionid) {
             return;
         }
-        $this->chartquestionid = $questionid;
-        $this->chartname = '';
-        $this->chartaccounts = [];
-        $this->accountidmap = [];
-        $this->targetaccountsbyname = [];
+        $this->accountsquestionid = $questionid;
+        $this->accounts = [];
     }
 
     /**
-     * Process the chart element - store chart name and reset accounts array.
+     * Collect an account of the question.
+     *
+     * @param array $data The account data from backup.
+     */
+    public function process_accounting_account($data) {
+        $this->reset_question_state();
+        $this->accounts[$data['accountname']] = ['accountkey' => (int)$data['accountkey'], 'sortorder' => (int)$data['sortorder']];
+    }
+
+    /**
+     * Start collecting the accounts of a chart from a backup of an earlier version.
      *
      * @param array $data The chart data from backup.
      */
     public function process_accounting_chart($data) {
         $this->reset_question_state();
-        $data = (object) $data;
-        $this->chartname = $data->name ?? '';
-        $this->chartaccounts = [];
-        $this->accountidmap = [];
     }
 
     /**
-     * Process a chart account element - append to the accounts collection.
+     * Collect an account of a chart from a backup of an earlier version; its ID becomes the account key.
      *
      * @param array $data The account data from backup.
      */
     public function process_accounting_chart_account($data) {
-        $data = (object) $data;
-        $this->chartaccounts[] = $data;
+        $this->reset_question_state();
+        $this->accounts[$data['accountname']] = ['accountkey' => (int)$data['id'], 'sortorder' => (int)($data['sortorder'] ?? 0)];
     }
 
     /**
-     * Process the options element.
-     *
-     * Resolves the chart (find existing or create new in the question bank context),
-     * then inserts the options record with the resolved chartofaccountsid.
+     * Insert the options and the accounts of a newly created question.
      *
      * @param array $data The options data from backup.
      */
@@ -213,287 +157,70 @@ class restore_qtype_accounting_plugin extends restore_qtype_plugin {
         global $DB;
 
         $this->reset_question_state();
-
-        $data = (object) $data;
-
-        // Only process if the question was newly created by restore.
-        $questioncreated = $this->get_mappingid(
-            'question_created',
-            $this->get_old_parentid('question')
-        ) ? true : false;
-
-        if (!$questioncreated) {
-            $options = $DB->get_record('qtype_accounting_options', ['questionid' => $this->get_new_parentid('question')]);
-            if ($options) {
-                $this->map_chart_account_ids((int)$options->chartofaccountsid);
-            }
+        if (!$this->question_was_newly_created()) {
             return;
         }
-
+        $data = (object) $data;
         $data->questionid = $this->get_new_parentid('question');
-
-        // Resolve chart of accounts.
-        $data->chartofaccountsid = $this->resolve_chart();
-        $this->map_chart_account_ids($data->chartofaccountsid);
-
-        unset($data->id);
+        unset($data->id, $data->chartofaccountsid);
         $DB->insert_record('qtype_accounting_options', $data);
+        // Keep the backed-up sort order: it is part of the identity of the question on later restores.
+        $records = [];
+        foreach ($this->accounts as $name => $account) {
+            $records[] = ['questionid' => $data->questionid, 'accountname' => $name] + $account;
+        }
+        if ($records) {
+            $DB->insert_records(\qtype_accounting\question_accounts::TABLE, $records);
+        }
     }
 
     /**
-     * Process an entry element.
-     *
-     * Handles backward compatibility: defaults weight fields to 1 if missing,
-     * removes old fraction field if present.
+     * Insert an entry of a newly created question.
      *
      * @param array $data The entry data from backup.
      */
     public function process_accounting_entry($data) {
         global $DB;
 
-        $data = (object) $data;
         if (!$this->question_was_newly_created()) {
             return;
         }
-
+        $data = (object) $data;
         $data->questionid = $this->get_new_parentid('question');
         unset($data->id);
-
-        $this->default_entry_weights($data);
-        $this->normalize_legacy_entry_fields($data);
-        $this->resolve_entry_account_ids($data);
-
+        self::normalise_entry($data, array_map(fn($account) => $account['accountkey'], $this->accounts));
         $DB->insert_record('qtype_accounting_entries', $data);
     }
 
     /**
-     * Check whether the question this entry belongs to was newly created by the current restore.
+     * Check whether the current question was newly created by this restore.
      *
-     * @return bool True when the parent question is a new mapping; false if it already existed.
+     * @return bool True when the parent question is a new mapping; false if an existing question is reused.
      */
     protected function question_was_newly_created(): bool {
         return (bool) $this->get_mappingid('question_created', $this->get_old_parentid('question'));
     }
 
     /**
-     * Apply weight=1 defaults to the four weight fields, for backups that predate weighted scoring.
+     * Bring an entry of any backup version into the current structure.
      *
-     * @param \stdClass $data Entry data, modified in place.
+     * Backups before weighted scoring have no weights; very old backups reference accounts by name.
+     *
+     * @param \stdClass $entry Entry data, modified in place.
+     * @param array $keysbyname Account keys keyed by account name.
      */
-    protected function default_entry_weights(\stdClass $data): void {
+    protected static function normalise_entry(\stdClass $entry, array $keysbyname): void {
         foreach (['weight_debitaccount', 'weight_debitamount', 'weight_creditaccount', 'weight_creditamount'] as $field) {
-            if (!isset($data->$field)) {
-                $data->$field = 1;
-            }
+            $entry->$field = $entry->$field ?? 1;
         }
-    }
-
-    /**
-     * Normalise legacy fields: default explanation and strip the obsolete fraction field.
-     *
-     * @param \stdClass $data Entry data, modified in place.
-     */
-    protected function normalize_legacy_entry_fields(\stdClass $data): void {
-        if (!isset($data->explanation)) {
-            $data->explanation = '';
-        }
-        unset($data->fraction);
-    }
-
-    /**
-     * Remap account IDs to the restored chart, or resolve legacy name-based account fields.
-     *
-     * @param \stdClass $data Entry data, modified in place.
-     */
-    protected function resolve_entry_account_ids(\stdClass $data): void {
         foreach (['debitaccount', 'creditaccount'] as $field) {
-            $idfield = $field . 'id';
-            if (isset($data->$field) && !isset($data->$idfield)) {
-                $data->$idfield = $this->resolve_account_name_to_id($data->$field, $data->questionid);
-            } else {
-                // Never retain source database IDs, which may refer to unrelated accounts on the target.
-                $data->$idfield = $this->accountidmap[$data->$idfield ?? 0] ?? null;
+            $keyfield = $field . 'id';
+            if (isset($entry->$field) && !isset($entry->$keyfield)) {
+                $entry->$keyfield = $keysbyname[$entry->$field] ?? null;
             }
-            unset($data->$field);
+            unset($entry->$field);
         }
-    }
-
-    /**
-     * Map backup account IDs by name to the accounts in the resolved target chart.
-     *
-     * This works for both newly created charts and matching existing charts.
-     *
-     * @param int $chartid The resolved chart ID.
-     */
-    protected function map_chart_account_ids(int $chartid): void {
-        $this->accountidmap = [];
-        $accountsbyname = [];
-        foreach (\qtype_accounting\account_manager::get_for_chart($chartid) as $account) {
-            $accountsbyname[$account->accountname] = (int) $account->id;
-        }
-        $this->targetaccountsbyname = $accountsbyname;
-        foreach ($this->chartaccounts as $account) {
-            if (isset($account->id, $accountsbyname[$account->accountname])) {
-                $this->accountidmap[$account->id] = $accountsbyname[$account->accountname];
-                $this->set_mapping(
-                    'qtype_accounting_account_' . $this->get_new_parentid('question'),
-                    $account->id,
-                    $accountsbyname[$account->accountname]
-                );
-            }
-        }
-        // Core caches attempt recoders across restores in a CLI process, even after
-        // their original restore step is destroyed. Refresh a request-scoped map
-        // for this target question whenever its current backup data is processed.
-        $cache = \cache::make_from_params(\cache_store::MODE_REQUEST, 'qtype_accounting', 'restoredaccounts');
-        $restoreid = $this->get_restoreid();
-        $key = 'question_' . $this->get_new_parentid('question');
-        $previous = $cache->get($key);
-        $mapping = $previous && $previous['restoreid'] === $restoreid ? $previous['accounts'] : [];
-        $cache->set('restoreid', $restoreid);
-        $cache->set($key, ['restoreid' => $restoreid, 'accounts' => $this->accountidmap + $mapping]);
-    }
-
-    /**
-     * Recode account references in all restored attempt steps, including reused questions.
-     *
-     * @param int $questionid Restored question ID.
-     * @param int $sequencenumber Attempt step number.
-     * @param array $response Original response data.
-     * @return array Response referencing target accounts.
-     */
-    public function recode_response($questionid, $sequencenumber, array $response) {
-        global $DB;
-        $cache = \cache::make_from_params(\cache_store::MODE_REQUEST, 'qtype_accounting', 'restoredaccounts');
-        $restoreid = $cache->get('restoreid');
-        if ($restoreid === false) {
-            // A resumed restore phase has a fresh recoder with a live task.
-            $restoreid = $this->step->get_task()->get_restoreid();
-            $cache->set('restoreid', $restoreid);
-        }
-        $entry = $cache->get('question_' . $questionid);
-        if ($entry === false || $entry['restoreid'] !== $restoreid) {
-            // Same-site restores can leave historical attempts bound to the original
-            // question. In that case its own chart IDs already need no translation.
-            $chartid = $DB->get_field('qtype_accounting_options', 'chartofaccountsid', ['questionid' => $questionid]);
-            $accounts = \qtype_accounting\account_manager::get_for_chart((int)$chartid);
-            $mapping = array_combine(array_keys($accounts), array_keys($accounts));
-            $stored = $DB->get_records('backup_ids_temp', [
-                'backupid' => $restoreid, 'itemname' => 'qtype_accounting_account_' . $questionid,
-            ], '', 'itemid, newitemid');
-            foreach ($stored as $record) {
-                if (isset($accounts[$record->newitemid])) {
-                    $mapping[$record->itemid] = (int)$record->newitemid;
-                }
-            }
-            $cache->set('question_' . $questionid, ['restoreid' => $restoreid, 'accounts' => $mapping]);
-        } else {
-            $mapping = $entry['accounts'];
-        }
-        foreach ($response as $key => $value) {
-            if (preg_match('/^(?:debitaccount|creditaccount)_\d+$/', $key) && (int)$value > 0) {
-                $response[$key] = (string)($mapping[(int)$value] ?? 0);
-            }
-        }
-        return $response;
-    }
-
-    /**
-     * Resolve the chart of accounts for the current question.
-     *
-     * 1. If no chart data in backup, return 0.
-     * 2. Find existing match in the question bank context, including charts created for earlier questions.
-     * 3. If no match, create new chart + accounts.
-     *
-     * @return int The resolved chart ID, or 0 if no chart data.
-     */
-    protected function resolve_chart(): int {
-        if ($this->chartname === '') {
-            return 0;
-        }
-
-        // Charts belong to the question bank of the restored question; fall back to the target course.
-        // Categories of module question banks wait in the course context until the end of the restore,
-        // so their charts wait there as well; after_restore_question() moves them to the final bank.
-        $context = \qtype_accounting\chart_manager::get_question_context($this->get_new_parentid('question'))
-            ?? context_course::instance($this->step->get_task()->get_courseid());
-        $contextid = $context->contextlevel == CONTEXT_COURSE
-            ? (int)$context->id
-            : (int)\qtype_accounting\chart_manager::get_chart_context($context)->id;
-
-        // Build accounts array keyed by account name for matching.
-        $accountsbyname = [];
-        foreach ($this->chartaccounts as $acc) {
-            $accountsbyname[$acc->accountname] = [
-                'accountname' => $acc->accountname,
-                'sortorder' => $acc->sortorder ?? 0,
-            ];
-        }
-
-        // Try to find an existing matching chart in the target course context or among the site charts.
-        $chartid = \qtype_accounting\chart_manager::find_matching_chart(
-            $this->chartname,
-            $contextid,
-            $accountsbyname,
-            true
-        );
-
-        if (!$chartid) {
-            // Create new chart + accounts.
-            $chartid = \qtype_accounting\chart_manager::create_chart($this->chartname, $contextid);
-            $this->createdchartids[] = (int)$chartid;
-            foreach ($this->chartaccounts as $acc) {
-                \qtype_accounting\account_manager::add(
-                    $chartid,
-                    $acc->accountname,
-                    $acc->sortorder ?? 0
-                );
-            }
-        }
-
-        return $chartid;
-    }
-
-    /**
-     * Move the charts of the restored questions into the question banks the questions ended up in.
-     *
-     * Restore moves the categories of module question banks out of the course context only after the
-     * questions have been restored. Charts created by this restore that are no longer used are removed.
-     */
-    public function after_restore_question() {
-        global $DB;
-
-        $questionids = $DB->get_fieldset_sql(
-            "SELECT bi.newitemid
-               FROM {backup_ids_temp} bi
-               JOIN {qtype_accounting_options} o ON o.questionid = bi.newitemid
-              WHERE bi.backupid = ? AND bi.itemname = ?",
-            [$this->get_restoreid(), 'question_created']
-        );
-        foreach ($questionids as $questionid) {
-            $context = \qtype_accounting\chart_manager::get_question_context((int)$questionid);
-            if ($context) {
-                \qtype_accounting\chart_relocator::relocate_question((int)$questionid, $context);
-            }
-        }
-        foreach (array_unique($this->createdchartids) as $chartid) {
-            if (!$DB->record_exists('qtype_accounting_options', ['chartofaccountsid' => $chartid])) {
-                \qtype_accounting\chart_manager::delete_chart($chartid);
-            }
-        }
-        $this->createdchartids = [];
-    }
-
-    /**
-     * Resolve an account name to its ID within the question's chart.
-     *
-     * Used for backward compatibility when restoring old backups with name-based entries.
-     *
-     * @param string $accountname The account name to resolve.
-     * @param int $questionid The question ID.
-     * @return int|null The account ID, or null if not found.
-     */
-    protected function resolve_account_name_to_id(string $accountname, int $questionid): ?int {
-        return $this->targetaccountsbyname[$accountname] ?? null;
+        $entry->explanation = $entry->explanation ?? '';
+        unset($entry->fraction);
     }
 }

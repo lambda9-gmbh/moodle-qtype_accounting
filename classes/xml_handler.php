@@ -38,26 +38,18 @@ class xml_handler {
     /**
      * Render the <entries> XML block for question export.
      *
-     * Account IDs are resolved to portable names; missing accounts produce empty strings.
+     * Account keys are written as portable account names; unknown keys produce empty strings.
      *
      * @param array $entries The entries from $question->options->entries.
+     * @param array $accounts The question's accounts keyed by account key.
      * @param \qformat_xml $format The XML format helper used for escaping.
      * @return string The XML fragment.
      */
-    public function export_entries(array $entries, \qformat_xml $format): string {
-        global $DB;
+    public function export_entries(array $entries, array $accounts, \qformat_xml $format): string {
         $expout = "    <entries>\n";
         foreach ($entries as $entry) {
-            $debitname = '';
-            if (!empty($entry->debitaccountid)) {
-                $acc = $DB->get_record('qtype_accounting_accounts', ['id' => $entry->debitaccountid]);
-                $debitname = $acc ? $acc->accountname : '';
-            }
-            $creditname = '';
-            if (!empty($entry->creditaccountid)) {
-                $acc = $DB->get_record('qtype_accounting_accounts', ['id' => $entry->creditaccountid]);
-                $creditname = $acc ? $acc->accountname : '';
-            }
+            $debitname = $accounts[(int)$entry->debitaccountid]->accountname ?? '';
+            $creditname = $accounts[(int)$entry->creditaccountid]->accountname ?? '';
             $expout .= "      <entry>\n";
             $expout .= "        <sortorder>{$entry->sortorder}</sortorder>\n";
             $expout .= "        <debitaccount>" . $format->xml_escape($debitname) . "</debitaccount>\n";
@@ -76,26 +68,24 @@ class xml_handler {
     }
 
     /**
-     * Render the <chartofaccounts> XML block for question export.
+     * Render the question's accounts as a <chartofaccounts> block for question export.
      *
-     * Returns the empty string if the chart no longer exists.
+     * The block keeps the format of earlier versions, which stored a shared chart; the question
+     * name serves as chart name for them. Account keys are added so a re-import keeps them.
      *
-     * @param int $chartid The chart of accounts ID.
+     * @param string $questionname The question name.
+     * @param array $accounts The question's accounts keyed by account key.
      * @param \qformat_xml $format The XML format helper used for escaping.
-     * @return string The XML fragment, or '' if the chart cannot be loaded.
+     * @return string The XML fragment.
      */
-    public function export_chart(int $chartid, \qformat_xml $format): string {
-        $chart = chart_manager::get_chart($chartid);
-        if (!$chart) {
-            return '';
-        }
-        $accounts = account_manager::get_for_chart($chartid);
+    public function export_accounts(string $questionname, array $accounts, \qformat_xml $format): string {
         $expout = "    <chartofaccounts>\n";
-        $expout .= "      <chartname>" . $format->xml_escape($chart->name) . "</chartname>\n";
+        $expout .= "      <chartname>" . $format->xml_escape($questionname) . "</chartname>\n";
         foreach ($accounts as $account) {
             $expout .= "      <account>\n";
             $expout .= "        <accountname>" . $format->xml_escape($account->accountname) . "</accountname>\n";
             $expout .= "        <sortorder>{$account->sortorder}</sortorder>\n";
+            $expout .= "        <accountkey>{$account->accountkey}</accountkey>\n";
             $expout .= "      </account>\n";
         }
         $expout .= "    </chartofaccounts>\n";
@@ -124,15 +114,13 @@ class xml_handler {
         foreach ($extraquestionfields as $field) {
             $qo->$field = $format->getpath($data, ['#', $field, 0, '#'], '');
         }
-        // The source system's chart ID will be re-resolved from the embedded chart data.
-        $qo->chartofaccountsid = 0;
         return $qo;
     }
 
     /**
      * Populate the entry arrays on the imported question object from the XML <entries> block.
      *
-     * Account fields hold names at this point; resolve_chart() converts them to IDs.
+     * Account fields hold names at this point; import_accounts() converts them to account keys.
      *
      * @param array $data The XML data array.
      * @param \qformat_xml $format The XML format helper.
@@ -162,95 +150,37 @@ class xml_handler {
     }
 
     /**
-     * Determine the target chart context ID for chart resolution during import.
+     * Read the accounts from the <chartofaccounts> block and convert the entry account names to account keys.
      *
-     * Charts belong to the question bank of the target category; without a category the course's
-     * question bank is used.
+     * Exports of earlier versions have no account keys; their accounts get keys in list order.
      *
-     * @param \qformat_xml $format The XML format helper (carries $course / $category metadata).
-     * @return int The context ID to use, or 0 if none could be resolved.
-     */
-    public function resolve_contextid(\qformat_xml $format): int {
-        $context = null;
-        if (!empty($format->category->contextid)) {
-            $context = \context::instance_by_id($format->category->contextid, IGNORE_MISSING);
-        }
-        if (!$context && !empty($format->course->id)) {
-            $context = \context_course::instance($format->course->id);
-        }
-        return $context ? (int)chart_manager::get_chart_context($context)->id : 0;
-    }
-
-    /**
-     * Resolve the embedded chart-of-accounts data: find an existing matching chart
-     * in the target context, or create a new one, then map account names to IDs.
-     *
-     * @param array $chartdata The <chartofaccounts> sub-array from the XML.
+     * @param array $data The XML data array.
      * @param \qformat_xml $format The XML format helper.
-     * @param int $contextid The target context ID.
-     * @param \stdClass $qo The question object to update (chartofaccountsid + account-name → ID).
+     * @param \stdClass $qo The question object to update (accounts, accountkeys and entry account keys).
      */
-    public function resolve_chart(
-        array $chartdata,
-        \qformat_xml $format,
-        int $contextid,
-        \stdClass $qo
-    ): void {
-        $chartname = $format->getpath($chartdata, ['#', 'chartname', 0, '#'], '');
-        $xmlaccounts = $format->getpath($chartdata, ['#', 'account'], []);
-        if (empty($chartname) || empty($xmlaccounts)) {
-            return;
-        }
-        [$accountsbyname, $accountslist] = $this->parse_xml_accounts($xmlaccounts, $format);
-        $chartid = chart_manager::find_matching_chart($chartname, $contextid, $accountsbyname);
-        if (!$chartid) {
-            $chartid = chart_manager::create_chart($chartname, $contextid);
-            foreach ($accountslist as $acc) {
-                account_manager::add($chartid, $acc['accountname'], $acc['sortorder']);
+    public function import_accounts(array $data, \qformat_xml $format, \stdClass $qo): void {
+        $accounts = [];
+        foreach ($format->getpath($data, ['#', 'chartofaccounts', 0, '#', 'account'], []) as $accdata) {
+            $name = trim((string)$format->getpath($accdata, ['#', 'accountname', 0, '#'], ''));
+            if ($name === '' || isset($accounts[$name])) {
+                continue;
             }
-        }
-        $qo->chartofaccountsid = $chartid;
-        $this->resolve_account_names_to_ids($chartid, $qo);
-    }
-
-    /**
-     * Parse the <account> children of a <chartofaccounts> block into convenient arrays.
-     *
-     * @param array $xmlaccounts The XML 'account' children.
-     * @param \qformat_xml $format The XML format helper.
-     * @return array [accountsbyname, accountslist].
-     */
-    protected function parse_xml_accounts(array $xmlaccounts, \qformat_xml $format): array {
-        $accountsbyname = [];
-        $accountslist = [];
-        foreach ($xmlaccounts as $accdata) {
-            $accountname = $format->getpath($accdata, ['#', 'accountname', 0, '#'], '');
-            $sortorder = (int) $format->getpath($accdata, ['#', 'sortorder', 0, '#'], 0);
-            $accountsbyname[$accountname] = [
-                'accountname' => $accountname,
-                'sortorder' => $sortorder,
+            $accounts[$name] = [
+                'sortorder' => (int)$format->getpath($accdata, ['#', 'sortorder', 0, '#'], 0),
+                'key' => (int)$format->getpath($accdata, ['#', 'accountkey', 0, '#'], 0),
             ];
-            $accountslist[] = $accountsbyname[$accountname];
         }
-        return [$accountsbyname, $accountslist];
-    }
-
-    /**
-     * Replace the account names on $qo->debitaccount / $qo->creditaccount with the resolved IDs from the chart.
-     *
-     * @param int $chartid The resolved chart ID.
-     * @param \stdClass $qo The question object (modified in place).
-     */
-    protected function resolve_account_names_to_ids(int $chartid, \stdClass $qo): void {
-        $nametoid = [];
-        foreach (account_manager::get_for_chart($chartid) as $acc) {
-            $nametoid[$acc->accountname] = $acc->id;
-        }
-        foreach ($qo->debitaccount as $idx => $name) {
-            $qo->debitaccount[$idx] = $nametoid[$name] ?? 0;
-        }
-        foreach ($qo->creditaccount as $idx => $name) {
-            $qo->creditaccount[$idx] = $nametoid[$name] ?? 0;
+        uasort($accounts, fn($a, $b) => $a['sortorder'] <=> $b['sortorder']);
+        // Numeric names such as 1200 became integer array keys.
+        $names = array_map('strval', array_keys($accounts));
+        $keys = array_column($accounts, 'key');
+        $haskeys = $keys && !in_array(0, $keys, true) && count(array_unique($keys)) === count($keys);
+        $qo->accounts = $names;
+        $qo->accountkeys = $haskeys ? array_combine($names, $keys) : question_accounts::assign_keys($names, []);
+        foreach (['debitaccount', 'creditaccount'] as $field) {
+            foreach ($qo->$field as $index => $name) {
+                $qo->{$field}[$index] = $qo->accountkeys[$name] ?? 0;
+            }
         }
     }
 }

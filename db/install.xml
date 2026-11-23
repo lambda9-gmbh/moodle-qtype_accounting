@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <XMLDB xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" PATH="question/type/accounting/db" VERSION="20240101" COMMENT="XMLDB schema for the qtype_accounting (Accounting Entry / Buchungssatz) question type." xsi:noNamespaceSchemaLocation="../../../../lib/xmldb/xmldb.xsd">
   <TABLES>
-    <TABLE NAME="qtype_accounting_options" COMMENT="Per-question settings: chart selection, decoy count, number format, grading flags.">
+    <TABLE NAME="qtype_accounting_options" COMMENT="Per-question settings: decoy count, number format, grading flags.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
-        <FIELD NAME="chartofaccountsid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references qtype_accounting_charts.id"/>
         <FIELD NAME="accountsindropdown" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Number of decoy accounts shown in dropdowns alongside correct ones (0 = show entire chart)"/>
         <FIELD NAME="numberformat" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="de" SEQUENCE="false" COMMENT="Display number format: de (1.234,56) or us (1,234.56)"/>
         <FIELD NAME="extraentrydeduction" TYPE="number" LENGTH="10" DECIMALS="7" NOTNULL="false" SEQUENCE="false" COMMENT="Fraction (0.0 to 1.0) deducted per extra account named that is not in the correct answer"/>
@@ -18,7 +17,6 @@
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="questionid" TYPE="foreign-unique" FIELDS="questionid" REFTABLE="question" REFFIELDS="id"/>
-        <KEY NAME="chartofaccountsid" TYPE="foreign" FIELDS="chartofaccountsid" REFTABLE="qtype_accounting_charts" REFFIELDS="id"/>
       </KEYS>
     </TABLE>
 
@@ -27,9 +25,9 @@
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
         <FIELD NAME="sortorder" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Display order of the entry within the question"/>
-        <FIELD NAME="debitaccountid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Foreign key references qtype_accounting_accounts.id (debit side)"/>
+        <FIELD NAME="debitaccountid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Account key of the debit account in the question's account list (qtype_accounting_qaccounts.accountkey)"/>
         <FIELD NAME="debitamount" TYPE="number" LENGTH="15" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Debit amount"/>
-        <FIELD NAME="creditaccountid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Foreign key references qtype_accounting_accounts.id (credit side)"/>
+        <FIELD NAME="creditaccountid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Account key of the credit account in the question's account list (qtype_accounting_qaccounts.accountkey)"/>
         <FIELD NAME="creditamount" TYPE="number" LENGTH="15" DECIMALS="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Credit amount"/>
         <FIELD NAME="weight_debitaccount" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Grading weight for the debit account (1-3)"/>
         <FIELD NAME="weight_debitamount" TYPE="int" LENGTH="5" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Grading weight for the debit amount (1-3)"/>
@@ -40,15 +38,30 @@
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="questionid" TYPE="foreign" FIELDS="questionid" REFTABLE="question" REFFIELDS="id"/>
-        <KEY NAME="debitaccountid" TYPE="foreign" FIELDS="debitaccountid" REFTABLE="qtype_accounting_accounts" REFFIELDS="id"/>
-        <KEY NAME="creditaccountid" TYPE="foreign" FIELDS="creditaccountid" REFTABLE="qtype_accounting_accounts" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
         <INDEX NAME="questionid-sortorder" UNIQUE="false" FIELDS="questionid, sortorder"/>
       </INDEXES>
     </TABLE>
 
-    <TABLE NAME="qtype_accounting_accounts" COMMENT="Individual accounts that make up a chart of accounts.">
+    <TABLE NAME="qtype_accounting_qaccounts" COMMENT="The accounts of a question version. Each question version has its own copy, so later changes to templates or other versions do not affect it.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="questionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references question.id"/>
+        <FIELD NAME="accountkey" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Identifies the account within the question; stored in the correct entries and in responses, and kept across question versions"/>
+        <FIELD NAME="accountname" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Display name of the account (typically number + name, e.g. '1200 Bank')"/>
+        <FIELD NAME="sortorder" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Order in the question's account list"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="questionid" TYPE="foreign" FIELDS="questionid" REFTABLE="question" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="questionid-accountkey" UNIQUE="true" FIELDS="questionid, accountkey"/>
+      </INDEXES>
+    </TABLE>
+
+    <TABLE NAME="qtype_accounting_accounts" COMMENT="Accounts of a site-wide chart of accounts template.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="chartid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references qtype_accounting_charts.id"/>
@@ -65,11 +78,11 @@
       </INDEXES>
     </TABLE>
 
-    <TABLE NAME="qtype_accounting_charts" COMMENT="Course-scoped chart of accounts definitions.">
+    <TABLE NAME="qtype_accounting_charts" COMMENT="Site-wide chart of accounts templates whose accounts can be copied into questions.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Display name of the chart"/>
-        <FIELD NAME="contextid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Context (typically CONTEXT_COURSE) where this chart is available"/>
+        <FIELD NAME="contextid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Context of the template; always the system context"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Unix timestamp when the chart was created"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Unix timestamp of the last modification"/>
         <FIELD NAME="usermodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="ID of the user who last modified the chart"/>

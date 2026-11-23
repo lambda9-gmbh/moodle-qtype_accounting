@@ -156,10 +156,9 @@ class qtype_accounting_renderer extends qtype_renderer {
         if (empty($question->entries)) {
             return '';
         }
-        $accounts = (new \qtype_accounting\account_provider())->get_for_chart($question->chartofaccountsid);
         return $this->render_from_template(
             'qtype_accounting/answer_table',
-            (new \qtype_accounting\output\answer_table($question, $accounts))->export_for_template($this)
+            (new \qtype_accounting\output\answer_table($question, $question->accounts))->export_for_template($this)
         );
     }
 }

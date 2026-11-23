@@ -418,16 +418,60 @@ function xmldb_qtype_accounting_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026112205, 'qtype', 'accounting');
     }
 
-    if ($oldversion < 2026112206) {
-        // Remove charts left behind by courses deleted before the cleanup observers existed.
-        \qtype_accounting\chart_manager::delete_orphaned_charts();
-        upgrade_plugin_savepoint(true, 2026112206, 'qtype', 'accounting');
+    // Steps 2026112206 and 2026112207 moved charts of accounts between contexts during development.
+    // They are superseded by 2026112300, which copies the accounts into the questions.
+    if ($oldversion < 2026112207) {
+        upgrade_plugin_savepoint(true, 2026112207, 'qtype', 'accounting');
     }
 
-    if ($oldversion < 2026112207) {
-        // Charts belong to question banks: move them out of contexts that can no longer hold questions.
-        \qtype_accounting\chart_relocator::relocate_all();
-        upgrade_plugin_savepoint(true, 2026112207, 'qtype', 'accounting');
+    if ($oldversion < 2026112300) {
+        // Each question gets its own copy of the accounts of its chart.
+        $table = new xmldb_table('qtype_accounting_qaccounts');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('questionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('accountkey', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('accountname', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('sortorder', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('questionid', XMLDB_KEY_FOREIGN, ['questionid'], 'question', ['id']);
+        $table->add_index('questionid-accountkey', XMLDB_INDEX_UNIQUE, ['questionid', 'accountkey']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // The account key is the former account ID, so the correct entries and all saved
+        // responses, which store these IDs, keep referring to the same accounts.
+        $DB->execute(
+            "INSERT INTO {qtype_accounting_qaccounts} (questionid, accountkey, accountname, sortorder)
+             SELECT o.questionid, a.id, a.accountname, a.sortorder
+               FROM {qtype_accounting_options} o
+               JOIN {qtype_accounting_accounts} a ON a.chartid = o.chartofaccountsid
+              WHERE NOT EXISTS (SELECT 1 FROM {qtype_accounting_qaccounts} q WHERE q.questionid = o.questionid)"
+        );
+
+        // Only site-wide charts remain, as templates; course charts are no longer offered.
+        $syscontextid = context_system::instance()->id;
+        $DB->execute(
+            "DELETE FROM {qtype_accounting_accounts}
+              WHERE chartid IN (SELECT id FROM {qtype_accounting_charts} WHERE contextid <> ?)",
+            [$syscontextid]
+        );
+        $DB->delete_records_select('qtype_accounting_charts', 'contextid <> ?', [$syscontextid]);
+
+        $table = new xmldb_table('qtype_accounting_options');
+        $key = new xmldb_key('chartofaccountsid', XMLDB_KEY_FOREIGN, ['chartofaccountsid'], 'qtype_accounting_charts', ['id']);
+        $dbman->drop_key($table, $key);
+        $field = new xmldb_field('chartofaccountsid');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        $table = new xmldb_table('qtype_accounting_entries');
+        foreach (['debitaccountid', 'creditaccountid'] as $name) {
+            $dbman->drop_key($table, new xmldb_key($name, XMLDB_KEY_FOREIGN, [$name], 'qtype_accounting_accounts', ['id']));
+        }
+
+        upgrade_plugin_savepoint(true, 2026112300, 'qtype', 'accounting');
     }
 
     return true;

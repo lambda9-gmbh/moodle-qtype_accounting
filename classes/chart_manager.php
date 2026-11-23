@@ -25,7 +25,9 @@
 namespace qtype_accounting;
 
 /**
- * Manager class for charts of accounts.
+ * Manager class for the site-wide chart of accounts templates.
+ *
+ * Questions copy the accounts of a template into their own account list, see {@see question_accounts}.
  *
  * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
@@ -94,35 +96,6 @@ class chart_manager {
     }
 
     /**
-     * Delete charts whose context no longer exists and which no question uses.
-     *
-     * Deleting a course, question bank or category removes its context but leaves the
-     * plugin's charts behind. Charts that are still referenced by a question are kept,
-     * so that such questions can still be graded and displayed.
-     *
-     * @return int The number of deleted charts.
-     */
-    public static function delete_orphaned_charts(): int {
-        global $DB;
-
-        $chartids = $DB->get_fieldset_sql(
-            "SELECT ch.id
-               FROM {qtype_accounting_charts} ch
-          LEFT JOIN {context} ctx ON ctx.id = ch.contextid
-              WHERE ctx.id IS NULL
-                AND NOT EXISTS (
-                    SELECT 1
-                      FROM {qtype_accounting_options} o
-                     WHERE o.chartofaccountsid = ch.id
-                )"
-        );
-        foreach ($chartids as $chartid) {
-            self::delete_chart((int)$chartid);
-        }
-        return count($chartids);
-    }
-
-    /**
      * Get a chart by ID.
      *
      * @param int $chartid Chart ID.
@@ -167,53 +140,6 @@ class chart_manager {
     }
 
     /**
-     * Whether questions are kept in modules (question banks) only, as from Moodle 5.0.
-     *
-     * @return bool True if course and category contexts no longer hold questions.
-     */
-    public static function questions_in_modules_only(): bool {
-        return \core_component::get_component_directory('mod_qbank') !== null;
-    }
-
-    /**
-     * Whether charts may belong to a context: a question bank context or the system context (site charts).
-     *
-     * Charts belong to the question bank that holds the questions using them. Up to Moodle 4.5 questions
-     * live in course, course category or module contexts; from Moodle 5.0 only in module contexts.
-     *
-     * @param \context $context The context.
-     * @return bool True if charts may be stored in this context.
-     */
-    public static function is_chart_context(\context $context): bool {
-        if ($context->contextlevel == CONTEXT_SYSTEM || $context->contextlevel == CONTEXT_MODULE) {
-            return true;
-        }
-        return !self::questions_in_modules_only()
-            && in_array($context->contextlevel, [CONTEXT_COURSE, CONTEXT_COURSECAT]);
-    }
-
-    /**
-     * Get the context whose charts a question in the given context uses.
-     *
-     * This is the question bank context. A course context, which from Moodle 5.0 no longer holds questions,
-     * maps to the course's default question bank; other contexts without question banks map to the site charts.
-     *
-     * @param \context $context The question category context, or another context in the course.
-     * @return \context The chart context.
-     */
-    public static function get_chart_context(\context $context): \context {
-        if (self::is_chart_context($context)) {
-            return $context;
-        }
-        if ($context->contextlevel == CONTEXT_COURSE) {
-            $course = get_course($context->instanceid);
-            $cm = \core_question\local\bank\question_bank_helper::get_default_open_instance_system_type($course, true);
-            return \context_module::instance($cm->id);
-        }
-        return \context_system::instance();
-    }
-
-    /**
      * Get the context of the category that holds a question.
      *
      * @param int $questionid The question ID.
@@ -230,69 +156,6 @@ class chart_manager {
             [$questionid]
         );
         return $contextid ? \context::instance_by_id($contextid, IGNORE_MISSING) ?: null : null;
-    }
-
-    /**
-     * Get the charts a question in the given chart context may use: the context's own charts and the site charts.
-     *
-     * Own charts come first, then site charts; each group is sorted by name.
-     *
-     * @param int|null $contextid The chart context ID (see {@see get_chart_context()}), or null for site charts only.
-     * @return array The chart records keyed by ID.
-     */
-    public static function get_available_charts(?int $contextid): array {
-        global $DB;
-
-        $systemcontextid = (int)\context_system::instance()->id;
-        $contextids = array_unique(array_filter([(int)$contextid, $systemcontextid]));
-        [$insql, $params] = $DB->get_in_or_equal($contextids, SQL_PARAMS_NAMED);
-        $params['syscontextid'] = $systemcontextid;
-        return $DB->get_records_sql(
-            "SELECT *
-               FROM {qtype_accounting_charts}
-              WHERE contextid $insql
-           ORDER BY CASE WHEN contextid = :syscontextid THEN 1 ELSE 0 END, name ASC, id ASC",
-            $params
-        );
-    }
-
-    /**
-     * Get a display name for a chart, marking site charts.
-     *
-     * @param \stdClass $chart The chart record.
-     * @param \context $context The context used for formatting.
-     * @param bool $escape False for form select options, which QuickForm escapes itself.
-     * @return string The formatted name.
-     */
-    public static function get_display_name(\stdClass $chart, \context $context, bool $escape = true): string {
-        $name = format_string($chart->name, true, ['context' => $context, 'escape' => $escape]);
-        return self::is_site_chart($chart) ? get_string('sitechart_suffix', 'qtype_accounting', $name) : $name;
-    }
-
-    /**
-     * Find a chart that contains the given accounts, preferring the target context over site charts.
-     *
-     * @param string $name Chart name to search for.
-     * @param int $contextid Target chart context ID (see {@see get_chart_context()}).
-     * @param array $accounts Array of account data keyed by account name.
-     * @param bool $exact Require exactly these accounts in the same order, see {@see find_matching_chart_in_context()}.
-     * @return int|null Chart ID if a matching chart is found, null otherwise.
-     */
-    public static function find_matching_chart(string $name, int $contextid, array $accounts, bool $exact = false): ?int {
-        return self::find_matching_chart_in_context($name, $contextid, $accounts, $exact)
-            ?? self::find_matching_chart_in_context($name, (int)\context_system::instance()->id, $accounts, $exact);
-    }
-
-    /**
-     * Find a chart by name within a context.
-     *
-     * @param string $name Chart name.
-     * @param int $contextid Context ID.
-     * @return object|false The chart record or false if not found.
-     */
-    public static function get_chart_by_name(string $name, int $contextid) {
-        global $DB;
-        return $DB->get_record('qtype_accounting_charts', ['name' => $name, 'contextid' => $contextid]);
     }
 
     /**
@@ -362,103 +225,5 @@ class chart_manager {
         }
 
         return $result;
-    }
-
-    /**
-     * Find a chart by name in a given context that contains all required account names.
-     *
-     * @param string $name Chart name to search for.
-     * @param int $contextid Context ID to search in.
-     * @param array $accounts Array of account data keyed by account name.
-     * @param bool $exact Require identical account names and ordering for lossless restore.
-     * @return int|null Chart ID if a matching chart is found, null otherwise.
-     */
-    public static function find_matching_chart_in_context(
-        string $name,
-        int $contextid,
-        array $accounts,
-        bool $exact = false
-    ): ?int {
-        global $DB;
-
-        $charts = $DB->get_records('qtype_accounting_charts', ['name' => $name, 'contextid' => $contextid]);
-        if (empty($charts)) {
-            return null;
-        }
-
-        $requiredaccounts = array_map('strval', array_keys($accounts));
-        sort($requiredaccounts);
-
-        $chartaccounts = $DB->get_records_list(
-            'qtype_accounting_accounts',
-            'chartid',
-            array_keys($charts),
-            '',
-            'id, chartid, accountname, sortorder'
-        );
-        $accountsbychart = [];
-        $ordersbychart = [];
-        foreach ($chartaccounts as $account) {
-            $accountsbychart[$account->chartid][] = $account->accountname;
-            $ordersbychart[$account->chartid][$account->accountname] = (int)$account->sortorder;
-        }
-
-        foreach ($charts as $chart) {
-            $chartaccountnames = $accountsbychart[$chart->id] ?? [];
-            sort($chartaccountnames);
-
-            if ($exact) {
-                if ($chartaccountnames !== $requiredaccounts) {
-                    continue;
-                }
-                foreach ($accounts as $accountname => $data) {
-                    $order = is_object($data) ? ($data->sortorder ?? 0) : ($data['sortorder'] ?? 0);
-                    if ($ordersbychart[$chart->id][$accountname] !== (int)$order) {
-                        continue 2;
-                    }
-                }
-            }
-
-            // Check if this chart contains all required accounts.
-            $hasall = true;
-            foreach ($requiredaccounts as $required) {
-                if (!in_array($required, $chartaccountnames)) {
-                    $hasall = false;
-                    break;
-                }
-            }
-
-            if ($hasall) {
-                return (int) $chart->id;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Create a copy of a chart (with all accounts) in a new context.
-     *
-     * @param int $sourcechartid Source chart ID.
-     * @param int $targetcontextid Target context ID.
-     * @return int The new chart ID.
-     */
-    public static function duplicate_chart(int $sourcechartid, int $targetcontextid): int {
-        $source = self::get_chart($sourcechartid);
-        if (!$source) {
-            throw new \moodle_exception('chartnotfound', 'qtype_accounting');
-        }
-
-        $newchartid = self::create_chart($source->name, $targetcontextid);
-
-        foreach (account_manager::get_for_chart($sourcechartid) as $account) {
-            account_manager::add(
-                $newchartid,
-                $account->accountname,
-                $account->sortorder
-            );
-        }
-
-        return $newchartid;
     }
 }

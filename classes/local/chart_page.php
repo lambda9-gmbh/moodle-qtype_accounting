@@ -19,9 +19,7 @@ namespace qtype_accounting\local;
 use qtype_accounting\chart_manager;
 
 /**
- * Shared page setup of the chart management pages.
- *
- * Charts are managed in a question bank context or, as site charts, in the system context.
+ * Shared page setup of the pages that manage the site-wide chart of accounts templates.
  *
  * @package    qtype_accounting
  * @copyright  2026 Hochschule Flensburg / lambda9
@@ -29,61 +27,41 @@ use qtype_accounting\chart_manager;
  */
 class chart_page {
     /**
-     * Get the chart context requested by the optional contextid parameter.
+     * Check access and set up an admin page for the templates.
      *
-     * @return \context|null The question bank context, or null for the site charts.
-     */
-    public static function get_requested_context(): ?\context {
-        $contextid = optional_param('contextid', 0, PARAM_INT);
-        if (!$contextid) {
-            return null;
-        }
-        $context = chart_manager::get_chart_context(\context::instance_by_id($contextid));
-        return $context->contextlevel == CONTEXT_SYSTEM ? null : $context;
-    }
-
-    /**
-     * Get the URL parameters that identify the chart context.
-     *
-     * @param \context|null $context The question bank context, or null for the site charts.
-     * @return array The URL parameters.
-     */
-    public static function url_params(?\context $context): array {
-        return $context ? ['contextid' => $context->id] : [];
-    }
-
-    /**
-     * Check access and set up the page.
-     *
-     * @param \context|null $context The question bank context, or null for the site charts.
      * @param \moodle_url $url The page URL.
      * @param string $title The page title.
-     * @param bool $embedded Whether the page is shown inside the question editor's overlay.
-     * @return \context The context the charts belong to.
+     * @return \context The system context, which the templates belong to.
      */
-    public static function setup(?\context $context, \moodle_url $url, string $title, bool $embedded): \context {
+    public static function setup(\moodle_url $url, string $title): \context {
         global $CFG, $PAGE;
-
-        if (!$context) {
-            require_once($CFG->libdir . '/adminlib.php');
-            admin_externalpage_setup('qtype_accounting_sitecharts', '', $url->params(), $url);
-            $PAGE->set_title($title);
-            return \context_system::instance();
-        }
-
-        [, $course, $cm] = get_context_info_array($context->id);
-        require_login($course, false, $cm);
-        require_capability('qtype/accounting:managecharts', $context);
-        $PAGE->set_url($url);
-        $PAGE->set_context($context);
-        $PAGE->set_pagelayout($embedded ? 'embedded' : 'incourse');
-        if ($embedded) {
-            $PAGE->add_body_class('qtype_accounting-chart-embedded');
-        }
+        require_once($CFG->libdir . '/adminlib.php');
+        admin_externalpage_setup('qtype_accounting_sitecharts', '', $url->params(), $url);
         $PAGE->set_title($title);
-        $heading = $course ? format_string($course->fullname, true, ['context' => $context]) : $context->get_context_name();
-        $PAGE->set_heading($heading);
-        return $context;
+        return \context_system::instance();
+    }
+
+    /**
+     * Get the URL of the plugin settings page, which lists the templates.
+     *
+     * @return \moodle_url The URL.
+     */
+    public static function settings_url(): \moodle_url {
+        return new \moodle_url('/admin/settings.php', ['section' => 'qtypesettingaccounting']);
+    }
+
+    /**
+     * Get a template and make sure it is a site-wide template.
+     *
+     * @param int $chartid The chart ID.
+     * @return \stdClass The chart record.
+     */
+    public static function get_template(int $chartid): \stdClass {
+        $chart = chart_manager::get_chart($chartid);
+        if (!$chart || !chart_manager::is_site_chart($chart)) {
+            throw new \moodle_exception('chartnotfound', 'qtype_accounting');
+        }
+        return $chart;
     }
 
     /**

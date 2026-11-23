@@ -74,7 +74,6 @@ final class restore_identity_test extends \core_backup_backup_restore_base_testc
         global $DB;
         [$source, , $accounting] = $this->create_questions();
         $sourcecontext = \context_course::instance($source->id);
-        $sourcechartid = $DB->get_field('qtype_accounting_options', 'chartofaccountsid', ['questionid' => $accounting->id]);
         $target = $this->getDataGenerator()->create_course();
         $targetcontext = \context_course::instance($target->id);
         $childcontext = $DB->sql_like('ctx.path', ':contextpath');
@@ -124,10 +123,11 @@ final class restore_identity_test extends \core_backup_backup_restore_base_testc
         // The source fixture has two versions of its accounting question.
         $this->assertCount(2 * count($previousbanks), $options);
         foreach ($options as $option) {
-            $this->assertNotEquals($sourcechartid, $option->chartofaccountsid);
             $question = \question_bank::load_question($option->questionid);
-            $this->assertSame('1200 Bank', $question->accountsmap[$question->entries[0]['debitaccountid']]);
-            $this->assertSame('8400 Sales', $question->accountsmap[$question->entries[1]['creditaccountid']]);
+            // Restored questions keep the account keys, which saved responses refer to.
+            $this->assertSame([53 => '1000 Cash', 51 => '1200 Bank', 52 => '8400 Sales'], $question->accountsmap);
+            $this->assertSame(51, $question->entries[0]['debitaccountid']);
+            $this->assertSame(52, $question->entries[1]['creditaccountid']);
         }
     }
 
@@ -147,7 +147,7 @@ final class restore_identity_test extends \core_backup_backup_restore_base_testc
             'weight_debitaccount' => 3,
         ];
         foreach ($changes as $field => $value) {
-            $changed = unserialize(serialize($original));
+            $changed = $this->copy_question_data($original);
             $entry = reset($changed->options->entries);
             $entry->$field = $value;
             $this->assertNotSame(
@@ -157,25 +157,44 @@ final class restore_identity_test extends \core_backup_backup_restore_base_testc
             );
         }
         $this->assertEquals($entries[0]->debitaccountid, reset($original->options->entries)->debitaccountid);
+
+        // The accounts are part of the question, so renaming one gives another question.
+        $changed = $this->copy_question_data($original);
+        $account = reset($changed->options->accounts);
+        $account->accountname = 'Renamed account';
+        $this->assertNotSame($originalhash, \restore_questions_parser_processor::generate_question_identity_hash($changed));
     }
 
     /**
-     * Create two versioned questions with a shared chart and compound accounting entries.
+     * Copy question data deeply enough to change entries and accounts without touching the original.
+     *
+     * @param \stdClass $question Question data with options.
+     * @return \stdClass The copy.
+     */
+    private function copy_question_data(\stdClass $question): \stdClass {
+        $copy = clone $question;
+        $copy->options = clone $question->options;
+        foreach (['entries', 'accounts'] as $field) {
+            $copy->options->$field = array_map(fn($record) => clone $record, $question->options->$field);
+        }
+        return $copy;
+    }
+
+    /**
+     * Create two versioned questions with their own accounts and compound accounting entries.
      *
      * @return array Course, category, accounting question, and true/false control.
      */
     private function create_questions(): array {
         $course = $this->getDataGenerator()->create_course();
         $context = \context_course::instance($course->id);
-        $chartid = chart_manager::create_chart('Restore identity chart', $context->id);
-        $bankid = account_manager::add($chartid, '1200 Bank', 0);
-        $salesid = account_manager::add($chartid, '8400 Sales', 1);
-        account_manager::add($chartid, '1000 Cash', 2);
+        [$bankid, $salesid] = [51, 52];
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $category = $generator->create_question_category(['contextid' => $context->id]);
         $overrides = [
             'category' => $category->id,
-            'chartofaccountsid' => $chartid,
+            'accounts' => ['1200 Bank', '8400 Sales', '1000 Cash'],
+            'accountkeys' => ['1200 Bank' => 51, '8400 Sales' => 52, '1000 Cash' => 53],
             'debitaccount' => [$bankid, 0],
             'creditaccount' => [0, $salesid],
             'debitamount' => [100, 0],

@@ -27,15 +27,14 @@ export const ROW_SELECTOR = '.qtype_accounting-entry-row';
 /** The form and its controls, set by qtype_accounting/editform on init. */
 export const state = {
     form: null,
-    chartSelect: null,
+    accountsInput: null,
     numberFormatSelect: null,
-    accountsByChart: {},
-    lastChartId: null,
+    accounts: {},
+    knownKeys: {},
     nextEntryIndex: 0,
     maxEntries: 100,
     allOrNothingEnabled: false,
     previousNumberFormat: 'de',
-    unavailableMessage: '',
 };
 
 /**

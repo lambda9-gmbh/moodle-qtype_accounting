@@ -24,7 +24,7 @@ require_once($CFG->dirroot . '/question/type/accounting/db/upgrade.php');
 
 #[\PHPUnit\Framework\Attributes\CoversFunction('xmldb_qtype_accounting_upgrade')]
 /**
- * Tests for the legacy account-name migration.
+ * Tests for the account migrations of the upgrade.
  *
  * @package    qtype_accounting
  * @copyright  2026 Hochschule Flensburg / lambda9
@@ -32,6 +32,29 @@ require_once($CFG->dirroot . '/question/type/accounting/db/upgrade.php');
  * @covers     ::xmldb_qtype_accounting_upgrade
  */
 final class upgrade_test extends \advanced_testcase {
+    /**
+     * Add the chart reference that questions had before they got their own accounts.
+     */
+    private function add_chart_column(): void {
+        global $DB;
+        $DB->get_manager()->add_field(
+            new \xmldb_table('qtype_accounting_options'),
+            new \xmldb_field('chartofaccountsid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0')
+        );
+    }
+
+    /**
+     * Remove the chart reference if a failed test left it behind.
+     */
+    private function remove_chart_column(): void {
+        global $DB;
+        $table = new \xmldb_table('qtype_accounting_options');
+        $field = new \xmldb_field('chartofaccountsid');
+        if ($DB->get_manager()->field_exists($table, $field)) {
+            $DB->get_manager()->drop_field($table, $field);
+        }
+    }
+
     /**
      * Add the legacy columns to the isolated test table.
      *
@@ -60,6 +83,7 @@ final class upgrade_test extends \advanced_testcase {
                 $DB->get_manager()->drop_field($table, $field);
             }
         }
+        $this->remove_chart_column();
     }
 
     /**
@@ -74,6 +98,7 @@ final class upgrade_test extends \advanced_testcase {
         account_manager::add($chartid, '0');
         $otherchartid = chart_manager::create_chart('Second', \context_system::instance()->id);
         $otherbankid = account_manager::add($otherchartid, 'Bank');
+        $this->add_chart_column();
         foreach ([101 => $chartid, 102 => $otherchartid, 103 => 0] as $questionid => $questionchart) {
             $DB->insert_record('qtype_accounting_options', (object) [
                 'questionid' => $questionid, 'chartofaccountsid' => $questionchart,
@@ -124,6 +149,55 @@ final class upgrade_test extends \advanced_testcase {
             $this->assertTrue($DB->get_manager()->field_exists('qtype_accounting_options', 'gradingmode'));
         } finally {
             $this->remove_legacy_columns($table);
+        }
+    }
+
+    /**
+     * Questions get their own copy of their chart's accounts, keyed by the former account IDs;
+     * only site-wide charts remain as templates.
+     */
+    public function test_questions_get_their_own_accounts(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $coursecontextid = \context_course::instance($course->id)->id;
+        $coursechart = chart_manager::create_chart('Course', $coursecontextid);
+        $cash = account_manager::add($coursechart, 'Cash', 0);
+        $bank = account_manager::add($coursechart, 'Bank', 1);
+        $unusedchart = chart_manager::create_chart('Unused', $coursecontextid);
+        account_manager::add($unusedchart, 'Unused account');
+        $sitechart = chart_manager::create_chart('Site', \context_system::instance()->id);
+        $sales = account_manager::add($sitechart, 'Sales');
+
+        $this->add_chart_column();
+        try {
+            foreach ([201 => $coursechart, 202 => $sitechart, 203 => 0] as $questionid => $chartid) {
+                $DB->insert_record('qtype_accounting_options', (object)[
+                    'questionid' => $questionid, 'chartofaccountsid' => $chartid,
+                ]);
+            }
+            $entryid = $DB->insert_record('qtype_accounting_entries', (object)[
+                'questionid' => 201, 'debitaccountid' => $bank, 'creditaccountid' => $cash,
+                'debitamount' => 10, 'creditamount' => 10,
+            ]);
+            set_config('version', 2026112207, 'qtype_accounting');
+
+            $this->assertTrue(xmldb_qtype_accounting_upgrade(2026112207));
+
+            $this->assertEquals(
+                [$cash => 'Cash', $bank => 'Bank'],
+                array_map(fn($account) => $account->accountname, question_accounts::get(201))
+            );
+            $this->assertEquals([$sales => 'Sales'], array_map(fn($account) => $account->accountname, question_accounts::get(202)));
+            $this->assertSame([], question_accounts::get(203));
+            // The correct entries keep their values, which are now account keys.
+            $entry = $DB->get_record('qtype_accounting_entries', ['id' => $entryid]);
+            $this->assertEquals([$bank, $cash], [$entry->debitaccountid, $entry->creditaccountid]);
+            $this->assertEquals([$sitechart], array_keys($DB->get_records('qtype_accounting_charts')));
+            $this->assertEquals([$sales], array_keys($DB->get_records('qtype_accounting_accounts')));
+            $this->assertFalse($DB->get_manager()->field_exists('qtype_accounting_options', 'chartofaccountsid'));
+        } finally {
+            $this->remove_chart_column();
         }
     }
 }

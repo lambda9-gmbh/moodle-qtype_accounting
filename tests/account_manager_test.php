@@ -27,45 +27,6 @@ namespace qtype_accounting;
  */
 final class account_manager_test extends \advanced_testcase {
     /**
-     * Warnings list each logical question once, including usage in old attempts.
-     */
-    public function test_usage_deduplicates_versions_without_merging_same_name_questions(): void {
-        $this->resetAfterTest();
-        $context = \context_system::instance();
-        $chartid = chart_manager::create_chart('Versioned chart', $context->id);
-        $bank = account_manager::add($chartid, 'Bank');
-        $sales = account_manager::add($chartid, 'Sales');
-        $historical = account_manager::add($chartid, 'Historical selection');
-        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
-        $category = $generator->create_question_category(['contextid' => $context->id]);
-        $overrides = [
-            'category' => $category->id, 'name' => 'Shared title', 'chartofaccountsid' => $chartid,
-            'debitaccount' => [$bank], 'creditaccount' => [$sales],
-            'debitamount' => [100], 'creditamount' => [100],
-        ];
-        $question = $generator->create_question('accounting', null, $overrides);
-        for ($i = 0; $i < 2; $i++) {
-            $loaded = \question_bank::load_question($question->id);
-            $usage = \question_engine::make_questions_usage_by_activity('core_question_preview', $context);
-            $usage->set_preferred_behaviour('deferredfeedback');
-            $usage->add_question($loaded);
-            $usage->start_all_questions();
-            $response = $loaded->get_correct_response();
-            $response['debitaccount_1'] = $historical;
-            $response['debitamount_1'] = '1';
-            $usage->process_action(1, $response);
-            \question_engine::save_questions_usage_by_activity($usage);
-            $question = $generator->update_question($question, null, $overrides);
-        }
-        $other = $generator->create_question('accounting', null, $overrides);
-        $questions = account_manager::get_using_questions([$bank]);
-        $this->assertCount(2, $questions);
-        $this->assertArrayHasKey($question->id, $questions);
-        $this->assertArrayHasKey($other->id, $questions);
-        $this->assertCount(1, account_manager::get_using_questions([$historical]));
-    }
-
-    /**
      * A failure partway through either import leaves existing data intact.
      */
     public function test_failed_imports_are_atomic(): void {
@@ -91,65 +52,6 @@ final class account_manager_test extends \advanced_testcase {
             $this->assertFalse($DB->record_exists('qtype_accounting_accounts', ['accountname' => 'New valid account']));
             $this->assertCount(1, account_manager::get_for_chart($chartid));
         }
-    }
-
-    /**
-     * Usage can be shown in warnings without blocking account changes or chart deletion.
-     */
-    public function test_referenced_accounts_can_be_renamed_and_deleted(): void {
-        global $DB;
-        $this->resetAfterTest();
-        $course = $this->getDataGenerator()->create_course();
-        $chartid = chart_manager::create_chart('Protected', \context_course::instance($course->id)->id);
-        $bank = account_manager::add($chartid, 'Bank');
-        $sales = account_manager::add($chartid, 'Sales');
-        $category = $this->getDataGenerator()->get_plugin_generator('core_question')->create_question_category([
-            'contextid' => \context_course::instance($course->id)->id,
-        ]);
-        $question = $this->getDataGenerator()->get_plugin_generator('core_question')->create_question('accounting', null, [
-            'category' => $category->id, 'name' => 'Protected question', 'chartofaccountsid' => $chartid,
-            'debitaccount' => [$bank], 'creditaccount' => [$sales], 'debitamount' => [100], 'creditamount' => [100],
-        ]);
-        $wrong = account_manager::add($chartid, 'Only used by a student');
-        $loaded = \question_bank::load_question($question->id);
-        $usage = \question_engine::make_questions_usage_by_activity(
-            'core_question_preview',
-            \context_course::instance($course->id)
-        );
-        $usage->set_preferred_behaviour('deferredfeedback');
-        $usage->add_question($loaded);
-        $usage->start_all_questions();
-        $response = $loaded->get_correct_response();
-        $response['debitaccount_1'] = $wrong;
-        $response['debitamount_1'] = '1';
-        $usage->process_action(1, $response);
-        \question_engine::save_questions_usage_by_activity($usage);
-        foreach ([$bank, $wrong] as $accountid) {
-            $this->assertArrayHasKey($question->id, account_manager::get_using_questions([$accountid]));
-        }
-        $this->assertTrue(account_manager::update($bank, 'Renamed'));
-        $this->assertSame('Renamed', $DB->get_field('qtype_accounting_accounts', 'accountname', ['id' => $bank]));
-        $this->assertEquals($bank, $DB->get_field('qtype_accounting_entries', 'debitaccountid', [
-            'questionid' => $question->id,
-        ]));
-        $this->assertEquals(1, $loaded->grade_response($loaded->get_correct_response())[0]);
-        try {
-            account_manager::add($chartid, 'Renamed');
-            $this->fail('Expected a duplicate-name error.');
-        } catch (\moodle_exception $exception) {
-            $this->assertSame('err_duplicateaccount', $exception->errorcode);
-        }
-        $this->assertTrue(account_manager::delete($bank));
-        $this->assertTrue(account_manager::delete($wrong));
-        $this->assertFalse($DB->record_exists('qtype_accounting_accounts', ['id' => $bank]));
-        $this->assertFalse($DB->record_exists('qtype_accounting_accounts', ['id' => $wrong]));
-        $this->assertTrue(chart_manager::delete_chart($chartid));
-        $this->assertFalse(chart_manager::get_chart($chartid));
-        $this->assertCount(0, account_manager::get_for_chart($chartid));
-        // Confirmed deletion does not silently rewrite the affected question or attempts.
-        $this->assertEquals($chartid, $DB->get_field('qtype_accounting_options', 'chartofaccountsid', [
-            'questionid' => $question->id,
-        ]));
     }
 
     /**

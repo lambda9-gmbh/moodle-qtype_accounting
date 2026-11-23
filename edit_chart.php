@@ -15,70 +15,31 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Edit a chart of accounts and its accounts.
+ * Edit a site-wide chart of accounts template and its accounts.
+ *
+ * Questions keep their own copy of the accounts, so changes here only affect later copies.
  *
  * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-// Login and capabilities are checked by chart_page::setup() for the requested context.
+// Login and capabilities are checked by chart_page::setup().
 require_once(__DIR__ . '/../../../config.php'); // phpcs:ignore moodle.Files.RequireLogin.Missing
 
 use qtype_accounting\chart_manager;
 use qtype_accounting\account_manager;
 
-$bankcontext = \qtype_accounting\local\chart_page::get_requested_context();
 $chartid = required_param('chartid', PARAM_INT);
 $action = optional_param('action', '', PARAM_ALPHA);
 $accountid = optional_param('accountid', 0, PARAM_INT);
 $editaccount = optional_param('editaccount', 0, PARAM_INT);
-$returnurl = optional_param('returnurl', '', PARAM_LOCALURL);
-$embedded = optional_param('embedded', false, PARAM_BOOL);
 
-// Without a question bank context, a site chart is edited from the plugin's settings page.
-$urlparams = \qtype_accounting\local\chart_page::url_params($bankcontext);
-if ($bankcontext) {
-    $manageurl = new moodle_url('/question/type/accounting/manage_charts.php', $urlparams);
-    if ($returnurl !== '') {
-        $manageurl->param('returnurl', $returnurl);
-    }
-} else {
-    $manageurl = new moodle_url('/admin/settings.php', ['section' => 'qtypesettingaccounting']);
-}
-$baseurl = new moodle_url('/question/type/accounting/edit_chart.php', $urlparams + ['chartid' => $chartid]);
-if ($returnurl !== '') {
-    $baseurl->param('returnurl', $returnurl);
-}
-if ($embedded) {
-    $manageurl->param('embedded', 1);
-    $baseurl->param('embedded', 1);
-}
-
-$chart = chart_manager::get_chart($chartid);
-$context = \qtype_accounting\local\chart_page::setup(
-    $bankcontext,
-    $baseurl,
-    get_string('editchart', 'qtype_accounting') . ($chart ? ': ' . format_string(
-        $chart->name,
-        true,
-        ['context' => $bankcontext ?? context_system::instance()]
-    ) : ''),
-    $embedded
-);
-
-// Verify chart belongs to this context.
-if (!$chart || (int)$chart->contextid !== (int)$context->id) {
-    throw new moodle_exception('chartnotfound', 'qtype_accounting');
-}
-
-// Breadcrumbs. On the admin page the site charts entry is already part of the navigation.
-if ($bankcontext) {
-    $PAGE->navbar->add(
-        get_string('managecharts', 'qtype_accounting'),
-        $manageurl
-    );
-}
+$manageurl = \qtype_accounting\local\chart_page::settings_url();
+$baseurl = new moodle_url('/question/type/accounting/edit_chart.php', ['chartid' => $chartid]);
+\qtype_accounting\local\chart_page::setup($baseurl, get_string('editchart', 'qtype_accounting'));
+$chart = \qtype_accounting\local\chart_page::get_template($chartid);
+$PAGE->set_title(get_string('editchart', 'qtype_accounting') . ': ' . format_string($chart->name));
 $PAGE->navbar->add(format_string($chart->name));
 
 // Handle rename.
@@ -140,17 +101,8 @@ if ($action === 'deleteaccount' && $accountid) {
         redirect($baseurl, get_string('accountdeleted', 'qtype_accounting'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
 
-    // Explain the impact before allowing deletion, including references in saved attempts.
     $warning = html_writer::tag('p', get_string('confirmdeleteaccount', 'qtype_accounting') . ' ' .
         html_writer::tag('strong', format_string($account->accountname)));
-    $warning .= html_writer::div(get_string('accountdeletewarning', 'qtype_accounting'), 'alert alert-warning');
-    $questions = account_manager::get_using_questions([$accountid]);
-    if ($questions) {
-        $warning .= html_writer::tag('p', get_string('accountusagewarning', 'qtype_accounting'));
-        $warning .= html_writer::alist(array_map(static function ($question) {
-            return s($question->name);
-        }, $questions));
-    }
 
     // Show confirmation page.
     echo $OUTPUT->header();
@@ -190,6 +142,7 @@ if ($action === 'export') {
 echo $OUTPUT->header();
 
 echo $OUTPUT->heading(format_string($chart->name));
+echo html_writer::div(get_string('templatechangesinfo', 'qtype_accounting'), 'alert alert-info');
 
 // Rename form.
 $renameurl = new moodle_url($baseurl, ['action' => 'rename']);
@@ -342,7 +295,7 @@ $exporturl = new moodle_url($baseurl, ['action' => 'export', 'sesskey' => sesske
 echo html_writer::start_div(
     'qtype_accounting-chart-actions d-flex flex-wrap justify-content-center align-items-center mt-4 mb-3'
 );
-echo html_writer::link($manageurl, '&laquo; ' . get_string($bankcontext ? 'managecharts' : 'sitecharts', 'qtype_accounting'), [
+echo html_writer::link($manageurl, '&laquo; ' . get_string('sitecharts', 'qtype_accounting'), [
     'class' => 'btn btn-primary',
 ]);
 echo html_writer::link($exporturl, get_string('exportaccounts', 'qtype_accounting'), [

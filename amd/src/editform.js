@@ -27,14 +27,12 @@ import $ from 'jquery';
 import Pending from 'core/pending';
 import Log from 'core/log';
 import * as EntryUtils from 'qtype_accounting/entry_utils';
-import {init as initChartOverlay} from 'qtype_accounting/chart_overlay';
 import * as Validation from 'qtype_accounting/editform/validation';
 import {state, ROW_SELECTOR, getNumberFormat} from 'qtype_accounting/editform/state';
 import {syncDisplayToHidden, syncAllDisplayToHidden} from 'qtype_accounting/editform/fields';
 import {updateDebitamountState, updateAllDebitamountStates, setupAllOrNothingHandler, updateWeightStates,
     updateAllWeightStates} from 'qtype_accounting/editform/field_states';
-import {setupChartChangeHandler, createChartRefreshCallback, checkOptionAvailability}
-    from 'qtype_accounting/editform/charts';
+import {readAccounts, setupAccountListHandler, checkOptionAvailability} from 'qtype_accounting/editform/accounts';
 import {calculateNextEntryIndex, setupAddEntryHandler, setupDeleteEntryHandler, updateDeleteButtonStates}
     from 'qtype_accounting/editform/rows';
 
@@ -63,7 +61,7 @@ function init() {
         Log.error('Failed to parse editform config', e);
     }
 
-    state.accountsByChart = config.accounts || {};
+    state.knownKeys = config.accountKeys || {};
     state.maxEntries = config.maxEntries || 100;
     form.elements.accounting_js.value = '1';
     form.querySelectorAll('input[type="hidden"]').forEach(input => {
@@ -76,23 +74,17 @@ function init() {
         serverControls.hidden = true;
     }
     form.querySelector('.qtype_accounting-edit-table').dataset.enhanced = 'true';
-    const initialChartId = String(config.chartId || '0');
 
-    // Find the selects by ID first, then fall back to name (for Moodle 4.x compatibility).
-    state.chartSelect = document.getElementById('id_chartofaccountsid')
-        || form.querySelector('select[name="chartofaccountsid"]');
+    // Find the controls by ID first, then fall back to name (for Moodle 4.x compatibility).
+    state.accountsInput = document.getElementById('id_accounts') || form.querySelector('textarea[name="accounts"]');
     state.numberFormatSelect = document.getElementById('id_numberformat')
         || form.querySelector('select[name="numberformat"]');
-
-    if (state.chartSelect && initialChartId && (!state.chartSelect.value || state.chartSelect.value === '0')) {
-        state.chartSelect.value = initialChartId;
-    }
-    state.lastChartId = state.chartSelect ? state.chartSelect.value : '0';
     state.previousNumberFormat = getNumberFormat();
+    // PHP already populated the account options from the same list.
+    readAccounts();
 
     calculateNextEntryIndex();
-    setupChartChangeHandler();
-    initChartOverlay(createChartRefreshCallback(config.contextId));
+    setupAccountListHandler();
     setupNumberFormatChangeHandler();
     setupFieldChangeHandlers();
     setupAddEntryHandler();
@@ -217,7 +209,7 @@ function setupFormSubmitHandler() {
             return;
         }
         syncAllDisplayToHidden();
-        let valid = Validation.validateAccounts(form, state.chartSelect, ROW_SELECTOR);
+        let valid = Validation.validateAccounts(form, ROW_SELECTOR);
         if (!Validation.validateBalance(form, ROW_SELECTOR, getNumberFormat())) {
             valid = false;
         }

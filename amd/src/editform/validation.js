@@ -58,20 +58,16 @@ const visibleRows = (form, rowSelector) => Array.from(form.querySelectorAll(rowS
  * Validate that every visible entry side has an available account and, with an account, an amount.
  *
  * @param {HTMLFormElement} form The question form.
- * @param {HTMLSelectElement|null} chartSelect The chart select.
  * @param {string} rowSelector CSS selector of entry rows.
  * @return {boolean} True if valid.
  */
-export const validateAccounts = (form, chartSelect, rowSelector) => {
+export const validateAccounts = (form, rowSelector) => {
     let valid = true;
     const fail = (field, key) => {
         showFieldError(field, key);
         valid = false;
     };
     clearFieldErrors(form);
-    if (chartSelect && chartSelect.selectedOptions[0] && chartSelect.selectedOptions[0].dataset.unavailable) {
-        fail(chartSelect, 'err_accountunavailable');
-    }
     visibleRows(form, rowSelector).forEach(row => {
         const entryType = row.getAttribute('data-entry-type') || 'both';
         ['debit', 'credit'].forEach(side => {

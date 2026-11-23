@@ -103,53 +103,6 @@ class account_manager {
     }
 
     /**
-     * Find solution and historical-attempt references using bounded database reads.
-     *
-     * @param array $accountids Account IDs.
-     * @return array One entry per question bank entry, keyed by its newest referencing question ID.
-     */
-    public static function get_using_questions(array $accountids): array {
-        global $DB;
-        if (!$accountids) {
-            return [];
-        }
-        [$debitsql, $debitparams] = $DB->get_in_or_equal($accountids, SQL_PARAMS_NAMED, 'debit');
-        [$creditsql, $creditparams] = $DB->get_in_or_equal($accountids, SQL_PARAMS_NAMED, 'credit');
-        $questions = $DB->get_records_sql(
-            "SELECT DISTINCT q.id, q.name, v.questionbankentryid, v.version
-               FROM {question} q
-               JOIN {question_versions} v ON v.questionid = q.id
-               JOIN {qtype_accounting_entries} e ON e.questionid = q.id
-              WHERE e.debitaccountid $debitsql OR e.creditaccountid $creditsql",
-            $debitparams + $creditparams
-        );
-        [$valuesql, $valueparams] = $DB->get_in_or_equal(array_map('strval', $accountids), SQL_PARAMS_NAMED, 'account');
-        $attempts = $DB->get_records_sql(
-            "SELECT DISTINCT q.id, q.name, v.questionbankentryid, v.version
-               FROM {question} q
-               JOIN {question_versions} v ON v.questionid = q.id
-               JOIN {question_attempts} a ON a.questionid = q.id
-               JOIN {question_attempt_steps} s ON s.questionattemptid = a.id
-               JOIN {question_attempt_step_data} d ON d.attemptstepid = s.id
-              WHERE q.qtype = :qtype AND d.value $valuesql
-                AND (d.name LIKE :debit OR d.name LIKE :credit)",
-            $valueparams + ['qtype' => 'accounting',
-                'debit' => $DB->sql_like_escape('debitaccount_') . '%',
-                'credit' => $DB->sql_like_escape('creditaccount_') . '%']
-        );
-        // Versions have separate question IDs but belong to one logical question.
-        // Keep historical usage while avoiding a repeated warning for each version.
-        $byentry = [];
-        foreach ($questions + $attempts as $question) {
-            $entryid = $question->questionbankentryid;
-            if (!isset($byentry[$entryid]) || $question->version > $byentry[$entryid]->version) {
-                $byentry[$entryid] = $question;
-            }
-        }
-        return array_column($byentry, null, 'id');
-    }
-
-    /**
      * Reject duplicate names before reaching the database unique constraint.
      *
      * @param int $chartid Chart ID.

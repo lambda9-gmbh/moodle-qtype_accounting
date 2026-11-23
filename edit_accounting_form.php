@@ -45,7 +45,7 @@ class qtype_accounting_edit_form extends question_edit_form {
             : $defaultformat;
 
         $this->add_grading_section($mform);
-        $this->add_chart_section($mform);
+        $this->add_accounts_section($mform);
         $this->add_entries_section($mform, $effectiveformat);
 
         // Add the standard "Multiple tries" section (penalty and hints).
@@ -60,7 +60,7 @@ class qtype_accounting_edit_form extends question_edit_form {
      */
     protected function add_display_options_section($mform): string {
         if ((string)get_config('qtype_accounting', 'showaccountsindropdown') === '0') {
-            // Hidden by the site setting; a saved value is kept, new questions show the entire chart.
+            // Hidden by the site setting; a saved value is kept, new questions show all accounts.
             $mform->addElement('hidden', 'accountsindropdown', get_string('all'));
         } else {
             $mform->addElement(
@@ -205,69 +205,84 @@ class qtype_accounting_edit_form extends question_edit_form {
     }
 
     /**
-     * Add the chart-of-accounts selector and the manage-charts link.
+     * Add the question's account list and the controls to copy accounts from a template or another question.
      *
      * @param \MoodleQuickForm $mform The form being built.
      */
-    protected function add_chart_section($mform): void {
-        global $DB;
+    protected function add_accounts_section($mform): void {
+        $mform->addElement('textarea', 'accounts', get_string('accountlist', 'qtype_accounting'), [
+            'rows' => 10,
+            'cols' => 50,
+            'id' => 'id_accounts',
+            'class' => 'qtype_accounting-accounts',
+        ]);
+        $mform->setType('accounts', PARAM_TEXT);
+        $mform->addHelpButton('accounts', 'accountlist', 'qtype_accounting');
 
-        $charts = $this->get_available_charts();
-        $select = $mform->createElement(
-            'select',
-            'chartofaccountsid',
-            '',
-            $charts,
-            [
-                'id' => 'id_chartofaccountsid',
-                'aria-label' => get_string('chartofaccounts', 'qtype_accounting'),
-            ]
+        // Keys of the edited version, so unchanged accounts keep their key in the new version.
+        $mform->addElement('hidden', 'accountkeys', json_encode($this->get_known_keys()));
+        $mform->setType('accountkeys', PARAM_RAW);
+
+        $sources = \qtype_accounting\question_accounts::get_copy_sources(
+            $this->get_bank_context(),
+            (int)($this->question->id ?? 0)
         );
-        $elements = [
-            $mform->createElement('html', html_writer::tag('label', get_string('chartofaccounts', 'qtype_accounting'), [
-                'for' => 'id_chartofaccountsid',
-                'class' => 'accesshide',
-            ])),
-            $select,
-        ];
-        $chartcontext = $this->get_chart_context();
-        if ($chartcontext) {
-            $elements[] = $mform->createElement('html', html_writer::span('', 'mx-2', [
-                'id' => 'qtype_accounting-refresh-status',
-                'role' => 'status',
-                'aria-live' => 'polite',
-            ]));
-        }
-        $mform->addGroup($elements, 'chartofaccountsgroup', get_string('chartofaccounts', 'qtype_accounting'), ' ', false);
-        $mform->setType('chartofaccountsid', PARAM_INT);
-        $mform->addHelpButton('chartofaccountsgroup', 'chartofaccounts', 'qtype_accounting');
-
-        $chartid = $this->resolve_current_chart_id($DB);
-        if ($chartid > 0 && !\qtype_accounting\chart_manager::get_chart($chartid)) {
-            $mform->addElement('static', 'missingchart', '', html_writer::div(
-                get_string('err_chartdeleted', 'qtype_accounting'),
-                'alert alert-danger',
-                ['role' => 'alert']
-            ));
-        }
-
-        if (!$chartcontext) {
+        if (!$sources) {
             return;
         }
-        $manageurl = new moodle_url(
-            '/question/type/accounting/manage_charts.php',
-            ['contextid' => $chartcontext->id]
-        );
-        $mform->addElement(
-            'static',
-            'managecharts_link',
-            '',
-            html_writer::link($manageurl, get_string('managechartslink', 'qtype_accounting'), [
-                'id' => 'qtype_accounting-manage-charts',
-                'target' => '_blank',
-                'rel' => 'noopener',
-            ])
-        );
+        // Registered before the button is created, so that it is marked to skip client-side validation.
+        $mform->registerNoSubmitButton('copyaccounts');
+        $mform->addGroup([
+            $mform->createElement(
+                'selectgroups',
+                'copyaccountsfrom',
+                get_string('copyaccountsfrom', 'qtype_accounting'),
+                $sources,
+                ['aria-label' => get_string('copyaccountsfrom', 'qtype_accounting')],
+                true
+            ),
+            $mform->createElement('submit', 'copyaccounts', get_string('copyaccounts', 'qtype_accounting')),
+        ], 'copyaccountsgroup', get_string('copyaccountsfrom', 'qtype_accounting'), ' ', false);
+        $mform->setType('copyaccountsfrom', PARAM_ALPHANUMEXT);
+        $mform->addHelpButton('copyaccountsgroup', 'copyaccountsfrom', 'qtype_accounting');
+    }
+
+    /**
+     * Get the account keys of the edited version keyed by account name.
+     *
+     * @return array Account keys keyed by name; empty for new questions.
+     */
+    protected function get_known_keys(): array {
+        return \qtype_accounting\question_accounts::keys_by_name($this->question->options->accounts ?? []);
+    }
+
+    /**
+     * Get the context of the question bank the question belongs to.
+     *
+     * @return \context|null The question category context, or null if unknown.
+     */
+    protected function get_bank_context(): ?\context {
+        if (!empty($this->question->contextid)) {
+            return \context::instance_by_id($this->question->contextid, IGNORE_MISSING) ?: null;
+        }
+        return $this->context ?? null;
+    }
+
+    /**
+     * Get the accounts currently in the account list, as offered by the entry selects.
+     *
+     * @param string|null $list The submitted account list, or null to use the edited version's accounts.
+     * @return array Account names keyed by account key, sorted by name.
+     */
+    protected function get_current_accounts(?string $list = null): array {
+        if ($list === null) {
+            $names = array_column($this->question->options->accounts ?? [], 'accountname');
+        } else {
+            $names = \qtype_accounting\question_accounts::parse_names($list);
+        }
+        $accounts = array_flip(\qtype_accounting\question_accounts::assign_keys($names, $this->get_known_keys()));
+        asort($accounts, SORT_STRING);
+        return $accounts;
     }
 
     /**
@@ -277,22 +292,14 @@ class qtype_accounting_edit_form extends question_edit_form {
      * @param string $effectiveformat The number format to render existing entries with ('de' or 'us').
      */
     protected function add_entries_section($mform, string $effectiveformat): void {
-        global $DB, $PAGE;
+        global $PAGE;
 
         $mform->addElement('header', 'answerhdr', get_string('correctanswer', 'qtype_accounting'));
         $mform->setExpanded('answerhdr', true);
         $mform->addElement('static', 'balancevalidation', '', '');
 
-        $allaccounts = $this->get_all_accounts_by_chart();
-        $currentchartid = $this->resolve_current_chart_id($DB);
-
-        // Build account options for select elements - only include accounts from the selected chart.
-        $debitaccountoptions = ['' => get_string('selectaccount', 'qtype_accounting')];
-        $creditaccountoptions = ['' => get_string('selectaccount', 'qtype_accounting')];
-        if ($currentchartid > 0 && isset($allaccounts[$currentchartid])) {
-            $debitaccountoptions = $debitaccountoptions + $allaccounts[$currentchartid];
-            $creditaccountoptions = $creditaccountoptions + $allaccounts[$currentchartid];
-        }
+        $accounts = $this->get_current_accounts();
+        $accountoptions = ['' => get_string('selectaccount', 'qtype_accounting')] + $accounts;
 
         $existingentries = !empty($this->question->options->entries)
             ? array_values($this->question->options->entries)
@@ -305,6 +312,7 @@ class qtype_accounting_edit_form extends question_edit_form {
         $mform->setType('accounting_js', PARAM_BOOL);
         $mform->addElement('hidden', 'accounting_displayformat', $effectiveformat);
         $mform->setType('accounting_displayformat', PARAM_ALPHA);
+        $mform->registerNoSubmitButton('refreshentries');
         $mform->addGroup([
             $mform->createElement('text', 'accounting_rowcount', get_string('entryrows', 'qtype_accounting'), [
                 'aria-label' => get_string('entryrows', 'qtype_accounting'), 'size' => 4,
@@ -313,11 +321,10 @@ class qtype_accounting_edit_form extends question_edit_form {
         ], 'accountingservercontrols', get_string('entryrows', 'qtype_accounting'), ' ', false);
         $mform->setType('accounting_rowcount', PARAM_INT);
         $mform->setDefault('accounting_rowcount', $entrycount);
-        $mform->registerNoSubmitButton('refreshentries');
 
         $table = $mform->createElement('html', $this->build_entries_table(
-            $debitaccountoptions,
-            $creditaccountoptions,
+            $accountoptions,
+            $accountoptions,
             $entrycount,
             $existingentries,
             $effectiveformat
@@ -355,12 +362,9 @@ class qtype_accounting_edit_form extends question_edit_form {
             }
         }
 
-        $chartcontext = $this->get_chart_context();
         $jsdata = [
-            'accounts' => $allaccounts,
-            'chartId' => $currentchartid,
+            'accountKeys' => (object)$this->get_known_keys(),
             'entries' => $existingentries,
-            'contextId' => $chartcontext ? $chartcontext->id : 0,
             'numberFormat' => $effectiveformat,
             'maxEntries' => max(\qtype_accounting\entry_helper::MAX_ENTRIES, $entrycount),
         ];
@@ -376,7 +380,6 @@ class qtype_accounting_edit_form extends question_edit_form {
         $PAGE->requires->strings_for_js([
             'err_accountunavailable', 'err_debitaccountrequired', 'err_creditaccountrequired',
             'err_debitamountrequired', 'err_creditamountrequired', 'err_balancemismatch',
-            'refreshchartsdone', 'refreshchartsfailed', 'refreshchartsmissing',
         ], 'qtype_accounting');
         $PAGE->requires->js_call_amd('qtype_accounting/editform', 'init', []);
     }
@@ -392,7 +395,19 @@ class qtype_accounting_edit_form extends question_edit_form {
         if (!$mform->isSubmitted()) {
             return;
         }
-        $this->update_submitted_entries($mform->getSubmitValues());
+        $data = $mform->getSubmitValues();
+        if (!empty($data['copyaccounts']) && !empty($data['copyaccountsfrom'])) {
+            $names = \qtype_accounting\question_accounts::get_source_names(
+                (string)$data['copyaccountsfrom'],
+                $this->get_bank_context()
+            );
+            if ($names) {
+                $data['accounts'] = implode("\n", $names);
+                // The copied list replaces the submitted one in the redisplayed form.
+                $mform->setConstant('accounts', $data['accounts']);
+            }
+        }
+        $this->update_submitted_entries($data);
     }
 
     // phpcs:disable PSR2.Methods.MethodDeclaration.Underscore -- Moodle lifecycle API.
@@ -445,10 +460,8 @@ class qtype_accounting_edit_form extends question_edit_form {
     protected function update_submitted_entries(array $data, array $errors = []): void {
         $mform = $this->_form;
         $entries = (new \qtype_accounting\entries_table_builder())->get_submitted_entries($data, $errors);
-        $chartid = (int)($data['chartofaccountsid'] ?? 0);
         $format = $data['numberformat'] ?? 'de';
-        $allaccounts = $this->get_all_accounts_by_chart();
-        $accounts = $allaccounts[$chartid] ?? [];
+        $accounts = $this->get_current_accounts((string)($data['accounts'] ?? ''));
         $mform->getElement('entrytable')->setValue($this->build_entries_table(
             ['' => get_string('selectaccount', 'qtype_accounting')] + $accounts,
             ['' => get_string('selectaccount', 'qtype_accounting')] + $accounts,
@@ -456,12 +469,9 @@ class qtype_accounting_edit_form extends question_edit_form {
             $entries,
             $format
         ));
-        $chartcontext = $this->get_chart_context();
         $config = [
-            'accounts' => $allaccounts,
-            'chartId' => $chartid,
+            'accountKeys' => (object)$this->get_known_keys(),
             'entries' => $entries,
-            'contextId' => $chartcontext ? $chartcontext->id : 0,
             'numberFormat' => $format,
             'maxEntries' => max(\qtype_accounting\entry_helper::MAX_ENTRIES, count($entries)),
         ];
@@ -469,30 +479,6 @@ class qtype_accounting_edit_form extends question_edit_form {
             '<script type="application/json" id="qtype_accounting-editform-data">' .
             json_encode($config, JSON_HEX_TAG | JSON_HEX_AMP) . '</script>'
         );
-    }
-
-    /**
-     * Resolve the current chart-of-accounts ID for the question being edited.
-     *
-     * Checks $this->question->options, then $this->question->chartofaccountsid, then the DB row.
-     *
-     * @param \moodle_database $db The Moodle DB handle.
-     * @return int The resolved chart ID, or 0 if none.
-     */
-    protected function resolve_current_chart_id($db): int {
-        if (!empty($this->question->options->chartofaccountsid)) {
-            return (int)$this->question->options->chartofaccountsid;
-        }
-        if (!empty($this->question->chartofaccountsid)) {
-            return (int)$this->question->chartofaccountsid;
-        }
-        if (!empty($this->question->id)) {
-            $options = $db->get_record('qtype_accounting_options', ['questionid' => $this->question->id]);
-            if ($options) {
-                return (int)$options->chartofaccountsid;
-            }
-        }
-        return 0;
     }
 
     /**
@@ -522,62 +508,6 @@ class qtype_accounting_edit_form extends question_edit_form {
     }
 
     /**
-     * Get all accounts grouped by chart ID.
-     *
-     * @return array The accounts grouped by chart ID.
-     */
-    protected function get_all_accounts_by_chart(): array {
-        global $DB;
-
-        $charts = $this->get_available_charts();
-        $chartids = array_diff(array_keys($charts), [0]);
-        $result = array_fill_keys($chartids, []);
-        if (!$chartids) {
-            return $result;
-        }
-
-        $accounts = $DB->get_records_list(
-            'qtype_accounting_accounts',
-            'chartid',
-            $chartids,
-            'accountname',
-            'id, chartid, accountname'
-        );
-        foreach ($accounts as $account) {
-            $result[$account->chartid][$account->id] = $account->accountname;
-        }
-
-        return $result;
-    }
-
-    /**
-     * Get the context whose own charts this question bank offers.
-     *
-     * @return \context|null The question bank context, or null for question banks that only offer site charts.
-     */
-    protected function get_chart_context(): ?\context {
-        $context = \qtype_accounting\chart_manager::get_chart_context($this->context);
-        return $context->contextlevel == CONTEXT_SYSTEM ? null : $context;
-    }
-
-    /**
-     * Get available charts of accounts: the question bank's own charts and the site charts.
-     *
-     * @return array The available charts keyed by ID.
-     */
-    protected function get_available_charts(): array {
-        $charts = [0 => get_string('nochartselected', 'qtype_accounting')];
-
-        $chartcontext = $this->get_chart_context();
-        $records = \qtype_accounting\chart_manager::get_available_charts($chartcontext ? (int)$chartcontext->id : null);
-        foreach ($records as $record) {
-            $charts[$record->id] = \qtype_accounting\chart_manager::get_display_name($record, $this->context, false);
-        }
-
-        return $charts;
-    }
-
-    /**
      * Preprocess the question data for the form.
      *
      * @param object $question The question data.
@@ -602,7 +532,7 @@ class qtype_accounting_edit_form extends question_edit_form {
      * @param object $question The question being preprocessed (modified in place).
      */
     protected function populate_options_fields(object $question): void {
-        $question->chartofaccountsid = $question->options->chartofaccountsid ?? 0;
+        $question->accounts = implode("\n", array_column($question->options->accounts ?? [], 'accountname'));
         $question->accountsindropdown = $question->options->accountsindropdown ?? 0;
         if ((int)$question->accountsindropdown === 0) {
             $question->accountsindropdown = get_string('all');
@@ -714,30 +644,25 @@ class qtype_accounting_edit_form extends question_edit_form {
     }
 
     /**
-     * Reject charts or accounts deleted while the editor was open.
+     * Check the account list and reject entries whose account is no longer in it.
      *
      * @param array $data Submitted question data.
      * @param array $errors Existing validation errors.
      * @return array Validation errors.
      */
     protected function validate_available_accounts(array $data, array $errors): array {
-        global $DB;
-
-        $chartid = (int)($data['chartofaccountsid'] ?? 0);
-        $charts = $this->get_available_charts();
-        if (!array_key_exists($chartid, $charts)) {
-            $errors['chartofaccountsid'] = get_string('err_accountunavailable', 'qtype_accounting');
+        $list = (string)($data['accounts'] ?? '');
+        $listerror = \qtype_accounting\question_accounts::validate_list($list);
+        if ($listerror !== null) {
+            $errors['accounts'] = $listerror;
             return $errors;
         }
-        $accountids = array_filter(array_map('intval', array_merge(
+        $keys = array_filter(array_map('intval', array_merge(
             $data['debitaccount'] ?? [],
             $data['creditaccount'] ?? []
         )));
-        if ($accountids) {
-            $available = $DB->get_records('qtype_accounting_accounts', ['chartid' => $chartid], '', 'id');
-            if (array_diff($accountids, array_keys($available))) {
-                $errors['balancevalidation'] = get_string('err_accountunavailable', 'qtype_accounting');
-            }
+        if ($keys && array_diff($keys, array_keys($this->get_current_accounts($list)))) {
+            $errors['balancevalidation'] = get_string('err_accountunavailable', 'qtype_accounting');
         }
         return $errors;
     }

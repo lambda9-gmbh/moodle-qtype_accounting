@@ -82,14 +82,17 @@ Feature: Create and edit Buchungssatz questions
 
   @javascript
   Scenario: Cancel unbalanced entries after a rejected save
-    Given the accounting chart "Main" with accounts "Bank, Cash" exists in course "Course 1"
-    And I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
+    Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."
     And I set the field "Accounting Entry" to "1"
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
     And I set the field "Question name" to "Cancelled accounting question"
     And I set the field "Question text" to "Record the transaction."
-    And I set the field "Chart of Accounts" to "Main"
+    And I set the field "Accounts of this question" to multiline:
+      """
+      Bank
+      Cash
+      """
     And I set the field "debitaccount_display[0]" to "Bank"
     And I set the field "debitamount_display[0]" to "100"
     And I press "id_submitbutton"
@@ -106,7 +109,7 @@ Feature: Create and edit Buchungssatz questions
     When I press "Create a new question ..."
     And I set the field "Accounting Entry" to "1"
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
-    Then I should see "Chart of Accounts"
+    Then I should see "Accounts of this question"
     And I should see "Correct Answer"
     And I should see "Dr."
     And I should see "Debit"
@@ -169,15 +172,18 @@ Feature: Create and edit Buchungssatz questions
 
   @javascript
   Scenario Outline: Missing solution amounts show guidance and preserve selections after saving
-    Given the accounting chart "Main" with accounts "Bank, Cash" exists in course "Course 1"
-    And I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
+    Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."
     And I set the field "Accounting Entry" to "1"
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
     And I set the field "Question name" to "Missing solution amounts"
     And I set the field "Question text" to "Record the transaction."
     And I set the field "Number format" to "<format>"
-    And I set the field "Chart of Accounts" to "Main"
+    And I set the field "Accounts of this question" to multiline:
+      """
+      Bank
+      Cash
+      """
     And I set the field "debitaccount_display[0]" to "Bank"
     And I set the field "creditaccount_display[0]" to "Cash"
     And I set the field "debitaccount_display[1]" to "Bank"
@@ -190,7 +196,11 @@ Feature: Create and edit Buchungssatz questions
     And "input[name='creditamount_display[0]'].is-invalid" "css_element" should exist
     And "#id_debitamount_display_0_error.form-control-feedback.invalid-feedback" "css_element" should exist
     And "#id_creditamount_display_0_error.form-control-feedback.invalid-feedback" "css_element" should exist
-    And the field "Chart of Accounts" matches value "Main"
+    And the field "Accounts of this question" matches multiline:
+      """
+      Bank
+      Cash
+      """
     And the field "debitaccount_display[0]" matches value "Bank"
     And the field "creditaccount_display[0]" matches value "Cash"
     And the field "debitaccount_display[1]" matches value "Bank"
@@ -210,134 +220,81 @@ Feature: Create and edit Buchungssatz questions
       | #,###.00 | 12.50  |
 
   @javascript
-  Scenario: Closing chart management refreshes options and preserves the unsaved question
-    Given the accounting chart "Main" with accounts "Bank, Cash" exists in course "Course 1"
-    And I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
-    When I press "Create a new question ..."
-    And I set the field "Accounting Entry" to "1"
-    And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
-    And I set the field "Question name" to "Unsaved accounting question"
-    And I set the field "Question text" to "Unsaved question text"
-    And I set the field "Number format" to "#.###,00"
-    And I set the field "Chart of Accounts" to "Main"
-    And I set the field "debitaccount_display[0]" to "Bank"
-    And I set the field "debitamount_display[0]" to "100"
-    And I set the field "creditaccount_display[0]" to "Cash"
-    And I set the field "creditamount_display[0]" to "100"
-    And I click on "Manage chart of accounts" "link"
-    Then ".qtype_accounting-chart-overlay" "css_element" should be visible
-    When I switch to "qtype_accounting-chart-frame" iframe
-    Then I should see "Main"
-    And I should not see "Save and continue"
-    When I click on "Main" "link"
-    And I set the field "chartname" to "Renamed"
-    And I press "Save changes"
-    And I set the field "accountname" to "Inventory"
-    And I press "Add Account"
-    And I switch to the main frame
-    And I press "Done"
-    Then I should see "Charts of accounts updated."
-    And the field "Chart of Accounts" matches value "Renamed"
-    And the field "Question name" matches value "Unsaved accounting question"
-    And the field "Question text" matches value "Unsaved question text"
-    And the field "debitaccount_display[0]" matches value "Bank"
-    And the field "creditaccount_display[0]" matches value "Cash"
-    And the field "debitamount_display[0]" matches value "100,00"
-    And the field "creditamount_display[0]" matches value "100,00"
-    When I set the field "creditaccount_display[0]" to "Inventory"
-    And I click on "Manage chart of accounts" "link"
-    And I switch to "qtype_accounting-chart-frame" iframe
-    And I click on "Renamed" "link"
-    And I click on "Delete" "link" in the "Bank" "table_row"
-    And I press "Delete account"
-    And I switch to the main frame
-    And I press "Done"
-    Then I should see "A selected chart or account is no longer available."
-    And the field "debitaccount_display[0]" matches value "Bank"
-    And the field "debitamount_display[0]" matches value "100,00"
-    When I click on "Add Debit Entry" "button"
-    Then the field "debitaccount_display[0]" matches value "Bank"
-    And the field "debitamount_display[0]" matches value "100,00"
-    When I set the field "debitaccount_display[0]" to "Cash"
-    And I click on "Manage chart of accounts" "link"
-    And I switch to "qtype_accounting-chart-frame" iframe
-    And I switch to the main frame
-    And I press "Done"
-    Then I should see "Charts of accounts updated."
-    And the field "debitamount_display[0]" matches value "100,00"
-    When I click on "Manage chart of accounts" "link"
-    And I switch to "qtype_accounting-chart-frame" iframe
-    And I click on "Delete" "link" in the "Renamed" "table_row"
-    And I press "Delete chart"
-    And I switch to the main frame
-    And I press "Done"
-    Then I should see "A selected chart or account is no longer available."
-    And the field "Chart of Accounts" matches value "Renamed"
-    And the field "debitaccount_display[0]" matches value "Cash"
-    And the field "debitamount_display[0]" matches value "100,00"
-    Given the accounting chart "Additional" with accounts "New account" exists in course "Course 1"
-    When I click on "Manage chart of accounts" "link"
-    And I switch to "qtype_accounting-chart-frame" iframe
-    And I switch to the main frame
-    And I press "Done"
-    And I set the field "Chart of Accounts" to "Additional"
-    And I set the field "debitaccount_display[0]" to "New account"
-    Then the field "Chart of Accounts" matches value "Additional"
-
-  @javascript
-  Scenario: Closing the overlay protects unfinished edits and keeps already saved changes
-    Given the accounting chart "Main" with accounts "Bank, Cash" exists in course "Course 1"
-    And I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
-    When I press "Create a new question ..."
-    And I set the field "Accounting Entry" to "1"
-    And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
-    And I set the field "Question name" to "Unsaved accounting question"
-    And I set the field "Chart of Accounts" to "Main"
-    And I click on "Manage chart of accounts" "link"
-    And I switch to "qtype_accounting-chart-frame" iframe
-    And I click on "Main" "link"
-    And I set the field "chartname" to "Saved rename"
-    And I press "Save changes"
-    And I set the field "accountname" to "Unfinished account"
-    And I switch to the main frame
-    And I press "Done"
-    Then I should see "Unsaved chart changes"
-    When I click on "Cancel" "button" in the "Unsaved chart changes" "dialogue"
-    And I switch to "qtype_accounting-chart-frame" iframe
-    Then the field "accountname" matches value "Unfinished account"
-    When I switch to the main frame
-    And I press "Done"
-    And I click on "Discard unsaved edits" "button" in the "Unsaved chart changes" "dialogue"
-    Then I should see "Charts of accounts updated."
-    And the field "Chart of Accounts" matches value "Saved rename"
-    And the field "Question name" matches value "Unsaved accounting question"
-    When I click on "Manage chart of accounts" "link"
-    And I switch to "qtype_accounting-chart-frame" iframe
-    And I click on "Saved rename" "link"
-    Then I should not see "Unfinished account"
-    When I switch to the main frame
-    And I click on "Close" "button" in the "Manage chart of accounts" "dialogue"
-    Then I should see "Charts of accounts updated."
-    And the field "Question name" matches value "Unsaved accounting question"
-
-  @javascript
-  Scenario: Create a chart in the overlay and select it after closing
+  Scenario: Editing the account list updates the entry options and keeps selected accounts
     Given I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
     When I press "Create a new question ..."
     And I set the field "Accounting Entry" to "1"
     And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
-    And I click on "Manage chart of accounts" "link"
-    And I switch to "qtype_accounting-chart-frame" iframe
-    And I set the field "Chart name" to "New chart"
-    And I press "Create chart of accounts"
-    Then I should see "New chart"
-    When I set the field "accountname" to "New account"
-    And I press "Add Account"
-    And I click on "Manage Charts of Accounts" "link"
-    Then I should see "New chart"
-    When I switch to the main frame
-    And I press "Done"
-    Then I should see "Charts of accounts updated."
-    When I set the field "Chart of Accounts" to "New chart"
-    And I set the field "debitaccount_display[0]" to "New account"
-    Then the field "debitaccount_display[0]" matches value "New account"
+    And I set the field "Question name" to "Edited account list"
+    And I set the field "Question text" to "Record the transaction."
+    And I set the field "Number format" to "#.###,00"
+    And I set the field "Accounts of this question" to multiline:
+      """
+      Bank
+      Cash
+      """
+    And I set the field "debitaccount_display[0]" to "Bank"
+    And I set the field "debitamount_display[0]" to "100"
+    And I set the field "creditaccount_display[0]" to "Cash"
+    And I set the field "creditamount_display[0]" to "100"
+    And I set the field "debitaccount_display[1]" to "Cash"
+    And I set the field "debitamount_display[1]" to "50"
+    And I set the field "creditaccount_display[1]" to "Bank"
+    And I set the field "creditamount_display[1]" to "50"
+    And I set the field "Accounts of this question" to multiline:
+      """
+      Assets
+      Bank
+      Cash
+      """
+    And I set the field "Question name" to "Edited account list"
+    Then the field "debitaccount_display[0]" matches value "Bank"
+    And the field "creditaccount_display[0]" matches value "Cash"
+    When I set the field "Accounts of this question" to "Cash"
+    And I set the field "Question name" to "Edited account list"
+    And I press "id_submitbutton"
+    Then I should see "This account is no longer in the account list. Please choose another account."
+    And the field "debitamount_display[0]" matches value "100,00"
+    When I set the field "debitaccount_display[0]" to "Cash"
+    And I set the field "creditaccount_display[1]" to "Cash"
+    And I press "id_submitbutton"
+    Then I should see "Edited account list"
+    And I should not see "Adding an Accounting Entry question"
+    When I choose "Edit question" action for "Edited account list" in the question bank
+    Then the field "Accounts of this question" matches value "Cash"
+    And the field "debitaccount_display[0]" matches value "Cash"
+
+  @javascript
+  Scenario: Copy accounts from a template or from another question of the question bank
+    Given the accounting chart template "Standard chart" with accounts "1200 Bank, 8400 Sales" exists
+    And the following "question categories" exist:
+      | contextlevel | reference | name           |
+      | Course       | C1        | Test questions |
+    And the following accounting questions exist:
+      | questioncategory | qtype      | name              | debitaccount | creditaccount |
+      | Test questions   | accounting | Existing question | 1000 Cash    | 8400          |
+    And I am on the "Course 1" "core_question > course question bank" page logged in as "teacher1"
+    When I press "Create a new question ..."
+    And I set the field "Accounting Entry" to "1"
+    And I click on "Add" "button" in the "Choose a question type to add" "dialogue"
+    And I set the field "Question name" to "Copied accounts"
+    And I set the field "copyaccountsfrom" to "Standard chart"
+    And I press "id_copyaccounts"
+    Then the field "Accounts of this question" matches multiline:
+      """
+      1200 Bank
+      8400 Sales
+      """
+    And the field "Question name" matches value "Copied accounts"
+    When I set the field "debitaccount_display[0]" to "8400 Sales"
+    Then the field "debitaccount_display[0]" matches value "8400 Sales"
+    When I set the field "copyaccountsfrom" to "Test questions: Existing question"
+    And I press "id_copyaccounts"
+    Then the field "Accounts of this question" matches multiline:
+      """
+      1200
+      8400
+      9998
+      9999
+      1000 Cash
+      """

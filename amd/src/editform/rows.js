@@ -30,7 +30,7 @@ import {state, ROW_SELECTOR} from 'qtype_accounting/editform/state';
 import {initializeHiddenFieldsForIndex, clearHiddenFieldsForIndex, clearHiddenFieldsForSide}
     from 'qtype_accounting/editform/fields';
 import {updateDebitamountState, updateWeightStates} from 'qtype_accounting/editform/field_states';
-import {updateAccountDropdowns} from 'qtype_accounting/editform/charts';
+import {updateAccountDropdowns} from 'qtype_accounting/editform/accounts';
 
 /**
  * Calculate the next entry index from existing rows.
@@ -172,7 +172,7 @@ export function addEntryRow(entryType) {
     tbody.appendChild(clone);
 
     // Populate the new row's account selects.
-    updateAccountDropdowns(true, true);
+    updateAccountDropdowns();
     updateDebitamountState(index);
     updateWeightStates(index);
     initializeHiddenFieldsForIndex(index);

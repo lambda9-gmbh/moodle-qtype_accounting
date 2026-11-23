@@ -245,48 +245,4 @@ class import_helper {
 
         return $data;
     }
-
-    /**
-     * Find an existing chart that contains all the required accounts.
-     *
-     * @param array $accounts Array of account data to match (keyed by account name).
-     * @param int $contextid Optional context ID to scope the search to. 0 means all contexts.
-     * @return int|null Chart ID if found, null otherwise.
-     */
-    public static function find_matching_chart(array $accounts, int $contextid = 0): ?int {
-        global $DB;
-
-        $requiredaccounts = array_keys($accounts);
-        sort($requiredaccounts);
-
-        if ($contextid > 0) {
-            $charts = $DB->get_records('qtype_accounting_charts', ['contextid' => $contextid]);
-        } else {
-            $charts = $DB->get_records('qtype_accounting_charts');
-        }
-
-        foreach ($charts as $chart) {
-            $chartaccounts = $DB->get_records('qtype_accounting_accounts', ['chartid' => $chart->id]);
-            $chartaccountnames = [];
-            foreach ($chartaccounts as $acc) {
-                $chartaccountnames[] = $acc->accountname;
-            }
-            sort($chartaccountnames);
-
-            // Check if this chart contains all required accounts.
-            $hasallaccounts = true;
-            foreach ($requiredaccounts as $required) {
-                if (!in_array($required, $chartaccountnames)) {
-                    $hasallaccounts = false;
-                    break;
-                }
-            }
-
-            if ($hasallaccounts) {
-                return (int) $chart->id;
-            }
-        }
-
-        return null;
-    }
 }

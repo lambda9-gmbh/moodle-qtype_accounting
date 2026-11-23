@@ -16,7 +16,7 @@ Developed for **Hochschule Flensburg** by **lambda9**.
 - [Installation](#installation)
 - [Quick start](#quick-start)
 - [Authoring a question](#authoring-a-question)
-- [Managing charts of accounts](#managing-charts-of-accounts)
+- [Accounts and chart of accounts templates](#accounts-and-chart-of-accounts-templates)
 - [Grading model](#grading-model)
 - [Question import/export](#question-importexport)
 - [Backup and restore](#backup-and-restore)
@@ -37,13 +37,13 @@ Developed for **Hochschule Flensburg** by **lambda9**.
 
 ### Authoring a question
 
-Teachers pick a chart of accounts, configure grading behaviour, and add one or more correct-answer entries. Each entry has independent weights for Debit Account, Debit Amount, Credit Account, and Credit Amount, so you can decide how much each field contributes to partial credit.
+Teachers enter the question's accounts or copy them from a template, configure grading behaviour, and add one or more correct-answer entries. Each entry has independent weights for Debit Account, Debit Amount, Credit Account, and Credit Amount, so you can decide how much each field contributes to partial credit.
 
 ![Editing a question](docs/screenshots/edit-question.png)
 
 ### Student attempt
 
-Students see one combined table with a Debit side and a Credit side. Account dropdowns are populated from the question's chart of accounts (with an optional set of decoy accounts), and rows can be added or removed on either side.
+Students see one combined table with a Debit side and a Credit side. Account dropdowns are populated from the question's accounts (with an optional set of decoy accounts), and rows can be added or removed on either side.
 
 ![Student attempting the question](docs/screenshots/student-attempt.png)
 
@@ -75,13 +75,12 @@ After submission, every field is highlighted individually — green for correct,
 - **Per-field weighting** — Debit Account, Debit Amount, Credit Account, Credit Amount each get an independent weight of 1, 2, or 3, used in the partial-credit calculation.
 - **No partial credit** option — flips grading to all-or-nothing.
 - **Deduction for extra entries** — configurable percentage penalty per extra account the student names that isn't part of the correct answer; each side is counted independently, score is floored at 0.
-- **Decoy accounts in dropdowns** — "Number of additional accounts in selection list" controls how many random extra accounts appear alongside the correct ones. `0` shows the entire chart.
+- **Decoy accounts in dropdowns** — "Number of additional accounts in selection list" controls how many random extra accounts appear alongside the correct ones. `0` shows all accounts of the question.
 - **Number format toggle** — `1,234.56` (US) or `1.234,56` (DE).
 - **Currency symbol** — €, $, £, CHF or none after the amount fields; the site default is preselected.
-- Charts of accounts per question bank, manageable directly from the question form.
-- Chart management opens in a large overlay. Choose **Done** to return to the question; chart and account dropdowns refresh automatically while keeping unsaved question entries. Removed selections are flagged for replacement before saving. Unfinished chart edits require confirmation before closing.
-- Create charts of accounts directly in Moodle, import CSV/text or ODS files, and export CSV files (one account per line; UTF-8 or Windows-1252).
-- Question import and export through Moodle's standard XML format, with the embedded chart of accounts travelling with the question.
+- Each question has its own account list, entered one per line in the question form or copied from a chart of accounts template or another question of the same question bank. Later changes elsewhere never change an existing question or its attempts.
+- Chart of accounts templates for the whole site, created in Moodle or imported from CSV/text or ODS files, and exported as CSV files (one account per line; UTF-8 or Windows-1252).
+- Question import and export through Moodle's standard XML format, with the question's accounts travelling with the question.
 - Backup and restore as part of a course's question bank.
 
 ---
@@ -136,7 +135,7 @@ for the app theme, and submits explicit native hidden fields for every answer.
 1. Place the plugin source so that `version.php` sits at `<moodledir>/question/type/accounting/version.php`.
 2. As a site administrator, visit **Site administration → Notifications**. Moodle will detect the new plugin and run `install.xml`.
 
-The settings page (**Site administration → Plugins → Question types → Accounting Entry**) sets the default grading mode and the site-wide grading rules for points mode (see [Grading model](#grading-model)), controls whether the leading "Dr." / "Per" label column of the booking table is shown (default: shown), sets the minimum width of the amount inputs (default: 175 px), controls whether the question editor offers "Number of additional accounts in selection list" (default: offered), sets the default currency whose symbol is shown after the amount fields (default: €; each question can choose its own), and manages the site charts of accounts (see [Site charts of accounts](#site-charts-of-accounts)). All other configuration is per question, and other charts of accounts belong to question banks.
+The settings page (**Site administration → Plugins → Question types → Accounting Entry**) sets the default grading mode and the site-wide grading rules for points mode (see [Grading model](#grading-model)), controls whether the leading "Dr." / "Per" label column of the booking table is shown (default: shown), sets the minimum width of the amount inputs (default: 175 px), controls whether the question editor offers "Number of additional accounts in selection list" (default: offered), sets the default currency whose symbol is shown after the amount fields (default: €; each question can choose its own), and manages the chart of accounts templates (see [Accounts and chart of accounts templates](#accounts-and-chart-of-accounts-templates)). All other configuration is per question.
 
 ---
 
@@ -144,7 +143,7 @@ The settings page (**Site administration → Plugins → Question types → Acco
 
 1. In any course, create or open a quiz.
 2. **Add → A new question → Accounting Entry (Buchungssatz)**.
-3. In the question form, click **Manage Charts of Accounts**, enter a chart name, and click **Create chart of accounts**. Add accounts in the editor that opens, or upload a CSV or ODS file instead. Each line of the CSV is one account name, e.g.:
+3. In the question form, enter the accounts students can choose from in **Accounts of this question**, one per line, or copy them from a template with **Copy accounts from**. For example:
    ```
    1200 Bank
    1400 Receivables
@@ -153,7 +152,7 @@ The settings page (**Site administration → Plugins → Question types → Acco
    1600 Payables
    8400 Sales (19% VAT)
    ```
-4. Return to the question form, pick the chart you just created, then add one or more correct-answer entries.
+4. Add one or more correct-answer entries; the account dropdowns offer the accounts you entered.
 5. Save. The question is now in the course's question bank and can be added to any quiz.
 
 ---
@@ -164,8 +163,9 @@ The question form follows Moodle's standard layout. The accounting-specific sect
 
 | Option | Default | Description |
 |---|---|---|
-| Chart of Accounts | *(none)* | The chart students will pick accounts from. Required. |
-| Number of additional accounts in selection list | `0` | Decoys per dropdown. `0` = show all accounts from the chart; `n` = correct account plus `n` random ones. |
+| Accounts of this question | *(empty)* | The accounts students pick from, one per line. |
+| Copy accounts from | – | Replaces the account list with the accounts of a template or of another question in the same question bank. Shown when such a source exists. |
+| Number of additional accounts in selection list | `0` | Decoys per dropdown. `0` = show all accounts of the question; `n` = correct account plus `n` random ones. |
 | Number format | `1.234,56` (DE) | Decimal/thousands separators shown to students. |
 | Currency | Site default (€) | Currency symbol shown after the amount fields, or no symbol. |
 | Deduction for extra entries | None | Percentage subtracted per extra account the student names that isn't in the correct answer. |
@@ -179,45 +179,28 @@ Below those options is the **Correct Answer** table. Each row contributes to gra
 
 ---
 
-## Managing charts of accounts
+## Accounts and chart of accounts templates
 
-Charts belong to the **question bank** that holds the question: the course question bank up to Moodle 4.5, the question bank activity (`mod_qbank`) or quiz from Moodle 5.0. Each question bank has its own list, and one bank's charts don't appear in another's question forms.
+Every question version has its **own account list**. The correct entries and the students' responses refer to the accounts of that list, so changing a template, another question or a later version of the question never changes an existing question version, its correct answer or its saved attempts.
 
-When a question moves to another question bank, or is saved into a category of another bank, the chart moves with it: an identical chart in the target bank is reused, otherwise the chart is copied. The question's correct answer and saved attempts are switched to the accounts of that chart. Charts in course contexts that can no longer hold questions (Moodle 5.0 and later) move to the course's question bank, also during the plugin upgrade.
+Accounts are identified by a key that stays the same as long as the account name is unchanged, also in new versions of the question. Renaming an account in the list therefore means removing the old account and adding a new one: entries that used it must be updated before saving, and attempts of earlier versions cannot be regraded with a version whose accounts differ.
 
-You reach the management page from within the question authoring form: when you create or edit an Accounting Entry question, click **Manage Charts of Accounts** in the chart selector. The page requires the `qtype/accounting:managecharts` capability, granted to `manager` and `editingteacher` by default.
+To share accounts:
 
-On the management page you can:
+- **Within a question bank**, choose another question in **Copy accounts from** and click **Copy**. Its accounts are copied into the question.
+- **Across the site**, administrators provide chart of accounts templates on the plugin's settings page (**Site administration → Plugins → Question types → Accounting Entry**). The page lists the templates with edit, download and delete actions; **Create or upload a chart of accounts template** creates a template directly or from a CSV, text or ODS file. Managing templates requires `moodle/site:config`. Templates appear in **Copy accounts from** in every question form.
 
-- **Create a chart directly** by entering its name. The account editor opens so you can add accounts without preparing a file.
-- **Upload a CSV, text or ODS file** to create a new chart. The filename becomes the chart name; one account per line.
-- **Edit** a chart to rename it and add, edit, delete, or reorder accounts.
-- **Download** any chart as CSV.
-- **Delete** a chart (with confirmation).
-
-Accounts can be renamed even when used by questions; their IDs and question references
-stay the same. Accounts and charts can also be deleted after explicit confirmation.
-Deletion warnings explain the impact on existing questions, grading, and saved attempts;
-account deletion also lists the questions that use the account or have saved attempts using it.
-Duplicate account names are rejected, and a failed import leaves existing data intact.
+On a template you can rename it and add, edit or delete accounts, import further accounts from a file, or download it. As questions keep their own copy, changing or deleting a template only affects questions that copy its accounts later. Duplicate account names are rejected, and a failed import leaves existing data intact.
 
 The editor and student interfaces support up to 100 entry rows. Existing imported
-solutions above that limit remain supported. Without JavaScript, choose the chart
-and row count, then use **Update chart and rows** before completing the question.
+solutions above that limit remain supported. Without JavaScript, enter the accounts
+and the row count, then use **Update chart and rows** before completing the question.
 
 CSV files may be UTF-8 or Windows-1252 (Excel's default); a UTF-8 BOM, if present, is stripped automatically.
 
-ODS imports read one account name per row from column A of the first sheet. Other columns and sheets are ignored. Put the complete account name (including any account number) in one cell. Blank cells and duplicate names are skipped; an optional account-name header is recognised as with CSV. ODS files can also be imported into an existing chart. The upload limit is 2 MB; the uncompressed ODS `content.xml` must not exceed 16 MiB.
+ODS imports read one account name per row from column A of the first sheet. Other columns and sheets are ignored. Put the complete account name (including any account number) in one cell. Blank cells and duplicate names are skipped; an optional account-name header is recognised as with CSV. ODS files can also be imported into an existing template. The upload limit is 2 MB; the uncompressed ODS `content.xml` must not exceed 16 MiB.
 
-### Site charts of accounts
-
-Administrators can provide standard charts for all courses on the plugin's settings page (**Site administration → Plugins → Question types → Accounting Entry**). It lists the site charts with edit, download and delete actions; **Create or upload a site chart of accounts** opens the same create and upload forms as in a course. Managing site charts requires `moodle/site:config`.
-
-Site charts appear in every question form after the question bank's own charts, marked as *(site default)*. In a question bank they are read-only: the management page lists them with **Download** and **Copy to this question bank**, so teachers can adapt a copy. Teachers can still create and upload their own charts.
-
-When questions are restored or imported, a matching chart in the target question bank is reused first, then a matching site chart; otherwise a chart is created in the target question bank.
-
-Charts of deleted courses, question banks and course categories are removed, unless a question still uses them.
+Before version 1.1.0, questions referenced shared charts of accounts of their course. The upgrade copies each chart's accounts into the questions that used it, keeping the former account IDs as keys so that correct answers and saved attempts stay valid, and then removes the course charts. Site-wide charts remain as templates.
 
 ---
 
@@ -251,15 +234,15 @@ Both site settings apply to attempts started after the change; existing attempts
 
 Notes:
 
-- Account-name matching is case-insensitive (matching is by account ID after lookup).
+- Accounts are matched by their key in the question's account list.
 - Amounts are parsed and summed as integer cents. Extra decimal places round to the nearest cent, with half cents rounding away from zero. Grading, feedback, hints, and balance validation compare cents exactly.
-- Re-grading after edits is supported via Moodle's standard re-grade mechanism.
+- Re-grading after edits is supported via Moodle's standard re-grade mechanism. Regrading with another question version requires that version to keep every account of the attempted version.
 
 ---
 
 ## Question import/export
 
-The plugin extends Moodle's XML format. Exporting a question writes its options, all correct-answer entries (with weights and explanations), and the **full chart of accounts** the question references. Importing the question recreates or reuses an existing chart with matching accounts in the destination context, so questions move between courses and sites without losing their account list.
+The plugin extends Moodle's XML format. Exporting a question writes its options, all correct-answer entries (with weights and explanations), and the question's accounts with their keys in a `<chartofaccounts>` block, the format of earlier versions. Importing the question gives it these accounts; exports of earlier versions are imported the same way, so questions move between courses and sites without losing their account list.
 
 Interactive hints also survive XML export and import, including embedded files, text formats, and the clear-wrong and count-correct settings. Hint attachments are available only while that hint is applicable and feedback is visible.
 
@@ -269,17 +252,13 @@ Use **Question bank → Export** / **Import** as you would for any other questio
 
 ## Backup and restore
 
-The plugin implements both backup and restore via `backup/moodle2/`. Course backups include questions of this type along with their referenced chart of accounts. Restoring a course recreates the chart in the question bank of the restored questions (deduplicating against any matching existing chart).
+The plugin implements both backup and restore via `backup/moodle2/`. Course backups include questions of this type with their own accounts. Restoring keeps the account keys, so saved attempts need no recoding, and Moodle's question deduplication compares the accounts as part of the question. Backups of earlier versions, which contain the question's chart of accounts, are restored with the chart's accounts as the question's accounts.
 
 ---
 
 ## Capabilities
 
-| Capability | Default roles | Risk | Purpose |
-|---|---|---|---|
-| `qtype/accounting:managecharts` | `manager`, `editingteacher` | `RISK_CONFIG` | Create, edit, upload, download, and delete charts of accounts of a question bank. |
-
-Authors of questions inherit existing Moodle question capabilities (`moodle/question:add`, etc.) — no extra capability is needed to write Buchungssatz questions beyond standard Moodle quiz/question permissions.
+The plugin defines no capabilities of its own. Authors of questions use Moodle's question capabilities (`moodle/question:add`, etc.); managing the chart of accounts templates requires `moodle/site:config`, like the plugin's settings page.
 
 ---
 
@@ -301,10 +280,11 @@ All tables are prefixed `qtype_accounting_`:
 
 | Table | Purpose |
 |---|---|
-| `qtype_accounting_charts` | Chart definitions: `name`, `contextid`, timestamps, `usermodified`. |
-| `qtype_accounting_accounts` | Accounts inside a chart: `chartid`, `accountname`, `sortorder`. |
-| `qtype_accounting_options` | Per-question options: chart selection, decoy count, number format, grading flags, max entries. |
-| `qtype_accounting_entries` | Correct-answer rows: account IDs and amounts per side, per-field weights, optional explanation. |
+| `qtype_accounting_qaccounts` | The accounts of a question version: `questionid`, `accountkey`, `accountname`, `sortorder`. |
+| `qtype_accounting_options` | Per-question options: decoy count, number format, grading flags, max entries. |
+| `qtype_accounting_entries` | Correct-answer rows: account keys and amounts per side, per-field weights, optional explanation. |
+| `qtype_accounting_charts` | Chart of accounts templates: `name`, `contextid` (the system context), timestamps, `usermodified`. |
+| `qtype_accounting_accounts` | Accounts of a template: `chartid`, `accountname`, `sortorder`. |
 
 All schema changes go through `db/upgrade.php`.
 
@@ -561,43 +541,37 @@ For deeper architectural notes, see [`dev/CLAUDE.md`](dev/CLAUDE.md).
 moodle-qtype_accounting/                 # Plugin root; unpacks to question/type/accounting/
 ├── amd/
 │   ├── src/                             # ES module sources
-│   │   ├── chart_overlay.js             # Chart management overlay in the question editor
 │   │   ├── editform.js                  # Authoring form setup and input handlers
-│   │   ├── editform/                    # Authoring form modules: state, fields, field_states, charts, rows, validation
+│   │   ├── editform/                    # Authoring form modules: state, fields, field_states, accounts, rows, validation
 │   │   ├── entry_utils.js               # Shared helpers
-│   │   ├── manage_charts.js             # Delete confirmations on the chart pages
+│   │   ├── manage_charts.js             # Delete confirmations on the template pages
 │   │   ├── mobile_layout.js             # Card layout for narrow questions
 │   │   └── question.js                  # Student quiz interaction
 │   └── build/                           # Minified output (committed)
 ├── backup/moodle2/                      # Backup + restore handlers
 ├── classes/                             # Autoloaded under qtype_accounting\
-│   ├── admin/setting_sitecharts.php     # Site charts list on the settings page
-│   ├── external/get_charts.php          # Web service: charts of a question bank
-│   ├── form/                            # Chart create and file upload forms
-│   ├── local/chart_page.php             # Shared setup of the chart pages
+│   ├── admin/setting_sitecharts.php     # Template list on the settings page
+│   ├── form/                            # Template create and file upload forms
+│   ├── local/chart_page.php             # Shared setup of the template pages
 │   ├── output/                          # Renderables for the templates, Moodle App handler
 │   ├── privacy/provider.php             # Privacy API
-│   ├── account_manager.php              # Account CRUD and imports into a chart
+│   ├── account_manager.php              # Template account CRUD and imports
 │   ├── account_provider.php             # Accounts offered in a question's selects
 │   ├── aggregator.php                   # Sums entries per side and account
 │   ├── amount_helper.php                # Amounts in integer cents
-│   ├── chart_manager.php                # Chart CRUD, chart contexts, matching
-│   ├── chart_relocator.php              # Keeps charts in the question bank of their questions
+│   ├── chart_manager.php                # Template CRUD, CSV import and export
 │   ├── currency_helper.php              # Currency symbols
 │   ├── entries_table_builder.php        # Submitted editor entries, editor table
 │   ├── entry_helper.php                 # Entry row helpers
 │   ├── entry_validator.php              # Server-side validation of the editor
 │   ├── feedback_calculator.php          # Field and side feedback
 │   ├── import_helper.php                # CSV, text and ODS parsing
-│   ├── observer.php                     # Removes charts of deleted contexts
+│   ├── question_accounts.php            # A question's own accounts and their keys
 │   ├── scorer.php                       # Grading (percentage and points)
 │   └── xml_handler.php                  # Moodle XML import/export
 ├── db/
-│   ├── access.php                       # Capability definitions
-│   ├── events.php                       # Event observers
 │   ├── install.xml                      # XMLDB schema
 │   ├── mobile.php                       # Moodle App handler
-│   ├── services.php                     # Web services
 │   └── upgrade.php                      # Per-version DB migrations
 ├── docs/screenshots/                    # README screenshots
 ├── js/mobileapp/question.js             # Moodle App controller
@@ -611,8 +585,8 @@ moodle-qtype_accounting/                 # Plugin root; unpacks to question/type
 │   ├── generator/                       # Test data generator
 │   └── *_test.php                       # PHPUnit tests
 ├── edit_accounting_form.php             # Question authoring form
-├── edit_chart.php                       # Edit a single chart's accounts
-├── manage_charts.php                    # Chart list of a question bank, or the site charts
+├── edit_chart.php                       # Edit a template's accounts
+├── manage_charts.php                    # Create, upload, export and delete templates
 ├── question.php                         # qtype_accounting_question
 ├── questiontype.php                     # qtype_accounting (question_type)
 ├── renderer.php                         # qtype_accounting_renderer

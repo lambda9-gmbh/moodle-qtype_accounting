@@ -56,7 +56,7 @@ class qtype_accounting extends question_type {
     }
 
     /**
-     * Move files from the old area to the new, and give the question a chart in its new question bank.
+     * Move files from the old area to the new.
      *
      * @param int $questionid The question ID.
      * @param int $oldcontextid The old context ID.
@@ -65,7 +65,6 @@ class qtype_accounting extends question_type {
     public function move_files($questionid, $oldcontextid, $newcontextid): void {
         parent::move_files($questionid, $oldcontextid, $newcontextid);
         $this->move_files_in_hints($questionid, $oldcontextid, $newcontextid);
-        \qtype_accounting\chart_relocator::relocate_question((int)$questionid, \context::instance_by_id($newcontextid));
     }
 
     /**
@@ -134,22 +133,46 @@ class qtype_accounting extends question_type {
                 $optionsquestion->$field = $value;
             }
             parent::save_question_options($optionsquestion);
+            $this->save_accounts($question);
             $DB->delete_records('qtype_accounting_entries', ['questionid' => $question->id]);
 
             $arrays = $this->normalize_entry_arrays($question);
             $this->save_entries($question->id, $arrays);
 
             $this->save_hints($question, true);
-            if (!empty($question->context)) {
-                // A question saved into another question bank gets a chart in that bank.
-                \qtype_accounting\chart_relocator::relocate_question((int)$question->id, $question->context);
-            }
             $transaction->allow_commit();
         } catch (\Exception $exception) {
             $transaction->rollback($exception);
         }
 
         return true;
+    }
+
+    /**
+     * Save the question's account list.
+     *
+     * The list comes from the editor as text with one account per line, as a list of names, or as the
+     * account records of a loaded question. Names known from the edited version (accountkeys, keyed by
+     * name) keep their key.
+     *
+     * @param object $question The question being saved.
+     */
+    protected function save_accounts($question): void {
+        $list = $question->accounts ?? ($question->options->accounts ?? '');
+        if (is_array($list) && $list && is_object(reset($list))) {
+            $question->accountkeys = \qtype_accounting\question_accounts::keys_by_name($list);
+            $list = array_column($list, 'accountname');
+        }
+        $knownkeys = $question->accountkeys ?? [];
+        if (is_string($knownkeys)) {
+            $knownkeys = json_decode($knownkeys, true) ?: [];
+        }
+        $knownkeys = array_filter((array)$knownkeys, 'is_numeric');
+        $names = \qtype_accounting\question_accounts::parse_names($list);
+        \qtype_accounting\question_accounts::save(
+            (int)$question->id,
+            \qtype_accounting\question_accounts::assign_keys($names, $knownkeys)
+        );
     }
 
     /**
@@ -161,7 +184,6 @@ class qtype_accounting extends question_type {
     protected function build_options_record($question): \stdClass {
         $options = new stdClass();
         $options->questionid = $question->id;
-        $options->chartofaccountsid = $question->chartofaccountsid ?? 0;
         $options->accountsindropdown = $question->accountsindropdown ?? 0;
         $options->numberformat = $question->numberformat ?? 'de';
         $options->extraentrydeduction = $question->extraentrydeduction ?? null;
@@ -253,6 +275,7 @@ class qtype_accounting extends question_type {
         $defaults = $this->build_options_record((object)['id' => $question->id]);
         $question->options = (object)((array)$question->options + (array)$defaults);
 
+        $question->options->accounts = \qtype_accounting\question_accounts::get((int)$question->id);
         $question->options->entries = $DB->get_records(
             'qtype_accounting_entries',
             ['questionid' => $question->id],
@@ -269,10 +292,8 @@ class qtype_accounting extends question_type {
      * @param object $questiondata The question data from the database.
      */
     protected function initialise_question_instance(question_definition $question, $questiondata): void {
-        global $DB;
         parent::initialise_question_instance($question, $questiondata);
 
-        $question->chartofaccountsid = $questiondata->options->chartofaccountsid ?? 0;
         $question->accountsindropdown = $questiondata->options->accountsindropdown ?? 0;
         $question->numberformat = $questiondata->options->numberformat ?? 'de';
         $question->extraentrydeduction = $questiondata->options->extraentrydeduction ?? null;
@@ -301,16 +322,11 @@ class qtype_accounting extends question_type {
             }
         }
 
-        // Load account lookup map for display (ID => name).
+        $accounts = $questiondata->options->accounts ?? \qtype_accounting\question_accounts::get((int)$questiondata->id);
+        $question->accounts = \qtype_accounting\question_accounts::as_options($accounts);
         $question->accountsmap = [];
-        if ($question->chartofaccountsid > 0) {
-            $accounts = $DB->get_records(
-                'qtype_accounting_accounts',
-                ['chartid' => $question->chartofaccountsid]
-            );
-            foreach ($accounts as $acc) {
-                $question->accountsmap[$acc->id] = $acc->accountname;
-            }
+        foreach ($question->accounts as $key => $account) {
+            $question->accountsmap[$key] = $account->accountname;
         }
     }
 
@@ -324,6 +340,7 @@ class qtype_accounting extends question_type {
         global $DB;
 
         $DB->delete_records('qtype_accounting_entries', ['questionid' => $questionid]);
+        \qtype_accounting\question_accounts::delete((int)$questionid);
 
         parent::delete_question($questionid, $contextid);
     }
@@ -358,7 +375,7 @@ class qtype_accounting extends question_type {
      * @return array The extra question fields.
      */
     public function extra_question_fields(): array {
-        return ['qtype_accounting_options', 'chartofaccountsid', 'accountsindropdown', 'numberformat',
+        return ['qtype_accounting_options', 'accountsindropdown', 'numberformat',
             'extraentrydeduction', 'allornothinggrading',
             'allowmultipleentries', 'maxentries', 'gradingmode', 'currency'];
     }
@@ -366,7 +383,7 @@ class qtype_accounting extends question_type {
     /**
      * Export this question to the Moodle XML format.
      *
-     * Appends correct answer entries and full chart of accounts data
+     * Appends the correct answer entries and the question's accounts
      * to the auto-exported options fields from extra_question_fields().
      *
      * @param object $question The question data to export.
@@ -377,12 +394,12 @@ class qtype_accounting extends question_type {
     public function export_to_xml($question, qformat_xml $format, $extra = null) {
         $expout = parent::export_to_xml($question, $format, $extra);
         $handler = new \qtype_accounting\xml_handler();
+        $accounts = $question->options->accounts ?? [];
         if (!empty($question->options->entries)) {
-            $expout .= $handler->export_entries($question->options->entries, $format);
+            $expout .= $handler->export_entries($question->options->entries, $accounts, $format);
         }
-        $chartid = (int)($question->options->chartofaccountsid ?? 0);
-        if ($chartid > 0) {
-            $expout .= $handler->export_chart($chartid, $format);
+        if ($accounts) {
+            $expout .= $handler->export_accounts((string)($question->name ?? ''), $accounts, $format);
         }
         return $expout;
     }
@@ -407,12 +424,7 @@ class qtype_accounting extends question_type {
         $qo = $handler->import_options($data, $format, $qtype, $extraquestionfields);
         $handler->import_entries($data, $format, $qo);
         $format->import_hints($qo, $data, true, false, $format->get_format($qo->questiontextformat));
-
-        $contextid = $handler->resolve_contextid($format);
-        $chartdata = $format->getpath($data, ['#', 'chartofaccounts', 0], null);
-        if ($chartdata !== null && $contextid > 0) {
-            $handler->resolve_chart($chartdata, $format, $contextid, $qo);
-        }
+        $handler->import_accounts($data, $format, $qo);
         return $qo;
     }
 }

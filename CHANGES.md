@@ -9,7 +9,7 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ### Added
 - Points grading mode: one point per account-amount pair, with the default mark derived from the correct answer, site-wide rules for strict pairs and accounts without amounts, and a point deduction per extra account.
-- Site-wide charts of accounts managed on the plugin settings page; they are offered in every course after the course charts, are read-only in courses, can be copied into a course, and are reused on restore and XML import.
+- Chart of accounts templates managed on the plugin settings page; teachers copy their accounts into questions with **Copy accounts from**, which also offers the other questions of the same question bank.
 - Site settings to hide the leading "Dr." / "Per" column, set the minimum width of the amount inputs, and hide the "Number of additional accounts in selection list" option.
 - Selectable currency symbol (€, $, £, CHF or none) after the amount fields, in the review and in the correct answer, with a site default.
 - ODS chart uploads and account imports, reading column A of the first worksheet with the same header and duplicate handling as CSV imports.
@@ -17,25 +17,25 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - Working interactive hint options for clearing incorrect fields and showing correct parts, random-question selection, and response-analysis classifications.
 - Native Android testing helper for the official Moodle 5.2.1 APK, with a dedicated emulator, local server connection, and DE/US sample quizzes.
 - Moodle App question handler with debit/credit entry cards, multiple entries, local-answer restoration, explicit clearing of deleted entries, and read-only review. Deployment requires a Moodle upgrade/cache purge and refreshing the site's app session.
-- Chart management opens in a desktop overlay from the question editor and automatically refreshes chart and account options on close while preserving unsaved question entries. The overlay protects unfinished chart edits and waits for saves to complete.
-- Charts of accounts can now be created directly in Moodle by entering a name, then adding accounts in the existing editor without uploading a CSV file.
+- Chart of accounts templates can be created directly in Moodle by entering a name, then adding accounts in the editor without uploading a CSV file.
 
 ### Changed
-- The question editor's JavaScript is split into modules under `amd/src/editform/` (state, hidden fields, field states, charts, entry rows, validation); `editform.js` only sets up the form.
-- The `get_charts` web service returns chart and account names as plain text (`PARAM_TEXT`).
+- Each question version has its own account list (`qtype_accounting_qaccounts`), entered in the question form one account per line. Changing a template, another question or a later version no longer changes existing questions, their correct answers or their attempts. Accounts keep their key across versions while their name is unchanged; regrading with another version is refused if that version does not keep every account. The upgrade copies each course chart's accounts into the questions using it, with the former account IDs as keys, so correct answers and saved attempts stay valid; course charts are then removed and site-wide charts remain as templates. Backups and XML exports of earlier versions are imported the same way.
+- The question editor's JavaScript is split into modules under `amd/src/editform/` (state, hidden fields, field states, accounts, entry rows, validation); `editform.js` only sets up the form.
 - GitHub Actions also run the full check suite against Moodle 5.2 and 5.3 on MariaDB and PostgreSQL.
 - The booking table, the correct answer, the feedback summary and the editor's entry table are rendered from Mustache templates (renderables in `classes/output/`), so themes can override them. The HTML structure used by the JavaScript and the Moodle App is unchanged.
-- Charts of accounts belong to the question bank of their questions instead of the course, matching Moodle 5 question banks. Moving a question to another question bank, or saving it into one, reuses or copies its chart there and switches the question and its attempts to that chart. The upgrade moves charts out of contexts that can no longer hold questions. The chart pages and the `qtype_accounting_get_charts` web service take a context ID instead of a course ID.
+
+### Removed
+- Course charts of accounts with their management pages in the course, the capability `qtype/accounting:managecharts`, and the chart selection in the question form; questions have their own accounts instead.
 
 ### Fixed
-- Restored questions from question bank modules (Moodle 5.0+) keep their chart in their own question bank instead of the target course's default bank.
-- The chart overlay no longer reports its page as loaded while the frame still holds its blank initial document.
+- The question editor's no-submit buttons (copy accounts, update rows) no longer run the client-side validation of the correct answer.
+- Numeric account names such as `1200` are kept as text when importing Moodle XML.
 - Card view labels are linked to their controls, delete buttons there have accessible names, and account selects use the full card width.
 - Delete buttons have accessible names ("Delete debit entry", "Delete credit entry"), and reviewed fields state their correctness for screen readers instead of by colour alone.
-- Chart changes (rename, add or edit accounts, copy a site chart) are only accepted as form submissions, and chart downloads use Moodle's file delivery.
+- Template changes (rename, add or edit accounts) are only accepted as form submissions, and template downloads use Moodle's file delivery.
 - Attempts keep the points-mode grading rules (strict pairs, accounts without amounts) that applied when they started, so changing these site settings no longer changes the grades of existing attempts on regrade.
 - The Debit and Credit headings of the narrow table layout are translated instead of being fixed English text in the stylesheet.
-- Charts of accounts of deleted courses, question banks and course categories are removed, unless a question still uses them. An upgrade step removes charts left behind earlier.
 - The student entry table stays inside the content area and switches to cards when the question is narrow, e.g. next to open drawers.
 - Students can no longer delete the last entry of the debit or credit side.
 - Delete buttons fit the narrow table columns, and the chart editor no longer uses Bootstrap 4 classes removed in Bootstrap 5.

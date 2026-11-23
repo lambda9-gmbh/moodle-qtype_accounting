@@ -32,9 +32,6 @@
 class qtype_accounting_question extends question_graded_automatically {
     /** Maximum number of answer rows offered by the web and app interfaces. */
     public const MAX_ENTRIES = \qtype_accounting\entry_helper::MAX_ENTRIES;
-    /** @var int Chart of accounts ID. */
-    public $chartofaccountsid;
-
     /** @var int Number of accounts to show in dropdown (0 = all). */
     public $accountsindropdown;
 
@@ -71,7 +68,10 @@ class qtype_accounting_question extends question_graded_automatically {
     /** @var int|null Random seed for deterministic dropdown filtering. */
     public $dropdownseed;
 
-    /** @var array Map of account ID => account name for display lookups. */
+    /** @var array The question's accounts as records with id (the account key) and accountname, sorted by name. */
+    public $accounts = [];
+
+    /** @var array Map of account key => account name for display lookups. */
     public $accountsmap = [];
 
     /**
@@ -382,6 +382,28 @@ class qtype_accounting_question extends question_graded_automatically {
                 $this->$rule = $value === '1';
             }
         }
+    }
+
+    /**
+     * Allow regrading with another version only if it keeps every account of this version.
+     *
+     * Responses store account keys; a key that is missing or names another account in the
+     * other version would silently change the meaning of saved responses.
+     *
+     * @param question_definition $otherversion The other version of this question.
+     * @return string|null An explanation why regrading is not possible, or null if it is.
+     */
+    public function validate_can_regrade_with_other_version(question_definition $otherversion): ?string {
+        $message = parent::validate_can_regrade_with_other_version($otherversion);
+        if ($message) {
+            return $message;
+        }
+        foreach ($this->accountsmap as $key => $name) {
+            if (($otherversion->accountsmap[$key] ?? null) !== $name) {
+                return get_string('regradeaccountschanged', 'qtype_accounting');
+            }
+        }
+        return null;
     }
 
     /**

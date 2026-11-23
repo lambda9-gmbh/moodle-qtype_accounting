@@ -37,7 +37,9 @@ use Behat\Gherkin\Node\TableNode;
  */
 class behat_qtype_accounting extends behat_base {
     /**
-     * Create questions using real chart account IDs instead of obsolete text answers.
+     * Create questions with their own account list.
+     *
+     * Every question offers the accounts 1200, 8400, 9998 and 9999 and the accounts of its answer.
      *
      * @Given /^the following accounting questions exist:$/
      * @param TableNode $table Question data, including account names and amounts.
@@ -47,30 +49,20 @@ class behat_qtype_accounting extends behat_base {
         $generator = testing_util::get_data_generator()->get_plugin_generator('core_question');
         foreach ($table->getHash() as $data) {
             $category = $DB->get_record('question_categories', ['name' => $data['questioncategory']], '*', MUST_EXIST);
-            // Charts belong to the question bank of the category, just as they do when created in the editor.
-            $chartcontext = \qtype_accounting\chart_manager::get_chart_context(\context::instance_by_id($category->contextid));
-            $chart = \qtype_accounting\chart_manager::get_chart_by_name('Accounting test chart', $chartcontext->id);
-            $chartid = $chart ? $chart->id : \qtype_accounting\chart_manager::create_chart(
-                'Accounting test chart',
-                $chartcontext->id
-            );
-            $names = ['1200', '8400', '9998', '9999', $data['debitaccount'] ?? '1200', $data['creditaccount'] ?? '8400'];
-            foreach (array_unique($names) as $name) {
-                if (!$DB->record_exists('qtype_accounting_accounts', ['chartid' => $chartid, 'accountname' => $name])) {
-                    \qtype_accounting\account_manager::add($chartid, $name);
-                }
-            }
+            $names = array_values(array_unique(
+                ['1200', '8400', '9998', '9999', $data['debitaccount'] ?? '1200', $data['creditaccount'] ?? '8400']
+            ));
+            $keys = \qtype_accounting\question_accounts::assign_keys($names, []);
             $data['category'] = $category->id;
-            $data['chartofaccountsid'] = $chartid;
+            $data['accounts'] = $names;
+            $data['accountkeys'] = $keys;
             $data['numberformat'] = $data['numberformat'] ?? 'de';
             if (isset($data['questiontext'])) {
                 $data['questiontext'] = ['text' => $data['questiontext'], 'format' => FORMAT_HTML];
             }
             foreach (['debit', 'credit'] as $side) {
                 $name = $data[$side . 'account'] ?? ($side === 'debit' ? '1200' : '8400');
-                $data[$side . 'account'] = [$DB->get_field('qtype_accounting_accounts', 'id', [
-                    'chartid' => $chartid, 'accountname' => $name,
-                ], MUST_EXIST)];
+                $data[$side . 'account'] = [$keys[$name]];
                 $data[$side . 'amount'] = [(float)($data[$side . 'amount'] ?? 1000)];
             }
             unset($data['questioncategory'], $data['qtype']);
@@ -102,21 +94,16 @@ class behat_qtype_accounting extends behat_base {
     }
 
     /**
-     * Create chart options for question editor scenarios.
+     * Create a site-wide chart of accounts template.
      *
-     * @Given /^the accounting chart "([^"]*)" with accounts "([^"]*)" exists in course "([^"]*)"$/
-     * @param string $name Chart name.
+     * @Given /^the accounting chart template "([^"]*)" with accounts "([^"]*)" exists$/
+     * @param string $name Template name.
      * @param string $accounts Comma-separated account names.
-     * @param string $coursename Course full name.
      */
-    public function accounting_chart_exists(string $name, string $accounts, string $coursename): void {
-        global $DB;
-        $course = $DB->get_record('course', ['fullname' => $coursename], '*', MUST_EXIST);
-        // The chart belongs to the course's question bank.
-        $context = \qtype_accounting\chart_manager::get_chart_context(context_course::instance($course->id));
-        $chartid = \qtype_accounting\chart_manager::create_chart($name, $context->id);
-        foreach (explode(',', $accounts) as $account) {
-            \qtype_accounting\account_manager::add($chartid, trim($account));
+    public function accounting_chart_template_exists(string $name, string $accounts): void {
+        $chartid = \qtype_accounting\chart_manager::create_chart($name, \context_system::instance()->id);
+        foreach (explode(',', $accounts) as $sortorder => $account) {
+            \qtype_accounting\account_manager::add($chartid, trim($account), $sortorder);
         }
     }
 }

@@ -37,7 +37,6 @@ class qtype_accounting_generator extends component_generator_base {
      */
     public function get_default_question_data(): array {
         return [
-            'chartofaccountsid' => 0,
             'allowmultipleentries' => 0,
             'maxentries' => 5,
             'debitaccount' => ['1200 Bank'],
@@ -62,7 +61,6 @@ class qtype_accounting_generator extends component_generator_base {
         $questiondata = new stdClass();
 
         // Set defaults.
-        $questiondata->chartofaccountsid = $data['chartofaccountsid'] ?? 0;
         $questiondata->allowmultipleentries = $data['allowmultipleentries'] ?? 0;
         $questiondata->maxentries = $data['maxentries'] ?? 5;
 
