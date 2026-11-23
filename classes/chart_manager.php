@@ -159,17 +159,24 @@ class chart_manager {
     }
 
     /**
-     * Export accounts to text file (one name per line, no header).
+     * Export accounts as a single-column CSV file (one account per line, no header).
+     *
+     * Names containing a comma, a double quote or a line break are quoted as in RFC 4180;
+     * other names are written as they are, so the file stays readable as a plain list.
      *
      * @param int $chartid Chart ID.
-     * @return string Text content with one account name per line.
+     * @return string CSV content with one account name per record.
      */
     public static function export_to_csv(int $chartid): string {
         $accounts = account_manager::get_for_chart($chartid);
 
         $output = '';
         foreach ($accounts as $account) {
-            $output .= $account->accountname . "\n";
+            $name = $account->accountname;
+            if (preg_match('/[",\r\n]/', $name)) {
+                $name = '"' . str_replace('"', '""', $name) . '"';
+            }
+            $output .= $name . "\n";
         }
 
         return $output;

@@ -30,6 +30,7 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - Course charts of accounts with their management pages in the course, the capability `qtype/accounting:managecharts`, and the chart selection in the question form; questions have their own accounts instead.
 
 ### Fixed
+- Template downloads quote account names containing commas, quotes or line breaks as CSV fields, and imports read such quoted names back.
 - The question editor's no-submit buttons (copy accounts, update rows) no longer run the client-side validation of the correct answer.
 - Numeric account names such as `1200` are kept as text when importing Moodle XML.
 - Card view labels are linked to their controls, delete buttons there have accessible names, and account selects use the full card width.

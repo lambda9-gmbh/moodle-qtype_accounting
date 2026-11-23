@@ -367,4 +367,35 @@ final class import_helper_test extends \advanced_testcase {
         // Should NOT contain old-style CSV headers.
         $this->assertStringNotContainsString('Liste;Accountkl;Accountnr;Name', $output);
     }
+
+    /**
+     * Names with commas, quotes and line breaks survive an export and re-import.
+     */
+    public function test_export_import_round_trip(): void {
+        $this->resetAfterTest();
+
+        $names = ['1200 Bank', 'Bank, Girokonto', 'Konto "A"', "Zwei\nZeilen"];
+        $chartid = chart_manager::create_chart('Round trip', \context_system::instance()->id);
+        foreach ($names as $sortorder => $name) {
+            account_manager::add($chartid, $name, $sortorder);
+        }
+
+        $output = chart_manager::export_to_csv($chartid);
+        $this->assertStringContainsString("1200 Bank\n", $output);
+        $this->assertStringContainsString('"Bank, Girokonto"', $output);
+
+        $result = import_helper::parse_csv($output);
+        $this->assertEqualsCanonicalizing($names, array_column($result['accounts'], 'accountname'));
+    }
+
+    /**
+     * Unquoted lines are still read verbatim, including commas and quotes inside them.
+     */
+    public function test_parse_csv_keeps_unquoted_lines(): void {
+        $result = import_helper::parse_csv("1200 Bank, Giro\r\nKonto \"A\" x\n\"Quoted, name\"\n");
+        $this->assertSame(
+            ['1200 Bank, Giro', 'Konto "A" x', 'Quoted, name'],
+            array_column($result['accounts'], 'accountname')
+        );
+    }
 }

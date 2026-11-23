@@ -161,7 +161,8 @@ class import_helper {
     /**
      * Parse text data into chart information.
      *
-     * Each non-empty line = one account name (verbatim).
+     * Each non-empty line = one account name (verbatim). A name enclosed in double quotes is read
+     * as a CSV field, so names with commas, quotes or line breaks survive an export and re-import.
      * Duplicate names are skipped (first occurrence kept).
      * If the first non-empty line matches a known header keyword, it is skipped.
      *
@@ -172,7 +173,7 @@ class import_helper {
      */
     public static function parse_csv(string $data, string $filename = ''): array {
         $data = self::normalize_encoding($data);
-        $lines = preg_split('/\r\n|\r|\n/', trim($data));
+        $lines = self::read_lines(trim($data));
         if (empty($lines)) {
             throw new \Exception(get_string('csvempty', 'qtype_accounting'));
         }
@@ -221,6 +222,27 @@ class import_helper {
             'chartname' => $chartname,
             'accounts' => $accounts,
         ];
+    }
+
+    /**
+     * Split text into lines, reading lines that start with a double quote as quoted CSV fields.
+     *
+     * Only the double quote is special: commas and semicolons stay part of the name, as in earlier exports.
+     *
+     * @param string $data UTF-8 text.
+     * @return string[] The lines, with quoted fields unquoted.
+     */
+    private static function read_lines(string $data): array {
+        $handle = fopen('php://temp', 'r+');
+        fwrite($handle, preg_replace('/\r\n?/', "\n", $data));
+        rewind($handle);
+        $lines = [];
+        // The unit separator never occurs in names, so every line is read as one field.
+        while (($row = fgetcsv($handle, null, "\x1F", '"', '')) !== false) {
+            $lines[] = (string)($row[0] ?? '');
+        }
+        fclose($handle);
+        return $lines;
     }
 
     /**
