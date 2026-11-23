@@ -286,6 +286,17 @@ final class question_test extends \advanced_testcase {
         $this->assertNull($question->classify_response([])[$question->id]->responseclassid);
     }
 
+    /**
+     * The right answer summary lists the correct entries.
+     */
+    public function test_get_right_answer_summary(): void {
+        $question = \test_question_maker::make_question('accounting', 'simple_debit_credit');
+        $this->assertSame(
+            $question->summarise_response($question->get_correct_response()),
+            $question->get_right_answer_summary()
+        );
+        $this->assertStringContainsString('1000.00', $question->get_right_answer_summary());
+    }
 
     /**
      * The declared response fields include all rows permitted by both interfaces.

@@ -177,6 +177,15 @@ class qtype_accounting_question extends question_graded_automatically {
     }
 
     /**
+     * Summarise the correct answer for reports and statistics.
+     *
+     * @return string|null The summary of the correct response.
+     */
+    public function get_right_answer_summary(): ?string {
+        return $this->summarise_response($this->get_correct_response());
+    }
+
+    /**
      * Check if a response is complete.
      *
      * @param array $response The response data.
