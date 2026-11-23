@@ -96,8 +96,8 @@ class qtype_accounting_question extends question_graded_automatically {
      * Get the expected data keys for the question.
      *
      * Declares all fields offered by the web and app interfaces, retaining larger
-     * imported solutions. Uses PARAM_RAW for amounts to preserve empty
-     * strings (PARAM_FLOAT converts them to 0).
+     * imported solutions. Account keys are integers, 0 meaning no account. Amounts use
+     * PARAM_RAW to preserve empty strings (PARAM_FLOAT converts them to 0).
      *
      * @return array The expected data keys and their types.
      */
@@ -107,9 +107,9 @@ class qtype_accounting_question extends question_graded_automatically {
         // Match the explicit UI limit, retaining support for larger imported questions.
         $maxindex = max(self::MAX_ENTRIES, count($this->entries)) - 1;
         for ($i = 0; $i <= $maxindex; $i++) {
-            $expected["debitaccount_{$i}"] = PARAM_RAW;
+            $expected["debitaccount_{$i}"] = PARAM_INT;
             $expected["debitamount_{$i}"] = PARAM_RAW;
-            $expected["creditaccount_{$i}"] = PARAM_RAW;
+            $expected["creditaccount_{$i}"] = PARAM_INT;
             $expected["creditamount_{$i}"] = PARAM_RAW;
         }
 

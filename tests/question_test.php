@@ -94,7 +94,8 @@ final class question_test extends \advanced_testcase {
         $this->assertArrayHasKey('debitamount_0', $expected);
         $this->assertArrayHasKey('creditaccount_0', $expected);
         $this->assertArrayHasKey('creditamount_0', $expected);
-        $this->assertEquals(PARAM_RAW, $expected['debitaccount_0']);
+        $this->assertEquals(PARAM_INT, $expected['debitaccount_0']);
+        $this->assertEquals(PARAM_INT, $expected['creditaccount_0']);
         $this->assertEquals(PARAM_RAW, $expected['debitamount_0']);
     }
 
