@@ -87,7 +87,7 @@ After submission, every field is highlighted individually — green for correct,
 
 ## Requirements
 
-- **Moodle 4.5 LTS** or later (build `2024100700`+). Verified against branches **4.5 LTS through 5.1**.
+- **Moodle 4.5.2** or later (build `2024100702`+), which provides the question identity hash API used on restore (MDL-83541). Verified against branches **4.5 LTS through 5.1**.
 - **PHP 8.1** or later (8.2 recommended).
 - A supported database — verified against **MariaDB 10.11** and **PostgreSQL 16**.
 
