@@ -47,8 +47,8 @@ class chart_manager {
         $chart = new \stdClass();
         $chart->name = $name;
         $chart->contextid = $contextid;
-        $chart->timecreated = time();
-        $chart->timemodified = time();
+        $chart->timecreated = \core\di::get(\core\clock::class)->time();
+        $chart->timemodified = $chart->timecreated;
         $chart->usermodified = $USER->id;
 
         return $DB->insert_record('qtype_accounting_charts', $chart);
@@ -66,7 +66,7 @@ class chart_manager {
 
         $chart = $DB->get_record('qtype_accounting_charts', ['id' => $chartid], '*', MUST_EXIST);
         $chart->name = $name;
-        $chart->timemodified = time();
+        $chart->timemodified = \core\di::get(\core\clock::class)->time();
         $chart->usermodified = $USER->id;
 
         return $DB->update_record('qtype_accounting_charts', $chart);

@@ -47,6 +47,7 @@ final class chart_manager_test extends \advanced_testcase {
     public function test_create_and_get_chart(): void {
         $this->resetAfterTest();
 
+        $clock = $this->mock_clock_with_frozen(1700000000);
         $contextid = \context_system::instance()->id;
         $chartid = chart_manager::create_chart('SKR03', $contextid);
 
@@ -56,8 +57,14 @@ final class chart_manager_test extends \advanced_testcase {
         $this->assertNotFalse($chart);
         $this->assertEquals('SKR03', $chart->name);
         $this->assertEquals($contextid, $chart->contextid);
-        $this->assertGreaterThan(0, $chart->timecreated);
-        $this->assertGreaterThan(0, $chart->timemodified);
+        $this->assertEquals(1700000000, $chart->timecreated);
+        $this->assertEquals(1700000000, $chart->timemodified);
+
+        $clock->bump(60);
+        chart_manager::update_chart($chartid, 'SKR04');
+        $chart = chart_manager::get_chart($chartid);
+        $this->assertEquals(1700000000, $chart->timecreated);
+        $this->assertEquals(1700000060, $chart->timemodified);
     }
 
     /**
