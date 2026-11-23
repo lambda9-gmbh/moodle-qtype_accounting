@@ -68,6 +68,35 @@ final class chart_manager_test extends \advanced_testcase {
     }
 
     /**
+     * Creating, changing and deleting a template trigger events.
+     */
+    public function test_events(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $sink = $this->redirectEvents();
+
+        $chartid = chart_manager::create_chart('SKR03', \context_system::instance()->id);
+        chart_manager::update_chart($chartid, 'SKR04');
+        chart_manager::accounts_changed($chartid);
+        chart_manager::delete_chart($chartid);
+
+        $events = $sink->get_events();
+        $this->assertSame(
+            [
+                event\chart_created::class,
+                event\chart_updated::class,
+                event\chart_updated::class,
+                event\chart_deleted::class,
+            ],
+            array_map('get_class', $events)
+        );
+        foreach ($events as $event) {
+            $this->assertEquals($chartid, $event->objectid);
+            $this->assertEquals(\context_system::instance(), $event->get_context());
+        }
+    }
+
+    /**
      * Test get_chart returns false for non-existent chart.
      */
     public function test_get_chart_not_found(): void {

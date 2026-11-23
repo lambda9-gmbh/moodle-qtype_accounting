@@ -55,8 +55,9 @@ function qtype_accounting_inplace_editable($itemtype, $itemid, $newvalue) {
     if ($itemtype === 'accountname') {
         $account = $DB->get_record('qtype_accounting_accounts', ['id' => (int)$itemid], '*', MUST_EXIST);
         chart_page::get_template((int)$account->chartid);
-        if ($newvalue !== '') {
+        if ($newvalue !== '' && $newvalue !== $account->accountname) {
             account_manager::update((int)$account->id, $newvalue);
+            chart_manager::accounts_changed((int)$account->chartid);
         }
         return chart_page::account_name_editable(
             $DB->get_record('qtype_accounting_accounts', ['id' => (int)$account->id], '*', MUST_EXIST)

@@ -8,6 +8,7 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 ## [Unreleased]
 
 ### Added
+- Events when chart of accounts templates are created, changed (including their accounts) or deleted.
 - Points grading mode: one point per account-amount pair, with the default mark derived from the correct answer, site-wide rules for strict pairs and accounts without amounts, and a point deduction per extra account.
 - Chart of accounts templates managed on the plugin settings page; teachers copy their accounts into questions with **Copy accounts from**, which also offers the other questions of the same question bank.
 - Site settings to hide the leading "Dr." / "Per" column, set the minimum width of the amount inputs, and hide the "Number of additional accounts in selection list" option.

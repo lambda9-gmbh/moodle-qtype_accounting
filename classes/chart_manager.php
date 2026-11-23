@@ -51,7 +51,9 @@ class chart_manager {
         $chart->timemodified = $chart->timecreated;
         $chart->usermodified = $USER->id;
 
-        return $DB->insert_record('qtype_accounting_charts', $chart);
+        $chartid = $DB->insert_record('qtype_accounting_charts', $chart);
+        event\chart_created::create_from_chartid($chartid)->trigger();
+        return $chartid;
     }
 
     /**
@@ -69,7 +71,25 @@ class chart_manager {
         $chart->timemodified = \core\di::get(\core\clock::class)->time();
         $chart->usermodified = $USER->id;
 
-        return $DB->update_record('qtype_accounting_charts', $chart);
+        $DB->update_record('qtype_accounting_charts', $chart);
+        event\chart_updated::create_from_chartid($chartid)->trigger();
+        return true;
+    }
+
+    /**
+     * Record a change of the accounts of a chart: update its modification time and trigger the event.
+     *
+     * @param int $chartid Chart ID.
+     */
+    public static function accounts_changed(int $chartid): void {
+        global $DB, $USER;
+
+        $DB->update_record('qtype_accounting_charts', (object)[
+            'id' => $chartid,
+            'timemodified' => \core\di::get(\core\clock::class)->time(),
+            'usermodified' => $USER->id,
+        ]);
+        event\chart_updated::create_from_chartid($chartid)->trigger();
     }
 
     /**
@@ -92,6 +112,7 @@ class chart_manager {
         } catch (\Exception $exception) {
             $transaction->rollback($exception);
         }
+        event\chart_deleted::create_from_chartid($chartid)->trigger();
         return $result;
     }
 

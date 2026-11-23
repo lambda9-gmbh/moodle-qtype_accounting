@@ -28,6 +28,7 @@
 require_once(__DIR__ . '/../../../config.php'); // phpcs:ignore moodle.Files.RequireLogin.Missing
 
 use qtype_accounting\account_manager;
+use qtype_accounting\chart_manager;
 use qtype_accounting\local\chart_page;
 
 $chartid = required_param('chartid', PARAM_INT);
@@ -50,6 +51,7 @@ if ($action === 'deleteaccount' && $accountid) {
     if (data_submitted() && optional_param('confirm', 0, PARAM_BOOL)) {
         require_sesskey();
         account_manager::delete($accountid);
+        chart_manager::accounts_changed($chartid);
         redirect($baseurl, get_string('accountdeleted', 'qtype_accounting'), null, \core\output\notification::NOTIFY_SUCCESS);
     }
     echo $OUTPUT->header();
@@ -75,6 +77,9 @@ if ($importform->get_data()) {
         redirect($baseurl, get_string('csvfilerequired', 'qtype_accounting'), null, \core\output\notification::NOTIFY_ERROR);
     }
     $result = account_manager::import_into_chart($chartid, $file->get_content(), $file->get_filename());
+    if ($result['imported'] > 0) {
+        chart_manager::accounts_changed($chartid);
+    }
     chart_page::redirect_import_result($baseurl, $result);
 }
 

@@ -17,6 +17,7 @@
 namespace qtype_accounting\form;
 
 use qtype_accounting\account_manager;
+use qtype_accounting\chart_manager;
 use qtype_accounting\local\chart_page;
 
 /**
@@ -91,7 +92,9 @@ class account_form extends \core_form\dynamic_form {
             'SELECT MAX(sortorder) FROM {qtype_accounting_accounts} WHERE chartid = ?',
             [$chartid]
         );
-        return ['id' => account_manager::add($chartid, trim($data->accountname), $sortorder + 1)];
+        $accountid = account_manager::add($chartid, trim($data->accountname), $sortorder + 1);
+        chart_manager::accounts_changed($chartid);
+        return ['id' => $accountid];
     }
 
     /**
