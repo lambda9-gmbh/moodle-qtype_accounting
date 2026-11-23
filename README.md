@@ -190,7 +190,7 @@ To share accounts:
 - **Within a question bank**, choose another question in **Copy accounts from** and click **Copy**. Its accounts are copied into the question.
 - **Across the site**, administrators provide chart of accounts templates on the plugin's settings page (**Site administration → Plugins → Question types → Accounting Entry**). The page lists the templates with edit, download and delete actions; **Create or upload a chart of accounts template** creates a template directly or from a CSV, text or ODS file. Managing templates requires `moodle/site:config`. Templates appear in **Copy accounts from** in every question form.
 
-On a template you can rename it and add, edit or delete accounts, import further accounts from a file, or download it. As questions keep their own copy, changing or deleting a template only affects questions that copy its accounts later. Duplicate account names are rejected, and a failed import leaves existing data intact.
+On a template you can rename it and its accounts in place (click the name), add accounts in a dialogue, delete accounts, import further accounts from a file, or download it as CSV. As questions keep their own copy, changing or deleting a template only affects questions that copy its accounts later. Duplicate account names are rejected, and a failed import leaves existing data intact.
 
 The editor and student interfaces support up to 100 entry rows. Existing imported
 solutions above that limit remain supported. Without JavaScript, enter the accounts
@@ -366,14 +366,14 @@ moodle-qtype_accounting/                 # Plugin root; unpacks to question/type
 │   │   ├── editform.js                  # Authoring form setup and input handlers
 │   │   ├── editform/                    # Authoring form modules: state, fields, field_states, accounts, rows, validation
 │   │   ├── entry_utils.js               # Shared helpers
-│   │   ├── manage_charts.js             # Delete confirmations on the template pages
+│   │   ├── manage_charts.js             # Delete confirmations and the add account dialogue on the template pages
 │   │   ├── mobile_layout.js             # Card layout for narrow questions
 │   │   └── question.js                  # Student quiz interaction
 │   └── build/                           # Minified output (committed)
 ├── backup/moodle2/                      # Backup + restore handlers
 ├── classes/                             # Autoloaded under qtype_accounting\
 │   ├── admin/setting_sitecharts.php     # Template list on the settings page
-│   ├── form/                            # Template create and file upload forms
+│   ├── form/                            # Template create, file upload and add account (modal) forms
 │   ├── local/chart_page.php             # Shared setup of the template pages
 │   ├── output/                          # Renderables for the templates, Moodle App handler
 │   ├── privacy/provider.php             # Privacy API
@@ -401,13 +401,14 @@ moodle-qtype_accounting/                 # Plugin root; unpacks to question/type
 │   ├── en/qtype_accounting.php          # English (shipped)
 │   └── de/qtype_accounting.php          # German (dev-only; export-ignored)
 ├── pix/icon.svg                         # Question-type icon
-├── templates/                           # Mustache templates (question, answer, feedback, editor table, app)
+├── templates/                           # Mustache templates (question, answer, feedback, editor table, app, template pages)
 ├── tests/
 │   ├── behat/                           # Acceptance tests
 │   ├── generator/                       # Test data generator
 │   └── *_test.php                       # PHPUnit tests
 ├── edit_accounting_form.php             # Question authoring form
 ├── edit_chart.php                       # Edit a template's accounts
+├── lib.php                              # In-place renaming of templates and their accounts
 ├── manage_charts.php                    # Create, upload, export and delete templates
 ├── question.php                         # qtype_accounting_question
 ├── questiontype.php                     # qtype_accounting (question_type)

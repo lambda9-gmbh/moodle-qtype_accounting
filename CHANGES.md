@@ -20,6 +20,7 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - Chart of accounts templates can be created directly in Moodle by entering a name, then adding accounts in the editor without uploading a CSV file.
 
 ### Changed
+- Template pages use Moodle's building blocks: templates and their accounts are renamed in place, accounts are added in a modal form, deletions are confirmed in modals, and the lists are Mustache templates.
 - Requires Moodle 4.5.2, which provides the question identity hash API used to avoid duplicate questions on restore (MDL-83541).
 - Each question version has its own account list (`qtype_accounting_qaccounts`), entered in the question form one account per line. Changing a template, another question or a later version no longer changes existing questions, their correct answers or their attempts. Accounts keep their key across versions while their name is unchanged; regrading with another version is refused if that version does not keep every account. The upgrade copies each course chart's accounts into the questions using it, with the former account IDs as keys, so correct answers and saved attempts stay valid; course charts are then removed and site-wide charts remain as templates. Backups and XML exports of earlier versions are imported the same way.
 - The question editor's JavaScript is split into modules under `amd/src/editform/` (state, hidden fields, field states, accounts, entry rows, validation); `editform.js` only sets up the form.

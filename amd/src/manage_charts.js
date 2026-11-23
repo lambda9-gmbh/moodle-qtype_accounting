@@ -14,7 +14,7 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Confirm chart deletion in a Moodle modal.
+ * Actions on the chart of accounts template pages: delete confirmations and adding accounts in a modal form.
  *
  * @module     qtype_accounting/manage_charts
  * @copyright  2026 lambda9
@@ -22,39 +22,62 @@
  */
 
 import {deleteCancelPromise} from 'core/notification';
+import ModalForm from 'core_form/modalform';
+import {getString} from 'core/str';
 
 /**
- * Attach confirmation modals to chart deletion links.
+ * Post a confirmed deletion link with the session key.
+ *
+ * @param {HTMLAnchorElement} link The deletion link.
+ */
+const postDeletion = link => {
+    const url = new URL(link.href);
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = url.origin + url.pathname;
+    url.searchParams.set('confirm', '1');
+    url.searchParams.set('sesskey', M.cfg.sesskey);
+    url.searchParams.forEach((value, name) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    form.requestSubmit();
+};
+
+/**
+ * Attach confirmation modals to deletion links and the modal form to the add account button.
  */
 export const init = () => {
-    document.querySelectorAll('[data-action="qtype_accounting-delete-chart"]').forEach(link => {
-        link.addEventListener('click', event => {
+    document.addEventListener('click', event => {
+        const link = event.target.closest('[data-action="qtype_accounting-delete"]');
+        if (link) {
             event.preventDefault();
             deleteCancelPromise(
                 link.dataset.confirmationTitle,
                 link.dataset.confirmationMessage,
                 link.dataset.confirmationTitle
-            ).then(() => {
-                const url = new URL(link.href);
-                const form = document.createElement('form');
-                form.method = 'post';
-                form.action = url.origin + url.pathname;
-                url.searchParams.set('confirm', '1');
-                url.searchParams.set('sesskey', M.cfg.sesskey);
-                url.searchParams.forEach((value, name) => {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = name;
-                    input.value = value;
-                    form.appendChild(input);
-                });
-                document.body.appendChild(form);
-                form.requestSubmit();
-                return;
-            }).catch(() => {
-                // Cancelling or dismissing the modal leaves the chart unchanged.
+            ).then(() => postDeletion(link)).catch(() => {
+                // Cancelling or dismissing the modal leaves the template unchanged.
                 return;
             });
-        });
+            return;
+        }
+        const button = event.target.closest('[data-action="qtype_accounting-add-account"]');
+        if (button) {
+            event.preventDefault();
+            const modal = new ModalForm({
+                formClass: 'qtype_accounting\\form\\account_form',
+                args: {chartid: button.dataset.chartid},
+                modalConfig: {title: getString('addaccount', 'qtype_accounting')},
+                saveButtonText: getString('addaccount', 'qtype_accounting'),
+                returnFocus: button,
+            });
+            modal.addEventListener(modal.events.FORM_SUBMITTED, () => window.location.reload());
+            modal.show();
+        }
     });
 };

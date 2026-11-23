@@ -23,7 +23,6 @@
  */
 
 $string['account'] = 'Account';
-$string['accountadded'] = 'Account added successfully.';
 $string['accountdeleted'] = 'Account deleted successfully.';
 $string['accountlist'] = 'Accounts of this question';
 $string['accountlist_help'] = 'Enter the accounts students can choose from, one per line, for example <code>1200 Bank</code>. The question keeps its own copy of these accounts: later changes to templates or other questions do not affect it. Renaming or removing an account in a new version means that attempts of earlier versions cannot be regraded with it.';
@@ -34,7 +33,6 @@ $string['accountsindropdown'] = 'Number of additional accounts in selection list
 $string['accountsindropdown_help'] = 'The number of random additional accounts to show in the dropdown selection list alongside the correct account. All includes every account from the selected chart. Leaving the field empty or entering 0 also selects All. For example, entering 3 will show the correct account plus 3 random accounts (4 total).';
 $string['accountsonlyexception'] = 'Points mode: one point for correct accounts without amounts';
 $string['accountsonlyexception_desc'] = 'If enabled, a student who names exactly the correct accounts on both sides (none missing, none extra) but enters no amounts at all receives one point in points mode, instead of no points when only fully correct pairs count. The teacher\'s correct answer always contains accounts and amounts.';
-$string['accountupdated'] = 'Account updated successfully.';
 $string['addaccount'] = 'Add Account';
 $string['addchart'] = 'Add new chart';
 $string['addcreditentry'] = 'Add Credit Entry';
@@ -61,7 +59,6 @@ $string['chartimportsuccess'] = '{$a} accounts imported successfully';
 $string['chartname'] = 'Chart name';
 $string['chartnotfound'] = 'Chart of accounts not found.';
 $string['chartofaccounts_section'] = 'Chart of Accounts';
-$string['chartrenamed'] = 'Chart of accounts renamed successfully.';
 $string['confirmdelete'] = 'Are you sure you want to permanently delete the chart of accounts template "{$a}"? All accounts in this template will also be deleted. Questions that copied its accounts keep their own copy. This action cannot be undone.';
 $string['confirmdeleteaccount'] = 'Are you sure you want to delete this account?';
 $string['copyaccounts'] = 'Copy';
@@ -122,8 +119,10 @@ $string['deletecredit'] = 'Delete credit entry';
 $string['deletedebit'] = 'Delete debit entry';
 $string['deleteentry'] = 'Delete';
 $string['distributegradesequally'] = 'Distribute equally';
+$string['editaccountname'] = 'Edit account name';
 $string['editaccounts'] = 'Edit Accounts';
 $string['editchart'] = 'Edit chart';
+$string['editchartname'] = 'Edit chart name';
 $string['enteraccount'] = 'Enter account number';
 $string['entriesimported'] = 'entries imported.';
 $string['entry'] = 'Entry {no}';
@@ -186,6 +185,8 @@ Use tab, semicolon, or comma as delimiter. German number format (1.234,56) is su
 $string['importlineerror'] = 'Error on line {$a}';
 $string['importsuccess'] = 'Import successful! ';
 $string['maxentries'] = 'Maximum entries';
+$string['newaccountname'] = 'New name for account {$a}';
+$string['newchartname'] = 'New name for chart {$a}';
 $string['noaccounts'] = 'No accounts in this chart yet.';
 $string['noaccountselected'] = 'No account selected';
 $string['nocharts'] = 'No charts of accounts have been created yet.';

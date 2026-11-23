@@ -16,8 +16,6 @@
 
 namespace qtype_accounting\admin;
 
-use html_table;
-use html_writer;
 use moodle_url;
 use qtype_accounting\chart_manager;
 
@@ -70,49 +68,35 @@ class setting_sitecharts extends \admin_setting {
         global $DB, $OUTPUT, $PAGE;
 
         $manageurl = new moodle_url('/question/type/accounting/manage_charts.php');
-        $html = html_writer::div(
-            html_writer::link($manageurl, get_string('sitecharts_add', 'qtype_accounting'), ['class' => 'btn btn-secondary']),
-            'mb-3'
-        );
-
         $charts = chart_manager::get_charts_for_context(\context_system::instance()->id);
-        if (!$charts) {
-            return $html . html_writer::tag('p', get_string('nocharts', 'qtype_accounting'), ['class' => 'alert alert-info']);
+        $counts = [];
+        if ($charts) {
+            [$insql, $params] = $DB->get_in_or_equal(array_keys($charts));
+            $counts = $DB->get_records_sql_menu(
+                "SELECT chartid, COUNT(1) FROM {qtype_accounting_accounts} WHERE chartid $insql GROUP BY chartid",
+                $params
+            );
         }
-
-        [$insql, $params] = $DB->get_in_or_equal(array_keys($charts));
-        $counts = $DB->get_records_sql_menu(
-            "SELECT chartid, COUNT(1) FROM {qtype_accounting_accounts} WHERE chartid $insql GROUP BY chartid",
-            $params
-        );
-        $table = new html_table();
-        $table->attributes['class'] = 'generaltable';
-        $table->head = [
-            get_string('chartname', 'qtype_accounting'),
-            get_string('accounts', 'qtype_accounting'),
-            get_string('importdate', 'qtype_accounting'),
-            get_string('actions'),
-        ];
+        $rows = [];
         foreach ($charts as $chart) {
-            $name = format_string($chart->name);
-            $editurl = new moodle_url('/question/type/accounting/edit_chart.php', ['chartid' => $chart->id]);
-            $exporturl = new moodle_url($manageurl, ['action' => 'export', 'chartid' => $chart->id]);
-            $deleteurl = new moodle_url($manageurl, ['action' => 'delete', 'chartid' => $chart->id]);
-            $actions = html_writer::link($editurl, $OUTPUT->pix_icon('t/edit', get_string('edit'))) . ' '
-                . html_writer::link($exporturl, $OUTPUT->pix_icon('i/export', get_string('exportaccounts', 'qtype_accounting')))
-                . ' ' . html_writer::link($deleteurl, $OUTPUT->pix_icon('t/delete', get_string('delete')), [
-                    'data-action' => 'qtype_accounting-delete-chart',
-                    'data-confirmation-title' => get_string('deletechart', 'qtype_accounting'),
-                    'data-confirmation-message' => get_string('confirmdelete', 'qtype_accounting', $name),
-                ]);
-            $table->data[] = [
-                html_writer::link($editurl, $name),
-                (int)($counts[$chart->id] ?? 0),
-                userdate($chart->timecreated, get_string('strftimedatetimeshort', 'core_langconfig')),
-                $actions,
+            $name = format_string($chart->name, true, ['context' => \context_system::instance()]);
+            $rows[] = [
+                'name' => $name,
+                'editurl' => (new moodle_url('/question/type/accounting/edit_chart.php', ['chartid' => $chart->id]))->out(false),
+                'exporturl' => (new moodle_url($manageurl, ['action' => 'export', 'chartid' => $chart->id]))->out(false),
+                'deleteurl' => (new moodle_url($manageurl, ['action' => 'delete', 'chartid' => $chart->id]))->out(false),
+                'confirmmessage' => get_string('confirmdelete', 'qtype_accounting', $name),
+                'accountcount' => (int)($counts[$chart->id] ?? 0),
+                'created' => userdate($chart->timecreated, get_string('strftimedatetimeshort', 'core_langconfig')),
             ];
         }
-        $PAGE->requires->js_call_amd('qtype_accounting/manage_charts', 'init');
-        return $html . html_writer::table($table);
+        if ($rows) {
+            $PAGE->requires->js_call_amd('qtype_accounting/manage_charts', 'init');
+        }
+        return $OUTPUT->render_from_template('qtype_accounting/site_charts', [
+            'manageurl' => $manageurl->out(false),
+            'hascharts' => !empty($rows),
+            'charts' => $rows,
+        ]);
     }
 }

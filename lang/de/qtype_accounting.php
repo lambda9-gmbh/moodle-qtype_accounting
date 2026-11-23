@@ -23,7 +23,6 @@
  */
 
 $string['account'] = 'Konto';
-$string['accountadded'] = 'Konto erfolgreich hinzugefügt.';
 $string['accountdeleted'] = 'Konto erfolgreich gelöscht.';
 $string['accountlist'] = 'Konten dieser Frage';
 $string['accountlist_help'] = 'Geben Sie die Konten ein, aus denen Studierende wählen können, eins pro Zeile, zum Beispiel <code>1200 Bank</code>. Die Frage behält eine eigene Kopie dieser Konten: Spätere Änderungen an Vorlagen oder anderen Fragen wirken sich nicht auf sie aus. Wird ein Konto in einer neuen Version umbenannt oder entfernt, lassen sich Versuche früherer Versionen nicht mit ihr neu bewerten.';
@@ -34,7 +33,6 @@ $string['accountsindropdown'] = 'Anzahl zusätzlicher Konten in der Auswahlliste
 $string['accountsindropdown_help'] = 'Die Anzahl der zufälligen zusätzlichen Konten, die neben dem richtigen Konto in der Auswahlliste angezeigt werden sollen. Alle umfasst sämtliche Konten des ausgewählten Kontenplans. Ein leeres Feld oder die Eingabe von 0 wählt ebenfalls Alle. Beispiel: Bei Eingabe von 3 wird das richtige Konto plus 3 zufällige Konten angezeigt (4 insgesamt).';
 $string['accountsonlyexception'] = 'Punkte-Modus: ein Punkt für richtige Konten ohne Beträge';
 $string['accountsonlyexception_desc'] = 'Wenn aktiviert, erhalten Schülerinnen und Schüler im Punkte-Modus einen Punkt, wenn sie auf beiden Seiten genau die richtigen Konten nennen (keins fehlt, keins zu viel), aber keine Beträge eintragen – statt keinem Punkt, wenn nur vollständig richtige Paare zählen. Die Musterlösung der Lehrkraft enthält immer Konten und Beträge.';
-$string['accountupdated'] = 'Konto erfolgreich aktualisiert.';
 $string['addaccount'] = 'Konto hinzufügen';
 $string['addchart'] = 'Neuen Kontenplan hinzufügen';
 $string['addcreditentry'] = 'Habenbuchung hinzufügen';
@@ -61,7 +59,6 @@ $string['chartimportsuccess'] = '{$a} Konten erfolgreich importiert';
 $string['chartname'] = 'Name des Kontenplans';
 $string['chartnotfound'] = 'Kontenplan nicht gefunden.';
 $string['chartofaccounts_section'] = 'Kontenplan';
-$string['chartrenamed'] = 'Kontenplan erfolgreich umbenannt.';
 $string['confirmdelete'] = 'Möchten Sie die Kontenplan-Vorlage „{$a}“ wirklich endgültig löschen? Alle Konten dieser Vorlage werden ebenfalls gelöscht. Fragen, die ihre Konten übernommen haben, behalten ihre eigene Kopie. Dieser Vorgang kann nicht rückgängig gemacht werden.';
 $string['confirmdeleteaccount'] = 'Sind Sie sicher, dass Sie dieses Konto löschen möchten?';
 $string['copyaccounts'] = 'Übernehmen';
@@ -122,8 +119,10 @@ $string['deletecredit'] = 'Haben-Buchung löschen';
 $string['deletedebit'] = 'Soll-Buchung löschen';
 $string['deleteentry'] = 'Löschen';
 $string['distributegradesequally'] = 'Gleichmäßig verteilen';
+$string['editaccountname'] = 'Kontonamen bearbeiten';
 $string['editaccounts'] = 'Konten bearbeiten';
 $string['editchart'] = 'Kontenplan bearbeiten';
+$string['editchartname'] = 'Namen des Kontenplans bearbeiten';
 $string['enteraccount'] = 'Kontonummer eingeben';
 $string['entriesimported'] = 'Buchungen importiert.';
 $string['entry'] = 'Buchungszeile {no}';
@@ -186,6 +185,8 @@ Verwenden Sie Tab, Semikolon oder Komma als Trennzeichen. Deutsches Zahlenformat
 $string['importlineerror'] = 'Fehler in Zeile {$a}';
 $string['importsuccess'] = 'Import erfolgreich! ';
 $string['maxentries'] = 'Maximale Anzahl Buchungszeilen';
+$string['newaccountname'] = 'Neuer Name für Konto {$a}';
+$string['newchartname'] = 'Neuer Name für Kontenplan {$a}';
 $string['noaccounts'] = 'Noch keine Konten in diesem Kontenplan.';
 $string['noaccountselected'] = 'Kein Konto ausgewählt';
 $string['nocharts'] = 'Es wurden noch keine Kontenpläne erstellt.';

@@ -86,6 +86,46 @@ class chart_page {
     }
 
     /**
+     * Get the editable name of a template.
+     *
+     * @param \stdClass $chart The chart record.
+     * @return \core\output\inplace_editable The editable.
+     */
+    public static function chart_name_editable(\stdClass $chart): \core\output\inplace_editable {
+        $name = format_string($chart->name, true, ['context' => \context_system::instance()]);
+        return new \core\output\inplace_editable(
+            'qtype_accounting',
+            'chartname',
+            $chart->id,
+            true,
+            $name,
+            $chart->name,
+            get_string('editchartname', 'qtype_accounting'),
+            get_string('newchartname', 'qtype_accounting', $name)
+        );
+    }
+
+    /**
+     * Get the editable name of a template account.
+     *
+     * @param \stdClass $account The account record.
+     * @return \core\output\inplace_editable The editable.
+     */
+    public static function account_name_editable(\stdClass $account): \core\output\inplace_editable {
+        $name = format_string($account->accountname, true, ['context' => \context_system::instance()]);
+        return new \core\output\inplace_editable(
+            'qtype_accounting',
+            'accountname',
+            $account->id,
+            true,
+            $name,
+            $account->accountname,
+            get_string('editaccountname', 'qtype_accounting'),
+            get_string('newaccountname', 'qtype_accounting', $name)
+        );
+    }
+
+    /**
      * Send a chart as a download with one account name per line, the format the imports read.
      *
      * @param \stdClass $chart The chart record.
