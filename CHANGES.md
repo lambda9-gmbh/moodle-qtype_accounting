@@ -27,6 +27,7 @@ and the plugin follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - The booking table, the correct answer, the feedback summary and the editor's entry table are rendered from Mustache templates (renderables in `classes/output/`), so themes can override them. The HTML structure used by the JavaScript and the Moodle App is unchanged.
 
 ### Removed
+- The Dockerised development environment in `dev/` and the CI steps that depended on it; README and CONTRIBUTING describe the standard Moodle Plugin CI workflow instead.
 - Course charts of accounts with their management pages in the course, the capability `qtype/accounting:managecharts`, and the chart selection in the question form; questions have their own accounts instead.
 
 ### Fixed

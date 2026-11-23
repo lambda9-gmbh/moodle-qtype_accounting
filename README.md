@@ -294,10 +294,6 @@ All schema changes go through `db/upgrade.php`.
 
 The release ships English strings only, per Moodle policy. German is maintained alongside in this repository for the development environment but is excluded from release ZIPs (`lang/de/` is `export-ignore`d in `.gitattributes`).
 
-Testserver deployments via `./dev/scripts/deploy.sh` include both English and German strings from the latest commit. Install Moodle's German language pack and select German in Moodle to use the translation.
-
-The local Docker environment mounts the repository's German plugin strings into `moodledata/lang/de_local/qtype_accounting.php`; testserver deployments copy them there. This local customisation takes precedence over translations in the downloaded Moodle language pack, which would otherwise override the plugin's `lang/de/` file. After changing strings, purge Moodle's caches. An existing local container needs to be recreated once to pick up the additional mount.
-
 To contribute a translation, please use the official Moodle translation tool at <https://lang.moodle.org/>.
 
 ---
@@ -318,220 +314,46 @@ When reporting a bug, please include:
 
 ## Development
 
-The `dev/` directory contains a complete Dockerised dev/CI environment. It is `export-ignore`d in `.gitattributes` and does not ship in the release ZIP.
-
-Development scripts use the Docker containers for PHP, Composer, Node, database
-clients, and tests. No host language toolchain is required for builds or CI.
-GitHub Actions uses the standard Moodle Plugin CI setup with
-`shivammathur/setup-php` and `moodle-plugin-ci`, running Moodle checks, PHPUnit,
-and Behat against Moodle 4.5/5.1/5.2/5.3 with both MariaDB and PostgreSQL.
-
-### Bring up the stack
+Install the plugin into a Moodle development site as described under [From source](#from-source).
+GitHub Actions uses the standard Moodle Plugin CI setup with `shivammathur/setup-php` and
+`moodle-plugin-ci`, running Moodle checks, PHPUnit and Behat against Moodle 4.5/5.1/5.2/5.3
+with both MariaDB and PostgreSQL. The same checks can be run locally with
+[moodle-plugin-ci](https://moodlehq.github.io/moodle-plugin-ci/):
 
 ```bash
-# MariaDB-backed (default)
-./dev/scripts/start.sh
-
-# PostgreSQL-backed — required for Moodle plugin contribution checklist cross-DB verification
-./dev/scripts/start-pgsql.sh
+moodle-plugin-ci phplint
+moodle-plugin-ci phpcs --max-warnings 0
+moodle-plugin-ci phpdoc --max-warnings 0
+moodle-plugin-ci validate
+moodle-plugin-ci savepoints
+moodle-plugin-ci mustache
+moodle-plugin-ci grunt --max-lint-warnings 0
+moodle-plugin-ci phpunit --fail-on-warning
+moodle-plugin-ci behat
 ```
 
-Both stacks serve Moodle at <http://localhost:8080>. The Postgres stack overlays `dev/docker-compose.pgsql.yml`.
-
-### Test the installed Android App locally
-
-If Moodle is already running at `http://localhost:8080`, reuse the existing
-emulator and open the App without starting or changing the server:
+Within a Moodle checkout, the tests can also be run directly:
 
 ```bash
-./dev/scripts/app.sh open
+vendor/bin/phpunit --testsuite qtype_accounting_testsuite
+php admin/tool/behat/cli/run.php --tags=@qtype_accounting
 ```
 
-This command also restores the emulator's connection to the host's port 8080.
-Use `./dev/scripts/app.sh stop` to close the dedicated emulator when finished.
-
-To start the server and provision the sample course as well, choose its database:
-
-```bash
-ACCOUNTING_APP_DB=mariadb ./dev/scripts/app.sh start
-# For the PostgreSQL environment instead:
-ACCOUNTING_APP_DB=pgsql ./dev/scripts/app.sh start
-```
-
-This opens a dedicated **Android 13 virtual phone window on this Mac** and installs
-and launches the official **Moodle Android App 5.2.1 APK**. It reuses the existing
-Android SDK emulator and ARM64 system image, without installing SDK tools or
-changing existing virtual devices. Set `ACCOUNTING_ANDROID_SDK` if the existing
-SDK is outside `~/Library/Android/sdk`.
-
-In the installed App, enter site **`http://localhost:8080`** and log in with
-**`appstudent` / `AppTest123!`**. An ADB reverse connection maps the phone's port
-8080 to the host Moodle server. Open **My courses → Accounting App Testing**, then
-**Accounting App DE** or **Accounting App US**.
-
-The correct booking is two debit entries (1000 Cash: 500; 1200 Bank: 500) and one
-credit entry (8400 Sales: 1000). Use `500,00`/`1000,00` in DE and
-`500.00`/`1000.00` in US. These quizzes use **Immediate feedback**: press **Check**
-before final submission. Saved but unchecked answers remain "Not complete" in
-Moodle and can cause its unanswered warning. For a single final submission,
-configure the quiz's question behaviour as **Deferred feedback**.
-
-```bash
-./dev/scripts/app.sh open       # Reopen the installed Android App
-./dev/scripts/app.sh refresh    # Purge Moodle caches and reset this virtual phone's App data
-./dev/scripts/app.sh status
-./dev/scripts/app.sh logs
-./dev/scripts/app.sh stop       # Stop the dedicated phone; leave Moodle/database running
-```
-
-`refresh` signs out this test App and discards unsynced local edits. Server-saved
-answers and attempts remain. The dedicated phone's data and APK live under
-`dev/mobile/.runtime/android/` (ignored by Git), using ADB serial `emulator-5560`.
-Existing virtual devices are left untouched. The helper uses existing host
-Python 3 and curl, plus ADB, the emulator, and the system image from the local SDK.
-It does not install host tools.
-
-Startup defaults to the existing PostgreSQL Moodle environment; use
-`ACCOUNTING_APP_DB=mariadb` to select MariaDB instead. It upgrades the local
-plugin, enables mobile web services, and creates or reuses the sample course and
-student. It does not reset databases or volumes. Docker is used for the Moodle
-server/database only; the App itself runs as an installed APK in Android.
-
-### Background tasks and course exports
-
-Course exports use Moodle's asynchronous backup queue. They require Moodle's
-cron runner; the web server alone does not process them. The Docker stack includes
-a `cron` service that shares Moodle's image, configuration, plugin mounts and
-data volume, runs as `www-data`, and polls for tasks for 60 seconds before Docker
-starts the next invocation. This also processes scheduled tasks and restores.
-
-For an existing local stack, explicitly start the new worker:
-
-```bash
-docker compose -f dev/docker-compose.yml up -d --no-deps cron
-# For an existing PostgreSQL stack, include its override instead:
-docker compose -f dev/docker-compose.yml -f dev/docker-compose.pgsql.yml up -d --no-deps cron
-```
-
-Inspect worker output with `docker compose -f dev/docker-compose.yml logs --tail=100 cron`.
-In Moodle, check **Site administration → Reports → System status** and
-**Server → Tasks → Task logs / Ad hoc tasks** to verify cron activity and inspect
-any failed backups.
-
-The plugin deployment script only copies the plugin; it does not provision a cron
-worker on the deployed server. If that server uses a separate Docker Compose
-configuration, configure its host scheduler to run the following every minute
-(using the server's actual Compose directory and an absolute Docker executable
-path):
-
-```cron
-* * * * * cd /absolute/path/to/services/moodle && /usr/bin/docker compose exec -T --user www-data moodle php /var/www/html/admin/cli/cron.php --keep-alive=0 >> /absolute/path/to/moodle-cron.log 2>&1
-```
-
-The scheduler account must have access to Docker and permission to write the log.
-Alternatively, add a dedicated worker to that server's Compose configuration,
-sharing its Moodle image, database settings, `config.php`, plugin and moodledata
-mounts, as in the local stack. See [Moodle's cron documentation](https://docs.moodle.org/405/en/Cron).
-
-### Test suites
-
-The pure JavaScript number-format and app-controller regressions use Node from
-the running development container:
-
-```bash
-./dev/scripts/ci.sh js
-```
-
-```bash
-./dev/scripts/test.sh              # PHPUnit + Behat
-./dev/scripts/test.sh phpunit
-./dev/scripts/test.sh behat
-```
-
-The app form also has controller tests and Angular DOM tests using Angular
-20.3.18, as shipped in Moodle App 5.2.1. Build the optional Docker test image with
-locked dependencies, then run without starting Moodle or an app server:
-
-```bash
-docker build -t accounting-dom-tests dev/tests/mobileapp
-./dev/scripts/js-tests.sh dom       # browser editor/question and Angular app DOM tests
-./dev/scripts/js-tests.sh runner    # CI script failure-handling regressions
-```
-
-The DOM tests render Angular bindings, dispatch Ionic input events, and serialize
-the native quiz form. Ionic tags are custom elements in this harness; it does not
-test Ionic overlays or visual appearance, or submit to a live Moodle site.
-
-### Lint and static analysis
-
-```bash
-./dev/scripts/ci.sh                # GitHub checks + PHPUnit + Behat
-./dev/scripts/ci.sh checks         # static checks + JavaScript regressions
-./dev/scripts/ci.sh js             # standalone JavaScript regressions
-./dev/scripts/ci.sh scope          # scanner manifests and scope regressions
-./dev/scripts/ci.sh codecheck      # phpcs (moodle + moodle-extra)
-./dev/scripts/ci.sh codecheck fix  # phpcbf auto-fix
-./dev/scripts/ci.sh grunt          # eslint + stylelint + gherkinlint + rollup
-```
-
-The container ships `moodle-cs` and `moodle-plugin-ci` ready to run.
-
-The default run uses the same checks and warning thresholds as GitHub Actions:
-PHP lint, zero-warning PHPCS and PHPDoc, plugin validation, upgrade savepoints,
-Mustache lint, standalone JavaScript regressions, zero-warning Grunt, PHPUnit
-with `--fail-on-warning`, and Behat. It reads current working files; no commit is
-needed. Checks stop at the first failure. Optional PHPMD and copy/paste checks
-remain available through `ci.sh all`.
-
-PHP lint, PHPCS, PHPDoc, validation, savepoints, and Mustache checks use a full
-snapshot of tracked and untracked working files, including `dev/`. Deleted and
-Gitignored files are omitted. `.moodle-plugin-ci.yml` explicitly excludes `dev/`,
-`vendor/`, and `node_modules/` from Moodle Plugin CI's source scanners on both
-local and GitHub runs; `.gitattributes` only controls release archives. Local
-PHPDoc obtains its file list from the same Moodle Plugin CI selector.
-
-The snapshot sits inside a temporary Moodle directory tree, with core files
-linked from the installed version. This preserves moodle-cs's automatic Moodle
-version and component detection. A detached plugin copy can silently skip
-version-dependent PHPUnit checks when the Moodle version is unknown, while
-Moodle 4.5 uses the legacy coverage rules. Local checks verify the detected
-root and branch before PHPCS and stop if the context is missing or incorrect.
-Test classes place PHPUnit attributes above the class docblock so the legacy
-`@covers` tags stay adjacent to the class declaration and both versions work.
-
-Both runners verify and fingerprint the selected file lists before linting.
-The guard requires the development helpers to be physically present, checks
-that plugin code and PHPUnit tests remain selected, and rejects development
-files in the scan. GitHub also compares its installed plugin and checkout file
-lists. `ci.sh scope` runs regressions that reproduce the reported development
-file failures without the filter and confirm new production errors still fail.
-They also reproduce the version-sensitive coverage warning with the real checker
-in Moodle 4.5 and 5.1 directory layouts, and reject a detached scan workspace.
-Grunt uses a container-native copy of the same snapshot, arranged as
-`question/type/accounting` with the installed Moodle build tools. Its backup and
-restore never traverse host bind mounts, avoiding Docker Desktop's stale file
-size errors. Runtime tests use the mounted Moodle installation.
-
-Run against an already provisioned development stack. These scripts do not
-install missing tools or start services. The local run covers the current
-Moodle/PHP/database environment with the configured Firefox browser; GitHub
-Actions covers Moodle 4.5/5.1/5.2/5.3 with MariaDB/PostgreSQL using PHP 8.3 and Chrome.
-The browser runner copies current upload fixtures into Selenium so file uploads
-can resolve the same paths as Moodle without recreating containers.
+Course exports use Moodle's asynchronous backup queue and therefore need a working
+[cron](https://docs.moodle.org/en/Cron).
 
 ### Building the AMD modules
 
 ```bash
-./dev/scripts/build.sh             # compile amd/src → amd/build with Moodle's grunt/rollup pipeline
+cd question/type/accounting
+npx grunt amd
 ```
 
-Commit `amd/build/` alongside any `amd/src/` change — CI's grunt step compares the two and fails if they drift. For local iteration without rebuilding on every edit, set `$CFG->cachejs = false;` in `dev/docker/config.php`.
+Commit `amd/build/` alongside any `amd/src/` change — CI's grunt step compares the two and fails if they drift. For local iteration without rebuilding on every edit, set `$CFG->cachejs = false;` in `config.php`.
 
 ### Coding standards
 
 The project follows the [Moodle Coding Style Guide](https://moodledev.io/general/development/policies/codingstyle), enforced by `moodle` + `moodle-extra` phpcs rulesets (`.phpcs.xml.dist`) and a customised PHPMD ruleset (`.phpmd.xml`).
-
-For deeper architectural notes, see [`dev/CLAUDE.md`](dev/CLAUDE.md).
 
 ---
 
@@ -595,8 +417,7 @@ moodle-qtype_accounting/                 # Plugin root; unpacks to question/type
 ├── version.php
 ├── README.md                            # This file
 ├── CHANGES.md
-├── LICENSE
-└── dev/                                 # Dev tooling — not shipped in release ZIP
+└── LICENSE
 ```
 
 ---

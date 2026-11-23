@@ -15,17 +15,7 @@ For larger changes, open an issue or describe the proposed approach before imple
 
 ## Development environment
 
-The repository includes a Dockerised Moodle environment in `dev/`.
-
-```bash
-# MariaDB (default)
-./dev/scripts/start.sh
-
-# PostgreSQL (cross-database verification)
-./dev/scripts/start-pgsql.sh
-```
-
-Moodle is available at <http://localhost:8080>. The `dev/` directory is development-only and is not included in release archives.
+Install the plugin into a Moodle development site under `question/type/accounting`. Test both MariaDB/MySQL and PostgreSQL for database-related changes.
 
 ## Making changes
 
@@ -36,7 +26,7 @@ Moodle is available at <http://localhost:8080>. The `dev/` directory is developm
 5. When changing `amd/src/`, rebuild and commit the corresponding files in `amd/build/`:
 
    ```bash
-   ./dev/scripts/build.sh
+   npx grunt amd
    ```
 
 6. For database changes, bump the plugin version in `version.php` and add a migration step to `db/upgrade.php`. Do not change `db/install.xml` without considering existing installations.
@@ -46,19 +36,15 @@ Moodle is available at <http://localhost:8080>. The `dev/` directory is developm
 Run the relevant tests while developing:
 
 ```bash
-./dev/scripts/test.sh phpunit
-./dev/scripts/test.sh behat
+vendor/bin/phpunit --testsuite qtype_accounting_testsuite
+php admin/tool/behat/cli/run.php --tags=@qtype_accounting
 ```
 
-Before submitting a change, run the complete suite and static checks:
-
-```bash
-./dev/scripts/ci.sh
-```
+Before submitting a change, run the complete suite and the static checks with [moodle-plugin-ci](https://moodlehq.github.io/moodle-plugin-ci/), as listed in the README's Development section.
 
 The CI checks include PHPUnit, Behat, Moodle coding standards, PHP Mess Detector, PHP documentation checks, plugin validation, PHP linting, and JavaScript/CSS/gherkin linting. PostgreSQL testing is required for cross-database changes.
 
-If you only need the static checks, use `./dev/scripts/ci.sh checks`. If JavaScript is being iterated on locally, Moodle's JavaScript cache can be disabled in `dev/docker/config.php`, but committed builds must still be regenerated.
+If JavaScript is being iterated on locally, Moodle's JavaScript cache can be disabled with `$CFG->cachejs = false;` in `config.php`, but committed builds must still be regenerated.
 
 ## Moodle-specific guidance
 
