@@ -1,0 +1,7 @@
+# Development tools are present in repository checkouts, but are not Moodle
+# plugin code. Apply the same explicit filter locally and on GitHub Actions.
+filter:
+  notPaths:
+    - dev
+    - vendor
+    - node_modules

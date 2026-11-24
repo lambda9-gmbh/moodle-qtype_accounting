@@ -1,0 +1,64 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle. If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template qtype_accounting/answer_table
+
+    Correct answer of an accounting question. The Moodle App reads this table
+    (account and amount cells per side, explanation rows after their entry).
+
+    Context variables required for this template:
+    * entries - Rows with debitaccount, debitamount, creditaccount, creditamount and explanation.
+
+    Example context (json): {
+        "entries": [
+            {"debitaccount": "Bank", "debitamount": "100,00 €", "creditaccount": "Sales", "creditamount": "100,00 €",
+                "explanation": "Cash sale."}
+        ]
+    }
+}}
+<div class="qtype_accounting-correct-response">
+    <p>{{#str}}correctansweris, qtype_accounting{{/str}}</p>
+    <table class="table table-bordered qtype_accounting-solution">
+        <thead>
+            <tr>
+                <th colspan="2">{{#str}}debit, qtype_accounting{{/str}}</th>
+                <th colspan="2">{{#str}}credit, qtype_accounting{{/str}}</th>
+            </tr>
+            <tr>
+                <th>{{#str}}account, qtype_accounting{{/str}}</th>
+                <th>{{#str}}amount, qtype_accounting{{/str}}</th>
+                <th>{{#str}}account, qtype_accounting{{/str}}</th>
+                <th>{{#str}}amount, qtype_accounting{{/str}}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#entries}}
+            <tr>
+                <td class="text-start" data-label="{{#cleanstr}}debitaccount, qtype_accounting{{/cleanstr}}">{{debitaccount}}</td>
+                <td class="text-end" data-label="{{#cleanstr}}debitamount, qtype_accounting{{/cleanstr}}">{{debitamount}}</td>
+                <td class="text-start" data-label="{{#cleanstr}}creditaccount, qtype_accounting{{/cleanstr}}">{{creditaccount}}</td>
+                <td class="text-end" data-label="{{#cleanstr}}creditamount, qtype_accounting{{/cleanstr}}">{{creditamount}}</td>
+            </tr>
+            {{#explanation}}
+            <tr class="qtype_accounting-explanation-row">
+                <td colspan="4" class="qtype_accounting-explanation"><strong>{{#str}}explanation, qtype_accounting{{/str}}: </strong>{{explanation}}</td>
+            </tr>
+            {{/explanation}}
+            {{/entries}}
+        </tbody>
+    </table>
+</div>

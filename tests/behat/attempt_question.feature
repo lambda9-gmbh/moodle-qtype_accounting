@@ -22,7 +22,7 @@ Feature: Attempt Buchungssatz questions
 
   @javascript
   Scenario: Student can see Buchungssatz question in preview
-    Given the following "questions" exist:
+    Given the following accounting questions exist:
       | questioncategory | qtype        | name            | questiontext                                   |
       | Test questions   | accounting | Simple Question | A customer pays 1000 EUR in cash for services. |
     And I am on the "Simple Question" "core_question > preview" page logged in as "teacher1"
@@ -32,7 +32,7 @@ Feature: Attempt Buchungssatz questions
 
   @javascript
   Scenario: Question displays correctly in quiz
-    Given the following "questions" exist:
+    Given the following accounting questions exist:
       | questioncategory | qtype        | name            | questiontext                                   |
       | Test questions   | accounting | Quiz Question   | Record this transaction: Cash sale of 500 EUR. |
     And the following "activities" exist:
@@ -49,7 +49,7 @@ Feature: Attempt Buchungssatz questions
 
   @javascript
   Scenario: Student can add additional entry rows
-    Given the following "questions" exist:
+    Given the following accounting questions exist:
       | questioncategory | qtype        | name            | questiontext                  |
       | Test questions   | accounting | Multi Question  | Record multiple transactions. |
     And I am on the "Multi Question" "core_question > preview" page logged in as "teacher1"
@@ -59,27 +59,25 @@ Feature: Attempt Buchungssatz questions
 
   @javascript
   Scenario: Question shows Per and an labels
-    Given the following "questions" exist:
+    Given the following accounting questions exist:
       | questioncategory | qtype        | name            | questiontext        |
       | Test questions   | accounting | Label Question  | Test Per/an labels. |
     And I am on the "Label Question" "core_question > preview" page logged in as "teacher1"
-    Then I should see "Per"
-    And I should see "to"
+    Then I should see "Dr."
+    And I should see "Cr."
 
   @javascript
   Scenario: Preview fill in correct response works
-    Given the following "questions" exist:
+    Given the following accounting questions exist:
       | questioncategory | qtype        | name            | questiontext                | debitaccount | debitamount | creditaccount | creditamount |
       | Test questions   | accounting | Fill Question   | Test fill correct response. | 1200      | 1000       | 8400       | 1000        |
     And I am on the "Fill Question" "core_question > preview" page logged in as "teacher1"
     When I press "Fill in correct responses"
-    # Use CSS selectors for the input fields since exact field names vary
-    Then "input[name*='debitaccount_0'][value='1200']" "css_element" should exist
-    And "input[name*='creditaccount_0'][value='8400']" "css_element" should exist
+    Then the accounting response has debit "1200" amount "1.000,00" and credit "8400" amount "1.000,00"
 
   @javascript
   Scenario: Student can complete a quiz attempt
-    Given the following "questions" exist:
+    Given the following accounting questions exist:
       | questioncategory | qtype        | name            | questiontext   | debitaccount | debitamount | creditaccount | creditamount |
       | Test questions   | accounting | Complete Quiz   | Complete test. | 1200      | 100        | 8400       | 100         |
     And the following "activities" exist:
@@ -91,9 +89,9 @@ Feature: Attempt Buchungssatz questions
     When I am on the "Quiz 1" "mod_quiz > View" page logged in as "student1"
     And I press "Attempt quiz"
     # Fill in the account fields using CSS selectors
-    And I set the field with xpath "//input[contains(@name,'debitaccount_0')]" to "1200"
+    And I set the field with xpath "//select[contains(@name,'debitaccount_0')]" to "1200"
     And I set the field with xpath "//input[contains(@name,'debitamount_0')]" to "100"
-    And I set the field with xpath "//input[contains(@name,'creditaccount_0')]" to "8400"
+    And I set the field with xpath "//select[contains(@name,'creditaccount_0')]" to "8400"
     And I set the field with xpath "//input[contains(@name,'creditamount_0')]" to "100"
     And I press "Finish attempt ..."
     And I press "Submit all and finish"

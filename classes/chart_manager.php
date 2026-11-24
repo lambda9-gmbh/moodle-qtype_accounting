@@ -25,7 +25,9 @@
 namespace qtype_accounting;
 
 /**
- * Manager class for charts of accounts.
+ * Manager class for the site-wide chart of accounts templates.
+ *
+ * Questions copy the accounts of a template into their own account list, see {@see question_accounts}.
  *
  * @package    qtype_accounting
  * @copyright  2024 Hochschule Flensburg / lambda9
@@ -45,11 +47,13 @@ class chart_manager {
         $chart = new \stdClass();
         $chart->name = $name;
         $chart->contextid = $contextid;
-        $chart->timecreated = time();
-        $chart->timemodified = time();
+        $chart->timecreated = \core\di::get(\core\clock::class)->time();
+        $chart->timemodified = $chart->timecreated;
         $chart->usermodified = $USER->id;
 
-        return $DB->insert_record('qtype_accounting_charts', $chart);
+        $chartid = $DB->insert_record('qtype_accounting_charts', $chart);
+        event\chart_created::create_from_chartid($chartid)->trigger();
+        return $chartid;
     }
 
     /**
@@ -64,10 +68,28 @@ class chart_manager {
 
         $chart = $DB->get_record('qtype_accounting_charts', ['id' => $chartid], '*', MUST_EXIST);
         $chart->name = $name;
-        $chart->timemodified = time();
+        $chart->timemodified = \core\di::get(\core\clock::class)->time();
         $chart->usermodified = $USER->id;
 
-        return $DB->update_record('qtype_accounting_charts', $chart);
+        $DB->update_record('qtype_accounting_charts', $chart);
+        event\chart_updated::create_from_chartid($chartid)->trigger();
+        return true;
+    }
+
+    /**
+     * Record a change of the accounts of a chart: update its modification time and trigger the event.
+     *
+     * @param int $chartid Chart ID.
+     */
+    public static function accounts_changed(int $chartid): void {
+        global $DB, $USER;
+
+        $DB->update_record('qtype_accounting_charts', (object)[
+            'id' => $chartid,
+            'timemodified' => \core\di::get(\core\clock::class)->time(),
+            'usermodified' => $USER->id,
+        ]);
+        event\chart_updated::create_from_chartid($chartid)->trigger();
     }
 
     /**
@@ -79,11 +101,19 @@ class chart_manager {
     public static function delete_chart(int $chartid): bool {
         global $DB;
 
-        // Delete all accounts in this chart.
-        $DB->delete_records('qtype_accounting_accounts', ['chartid' => $chartid]);
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            // Delete all accounts in this chart.
+            $DB->delete_records('qtype_accounting_accounts', ['chartid' => $chartid]);
 
-        // Delete the chart.
-        return $DB->delete_records('qtype_accounting_charts', ['id' => $chartid]);
+            // Delete the chart.
+            $result = $DB->delete_records('qtype_accounting_charts', ['id' => $chartid]);
+            $transaction->allow_commit();
+        } catch (\Exception $exception) {
+            $transaction->rollback($exception);
+        }
+        event\chart_deleted::create_from_chartid($chartid)->trigger();
+        return $result;
     }
 
     /**
@@ -121,152 +151,107 @@ class chart_manager {
     }
 
     /**
-     * Find a chart by name within a context.
+     * Whether a chart is a site-wide default chart managed by the administrator.
      *
-     * @param string $name Chart name.
-     * @param int $contextid Context ID.
-     * @return object|false The chart record or false if not found.
+     * @param \stdClass $chart The chart record.
+     * @return bool True if the chart belongs to the system context.
      */
-    public static function get_chart_by_name(string $name, int $contextid) {
-        global $DB;
-        return $DB->get_record('qtype_accounting_charts', ['name' => $name, 'contextid' => $contextid]);
+    public static function is_site_chart(\stdClass $chart): bool {
+        return (int)$chart->contextid === (int)\context_system::instance()->id;
     }
 
     /**
-     * Export accounts to text file (one name per line, no header).
+     * Get the context of the category that holds a question.
+     *
+     * @param int $questionid The question ID.
+     * @return \context|null The question category context, or null if the question has no category.
+     */
+    public static function get_question_context(int $questionid): ?\context {
+        global $DB;
+        $contextid = $DB->get_field_sql(
+            "SELECT qc.contextid
+               FROM {question_versions} qv
+               JOIN {question_bank_entries} qbe ON qbe.id = qv.questionbankentryid
+               JOIN {question_categories} qc ON qc.id = qbe.questioncategoryid
+              WHERE qv.questionid = ?",
+            [$questionid]
+        );
+        return $contextid ? \context::instance_by_id($contextid, IGNORE_MISSING) ?: null : null;
+    }
+
+    /**
+     * Export accounts as a single-column CSV file (one account per line, no header).
+     *
+     * Names containing a comma, a double quote or a line break are quoted as in RFC 4180;
+     * other names are written as they are, so the file stays readable as a plain list.
      *
      * @param int $chartid Chart ID.
-     * @return string Text content with one account name per line.
+     * @return string CSV content with one account name per record.
      */
     public static function export_to_csv(int $chartid): string {
         $accounts = account_manager::get_for_chart($chartid);
 
         $output = '';
         foreach ($accounts as $account) {
-            $output .= $account->accountname . "\n";
+            $name = $account->accountname;
+            if (preg_match('/[",\r\n]/', $name)) {
+                $name = '"' . str_replace('"', '""', $name) . '"';
+            }
+            $output .= $name . "\n";
         }
 
         return $output;
     }
 
     /**
-     * Import a complete chart of accounts from text content.
+     * Import a complete chart of accounts from text or ODS content.
      *
      * Each line = one account name.
      *
-     * @param string $content Text content with one account name per line.
+     * @param string $content Text with one account name per line, or raw ODS content.
      * @param int $contextid Context ID.
      * @param string $filename Optional original filename (used as chart name).
      * @return array ['chartid' => int, 'chartname' => string, 'imported' => int, 'errors' => array]
      */
     public static function import_chart_from_csv(string $content, int $contextid, string $filename = ''): array {
+        global $DB;
+
         $result = ['chartid' => 0, 'chartname' => '', 'imported' => 0, 'errors' => []];
 
         try {
-            $parsed = import_helper::parse_csv($content, $filename);
+            $parsed = import_helper::parse_file($content, $filename);
         } catch (\Exception $e) {
             $result['errors'][] = $e->getMessage();
             return $result;
         }
 
-        // Create the chart with name from data.
-        $chartname = $parsed['chartname'];
-        $chartid = self::create_chart($chartname, $contextid);
-        $result['chartid'] = $chartid;
-        $result['chartname'] = $chartname;
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            // Create the chart with name from data.
+            $chartname = $parsed['chartname'];
+            $chartid = self::create_chart($chartname, $contextid);
+            $result['chartid'] = $chartid;
+            $result['chartname'] = $chartname;
 
-        // Import all accounts.
-        foreach ($parsed['accounts'] as $accountname => $accountdata) {
-            try {
-                account_manager::add(
-                    $chartid,
-                    $accountdata['accountname'],
-                    $accountdata['sortorder']
-                );
+            // Import all accounts.
+            foreach ($parsed['accounts'] as $accountname => $accountdata) {
+                account_manager::add($chartid, $accountdata['accountname'], $accountdata['sortorder']);
                 $result['imported']++;
-            } catch (\Exception $e) {
-                $result['errors'][] = $accountname . ': ' . $e->getMessage();
             }
-        }
 
-        // If no accounts were imported, delete the empty chart.
-        if ($result['imported'] === 0) {
-            self::delete_chart($chartid);
-            $result['chartid'] = 0;
-            $result['chartname'] = '';
-            $result['errors'][] = get_string('csvnoentries', 'qtype_accounting');
+            // If no accounts were imported, delete the empty chart.
+            if ($result['imported'] === 0) {
+                self::delete_chart($chartid);
+                $result['chartid'] = 0;
+                $result['chartname'] = '';
+                $result['errors'][] = get_string('csvnoentries', 'qtype_accounting');
+            }
+
+            $transaction->allow_commit();
+        } catch (\Exception $exception) {
+            $transaction->rollback($exception);
         }
 
         return $result;
-    }
-
-    /**
-     * Find a chart by name in a given context that contains all required account names.
-     *
-     * @param string $name Chart name to search for.
-     * @param int $contextid Context ID to search in.
-     * @param array $accounts Array of account data keyed by account name.
-     * @return int|null Chart ID if a matching chart is found, null otherwise.
-     */
-    public static function find_matching_chart_in_context(string $name, int $contextid, array $accounts): ?int {
-        global $DB;
-
-        $charts = $DB->get_records('qtype_accounting_charts', ['name' => $name, 'contextid' => $contextid]);
-        if (empty($charts)) {
-            return null;
-        }
-
-        $requiredaccounts = array_keys($accounts);
-        sort($requiredaccounts);
-
-        foreach ($charts as $chart) {
-            $chartaccounts = $DB->get_records('qtype_accounting_accounts', ['chartid' => $chart->id]);
-            $chartaccountnames = [];
-            foreach ($chartaccounts as $acc) {
-                $chartaccountnames[] = $acc->accountname;
-            }
-            sort($chartaccountnames);
-
-            // Check if this chart contains all required accounts.
-            $hasall = true;
-            foreach ($requiredaccounts as $required) {
-                if (!in_array($required, $chartaccountnames)) {
-                    $hasall = false;
-                    break;
-                }
-            }
-
-            if ($hasall) {
-                return (int) $chart->id;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Create a copy of a chart (with all accounts) in a new context.
-     *
-     * @param int $sourcechartid Source chart ID.
-     * @param int $targetcontextid Target context ID.
-     * @return int The new chart ID.
-     */
-    public static function duplicate_chart(int $sourcechartid, int $targetcontextid): int {
-        $source = self::get_chart($sourcechartid);
-        if (!$source) {
-            throw new \moodle_exception('chartnotfound', 'qtype_accounting');
-        }
-
-        $newchartid = self::create_chart($source->name, $targetcontextid);
-
-        foreach (account_manager::get_for_chart($sourcechartid) as $account) {
-            account_manager::add(
-                $newchartid,
-                $account->accountname,
-                $account->sortorder
-            );
-        }
-
-        return $newchartid;
     }
 }

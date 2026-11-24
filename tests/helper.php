@@ -31,7 +31,7 @@ require_once($CFG->dirroot . '/question/type/accounting/question.php');
 /**
  * Test helper class for creating Buchungssatz questions.
  *
- * Account ID constants used throughout tests:
+ * Account key constants used throughout tests:
  *   101 = '1200 Bank'
  *   102 = '1000 Kasse'
  *   201 = '8400 Erloese 19% USt'
@@ -68,6 +68,34 @@ class qtype_accounting_test_helper extends question_test_helper {
             self::ACCOUNT_ERLOESE => '8400 Erloese 19% USt',
             self::ACCOUNT_VERBINDLICHKEITEN => '4400 Verbindlichkeiten',
         ];
+    }
+
+    /**
+     * Get the standard accounts as the account records of a question definition.
+     *
+     * @return array Records with id (the account key) and accountname, keyed by account key.
+     */
+    public static function get_test_accounts(): array {
+        $accounts = [];
+        foreach (self::get_test_accounts_map() as $key => $name) {
+            $accounts[$key] = (object)['accountkey' => $key, 'accountname' => $name, 'sortorder' => count($accounts)];
+        }
+        return \qtype_accounting\question_accounts::as_options($accounts);
+    }
+
+    /**
+     * Get a context that can hold the questions of a course: the course itself up to Moodle 4.5,
+     * the course's default question bank from Moodle 5.0.
+     *
+     * @param \stdClass $course The course.
+     * @return \context The question bank context.
+     */
+    public static function question_bank_context(\stdClass $course): \context {
+        if (\core_component::get_component_directory('mod_qbank') === null) {
+            return \context_course::instance($course->id);
+        }
+        $cm = \core_question\local\bank\question_bank_helper::get_default_open_instance_system_type($course, true);
+        return \context_module::instance($cm->id);
     }
 
     /**
@@ -108,7 +136,7 @@ class qtype_accounting_test_helper extends question_test_helper {
         $question->penalty = 0.3333333;
         $question->qtype = question_bank::get_qtype('accounting');
 
-        $question->chartofaccountsid = 0;
+        $question->accounts = self::get_test_accounts();
         $question->allowmultipleentries = 0;
         $question->maxentries = 1;
         $question->numberformat = 'de';
@@ -151,7 +179,7 @@ class qtype_accounting_test_helper extends question_test_helper {
         $question->penalty = 0.3333333;
         $question->qtype = question_bank::get_qtype('accounting');
 
-        $question->chartofaccountsid = 0;
+        $question->accounts = self::get_test_accounts();
         $question->allowmultipleentries = 1;
         $question->maxentries = 5;
 
@@ -204,7 +232,7 @@ class qtype_accounting_test_helper extends question_test_helper {
         $question->penalty = 0.3333333;
         $question->qtype = question_bank::get_qtype('accounting');
 
-        $question->chartofaccountsid = 0;
+        $question->accounts = self::get_test_accounts();
         $question->allowmultipleentries = 0;
         $question->maxentries = 1;
         $question->numberformat = 'de';
@@ -245,7 +273,7 @@ class qtype_accounting_test_helper extends question_test_helper {
         $question->penalty = 0.3333333;
         $question->qtype = question_bank::get_qtype('accounting');
 
-        $question->chartofaccountsid = 0;
+        $question->accounts = self::get_test_accounts();
         $question->allowmultipleentries = 0;
         $question->maxentries = 1;
         $question->allornothinggrading = 0;
@@ -289,7 +317,7 @@ class qtype_accounting_test_helper extends question_test_helper {
         $question->penalty = 0.3333333;
         $question->qtype = question_bank::get_qtype('accounting');
 
-        $question->chartofaccountsid = 0;
+        $question->accounts = self::get_test_accounts();
         $question->allowmultipleentries = 0;
         $question->maxentries = 1;
         $question->allornothinggrading = 1;
@@ -334,7 +362,7 @@ class qtype_accounting_test_helper extends question_test_helper {
         $question->penalty = 0.3333333;
         $question->qtype = question_bank::get_qtype('accounting');
 
-        $question->chartofaccountsid = 0;
+        $question->accounts = self::get_test_accounts();
         $question->allowmultipleentries = 1;
         $question->maxentries = 5;
         $question->allornothinggrading = 0;
@@ -380,7 +408,7 @@ class qtype_accounting_test_helper extends question_test_helper {
         $question->penalty = 0.3333333;
         $question->qtype = question_bank::get_qtype('accounting');
 
-        $question->chartofaccountsid = 0;
+        $question->accounts = self::get_test_accounts();
         $question->allowmultipleentries = 1;
         $question->maxentries = 5;
         $question->allornothinggrading = 0;
@@ -437,7 +465,7 @@ class qtype_accounting_test_helper extends question_test_helper {
         $question->penalty = 0.3333333;
         $question->qtype = question_bank::get_qtype('accounting');
 
-        $question->chartofaccountsid = 0;
+        $question->accounts = self::get_test_accounts();
         $question->allowmultipleentries = 1;
         $question->maxentries = 5;
         $question->allornothinggrading = 0;
@@ -480,7 +508,9 @@ class qtype_accounting_test_helper extends question_test_helper {
         $fromform->defaultmark = 1;
         $fromform->penalty = 0.3333333;
 
-        $fromform->chartofaccountsid = 0;
+        // Text and JSON rather than arrays: the question generator merges array overrides into array defaults.
+        $fromform->accounts = implode("\n", self::get_test_accounts_map());
+        $fromform->accountkeys = json_encode(array_flip(self::get_test_accounts_map()));
         $fromform->allowmultipleentries = 0;
         $fromform->maxentries = 5;
 
@@ -514,7 +544,9 @@ class qtype_accounting_test_helper extends question_test_helper {
         $fromform->defaultmark = 1;
         $fromform->penalty = 0.3333333;
 
-        $fromform->chartofaccountsid = 0;
+        // Text and JSON rather than arrays: the question generator merges array overrides into array defaults.
+        $fromform->accounts = implode("\n", self::get_test_accounts_map());
+        $fromform->accountkeys = json_encode(array_flip(self::get_test_accounts_map()));
         $fromform->allowmultipleentries = 0;
         $fromform->maxentries = 1;
 
@@ -547,7 +579,9 @@ class qtype_accounting_test_helper extends question_test_helper {
         $fromform->defaultmark = 1;
         $fromform->penalty = 0.3333333;
 
-        $fromform->chartofaccountsid = 0;
+        // Text and JSON rather than arrays: the question generator merges array overrides into array defaults.
+        $fromform->accounts = implode("\n", self::get_test_accounts_map());
+        $fromform->accountkeys = json_encode(array_flip(self::get_test_accounts_map()));
         $fromform->allowmultipleentries = 1;
         $fromform->maxentries = 5;
 
@@ -577,7 +611,9 @@ class qtype_accounting_test_helper extends question_test_helper {
         $fromform->defaultmark = 1;
         $fromform->penalty = 0.3333333;
 
-        $fromform->chartofaccountsid = 0;
+        // Text and JSON rather than arrays: the question generator merges array overrides into array defaults.
+        $fromform->accounts = implode("\n", self::get_test_accounts_map());
+        $fromform->accountkeys = json_encode(array_flip(self::get_test_accounts_map()));
         $fromform->allowmultipleentries = 0;
         $fromform->maxentries = 1;
 

@@ -16,6 +16,7 @@
 
 namespace qtype_accounting;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\account_manager::class)]
 /**
  * Unit tests for the account_manager class.
  *
@@ -24,7 +25,35 @@ namespace qtype_accounting;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting\account_manager
  */
-class account_manager_test extends \advanced_testcase {
+final class account_manager_test extends \advanced_testcase {
+    /**
+     * A failure partway through either import leaves existing data intact.
+     */
+    public function test_failed_imports_are_atomic(): void {
+        global $DB;
+        $this->preventResetByRollback();
+        $this->resetAfterTest();
+        $contextid = \context_system::instance()->id;
+        $chartid = chart_manager::create_chart('Existing atomic chart', $contextid);
+        account_manager::add($chartid, 'Existing account');
+        $content = 'New valid account' . "\n" . str_repeat('x', 256);
+        $imports = [
+            fn() => chart_manager::import_chart_from_csv($content, $contextid, 'Atomic.csv'),
+            fn() => account_manager::import_into_chart($chartid, $content),
+        ];
+        foreach ($imports as $import) {
+            try {
+                $import();
+                $this->fail('Expected the invalid account name to abort the import.');
+            } catch (\moodle_exception $exception) {
+                $this->assertSame('maximumchars', $exception->errorcode);
+            }
+            $this->assertFalse($DB->record_exists('qtype_accounting_charts', ['name' => 'Atomic']));
+            $this->assertFalse($DB->record_exists('qtype_accounting_accounts', ['accountname' => 'New valid account']));
+            $this->assertCount(1, account_manager::get_for_chart($chartid));
+        }
+    }
+
     /**
      * Test adding and retrieving accounts.
      */

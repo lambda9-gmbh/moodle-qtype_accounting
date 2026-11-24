@@ -42,7 +42,17 @@ class qtype_accounting extends question_type {
      * @return bool
      */
     public function is_usable_by_random(): bool {
-        return false;
+        return true;
+    }
+
+    /**
+     * Load the options offered by the interactive hint editor.
+     *
+     * @param object $hint Stored hint record.
+     * @return question_hint_with_parts Hint supporting clear-wrong and part-count options.
+     */
+    protected function make_hint($hint) {
+        return question_hint_with_parts::load_from_record($hint);
     }
 
     /**
@@ -69,6 +79,45 @@ class qtype_accounting extends question_type {
     }
 
     /**
+     * Save a question; in points mode the default mark is derived from the correct answer.
+     *
+     * @param object $question The question being saved.
+     * @param object $form The submitted form data.
+     * @return object The saved question.
+     */
+    public function save_question($question, $form) {
+        $gradingmode = \qtype_accounting\scorer::normalise_grading_mode($form->gradingmode ?? null);
+        if ($gradingmode === \qtype_accounting\scorer::GRADINGMODE_POINTS) {
+            $points = $this->count_points($form);
+            if ($points > 0) {
+                $form->defaultmark = $points;
+            }
+        }
+        return parent::save_question($question, $form);
+    }
+
+    /**
+     * Count the points a fully correct answer earns, based on submitted entry arrays.
+     *
+     * @param object $form The submitted form data.
+     * @return int The maximum points.
+     */
+    protected function count_points($form): int {
+        $arrays = $this->normalize_entry_arrays($form);
+        $entries = [];
+        foreach (array_keys($arrays['debitaccount'] + $arrays['creditaccount']) as $i) {
+            $entries[] = [
+                'debitaccountid' => (int)($arrays['debitaccount'][$i] ?? 0),
+                'debitamount' => (string)($arrays['debitamount'][$i] ?? '0'),
+                'creditaccountid' => (int)($arrays['creditaccount'][$i] ?? 0),
+                'creditamount' => (string)($arrays['creditamount'][$i] ?? '0'),
+            ];
+        }
+        $scorer = new \qtype_accounting\scorer(null, false, 'us', \qtype_accounting\scorer::GRADINGMODE_POINTS);
+        return $scorer->max_points($entries);
+    }
+
+    /**
      * Save the question-type specific options.
      *
      * @param object $question The question being saved.
@@ -77,17 +126,53 @@ class qtype_accounting extends question_type {
     public function save_question_options($question) {
         global $DB;
 
-        $DB->delete_records('qtype_accounting_options', ['questionid' => $question->id]);
-        $DB->delete_records('qtype_accounting_entries', ['questionid' => $question->id]);
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            $optionsquestion = clone $question;
+            foreach ((array)$this->build_options_record($question) as $field => $value) {
+                $optionsquestion->$field = $value;
+            }
+            parent::save_question_options($optionsquestion);
+            $this->save_accounts($question);
+            $DB->delete_records('qtype_accounting_entries', ['questionid' => $question->id]);
 
-        $DB->insert_record('qtype_accounting_options', $this->build_options_record($question));
+            $arrays = $this->normalize_entry_arrays($question);
+            $this->save_entries($question->id, $arrays);
 
-        $arrays = $this->normalize_entry_arrays($question);
-        $this->save_entries($question->id, $arrays);
-
-        $this->save_hints($question);
+            $this->save_hints($question, true);
+            $transaction->allow_commit();
+        } catch (\Exception $exception) {
+            $transaction->rollback($exception);
+        }
 
         return true;
+    }
+
+    /**
+     * Save the question's account list.
+     *
+     * The list comes from the editor as text with one account per line, as a list of names, or as the
+     * account records of a loaded question. Names known from the edited version (accountkeys, keyed by
+     * name) keep their key.
+     *
+     * @param object $question The question being saved.
+     */
+    protected function save_accounts($question): void {
+        $list = $question->accounts ?? ($question->options->accounts ?? '');
+        if (is_array($list) && $list && is_object(reset($list))) {
+            $question->accountkeys = \qtype_accounting\question_accounts::keys_by_name($list);
+            $list = array_column($list, 'accountname');
+        }
+        $knownkeys = $question->accountkeys ?? [];
+        if (is_string($knownkeys)) {
+            $knownkeys = json_decode($knownkeys, true) ?: [];
+        }
+        $knownkeys = array_filter((array)$knownkeys, 'is_numeric');
+        $names = \qtype_accounting\question_accounts::parse_names($list);
+        \qtype_accounting\question_accounts::save(
+            (int)$question->id,
+            \qtype_accounting\question_accounts::assign_keys($names, $knownkeys)
+        );
     }
 
     /**
@@ -99,13 +184,19 @@ class qtype_accounting extends question_type {
     protected function build_options_record($question): \stdClass {
         $options = new stdClass();
         $options->questionid = $question->id;
-        $options->chartofaccountsid = $question->chartofaccountsid ?? 0;
         $options->accountsindropdown = $question->accountsindropdown ?? 0;
         $options->numberformat = $question->numberformat ?? 'de';
         $options->extraentrydeduction = $question->extraentrydeduction ?? null;
         $options->allornothinggrading = $question->allornothinggrading ?? 0;
         $options->allowmultipleentries = $question->allowmultipleentries ?? 1;
         $options->maxentries = $question->maxentries ?? 5;
+        $options->gradingmode = \qtype_accounting\scorer::normalise_grading_mode($question->gradingmode ?? null);
+        $points = $options->gradingmode === \qtype_accounting\scorer::GRADINGMODE_POINTS;
+        if ($points && isset($question->extraentrydeductionpoints)) {
+            // The edit form offers the deduction in points in points mode; XML import uses extraentrydeduction.
+            $options->extraentrydeduction = $question->extraentrydeductionpoints;
+        }
+        $options->currency = \qtype_accounting\currency_helper::normalise($question->currency ?? null);
         return $options;
     }
 
@@ -155,9 +246,13 @@ class qtype_accounting extends question_type {
             $record->questionid = $questionid;
             $record->sortorder = $sortorder++;
             $record->debitaccountid = $debitaccountid ?: null;
-            $record->debitamount = floatval($arrays['debitamount'][$i] ?? 0);
+            $record->debitamount = \qtype_accounting\amount_helper::decimal_amount(
+                \qtype_accounting\amount_helper::parse_cents((string)($arrays['debitamount'][$i] ?? 0), 'us')
+            );
             $record->creditaccountid = $creditaccountid ?: null;
-            $record->creditamount = floatval($arrays['creditamount'][$i] ?? 0);
+            $record->creditamount = \qtype_accounting\amount_helper::decimal_amount(
+                \qtype_accounting\amount_helper::parse_cents((string)($arrays['creditamount'][$i] ?? 0), 'us')
+            );
             $record->weight_debitaccount = intval($arrays['weight_debitaccount'][$i] ?? 1);
             $record->weight_debitamount = intval($arrays['weight_debitamount'][$i] ?? 1);
             $record->weight_creditaccount = intval($arrays['weight_creditaccount'][$i] ?? 1);
@@ -176,30 +271,17 @@ class qtype_accounting extends question_type {
     public function get_question_options($question): bool {
         global $DB;
 
-        $question->options = $DB->get_record(
-            'qtype_accounting_options',
-            ['questionid' => $question->id]
-        );
+        parent::get_question_options($question);
+        $defaults = $this->build_options_record((object)['id' => $question->id]);
+        $question->options = (object)((array)$question->options + (array)$defaults);
 
-        if ($question->options === false) {
-            $question->options = new stdClass();
-            $question->options->questionid = $question->id;
-            $question->options->chartofaccountsid = 0;
-            $question->options->accountsindropdown = 0;
-            $question->options->numberformat = 'de';
-            $question->options->extraentrydeduction = null;
-            $question->options->allornothinggrading = 0;
-            $question->options->allowmultipleentries = 1;
-            $question->options->maxentries = 5;
-        }
-
+        $question->options->accounts = \qtype_accounting\question_accounts::get((int)$question->id);
         $question->options->entries = $DB->get_records(
             'qtype_accounting_entries',
             ['questionid' => $question->id],
             'sortorder ASC'
         );
 
-        parent::get_question_options($question);
         return true;
     }
 
@@ -210,16 +292,18 @@ class qtype_accounting extends question_type {
      * @param object $questiondata The question data from the database.
      */
     protected function initialise_question_instance(question_definition $question, $questiondata): void {
-        global $DB;
         parent::initialise_question_instance($question, $questiondata);
 
-        $question->chartofaccountsid = $questiondata->options->chartofaccountsid ?? 0;
         $question->accountsindropdown = $questiondata->options->accountsindropdown ?? 0;
         $question->numberformat = $questiondata->options->numberformat ?? 'de';
         $question->extraentrydeduction = $questiondata->options->extraentrydeduction ?? null;
         $question->allornothinggrading = $questiondata->options->allornothinggrading ?? 0;
         $question->allowmultipleentries = $questiondata->options->allowmultipleentries ?? 1;
         $question->maxentries = $questiondata->options->maxentries ?? 5;
+        $question->gradingmode = \qtype_accounting\scorer::normalise_grading_mode($questiondata->options->gradingmode ?? null);
+        $question->strictpairs = (bool)get_config('qtype_accounting', 'strictpairs');
+        $question->accountsonlyexception = (bool)get_config('qtype_accounting', 'accountsonlyexception');
+        $question->currency = \qtype_accounting\currency_helper::normalise($questiondata->options->currency ?? null);
         $question->entries = [];
 
         if (!empty($questiondata->options->entries)) {
@@ -238,16 +322,11 @@ class qtype_accounting extends question_type {
             }
         }
 
-        // Load account lookup map for display (ID => name).
+        $accounts = $questiondata->options->accounts ?? \qtype_accounting\question_accounts::get((int)$questiondata->id);
+        $question->accounts = \qtype_accounting\question_accounts::as_options($accounts);
         $question->accountsmap = [];
-        if ($question->chartofaccountsid > 0) {
-            $accounts = $DB->get_records(
-                'qtype_accounting_accounts',
-                ['chartid' => $question->chartofaccountsid]
-            );
-            foreach ($accounts as $acc) {
-                $question->accountsmap[$acc->id] = $acc->accountname;
-            }
+        foreach ($question->accounts as $key => $account) {
+            $question->accountsmap[$key] = $account->accountname;
         }
     }
 
@@ -260,8 +339,8 @@ class qtype_accounting extends question_type {
     public function delete_question($questionid, $contextid): void {
         global $DB;
 
-        $DB->delete_records('qtype_accounting_options', ['questionid' => $questionid]);
         $DB->delete_records('qtype_accounting_entries', ['questionid' => $questionid]);
+        \qtype_accounting\question_accounts::delete((int)$questionid);
 
         parent::delete_question($questionid, $contextid);
     }
@@ -283,7 +362,13 @@ class qtype_accounting extends question_type {
      * @return array The possible responses.
      */
     public function get_possible_responses($questiondata): array {
-        return [];
+        return [$questiondata->id => [
+            1 => new question_possible_response(get_string('correct', 'question'), 1),
+            // The class covers every partial grade; the classified responses carry the actual fraction.
+            2 => new question_possible_response(get_string('partiallycorrect', 'question'), 0.5),
+            0 => new question_possible_response(get_string('incorrect', 'question'), 0),
+            null => question_possible_response::no_response(),
+        ]];
     }
 
     /**
@@ -292,15 +377,15 @@ class qtype_accounting extends question_type {
      * @return array The extra question fields.
      */
     public function extra_question_fields(): array {
-        return ['qtype_accounting_options', 'chartofaccountsid', 'accountsindropdown', 'numberformat',
+        return ['qtype_accounting_options', 'accountsindropdown', 'numberformat',
             'extraentrydeduction', 'allornothinggrading',
-            'allowmultipleentries', 'maxentries'];
+            'allowmultipleentries', 'maxentries', 'gradingmode', 'currency'];
     }
 
     /**
      * Export this question to the Moodle XML format.
      *
-     * Appends correct answer entries and full chart of accounts data
+     * Appends the correct answer entries and the question's accounts
      * to the auto-exported options fields from extra_question_fields().
      *
      * @param object $question The question data to export.
@@ -311,12 +396,12 @@ class qtype_accounting extends question_type {
     public function export_to_xml($question, qformat_xml $format, $extra = null) {
         $expout = parent::export_to_xml($question, $format, $extra);
         $handler = new \qtype_accounting\xml_handler();
+        $accounts = $question->options->accounts ?? [];
         if (!empty($question->options->entries)) {
-            $expout .= $handler->export_entries($question->options->entries, $format);
+            $expout .= $handler->export_entries($question->options->entries, $accounts, $format);
         }
-        $chartid = (int)($question->options->chartofaccountsid ?? 0);
-        if ($chartid > 0) {
-            $expout .= $handler->export_chart($chartid, $format);
+        if ($accounts) {
+            $expout .= $handler->export_accounts((string)($question->name ?? ''), $accounts, $format);
         }
         return $expout;
     }
@@ -340,12 +425,8 @@ class qtype_accounting extends question_type {
         array_shift($extraquestionfields); // Remove table name.
         $qo = $handler->import_options($data, $format, $qtype, $extraquestionfields);
         $handler->import_entries($data, $format, $qo);
-
-        $contextid = $handler->resolve_contextid($format);
-        $chartdata = $format->getpath($data, ['#', 'chartofaccounts', 0], null);
-        if ($chartdata !== null && $contextid > 0) {
-            $handler->resolve_chart($chartdata, $format, $contextid, $qo);
-        }
+        $format->import_hints($qo, $data, true, false, $format->get_format($qo->questiontextformat));
+        $handler->import_accounts($data, $format, $qo);
         return $qo;
     }
 }

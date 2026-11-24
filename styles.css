@@ -7,62 +7,10 @@
 
 .qtype_accounting-entries {
     margin: 1rem 0;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--bs-border-color, #dee2e6);
     border-radius: 0.25rem;
     padding: 1rem;
-    background-color: #f8f9fa;
-}
-
-.qtype_accounting-header {
-    font-weight: bold;
-    border-bottom: 2px solid #dee2e6;
-    padding-bottom: 0.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.qtype_accounting-header-account {
-    flex: 1 1 0;
-    min-width: 100px;
-}
-
-.qtype_accounting-header-amount {
-    flex: 0 0 100px;
-    min-width: 100px;
-    text-align: center;
-}
-
-.qtype_accounting-debit-header {
-    background-color: #d4edda;
-    padding: 0.5rem;
-    border-radius: 0.25rem 0 0 0;
-}
-
-.qtype_accounting-credit-header {
-    background-color: #cce5ff;
-    padding: 0.5rem;
-    border-radius: 0 0.25rem 0 0;
-}
-
-.qtype_accounting-subheader {
-    font-size: 0.875rem;
-    color: #6c757d;
-    padding: 0.25rem 0;
-    margin-bottom: 0.5rem;
-    border-bottom: 1px solid #dee2e6;
-}
-
-.qtype_accounting-entry {
-    padding: 0.5rem 0;
-    border-bottom: 1px dashed #dee2e6;
-}
-
-.qtype_accounting-entry:last-child {
-    border-bottom: none;
-}
-
-.qtype_accounting-account {
-    flex: 1 1 0;
-    min-width: 100px;
+    background-color: var(--bs-tertiary-bg, #f8f9fa);
 }
 
 .qtype_accounting-account-select {
@@ -70,11 +18,6 @@
     min-width: 0;
     max-width: 100%;
     box-sizing: border-box;
-}
-
-.qtype_accounting-amount {
-    flex: 0 0 100px;
-    min-width: 100px;
 }
 
 .qtype_accounting-amount-input {
@@ -85,7 +28,7 @@
 .qtype_accounting-readonly {
     display: block;
     padding: 0.375rem 0.75rem;
-    background-color: #e9ecef;
+    background-color: var(--bs-secondary-bg, #e9ecef);
     border-radius: 0.25rem;
     width: 100%;
     box-sizing: border-box;
@@ -94,33 +37,21 @@
 
 /* Correct/incorrect feedback styles for student review */
 .qtype_accounting-readonly.qtype_accounting-correct {
-    background-color: #d4edda;
-    border: 1px solid #c3e6cb;
+    background-color: var(--bs-success-bg-subtle, #d4edda);
+    border: 1px solid var(--bs-success-border-subtle, #c3e6cb);
 }
 
 .qtype_accounting-readonly.qtype_accounting-incorrect {
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-}
-
-/* Explanation shown below incorrect entries */
-.qtype_accounting-entry-explanation {
-    color: #856404;
-    border: 1px solid #ffc107;
-}
-
-.qtype_accounting-balance {
-    margin-top: 1rem;
-    padding: 0.5rem 1rem;
-    border-radius: 0.25rem;
+    background-color: var(--bs-danger-bg-subtle, #f8d7da);
+    border: 1px solid var(--bs-danger-border-subtle, #f5c6cb);
 }
 
 /* Correct response display */
 .qtype_accounting-correct-response {
     margin-top: 1rem;
     padding: 1rem;
-    background-color: #d4edda;
-    border: 1px solid #c3e6cb;
+    background-color: var(--bs-success-bg-subtle, #d4edda);
+    border: 1px solid var(--bs-success-border-subtle, #c3e6cb);
     border-radius: 0.25rem;
 }
 
@@ -136,7 +67,7 @@
 }
 
 .qtype_accounting-solution th {
-    background-color: #f8f9fa;
+    background-color: var(--bs-tertiary-bg, #f8f9fa);
     text-align: center;
 }
 
@@ -144,57 +75,11 @@
     text-align: center;
 }
 
-/* Edit form styles */
-.qtype_accounting-entry-form {
-    background-color: #fff;
-    border: 1px solid #dee2e6;
-    border-radius: 0.25rem;
-    padding: 1rem;
-    margin-bottom: 1rem;
-}
-
-
-/* T-Account visual style (optional enhanced view) */
-.qtype_accounting-t-account {
-    display: flex;
-    border: 2px solid #333;
-    margin: 1rem 0;
-}
-
-.qtype_accounting-t-account-side {
-    flex: 1;
-    padding: 1rem;
-}
-
-.qtype_accounting-t-account-debit {
-    border-right: 2px solid #333;
-}
-
-.qtype_accounting-t-account-title {
-    text-align: center;
-    font-weight: bold;
-    border-bottom: 1px solid #333;
-    padding-bottom: 0.5rem;
-    margin-bottom: 0.5rem;
-}
-
 /* ========================================
    MOBILE RESPONSIVE STYLES
    ======================================== */
 
 @media (max-width: 768px) {
-    /* Legacy flexbox styles for backwards compatibility */
-    .qtype_accounting-header .col-md-6,
-    .qtype_accounting-subheader .col-md-3,
-    .qtype_accounting-entry .col-md-3 {
-        text-align: center;
-        margin-bottom: 0.5rem;
-    }
-
-    .qtype_accounting-amount {
-        max-width: 100%;
-    }
-
     /* Hide table header on mobile */
     .qtype_accounting-student-table thead,
     .qtype_accounting-student-table colgroup {
@@ -213,7 +98,7 @@
         width: 100% !important;
     }
 
-    /* Only show visible rows as blocks - don't override inline display:none */
+    /* Display table rows as blocks on mobile. */
     .qtype_accounting-student-table tr {
         display: block;
         width: 100% !important;
@@ -225,35 +110,17 @@
         display: none !important;
     }
 
-    /* Each row becomes a card - don't use !important on display to allow hiding */
+    /* Each row becomes a card. */
     .qtype_accounting-student-table .qtype_accounting-entry-row {
         display: block;
-        background: #fff;
-        border: 1px solid #dee2e6;
+        background: var(--bs-body-bg, #fff);
+        border: 1px solid var(--bs-border-color, #dee2e6);
         border-radius: 8px;
         margin-bottom: 1rem;
         padding: 0;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         overflow: visible !important;
         position: relative;
-    }
-
-    /* Reset any problematic Select2 containers */
-    .qtype_accounting-student-table .select2-container {
-        position: static !important;
-        display: block !important;
-        width: 100% !important;
-    }
-
-    .qtype_accounting-student-table .select2-container--default .select2-selection--single {
-        height: auto;
-        min-height: 44px;
-    }
-
-    /* Hide Select2 dropdown wrapper if it exists */
-    .qtype_accounting-student-table .select2-container .select2-dropdown {
-        position: absolute;
-        z-index: 9999;
     }
 
     /* All cells become block elements - override desktop max-width: 0 hack */
@@ -269,8 +136,8 @@
 
     /* Debit section header (label cell) */
     .qtype_accounting-student-table td.qtype_accounting-label-cell[data-section="debit"] {
-        background-color: #d4edda;
-        color: #155724;
+        background-color: var(--bs-success-bg-subtle, #d4edda);
+        color: var(--bs-success-text-emphasis, #155724);
         font-weight: 700;
         font-style: normal;
         text-align: left;
@@ -278,10 +145,10 @@
     }
 
     .qtype_accounting-student-table td.qtype_accounting-label-cell[data-section="debit"]::before {
-        content: "Debit";
+        content: attr(data-heading);
     }
 
-    /* Hide original Per text on mobile, show Debit instead */
+    /* Hide original Per text on mobile, show the translated side heading instead */
     .qtype_accounting-student-table td.qtype_accounting-label-cell[data-section="debit"] {
         font-size: 0;
     }
@@ -291,17 +158,17 @@
 
     /* Credit section header */
     .qtype_accounting-student-table td.qtype_accounting-label-cell[data-section="credit"] {
-        background-color: #cce5ff;
-        color: #004085;
+        background-color: var(--bs-primary-bg-subtle, #cce5ff);
+        color: var(--bs-primary-text-emphasis, #004085);
         font-weight: 700;
         font-style: normal;
         text-align: left;
         padding: 0.75rem 1rem;
-        border-top: 1px solid #dee2e6;
+        border-top: 1px solid var(--bs-border-color, #dee2e6);
     }
 
     .qtype_accounting-student-table td.qtype_accounting-label-cell[data-section="credit"]::before {
-        content: "Credit";
+        content: attr(data-heading);
     }
 
     .qtype_accounting-student-table td.qtype_accounting-label-cell[data-section="credit"] {
@@ -313,7 +180,7 @@
 
     /* Data cells with labels */
     .qtype_accounting-student-table .qtype_accounting-data-cell {
-        background: #fff;
+        background: var(--bs-body-bg, #fff);
         padding: 0.5rem 1rem;
         position: relative;
         z-index: 1;
@@ -323,7 +190,7 @@
         content: attr(data-label);
         display: block;
         font-size: 0.75rem;
-        color: #6c757d;
+        color: var(--bs-secondary-color, #6c757d);
         font-weight: 500;
         margin-bottom: 0.25rem;
     }
@@ -353,8 +220,8 @@
         display: block !important;
         -webkit-appearance: menulist;
         appearance: menulist;
-        background-color: #fff;
-        border: 1px solid #ced4da;
+        background-color: var(--bs-body-bg, #fff);
+        border: 1px solid var(--bs-border-color, #ced4da);
         border-radius: 4px;
         padding: 0.5rem;
     }
@@ -366,49 +233,18 @@
         min-height: 44px;
         font-size: 16px; /* Prevents iOS zoom */
         display: block !important;
-        background-color: #fff;
-        border: 1px solid #ced4da;
+        background-color: var(--bs-body-bg, #fff);
+        border: 1px solid var(--bs-border-color, #ced4da);
         border-radius: 4px;
         padding: 0.5rem;
-    }
-
-    /* Select2 mobile fixes */
-    .qtype_accounting-student-table .select2-container {
-        width: 100% !important;
-        max-width: 100% !important;
-        position: relative !important;
-    }
-
-    .qtype_accounting-student-table .select2-container .select2-selection {
-        min-height: 44px;
-        font-size: 16px;
-    }
-
-    .qtype_accounting-student-table .select2-container .select2-selection__rendered {
-        line-height: 42px;
-    }
-
-    .qtype_accounting-student-table .select2-container .select2-selection__arrow {
-        height: 42px;
-    }
-
-    /* Ensure Select2 dropdown doesn't overflow card */
-    .select2-container--open .select2-dropdown {
-        max-width: calc(100vw - 2rem);
     }
 
     /* Actions cell */
     .qtype_accounting-student-table .qtype_accounting-actions-cell {
         text-align: right;
         padding: 0.75rem 1rem;
-        border-top: 1px solid #dee2e6;
-        background: #f8f9fa;
-    }
-
-    /* Touch-friendly delete button */
-    .qtype_accounting-student-table .qtype_accounting-delete-entry {
-        min-width: 44px;
-        min-height: 44px;
+        border-top: 1px solid var(--bs-border-color, #dee2e6);
+        background: var(--bs-tertiary-bg, #f8f9fa);
     }
 
     /* Footer with add-entry buttons - display as a row of two full-width buttons */
@@ -438,7 +274,7 @@
         width: 100%;
         min-height: 44px;
         padding: 0.75rem;
-        background-color: #f8f9fa;
+        background-color: var(--bs-tertiary-bg, #f8f9fa);
         border-radius: 4px;
     }
 
@@ -455,11 +291,11 @@
     }
 
     .qtype_accounting-correct-response .qtype_accounting-solution tr {
-        border: 1px solid #c3e6cb;
+        border: 1px solid var(--bs-success-border-subtle, #c3e6cb);
         border-radius: 8px;
         margin-bottom: 0.5rem;
         padding: 1rem;
-        background: #fff;
+        background: var(--bs-body-bg, #fff);
     }
 
     .qtype_accounting-correct-response .qtype_accounting-solution td {
@@ -487,77 +323,14 @@
     }
 }
 
-/* Edit form table styles */
-.qtype_accounting-edit-table {
-    table-layout: fixed;
-    width: 100%;
-    margin-bottom: 0;
-}
-
-.qtype_accounting-edit-table th,
-.qtype_accounting-edit-table td {
-    vertical-align: middle;
-    padding: 0.5rem;
-}
-
-.qtype_accounting-edit-table thead th {
-    background-color: #e9ecef;
-    font-weight: 600;
-    text-align: center;
-}
-
+/* Edit form: the "Dr." and "Per" labels of an entry. */
 .qtype_accounting-edit-label {
-    width: 50px;
-    text-align: center;
-    background-color: #f8f9fa;
-    font-weight: normal;
     font-style: italic;
-    color: #6c757d;
-}
-
-.qtype_accounting-edit-data {
-    background-color: #fffef0;
-}
-
-.qtype_accounting-edit-data select,
-.qtype_accounting-edit-data input {
-    width: 100%;
-}
-
-.qtype_accounting-edit-actions {
-    width: 50px;
-    text-align: center;
-    background-color: #f8f9fa;
+    color: var(--bs-secondary-color, #6c757d);
 }
 
 .qtype_accounting-entry-row td {
     border-bottom: none;
-}
-
-.qtype_accounting-weight-row {
-    background-color: #f8f9fa;
-}
-
-.qtype_accounting-weight-row td {
-    padding-top: 0.25rem;
-    padding-bottom: 0.5rem;
-    border-top: none;
-    font-size: 0.875rem;
-    color: #6c757d;
-}
-
-.qtype_accounting-weight-cell {
-    white-space: nowrap;
-}
-
-.qtype_accounting-weight-cell input {
-    display: inline-block;
-    width: 60px;
-    text-align: center;
-}
-
-.qtype_accounting-delete-entry {
-    padding: 0.25rem 0.5rem;
 }
 
 /* Hide the template element */
@@ -577,11 +350,11 @@ table.qtype_accounting-student-table {
 .qtype_accounting-student-table td {
     vertical-align: middle;
     padding: 0.5rem;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--bs-border-color, #dee2e6);
 }
 
 .qtype_accounting-student-table thead th {
-    background-color: #e9ecef;
+    background-color: var(--bs-secondary-bg, #e9ecef);
     font-weight: 600;
     text-align: center;
 }
@@ -589,16 +362,23 @@ table.qtype_accounting-student-table {
 /* Label cells (Per, an) - narrow fixed width columns */
 .qtype_accounting-label-cell {
     text-align: center;
-    background-color: #f8f9fa;
+    background-color: var(--bs-tertiary-bg, #f8f9fa);
     font-weight: normal;
     font-style: italic;
-    color: #6c757d;
+    color: var(--bs-secondary-color, #6c757d);
     vertical-align: middle;
+}
+
+/* Narrow padding so the delete buttons fit the "an" and actions columns. */
+.qtype_accounting-student-table td.qtype_accounting-label-cell,
+.qtype_accounting-student-table td.qtype_accounting-actions-cell {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
 }
 
 /* Data cells (Account dropdowns, Amount inputs) */
 .qtype_accounting-data-cell {
-    background-color: #fffef0;
+    background-color: var(--bs-body-bg, #fffef0);
     overflow: hidden;
 }
 
@@ -642,16 +422,16 @@ table.qtype_accounting-student-table {
 .qtype_accounting-actions-cell {
     text-align: center;
     vertical-align: middle;
-    background-color: #f8f9fa;
+    background-color: var(--bs-tertiary-bg, #f8f9fa);
 }
 
 .qtype_accounting-student-table .qtype_accounting-entry-row td {
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid var(--bs-border-color, #dee2e6);
 }
 
 .qtype_accounting-student-table .qtype_accounting-explanation-row td {
-    background-color: #fff3cd;
-    color: #856404;
+    background-color: var(--bs-warning-bg-subtle, #fff3cd);
+    color: var(--bs-warning-text-emphasis, #856404);
     font-size: 0.9em;
     border-top: none;
 }
@@ -670,12 +450,6 @@ table.qtype_accounting-student-table {
 
 /* Also hide all content inside hidden cells */
 .qtype_accounting-hidden-cell * {
-    visibility: hidden !important;
-}
-
-/* Edit table: use display:none for hidden cells to completely remove them */
-.qtype_accounting-edit-table td.qtype_accounting-hidden-cell,
-.qtype_accounting-edit-table .qtype_accounting-hidden-cell {
     visibility: hidden !important;
 }
 
@@ -758,8 +532,8 @@ table.qtype_accounting-student-table {
     /* For debit-only, the "an" cell with debit delete should be at the end of visible cells */
     .qtype_accounting-student-table tr[data-entry-type="debit"] td.qtype_accounting-label-cell[data-section="credit"] {
         order: 10;
-        background-color: #f8f9fa;
-        border-top: 1px solid #dee2e6;
+        background-color: var(--bs-tertiary-bg, #f8f9fa);
+        border-top: 1px solid var(--bs-border-color, #dee2e6);
     }
 
     /* For credit-only entries: Cell 3 (data-section="credit") needs to be visible as header,
@@ -767,8 +541,8 @@ table.qtype_accounting-student-table {
     .qtype_accounting-student-table tr[data-entry-type="credit"]
     td.qtype_accounting-label-cell[data-section="credit"].qtype_accounting-hidden-cell {
         display: block !important;
-        background-color: #cce5ff;
-        color: #004085;
+        background-color: var(--bs-primary-bg-subtle, #cce5ff);
+        color: var(--bs-primary-text-emphasis, #004085);
         font-weight: 700;
         font-size: 1rem;
     }
@@ -776,42 +550,19 @@ table.qtype_accounting-student-table {
     /* Ensure the ::before content for "Credit" shows for credit-only */
     .qtype_accounting-student-table tr[data-entry-type="credit"]
     td.qtype_accounting-label-cell[data-section="credit"].qtype_accounting-hidden-cell::before {
-        content: "Credit" !important;
+        content: attr(data-heading) !important;
         font-size: 1rem !important;
     }
 }
 
-/* ========================================
-   EDIT TABLE MOBILE STYLES
-   ======================================== */
-@media (max-width: 768px) {
-    /* Hidden cells in edit table should also use display:none on mobile */
-    .qtype_accounting-edit-table td.qtype_accounting-hidden-cell {
-        visibility: hidden !important;
-    }
-}
-
-/* Sortable table header links */
-.qtype_accounting-sort-link {
-    text-decoration: none;
-    white-space: nowrap;
-    color: inherit;
-}
-
-.qtype_accounting-sort-link:hover {
-    text-decoration: underline;
-}
-
-
-/* CSV import/export section below accounts table */
-.qtype_accounting-csv-actions {
-    border-top: 1px solid #dee2e6;
-    padding-top: 1rem;
+/* Back, download and delete buttons below the chart editor. */
+.qtype_accounting-chart-actions {
+    gap: 0.5rem;
 }
 
 /* Edit-chart CSV import (Moodle filepicker form) — span the full page width. */
 .qtype_accounting-csv-import {
-    border-top: 1px solid #dee2e6;
+    border-top: 1px solid var(--bs-border-color, #dee2e6);
     padding-top: 1rem;
 }
 
@@ -855,7 +606,7 @@ table.qtype_accounting-student-table {
 
 /* Bottom action row: Back + Export sit side by side, wrap nicely on small screens. */
 .qtype_accounting-chart-actions {
-    border-top: 1px solid #dee2e6;
+    border-top: 1px solid var(--bs-border-color, #dee2e6);
     padding-top: 1rem;
 }
 
@@ -863,15 +614,10 @@ table.qtype_accounting-student-table {
 @media print {
     .qtype_accounting-entries {
         border: 1px solid #000;
-        background-color: #fff;
+        background-color: var(--bs-body-bg, #fff);
     }
 
-    .qtype_accounting-account-select,
-    .qtype_accounting-amount {
-        border: 1px solid #000;
-    }
-
-    .qtype_accounting-edit-table {
+    .qtype_accounting-account-select {
         border: 1px solid #000;
     }
 }
@@ -885,143 +631,210 @@ table.qtype_accounting-student-table {
     display: none;
 }
 
-@media (max-width: 768px) {
-    /* When JS activates mobile view, hide the table */
-    .qtype_accounting-question-container.qtype_accounting-mobile-active .qtype_accounting-student-table {
-        display: none !important;
-    }
+/* The card view is activated by JS whenever the question is too narrow for the table. */
+/* When JS activates mobile view, hide the table */
+.qtype_accounting-question-container.qtype_accounting-mobile-active .qtype_accounting-student-table {
+    display: none !important;
+}
 
-    /* Show mobile view when active */
-    .qtype_accounting-question-container.qtype_accounting-mobile-active .qtype_accounting-mobile-view {
-        display: block !important;
-    }
+/* Show mobile view when active */
+.qtype_accounting-question-container.qtype_accounting-mobile-active .qtype_accounting-mobile-view {
+    display: block !important;
+}
 
-    /* Section styling */
-    .qtype_accounting-mobile-section {
-        margin-bottom: 1.5rem;
-    }
+/* Section styling */
+.qtype_accounting-mobile-section {
+    margin-bottom: 1.5rem;
+}
 
-    .qtype_accounting-mobile-section-header {
-        padding: 0.75rem 1rem;
-        border-radius: 0.5rem 0.5rem 0 0;
-        font-weight: 700;
-        font-size: 1rem;
-    }
+.qtype_accounting-mobile-section-header {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+    font-weight: 700;
+    font-size: 1rem;
+}
 
-    .qtype_accounting-mobile-debit-header,
-    .qtype_accounting-mobile-credit-header {
-        background-color: #e9ecef;
-        color: #495057;
-    }
+.qtype_accounting-mobile-debit-header,
+.qtype_accounting-mobile-credit-header {
+    background-color: var(--bs-secondary-bg, #e9ecef);
+    color: var(--bs-body-color, #495057);
+}
 
-    .qtype_accounting-mobile-section-header h4 {
-        margin: 0;
-        font-size: 1rem;
-    }
+.qtype_accounting-mobile-section-header h4 {
+    margin: 0;
+    font-size: 1rem;
+}
 
-    /* Card styling */
-    .qtype_accounting-mobile-card {
-        background: #fff;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        margin-bottom: 0.75rem;
-        padding: 1rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
+/* Card styling */
+.qtype_accounting-mobile-card {
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
 
-    .qtype_accounting-mobile-card[data-side="debit"],
-    .qtype_accounting-mobile-card[data-side="credit"] {
-        border-left: 4px solid #dee2e6;
-    }
+.qtype_accounting-mobile-card[data-side="debit"],
+.qtype_accounting-mobile-card[data-side="credit"] {
+    border-left: 4px solid var(--bs-border-color, #dee2e6);
+}
 
-    /* Field layout within card */
-    .qtype_accounting-mobile-field {
-        margin-bottom: 0.75rem;
-    }
+/* Field layout within card */
+.qtype_accounting-mobile-field {
+    margin-bottom: 0.75rem;
+}
 
-    .qtype_accounting-mobile-field:last-child {
-        margin-bottom: 0;
-    }
+.qtype_accounting-mobile-field:last-child {
+    margin-bottom: 0;
+}
 
-    .qtype_accounting-mobile-field label {
-        display: block;
-        font-size: 0.75rem;
-        color: #6c757d;
-        font-weight: 500;
-        margin-bottom: 0.25rem;
-    }
+.qtype_accounting-mobile-field label,
+.qtype_accounting-mobile-field .qtype_accounting-mobile-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--bs-secondary-color, #6c757d);
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
 
-    .qtype_accounting-mobile-field select,
-    .qtype_accounting-mobile-field input {
-        width: 100%;
-        min-height: 44px;
-        font-size: 16px; /* Prevents iOS zoom */
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        padding: 0.5rem;
-        background-color: #fff;
-        -webkit-appearance: menulist;
-        appearance: menulist;
-    }
+.qtype_accounting-mobile-field select,
+.qtype_accounting-mobile-field input,
+.qtype_accounting-mobile-field .qtype_accounting-mobile-proxy {
+    width: 100%;
+    min-height: 44px;
+    font-size: 16px; /* Prevents iOS zoom */
+    border: 1px solid var(--bs-border-color, #ced4da);
+    border-radius: 4px;
+    padding: 0.5rem;
+    background-color: var(--bs-body-bg, #fff);
+    -webkit-appearance: menulist;
+    appearance: menulist;
+}
 
-    .qtype_accounting-mobile-field input {
-        -webkit-appearance: none;
-        appearance: none;
-    }
+.qtype_accounting-mobile-field input {
+    -webkit-appearance: none;
+    appearance: none;
+}
 
-    .qtype_accounting-mobile-field .qtype_accounting-amount-input {
-        text-align: right;
-    }
+.qtype_accounting-mobile-field .qtype_accounting-amount-input {
+    text-align: right;
+}
 
-    /* Card actions (delete button) */
-    .qtype_accounting-mobile-card-actions {
-        display: flex;
-        justify-content: flex-end;
-        padding-top: 0.5rem;
-        border-top: 1px solid #f0f0f0;
-        margin-top: 0.75rem;
-    }
+/* Card actions (delete button) */
+.qtype_accounting-mobile-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--bs-border-color, #f0f0f0);
+    margin-top: 0.75rem;
+}
 
-    .qtype_accounting-mobile-card-actions .btn {
-        min-width: 44px;
-        min-height: 44px;
-    }
+.qtype_accounting-mobile-card-actions .btn {
+    min-width: 44px;
+    min-height: 44px;
+}
 
-    /* Section add button */
-    .qtype_accounting-mobile-section > .btn {
-        width: 100%;
-        min-height: 44px;
-        font-size: 16px;
-        margin-top: 0.5rem;
-    }
+/* Section add button */
+.qtype_accounting-mobile-section > .btn {
+    width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+    margin-top: 0.5rem;
+}
 
-    /* Readonly spans in mobile cards */
-    .qtype_accounting-mobile-card .qtype_accounting-readonly {
-        display: block;
-        width: 100%;
-        min-height: 44px;
-        padding: 0.75rem;
-        background-color: #f8f9fa;
-        border-radius: 4px;
-    }
+/* Readonly spans in mobile cards */
+.qtype_accounting-mobile-card .qtype_accounting-readonly {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.75rem;
+    background-color: var(--bs-tertiary-bg, #f8f9fa);
+    border-radius: 4px;
+}
 
-    /* Feedback colors in mobile cards - must override the default background above */
-    .qtype_accounting-mobile-card .qtype_accounting-readonly.qtype_accounting-correct {
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
-    }
+/* Feedback colors in mobile cards - must override the default background above */
+.qtype_accounting-mobile-card .qtype_accounting-readonly.qtype_accounting-correct {
+    background-color: var(--bs-success-bg-subtle, #d4edda);
+    border: 1px solid var(--bs-success-border-subtle, #c3e6cb);
+}
 
-    .qtype_accounting-mobile-card .qtype_accounting-readonly.qtype_accounting-incorrect {
-        background-color: #f8d7da;
-        border: 1px solid #f5c6cb;
-    }
+.qtype_accounting-mobile-card .qtype_accounting-readonly.qtype_accounting-incorrect {
+    background-color: var(--bs-danger-bg-subtle, #f8d7da);
+    border: 1px solid var(--bs-danger-border-subtle, #f5c6cb);
+}
 
-    /* Empty section state */
-    .qtype_accounting-mobile-cards:empty::after {
-        content: '\2014'; /* em-dash */
-        display: block;
-        text-align: center;
-        color: #adb5bd;
-        padding: 1rem;
-    }
+/* Empty section state */
+.qtype_accounting-mobile-cards:empty::after {
+    content: '\2014'; /* em-dash */
+    display: block;
+    text-align: center;
+    color: var(--bs-secondary-color, #adb5bd);
+    padding: 1rem;
+}
+
+.qtype_accounting-col-label {
+    width: 40px;
+}
+
+.qtype_accounting-col-account {
+    width: auto;
+}
+
+.qtype_accounting-col-amount {
+    /* The input's minimum width plus the cell padding and border. */
+    width: calc(var(--qtype-accounting-amount-width, 120px) + 1rem + 1px + var(--qtype-accounting-currency-width, 0px));
+}
+
+.qtype_accounting-col-label.qtype_accounting-col-label-actions,
+.qtype_accounting-col-actions {
+    width: 56px;
+}
+
+.qtype_accounting-amount-display {
+    text-align: end;
+}
+
+/* State classes shared by the desktop table and mobile cards. */
+.qtype_accounting-question-container .qtype_accounting-deleted-row {
+    display: none !important;
+}
+
+.qtype_accounting-delete-hidden {
+    visibility: hidden !important;
+}
+
+/* Points mode derives the default mark from the correct answer. */
+form:has(#id_gradingmode option[value="points"]:checked) #fitem_id_defaultmark {
+    display: none;
+}
+
+/* Site setting showpercolumn off: hide the leading "Per" column. The cells stay in the DOM for the JS. */
+.qtype_accounting-hideper > colgroup > col:first-child,
+.qtype_accounting-hideper > thead > tr > :first-child,
+.qtype_accounting-hideper > tbody > tr > :first-child,
+.qtype_accounting-hideper > tfoot > tr > :first-child {
+    display: none;
+}
+
+/* Currency symbol after the amount inputs. */
+.qtype_accounting-amount-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.qtype_accounting-amount-group > .qtype_accounting-amount-input {
+    flex: 1 1 auto;
+}
+
+.qtype_accounting-currency {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+/* Teacher explanation below an entry of the correct answer. */
+.qtype_accounting-explanation {
+    background-color: var(--bs-warning-bg-subtle, #fff3cd);
+    color: var(--bs-warning-text-emphasis, #856404);
 }

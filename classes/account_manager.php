@@ -45,6 +45,8 @@ class account_manager {
     public static function add(int $chartid, string $accountname, int $sortorder = 0): int {
         global $DB;
 
+        self::check_duplicate($chartid, $accountname);
+
         $account = new \stdClass();
         $account->chartid = $chartid;
         $account->accountname = $accountname;
@@ -80,6 +82,10 @@ class account_manager {
         global $DB;
 
         $account = $DB->get_record('qtype_accounting_accounts', ['id' => $accountid], '*', MUST_EXIST);
+        if ($account->accountname === $accountname) {
+            return true;
+        }
+        self::check_duplicate((int)$account->chartid, $accountname);
         $account->accountname = $accountname;
 
         return $DB->update_record('qtype_accounting_accounts', $account);
@@ -97,22 +103,39 @@ class account_manager {
     }
 
     /**
-     * Import accounts from text content into an existing chart.
+     * Reject duplicate names before reaching the database unique constraint.
+     *
+     * @param int $chartid Chart ID.
+     * @param string $accountname Proposed account name.
+     */
+    private static function check_duplicate(int $chartid, string $accountname): void {
+        global $DB;
+        if (\core_text::strlen($accountname) > 255) {
+            throw new \moodle_exception('maximumchars', '', '', 255);
+        }
+        if ($DB->record_exists('qtype_accounting_accounts', ['chartid' => $chartid, 'accountname' => $accountname])) {
+            throw new \moodle_exception('err_duplicateaccount', 'qtype_accounting');
+        }
+    }
+
+    /**
+     * Import accounts from text or ODS content into an existing chart.
      *
      * Each line in $content is one account name. Lines whose account name already
      * exists in the chart are skipped (no duplicates created).
      *
      * @param int $chartid Chart ID.
-     * @param string $content Text content with one account name per line.
+     * @param string $content Text with one account name per line, or raw ODS content.
+     * @param string $filename Original filename, used to select the file format.
      * @return array ['imported' => int, 'errors' => array]
      */
-    public static function import_into_chart(int $chartid, string $content): array {
+    public static function import_into_chart(int $chartid, string $content, string $filename = ''): array {
         global $DB;
 
         $result = ['imported' => 0, 'errors' => []];
 
         try {
-            $parsed = import_helper::parse_csv($content);
+            $parsed = import_helper::parse_file($content, $filename);
         } catch (\Exception $e) {
             $result['errors'][] = $e->getMessage();
             return $result;
@@ -126,16 +149,19 @@ class account_manager {
             'accountname, id'
         );
 
-        foreach ($parsed['accounts'] as $accountname => $accountdata) {
-            if (isset($existing[$accountname])) {
-                continue;
-            }
-            try {
+        $transaction = $DB->start_delegated_transaction();
+        try {
+            foreach ($parsed['accounts'] as $accountname => $accountdata) {
+                if (isset($existing[$accountname])) {
+                    continue;
+                }
                 self::add($chartid, $accountdata['accountname'], $accountdata['sortorder']);
                 $result['imported']++;
-            } catch (\Exception $e) {
-                $result['errors'][] = $accountname . ': ' . $e->getMessage();
             }
+
+            $transaction->allow_commit();
+        } catch (\Exception $exception) {
+            $transaction->rollback($exception);
         }
 
         return $result;

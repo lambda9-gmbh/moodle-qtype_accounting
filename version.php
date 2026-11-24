@@ -25,8 +25,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'qtype_accounting';
-$plugin->version = 2026052800;
-$plugin->requires = 2024100700; // Moodle 4.5 LTS.
+$plugin->version = 2026112300;
+$plugin->requires = 2024100702; // Moodle 4.5.2, for the question identity hash API (MDL-83541).
 $plugin->supported = [405, 501]; // Tested against Moodle 4.5 LTS through 5.1.
 $plugin->maturity = MATURITY_STABLE;
 $plugin->release = '1.0.0';

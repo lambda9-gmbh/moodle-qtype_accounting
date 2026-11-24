@@ -1,0 +1,40 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle. If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template qtype_accounting/feedback_summary
+
+    Summary of the feedback on the debit and credit side.
+
+    Context variables required for this template:
+    * allcorrect - Whether the response is fully correct.
+    * partial - Whether a side is partially correct (warning instead of error).
+    * message - The messages for both sides.
+
+    Example context (json): {
+        "allcorrect": false,
+        "partial": true,
+        "message": "The debit side is partially incorrect."
+    }
+}}
+<div class="qtype_accounting-feedback-summary mt-3">
+    {{#allcorrect}}
+    <div class="alert alert-success">{{#pix}}i/valid, core{{/pix}} {{#str}}allcorrect, qtype_accounting{{/str}}</div>
+    {{/allcorrect}}
+    {{^allcorrect}}
+    <div class="alert {{#partial}}alert-warning{{/partial}}{{^partial}}alert-danger{{/partial}}">{{#partial}}{{#pix}}i/warning, core{{/pix}}{{/partial}}{{^partial}}{{#pix}}i/invalid, core{{/pix}}{{/partial}} {{message}}</div>
+    {{/allcorrect}}
+</div>

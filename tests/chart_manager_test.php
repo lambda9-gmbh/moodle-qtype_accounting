@@ -16,6 +16,7 @@
 
 namespace qtype_accounting;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\chart_manager::class)]
 /**
  * Unit tests for the chart_manager class.
  *
@@ -24,13 +25,29 @@ namespace qtype_accounting;
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting\chart_manager
  */
-class chart_manager_test extends \advanced_testcase {
+final class chart_manager_test extends \advanced_testcase {
+    /**
+     * Deleting a chart must not introduce one query per account.
+     */
+    public function test_delete_chart_has_bounded_reads(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $chartid = chart_manager::create_chart('Bulk deletion', \context_system::instance()->id);
+        for ($i = 0; $i < 30; $i++) {
+            account_manager::add($chartid, 'Account ' . $i);
+        }
+        $before = $DB->perf_get_reads();
+        $this->assertTrue(chart_manager::delete_chart($chartid));
+        $this->assertLessThanOrEqual(8, $DB->perf_get_reads() - $before);
+    }
+
     /**
      * Test creating and retrieving a chart.
      */
     public function test_create_and_get_chart(): void {
         $this->resetAfterTest();
 
+        $clock = $this->mock_clock_with_frozen(1700000000);
         $contextid = \context_system::instance()->id;
         $chartid = chart_manager::create_chart('SKR03', $contextid);
 
@@ -40,8 +57,43 @@ class chart_manager_test extends \advanced_testcase {
         $this->assertNotFalse($chart);
         $this->assertEquals('SKR03', $chart->name);
         $this->assertEquals($contextid, $chart->contextid);
-        $this->assertGreaterThan(0, $chart->timecreated);
-        $this->assertGreaterThan(0, $chart->timemodified);
+        $this->assertEquals(1700000000, $chart->timecreated);
+        $this->assertEquals(1700000000, $chart->timemodified);
+
+        $clock->bump(60);
+        chart_manager::update_chart($chartid, 'SKR04');
+        $chart = chart_manager::get_chart($chartid);
+        $this->assertEquals(1700000000, $chart->timecreated);
+        $this->assertEquals(1700000060, $chart->timemodified);
+    }
+
+    /**
+     * Creating, changing and deleting a template trigger events.
+     */
+    public function test_events(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $sink = $this->redirectEvents();
+
+        $chartid = chart_manager::create_chart('SKR03', \context_system::instance()->id);
+        chart_manager::update_chart($chartid, 'SKR04');
+        chart_manager::accounts_changed($chartid);
+        chart_manager::delete_chart($chartid);
+
+        $events = $sink->get_events();
+        $this->assertSame(
+            [
+                event\chart_created::class,
+                event\chart_updated::class,
+                event\chart_updated::class,
+                event\chart_deleted::class,
+            ],
+            array_map('get_class', $events)
+        );
+        foreach ($events as $event) {
+            $this->assertEquals($chartid, $event->objectid);
+            $this->assertEquals(\context_system::instance(), $event->get_context());
+        }
     }
 
     /**
@@ -129,116 +181,6 @@ class chart_manager_test extends \advanced_testcase {
         // Different context should return no charts.
         $charts = chart_manager::get_charts_for_context($coursecontext->id);
         $this->assertEmpty($charts);
-    }
-
-    /**
-     * Test finding a chart by name within a context.
-     */
-    public function test_get_chart_by_name(): void {
-        $this->resetAfterTest();
-
-        $contextid = \context_system::instance()->id;
-        $chartid = chart_manager::create_chart('Find Me', $contextid);
-
-        $chart = chart_manager::get_chart_by_name('Find Me', $contextid);
-        $this->assertNotFalse($chart);
-        $this->assertEquals($chartid, $chart->id);
-
-        // Non-existent name returns false.
-        $chart = chart_manager::get_chart_by_name('Does Not Exist', $contextid);
-        $this->assertFalse($chart);
-    }
-
-    /**
-     * Test finding a matching chart in a context by name and account names.
-     */
-    public function test_find_matching_chart_in_context(): void {
-        $this->resetAfterTest();
-
-        $contextid = \context_system::instance()->id;
-        $chartid = chart_manager::create_chart('Match Test', $contextid);
-        account_manager::add($chartid, '1200 Bank', 0);
-        account_manager::add($chartid, '8400 Erlöse', 1);
-        account_manager::add($chartid, '1000 Kasse', 2);
-
-        // Search with a subset of accounts — should find the chart.
-        $accounts = [
-            '1200 Bank' => ['accountname' => '1200 Bank', 'sortorder' => 0],
-            '8400 Erlöse' => ['accountname' => '8400 Erlöse', 'sortorder' => 1],
-        ];
-        $found = chart_manager::find_matching_chart_in_context('Match Test', $contextid, $accounts);
-        $this->assertEquals($chartid, $found);
-    }
-
-    /**
-     * Test find_matching_chart_in_context returns null when accounts don't match.
-     */
-    public function test_find_matching_chart_no_match(): void {
-        $this->resetAfterTest();
-
-        $contextid = \context_system::instance()->id;
-        $chartid = chart_manager::create_chart('Partial Match', $contextid);
-        account_manager::add($chartid, '1200 Bank', 0);
-
-        // Search for accounts that include one not in the chart.
-        $accounts = [
-            '1200 Bank' => ['accountname' => '1200 Bank', 'sortorder' => 0],
-            'Missing Account' => ['accountname' => 'Missing Account', 'sortorder' => 1],
-        ];
-        $found = chart_manager::find_matching_chart_in_context('Partial Match', $contextid, $accounts);
-        $this->assertNull($found);
-    }
-
-    /**
-     * Test find_matching_chart_in_context returns null for wrong name.
-     */
-    public function test_find_matching_chart_wrong_name(): void {
-        $this->resetAfterTest();
-
-        $contextid = \context_system::instance()->id;
-        $chartid = chart_manager::create_chart('Right Name', $contextid);
-        account_manager::add($chartid, '1200 Bank', 0);
-
-        $accounts = [
-            '1200 Bank' => ['accountname' => '1200 Bank', 'sortorder' => 0],
-        ];
-        $found = chart_manager::find_matching_chart_in_context('Wrong Name', $contextid, $accounts);
-        $this->assertNull($found);
-    }
-
-    /**
-     * Test duplicating a chart to a new context.
-     */
-    public function test_duplicate_chart(): void {
-        $this->resetAfterTest();
-
-        $contextid = \context_system::instance()->id;
-        $sourceid = chart_manager::create_chart('Source Chart', $contextid);
-        account_manager::add($sourceid, '1200 Bank', 0);
-        account_manager::add($sourceid, '8400 Erlöse', 1);
-
-        $course = $this->getDataGenerator()->create_course();
-        $targetcontext = \context_course::instance($course->id);
-
-        $newid = chart_manager::duplicate_chart($sourceid, $targetcontext->id);
-
-        $this->assertGreaterThan(0, $newid);
-        $this->assertNotEquals($sourceid, $newid);
-
-        // Verify the new chart has the correct properties.
-        $newchart = chart_manager::get_chart($newid);
-        $this->assertEquals('Source Chart', $newchart->name);
-        $this->assertEquals($targetcontext->id, $newchart->contextid);
-
-        // Verify all accounts were copied.
-        $newaccounts = account_manager::get_for_chart($newid);
-        $this->assertCount(2, $newaccounts);
-
-        $accountnames = array_map(function ($a) {
-            return $a->accountname;
-        }, array_values($newaccounts));
-        $this->assertContains('1200 Bank', $accountnames);
-        $this->assertContains('8400 Erlöse', $accountnames);
     }
 
     /**

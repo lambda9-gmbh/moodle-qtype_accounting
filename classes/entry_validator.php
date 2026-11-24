@@ -50,8 +50,9 @@ class entry_validator {
         $creditaccountarray = $data['creditaccount'] ?? [];
         $allindices = array_unique(array_merge(array_keys($debitaccountarray), array_keys($creditaccountarray)));
 
-        $errors = $this->validate_completeness($data, $allindices, $errors);
-        return $this->validate_balance($data, $allindices, $errors);
+        $entryerrors = $this->validate_completeness($data, $allindices, []);
+        $entryerrors = $this->validate_balance($data, $allindices, $entryerrors);
+        return array_merge($errors, $entryerrors);
     }
 
     /**
@@ -119,7 +120,7 @@ class entry_validator {
         if ($accountid > 0) {
             if ($amountraw === '') {
                 $errors[$amountfield . '[' . $index . ']'] = get_string($amountmissingkey, 'qtype_accounting');
-            } else if (floatval($amountraw) < 0) {
+            } else if (amount_helper::parse_cents($amountraw, 'us') < 0) {
                 $errors[$amountfield . '[' . $index . ']'] = get_string('err_negativeamount', 'qtype_accounting');
             }
         } else if ($amountraw !== '') {
@@ -129,7 +130,7 @@ class entry_validator {
     }
 
     /**
-     * Balance check: sum of debit amounts must equal sum of credit amounts (within tolerance).
+     * Balance check: debit and credit totals must match in integer cents.
      *
      * @param array $data Form data.
      * @param array $allindices Union of indices across debitaccount and creditaccount arrays.
@@ -137,20 +138,14 @@ class entry_validator {
      * @return array Errors after this check.
      */
     protected function validate_balance(array $data, array $allindices, array $errors): array {
-        $numberformat = $data['numberformat'] ?? 'de';
-        $totaldebit = 0.0;
-        $totalcredit = 0.0;
+        $totaldebit = 0;
+        $totalcredit = 0;
         foreach ($allindices as $i) {
-            $totaldebit += amount_helper::parse_amount(
-                trim($data['debitamount'][$i] ?? ''),
-                $numberformat
-            );
-            $totalcredit += amount_helper::parse_amount(
-                trim($data['creditamount'][$i] ?? ''),
-                $numberformat
-            );
+            // JavaScript submits plain decimal numbers, regardless of the display format.
+            $totaldebit += amount_helper::parse_cents((string)($data['debitamount'][$i] ?? 0), 'us');
+            $totalcredit += amount_helper::parse_cents((string)($data['creditamount'][$i] ?? 0), 'us');
         }
-        if (abs($totaldebit - $totalcredit) > 0.001) {
+        if ($totaldebit !== $totalcredit) {
             $errors['balancevalidation'] = get_string('err_balancemismatch', 'qtype_accounting');
         }
         return $errors;

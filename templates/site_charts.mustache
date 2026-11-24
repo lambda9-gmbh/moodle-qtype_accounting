@@ -1,0 +1,70 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template qtype_accounting/site_charts
+
+    The chart of accounts templates on the plugin's settings page.
+
+    Context variables required for this template:
+    * manageurl - URL of the page to create or upload a template.
+    * hascharts - Whether there are templates.
+    * charts - Templates with name, editurl, exporturl, deleteurl, confirmmessage, accountcount and created.
+
+    Example context (json):
+    {
+        "manageurl": "#",
+        "hascharts": true,
+        "charts": [
+            {"name": "SKR03", "editurl": "#", "exporturl": "#", "deleteurl": "#",
+                "confirmmessage": "Delete SKR03?", "accountcount": 12, "created": "1/01/26, 10:00"}
+        ]
+    }
+}}
+<div class="mb-3">
+    <a href="{{manageurl}}" class="btn btn-secondary">{{#str}}sitecharts_add, qtype_accounting{{/str}}</a>
+</div>
+{{#hascharts}}
+<table class="generaltable qtype_accounting-site-charts">
+    <thead>
+        <tr>
+            <th scope="col">{{#str}}chartname, qtype_accounting{{/str}}</th>
+            <th scope="col">{{#str}}accounts, qtype_accounting{{/str}}</th>
+            <th scope="col">{{#str}}importdate, qtype_accounting{{/str}}</th>
+            <th scope="col">{{#str}}actions{{/str}}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#charts}}
+        <tr>
+            <td><a href="{{editurl}}">{{name}}</a></td>
+            <td>{{accountcount}}</td>
+            <td>{{created}}</td>
+            <td>
+                <a href="{{editurl}}">{{#pix}}t/edit, core, {{#str}}edit{{/str}}{{/pix}}</a>
+                <a href="{{exporturl}}">{{#pix}}i/export, core, {{#str}}exportaccounts, qtype_accounting{{/str}}{{/pix}}</a>
+                <a href="{{deleteurl}}" data-action="qtype_accounting-delete"
+                   data-confirmation-title="{{#str}}deletechart, qtype_accounting{{/str}}"
+                   data-confirmation-message="{{confirmmessage}}">{{#pix}}t/delete, core, {{#str}}delete{{/str}}{{/pix}}</a>
+            </td>
+        </tr>
+        {{/charts}}
+    </tbody>
+</table>
+{{/hascharts}}
+{{^hascharts}}
+<p class="alert alert-info">{{#str}}nocharts, qtype_accounting{{/str}}</p>
+{{/hascharts}}

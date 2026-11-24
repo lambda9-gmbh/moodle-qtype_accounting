@@ -42,6 +42,7 @@ version.hash
 /config.php
 
 # Testing
+.playwright-mcp/
 phpunit.xml
 .phpunit.result.cache
 coverage/
@@ -59,5 +60,7 @@ logs/
 
 # Node (if using build tools)
 node_modules/
+dev/mobile/.runtime/
+dev/mobile/__pycache__/
 npm-debug.log
 yarn-error.log

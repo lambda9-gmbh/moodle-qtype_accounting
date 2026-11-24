@@ -93,7 +93,7 @@ description:
       - Course-scoped charts of accounts managed inside Moodle
       - CSV import and export of charts of accounts (UTF-8 / Windows-1252)
       - Optional decoy accounts in account dropdowns
-      - Searchable account dropdowns where Select2 is available
+      - Native account dropdowns on desktop and mobile
       - "Per-field colour feedback after submission, with side-level summary"
       - Toggle between German and US number formats
       - Moodle XML question import/export with embedded chart of accounts
@@ -148,7 +148,7 @@ description:
       - "Kursbezogene Kontenrahmen, direkt in Moodle verwaltet"
       - CSV-Import und -Export von Kontenrahmen (UTF-8 / Windows-1252)
       - Optionale Ablenkungskonten in den Kontoauswahllisten
-      - Suchbare Kontoauswahl wenn Select2 verfügbar ist
+      - Native Kontoauswahl auf Desktop und Mobilgeräten
       - Feldweise Farbrückmeldung nach Abgabe inklusive Seitenfazit
       - Umschaltbares deutsches und amerikanisches Zahlenformat
       - Moodle-XML-Import/-Export inklusive eingebettetem Kontenrahmen

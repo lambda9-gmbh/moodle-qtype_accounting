@@ -22,6 +22,7 @@ global $CFG;
 require_once($CFG->dirroot . '/question/type/accounting/questiontype.php');
 require_once($CFG->dirroot . '/question/format/xml/format.php');
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting::class)]
 /**
  * Unit tests for qtype_accounting (question type class).
  *
@@ -30,7 +31,115 @@ require_once($CFG->dirroot . '/question/format/xml/format.php');
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting
  */
-class questiontype_test extends \advanced_testcase {
+final class questiontype_test extends \advanced_testcase {
+    /**
+     * XML export and import retain hint ordering, formats, options and embedded files.
+     */
+    public function test_xml_round_trip_preserves_hints_and_files(): void {
+        global $CFG;
+        require_once($CFG->libdir . '/xmlize.php');
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $course = $this->getDataGenerator()->create_course();
+        $context = \context_course::instance($course->id);
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category(['contextid' => $context->id]);
+        [$bank, $sales] = [1, 2];
+        $text = '<p>Try again. <a href="@@PLUGINFILE@@/hint.txt">Read the hint</a></p>';
+        $source = $generator->create_question('accounting', null, [
+            'category' => $category->id, 'accounts' => ['Bank', 'Sales'], 'accountkeys' => [],
+            'debitaccount' => [$bank], 'creditaccount' => [$sales],
+            'hint' => [
+                ['text' => $text, 'format' => FORMAT_HTML],
+                ['text' => 'Check the credit account.', 'format' => FORMAT_PLAIN],
+                ['text' => '', 'format' => FORMAT_HTML],
+            ],
+            'hintclearwrong' => [1, 0, 1], 'hintshownumcorrect' => [1, 0, 0],
+        ]);
+        $source = \question_bank::load_question_data($source->id);
+        $source->contextid = $context->id;
+        $fs = get_file_storage();
+        $firsthint = reset($source->hints);
+        $fs->create_file_from_string([
+            'contextid' => $context->id, 'component' => 'question', 'filearea' => 'hint',
+            'itemid' => $firsthint->id, 'filepath' => '/', 'filename' => 'hint.txt',
+        ], 'Hint attachment contents');
+
+        $format = new \qformat_xml();
+        $format->setCourse($course);
+        $xmlsource = $format->writequestion($source);
+        $xml = class_exists(\core\xml_parser::class)
+            ? (new \core\xml_parser())->parse($xmlsource)
+            : xmlize($xmlsource);
+        $imported = $this->qtype->import_from_xml($xml['question'], new \stdClass(), $format);
+        $this->assertCount(3, $imported->hint);
+        $this->assertSame($text, $imported->hint[0]['text']);
+        $this->assertEquals([1, 0, 1], $imported->hintclearwrong);
+        $this->assertEquals([1, 0, 0], $imported->hintshownumcorrect);
+
+        $target = $generator->create_question('accounting', null, ['category' => $category->id]);
+        $imported->id = $target->id;
+        $imported->context = $context;
+        $this->qtype->save_question_options($imported);
+        $loaded = \question_bank::load_question($target->id);
+        $this->assertCount(3, $loaded->hints);
+        $this->assertInstanceOf(\question_hint_with_parts::class, $loaded->hints[0]);
+        $this->assertSame($text, $loaded->hints[0]->hint);
+        $this->assertEquals(FORMAT_HTML, $loaded->hints[0]->hintformat);
+        $this->assertEquals(1, $loaded->hints[0]->clearwrong);
+        $this->assertEquals(1, $loaded->hints[0]->shownumcorrect);
+        $this->assertSame('Check the credit account.', $loaded->hints[1]->hint);
+        $this->assertEquals(FORMAT_PLAIN, $loaded->hints[1]->hintformat);
+        $this->assertEquals(0, $loaded->hints[1]->clearwrong);
+        $this->assertEquals(0, $loaded->hints[1]->shownumcorrect);
+        $this->assertSame('', $loaded->hints[2]->hint);
+        $this->assertEquals(1, $loaded->hints[2]->clearwrong);
+        $file = $fs->get_file($context->id, 'question', 'hint', $loaded->hints[0]->id, '/', 'hint.txt');
+        $this->assertNotFalse($file);
+        $this->assertSame('Hint attachment contents', $file->get_content());
+    }
+
+    /**
+     * Saving and rendering preserve the last cent at the database's maximum precision.
+     */
+    public function test_save_preserves_decimal_cents(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category();
+        $question = $generator->create_question('accounting', null, [
+            'category' => $category->id,
+            'debitaccount' => [101], 'creditaccount' => [201],
+            'debitamount' => ['9999999999999.99'], 'creditamount' => ['9999999999999.99'],
+        ]);
+        $entry = $DB->get_record('qtype_accounting_entries', ['questionid' => $question->id], '*', MUST_EXIST);
+        $this->assertSame('9999999999999.99', $entry->debitamount);
+        $this->assertSame('9999999999999.99', $entry->creditamount);
+        $loaded = \question_bank::load_question($question->id);
+        $response = $loaded->get_correct_response();
+        $this->assertSame('9.999.999.999.999,99', $response['debitamount_0']);
+        $this->assertSame(1.0, $loaded->grade_response($response)[0]);
+    }
+
+    /**
+     * Interactive hint options survive saving and question-engine loading.
+     */
+    public function test_interactive_hint_options_round_trip(): void {
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category();
+        $question = $generator->create_question('accounting', null, [
+            'category' => $category->id,
+            'hint' => [['text' => 'Try again.', 'format' => FORMAT_HTML]],
+            'hintclearwrong' => [1],
+            'hintshownumcorrect' => [1],
+        ]);
+        $loaded = \question_bank::load_question($question->id);
+        $this->assertInstanceOf(\question_hint_with_parts::class, $loaded->hints[0]);
+        $this->assertEquals(1, $loaded->hints[0]->clearwrong);
+        $this->assertEquals(1, $loaded->hints[0]->shownumcorrect);
+    }
+
     /** @var \qtype_accounting The question type instance. */
     protected $qtype;
 
@@ -50,10 +159,10 @@ class questiontype_test extends \advanced_testcase {
     }
 
     /**
-     * Test is_usable_by_random returns false.
+     * Accounting questions are available to random-question selection.
      */
     public function test_is_usable_by_random(): void {
-        $this->assertFalse($this->qtype->is_usable_by_random());
+        $this->assertTrue($this->qtype->is_usable_by_random());
     }
 
     /**
@@ -71,9 +180,47 @@ class questiontype_test extends \advanced_testcase {
         $fields = $this->qtype->extra_question_fields();
 
         $this->assertContains('qtype_accounting_options', $fields);
-        $this->assertContains('chartofaccountsid', $fields);
+        $this->assertNotContains('chartofaccountsid', $fields);
         $this->assertContains('allowmultipleentries', $fields);
         $this->assertContains('maxentries', $fields);
+        $this->assertContains('currency', $fields);
+    }
+
+    /**
+     * The currency is saved per question; missing, unknown and legacy empty values use the site default.
+     */
+    public function test_currency_defaults_to_site_setting(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        set_config('defaultcurrency', 'GBP', 'qtype_accounting');
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category();
+        $create = fn(array $extra) => $generator->create_question('accounting', null, $extra + [
+            'category' => $category->id,
+            'name' => 'Currency test',
+            'questiontext' => ['text' => 'Test', 'format' => FORMAT_HTML],
+            'generalfeedback' => ['text' => '', 'format' => FORMAT_HTML],
+            'defaultmark' => 1,
+            'penalty' => 0.3333333,
+            'qtype' => 'accounting',
+            'debitaccount' => [],
+            'creditaccount' => [],
+        ]);
+
+        $usd = $create(['currency' => 'USD']);
+        $this->assertSame('USD', $DB->get_field('qtype_accounting_options', 'currency', ['questionid' => $usd->id]));
+        $this->assertSame('USD', \question_bank::load_question($usd->id)->currency);
+
+        $missing = $create([]);
+        $this->assertSame('GBP', $DB->get_field('qtype_accounting_options', 'currency', ['questionid' => $missing->id]));
+        $unknown = $create(['currency' => 'XYZ']);
+        $this->assertSame('GBP', $DB->get_field('qtype_accounting_options', 'currency', ['questionid' => $unknown->id]));
+
+        // Questions saved before the currency existed show the symbol of the current site default.
+        $DB->set_field('qtype_accounting_options', 'currency', null, ['questionid' => $missing->id]);
+        set_config('defaultcurrency', 'CHF', 'qtype_accounting');
+        \question_bank::notify_question_edited($missing->id);
+        $this->assertSame('CHF', \question_bank::load_question($missing->id)->currency);
     }
 
     /**
@@ -94,7 +241,8 @@ class questiontype_test extends \advanced_testcase {
             'defaultmark' => 1,
             'penalty' => 0.3333333,
             'qtype' => 'accounting',
-            'chartofaccountsid' => 123,
+            'accounts' => "1200 Bank\n1000 Kasse\n8400 Erlöse",
+            'accountkeys' => ['1200 Bank' => 1200, '1000 Kasse' => 1000, '8400 Erlöse' => 8400],
             'allowmultipleentries' => 1,
             'maxentries' => 10,
             'debitaccount' => ['1200', '1000'],
@@ -115,7 +263,7 @@ class questiontype_test extends \advanced_testcase {
         $loadedquestion = \question_bank::load_question($question->id);
 
         $this->assertEquals('accounting', $loadedquestion->qtype->name());
-        $this->assertEquals(123, $loadedquestion->chartofaccountsid);
+        $this->assertSame([1000 => '1000 Kasse', 1200 => '1200 Bank', 8400 => '8400 Erlöse'], $loadedquestion->accountsmap);
         $this->assertEquals(1, $loadedquestion->allowmultipleentries);
         $this->assertEquals(10, $loadedquestion->maxentries);
         $this->assertCount(2, $loadedquestion->entries);
@@ -141,6 +289,75 @@ class questiontype_test extends \advanced_testcase {
     }
 
     /**
+     * Provide grading modes with the expected default mark after saving.
+     *
+     * @return array
+     */
+    public static function grading_mode_default_mark_provider(): array {
+        return [
+            'percent keeps the entered mark' => ['percent', false, ['1000', '500'], 4.0],
+            'points: one point per pair' => ['points', false, ['1000', '500'], 3.0],
+            'points: the exception does not change the maximum' => ['points', true, ['1000', '500'], 3.0],
+            'old XML without a mode' => ['', false, ['1000', '500'], 4.0],
+        ];
+    }
+
+    /**
+     * In points mode the default mark is derived from the correct answer.
+     *
+     * @dataProvider grading_mode_default_mark_provider
+     * @param string $mode Submitted grading mode.
+     * @param bool $accountsonly Site setting accountsonlyexception.
+     * @param array $amounts Debit amounts of the two entries (credit is the aggregated Sales account).
+     * @param float $expectedmark Expected default mark.
+     */
+    public function test_grading_mode_sets_default_mark(
+        string $mode,
+        bool $accountsonly,
+        array $amounts,
+        float $expectedmark
+    ): void {
+        $this->resetAfterTest();
+        set_config('accountsonlyexception', (int)$accountsonly, 'qtype_accounting');
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category();
+        $question = $generator->create_question('accounting', null, [
+            'category' => $category->id,
+            'defaultmark' => 4,
+            'gradingmode' => $mode,
+            'debitaccount' => ['1200', '1000'],
+            'debitamount' => $amounts,
+            'creditaccount' => ['8400', '8400'],
+            'creditamount' => ['1000', '500'],
+        ]);
+        $loaded = \question_bank::load_question($question->id);
+        $this->assertEquals($expectedmark, $loaded->defaultmark);
+        $this->assertSame($mode === 'points' ? 'points' : 'percent', $loaded->gradingmode);
+    }
+
+    /**
+     * The deduction field of the active grading mode is stored.
+     */
+    public function test_deduction_saved_for_grading_mode(): void {
+        $this->resetAfterTest();
+        $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
+        $category = $generator->create_question_category();
+        $common = [
+            'category' => $category->id,
+            'debitaccount' => ['1200'],
+            'debitamount' => ['100'],
+            'creditaccount' => ['8400'],
+            'creditamount' => ['100'],
+            'extraentrydeduction' => '0.25',
+            'extraentrydeductionpoints' => '1.5',
+        ];
+        $points = $generator->create_question('accounting', null, $common + ['gradingmode' => 'points']);
+        $percent = $generator->create_question('accounting', null, $common + ['gradingmode' => 'percent']);
+        $this->assertEquals(1.5, \question_bank::load_question($points->id)->extraentrydeduction);
+        $this->assertEquals(0.25, \question_bank::load_question($percent->id)->extraentrydeduction);
+    }
+
+    /**
      * Test deleting a question removes all related data.
      */
     public function test_delete_question(): void {
@@ -160,7 +377,6 @@ class questiontype_test extends \advanced_testcase {
             'defaultmark' => 1,
             'penalty' => 0.3333333,
             'qtype' => 'accounting',
-            'chartofaccountsid' => 0,
             'allowmultipleentries' => 0,
             'maxentries' => 1,
             'debitaccount' => ['1200'],
@@ -207,7 +423,6 @@ class questiontype_test extends \advanced_testcase {
             'defaultmark' => 1,
             'penalty' => 0.3333333,
             'qtype' => 'accounting',
-            'chartofaccountsid' => 0,
             'allowmultipleentries' => 1,
             'maxentries' => 5,
             'debitaccount' => ['1200', '', '1000'],
@@ -229,14 +444,17 @@ class questiontype_test extends \advanced_testcase {
     }
 
     /**
-     * Test get_possible_responses returns empty array.
+     * Response analysis declares correct, partially correct, incorrect and unanswered categories.
      */
     public function test_get_possible_responses(): void {
-        $questiondata = new \stdClass();
+        $questiondata = (object)['id' => 123];
         $responses = $this->qtype->get_possible_responses($questiondata);
 
         $this->assertIsArray($responses);
-        $this->assertEmpty($responses);
+        $this->assertCount(4, $responses[123]);
+        $this->assertEquals(1, $responses[123][1]->fraction);
+        $this->assertEquals(0.5, $responses[123][2]->fraction);
+        $this->assertEquals(0, $responses[123][0]->fraction);
     }
 
     /**
@@ -244,7 +462,7 @@ class questiontype_test extends \advanced_testcase {
      *
      * Constructs the nested array format that Moodle's XML parser produces.
      *
-     * @param array $options Options fields (chartofaccountsid, allowmultipleentries, etc).
+     * @param array $options Options fields (allowmultipleentries, etc).
      * @param array $entries Array of entry arrays with debitaccount, debitamount, etc.
      * @param array|null $chartdata Chart data with 'chartname' and 'accounts' keys.
      * @return array The XML data structure.
@@ -273,7 +491,6 @@ class questiontype_test extends \advanced_testcase {
 
         // Add options fields.
         $defaults = [
-            'chartofaccountsid' => '0',
             'accountsindropdown' => '0',
             'numberformat' => 'de',
             'extraentrydeduction' => '0.0',
@@ -309,6 +526,9 @@ class questiontype_test extends \advanced_testcase {
                     'accountname' => [0 => ['#' => $acc['accountname']]],
                     'sortorder' => [0 => ['#' => (string) $acc['sortorder']]],
                 ]];
+                if (isset($acc['accountkey'])) {
+                    $xmlaccounts[$i]['#']['accountkey'] = [0 => ['#' => (string) $acc['accountkey']]];
+                }
             }
             $chartxml['#']['account'] = $xmlaccounts;
             $data['#']['chartofaccounts'] = [0 => $chartxml];
@@ -323,12 +543,7 @@ class questiontype_test extends \advanced_testcase {
     public function test_export_to_xml_includes_entries(): void {
         $this->resetAfterTest(true);
 
-        // Create real accounts so the export can resolve IDs to names.
-        $contextid = \context_system::instance()->id;
-        $chartid = chart_manager::create_chart('Export Entries Chart', $contextid);
-        $bankid = account_manager::add($chartid, '1200 Bank', 0);
-        $kasseid = account_manager::add($chartid, '1000 Kasse', 1);
-        $erloeseid = account_manager::add($chartid, '8400 Erloese', 2);
+        [$bankid, $kasseid, $erloeseid] = [1, 2, 3];
 
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $category = $generator->create_question_category();
@@ -341,7 +556,8 @@ class questiontype_test extends \advanced_testcase {
             'defaultmark' => 1,
             'penalty' => 0.3333333,
             'qtype' => 'accounting',
-            'chartofaccountsid' => $chartid,
+            'accounts' => ['1200 Bank', '1000 Kasse', '8400 Erloese'],
+            'accountkeys' => [],
             'allowmultipleentries' => 1,
             'maxentries' => 5,
             'debitaccount' => [$bankid, $kasseid],
@@ -369,7 +585,7 @@ class questiontype_test extends \advanced_testcase {
         $this->assertStringContainsString('<entries>', $xml);
         $this->assertStringContainsString('<entry>', $xml);
 
-        // Verify first entry data. Export resolves account IDs to names.
+        // Verify first entry data. Export writes account names instead of keys.
         $this->assertStringContainsString('<debitaccount>1200 Bank</debitaccount>', $xml);
         $this->assertStringContainsString('<creditaccount>8400 Erloese</creditaccount>', $xml);
         $this->assertStringContainsString('<weight_debitaccount>2</weight_debitaccount>', $xml);
@@ -379,60 +595,41 @@ class questiontype_test extends \advanced_testcase {
     }
 
     /**
-     * Test that export_to_xml includes chart of accounts data.
+     * Export writes the question's accounts, with their keys, in the format of earlier versions.
      */
-    public function test_export_to_xml_includes_chart(): void {
+    public function test_export_to_xml_includes_accounts(): void {
         $this->resetAfterTest(true);
-
-        // Create a chart with accounts.
-        $contextid = \context_system::instance()->id;
-        $chartid = chart_manager::create_chart('Test Export Chart', $contextid);
-        account_manager::add($chartid, '1200 Bank', 0);
-        account_manager::add($chartid, '8400 Erlöse', 1);
-
         $generator = $this->getDataGenerator()->get_plugin_generator('core_question');
         $category = $generator->create_question_category();
-
-        $questiondata = [
+        $question = $generator->create_question('accounting', null, [
             'category' => $category->id,
-            'name' => 'XML Export Chart Test',
-            'questiontext' => ['text' => 'Test', 'format' => FORMAT_HTML],
-            'generalfeedback' => ['text' => '', 'format' => FORMAT_HTML],
-            'defaultmark' => 1,
-            'penalty' => 0.3333333,
-            'qtype' => 'accounting',
-            'chartofaccountsid' => $chartid,
-            'allowmultipleentries' => 0,
-            'maxentries' => 1,
-            'debitaccount' => ['1200 Bank'],
+            'name' => 'XML Export Accounts Test',
+            'accounts' => ['1200 Bank', '8400 Erlöse'],
+            'accountkeys' => ['8400 Erlöse' => 7],
+            'debitaccount' => [8],
+            'creditaccount' => [7],
             'debitamount' => [1000.00],
-            'creditaccount' => ['8400 Erlöse'],
             'creditamount' => [1000.00],
-            'weight_debitaccount' => [1],
-            'weight_debitamount' => [1],
-            'weight_creditaccount' => [1],
-            'weight_creditamount' => [1],
-        ];
+        ]);
 
-        $question = $generator->create_question('accounting', null, $questiondata);
-
-        $questionobj = new \stdClass();
-        $questionobj->id = $question->id;
-        $questionobj->qtype = 'accounting';
+        $questionobj = (object)['id' => $question->id, 'qtype' => 'accounting', 'name' => $question->name];
         $this->qtype->get_question_options($questionobj);
+        $xml = $this->qtype->export_to_xml($questionobj, new \qformat_xml());
 
-        $format = new \qformat_xml();
-        $xml = $this->qtype->export_to_xml($questionobj, $format);
-
-        // Verify chart block is present.
-        $this->assertStringContainsString('<chartofaccounts>', $xml);
-        $this->assertStringContainsString('<chartname>Test Export Chart</chartname>', $xml);
-        $this->assertStringContainsString('<accountname>1200 Bank</accountname>', $xml);
-        $this->assertStringContainsString('<accountname>8400 Erlöse</accountname>', $xml);
+        $this->assertStringContainsString('<chartname>XML Export Accounts Test</chartname>', $xml);
+        $this->assertMatchesRegularExpression(
+            '~<accountname>1200 Bank</accountname>\\s*<sortorder>0</sortorder>\\s*<accountkey>8</accountkey>~',
+            $xml
+        );
+        $this->assertMatchesRegularExpression(
+            '~<accountname>8400 Erlöse</accountname>\\s*<sortorder>1</sortorder>\\s*<accountkey>7</accountkey>~',
+            $xml
+        );
+        $this->assertStringContainsString('<debitaccount>1200 Bank</debitaccount>', $xml);
     }
 
     /**
-     * Test that export_to_xml omits chart block when chartofaccountsid is 0.
+     * Test that export_to_xml omits the accounts block for a question without accounts.
      */
     public function test_export_to_xml_no_chart(): void {
         $this->resetAfterTest(true);
@@ -448,7 +645,7 @@ class questiontype_test extends \advanced_testcase {
             'defaultmark' => 1,
             'penalty' => 0.3333333,
             'qtype' => 'accounting',
-            'chartofaccountsid' => 0,
+            'accounts' => [],
             'allowmultipleentries' => 0,
             'maxentries' => 1,
             'debitaccount' => ['1200'],
@@ -507,7 +704,12 @@ class questiontype_test extends \advanced_testcase {
                     'weight_creditamount' => '1',
                     'explanation' => '',
                 ],
-            ]
+            ],
+            ['chartname' => 'Imported', 'accounts' => [
+                ['accountname' => '1200', 'sortorder' => 0],
+                ['accountname' => '1000', 'sortorder' => 1],
+                ['accountname' => '8400', 'sortorder' => 2],
+            ]]
         );
 
         $format = new \qformat_xml();
@@ -518,118 +720,72 @@ class questiontype_test extends \advanced_testcase {
         $this->assertNotFalse($qo);
         $this->assertEquals('accounting', $qo->qtype);
 
-        // Verify entries were parsed.
+        // Verify entries were parsed; account names become the keys of the imported accounts.
+        $this->assertSame(['1200', '1000', '8400'], $qo->accounts);
         $this->assertCount(2, $qo->debitaccount);
-        $this->assertEquals('1200', $qo->debitaccount[0]);
+        $this->assertEquals(1, $qo->debitaccount[0]);
         $this->assertEquals('500', $qo->debitamount[0]);
-        $this->assertEquals('8400', $qo->creditaccount[0]);
+        $this->assertEquals(3, $qo->creditaccount[0]);
         $this->assertEquals('500', $qo->creditamount[0]);
         $this->assertEquals(2, $qo->weight_debitaccount[0]);
         $this->assertEquals(1, $qo->weight_debitamount[0]);
 
         // Verify second entry.
-        $this->assertEquals('1000', $qo->debitaccount[1]);
+        $this->assertEquals(2, $qo->debitaccount[1]);
         $this->assertEquals('300', $qo->debitamount[1]);
     }
 
     /**
-     * Test importing chart of accounts from XML creates a new chart.
+     * Importing an export of an earlier version gives the question its own accounts and no shared chart.
      */
-    public function test_import_from_xml_creates_chart(): void {
+    public function test_import_from_xml_reads_accounts(): void {
+        global $DB;
         $this->resetAfterTest(true);
-
-        $course = $this->getDataGenerator()->create_course();
-
-        $chartaccounts = [
-            ['accountname' => '1200 Bank', 'sortorder' => 0],
-            ['accountname' => '8400 Erlöse', 'sortorder' => 1],
-        ];
-
         $data = $this->build_xml_import_data(
             [],
-            [
-                [
-                    'sortorder' => '0',
-                    'debitaccount' => '1200 Bank',
-                    'debitamount' => '1000',
-                    'creditaccount' => '8400 Erlöse',
-                    'creditamount' => '1000',
-                    'weight_debitaccount' => '1',
-                    'weight_debitamount' => '1',
-                    'weight_creditaccount' => '1',
-                    'weight_creditamount' => '1',
-                    'explanation' => '',
-                ],
-            ],
-            ['chartname' => 'Import Test Chart', 'accounts' => $chartaccounts]
+            [[
+                'sortorder' => '0', 'debitaccount' => '1200 Bank', 'debitamount' => '1000',
+                'creditaccount' => '8400 Erlöse', 'creditamount' => '1000',
+            ]],
+            ['chartname' => 'Import Test Chart', 'accounts' => [
+                ['accountname' => '8400 Erlöse', 'sortorder' => 1],
+                ['accountname' => '1200 Bank', 'sortorder' => 0],
+            ]]
         );
 
-        $format = new \qformat_xml();
-        $format->course = $course;
-        $defaultquestion = new \stdClass();
+        $qo = $this->qtype->import_from_xml($data, new \stdClass(), new \qformat_xml());
 
-        $qo = $this->qtype->import_from_xml($data, $defaultquestion, $format);
-
-        $this->assertNotFalse($qo);
-        $this->assertGreaterThan(0, $qo->chartofaccountsid);
-
-        // Verify chart was created.
-        $chart = chart_manager::get_chart($qo->chartofaccountsid);
-        $this->assertNotFalse($chart);
-        $this->assertEquals('Import Test Chart', $chart->name);
-
-        // Verify accounts were created.
-        $accounts = account_manager::get_for_chart($qo->chartofaccountsid);
-        $this->assertCount(2, $accounts);
+        $this->assertSame(['1200 Bank', '8400 Erlöse'], $qo->accounts);
+        $this->assertSame(['1200 Bank' => 1, '8400 Erlöse' => 2], $qo->accountkeys);
+        $this->assertEquals([1, 2], [$qo->debitaccount[0], $qo->creditaccount[0]]);
+        $this->assertSame(0, $DB->count_records('qtype_accounting_charts'));
     }
 
     /**
-     * Test importing reuses an existing matching chart.
+     * Account keys of the export are kept, so attempts imported with the question keep their accounts.
      */
-    public function test_import_from_xml_reuses_existing_chart(): void {
+    public function test_import_from_xml_keeps_account_keys(): void {
         $this->resetAfterTest(true);
-
-        $course = $this->getDataGenerator()->create_course();
-        $coursecontext = \context_course::instance($course->id);
-
-        // Pre-create a chart in the course context.
-        $existingchartid = chart_manager::create_chart('Reuse Chart', $coursecontext->id);
-        account_manager::add($existingchartid, '1200 Bank', 0);
-        account_manager::add($existingchartid, '8400 Erlöse', 1);
-
-        $chartaccounts = [
-            ['accountname' => '1200 Bank', 'sortorder' => 0],
-            ['accountname' => '8400 Erlöse', 'sortorder' => 1],
-        ];
-
+        $category = $this->getDataGenerator()->get_plugin_generator('core_question')->create_question_category();
         $data = $this->build_xml_import_data(
             [],
-            [
-                [
-                    'sortorder' => '0',
-                    'debitaccount' => '1200',
-                    'debitamount' => '1000',
-                    'creditaccount' => '8400',
-                    'creditamount' => '1000',
-                    'weight_debitaccount' => '1',
-                    'weight_debitamount' => '1',
-                    'weight_creditaccount' => '1',
-                    'weight_creditamount' => '1',
-                    'explanation' => '',
-                ],
-            ],
-            ['chartname' => 'Reuse Chart', 'accounts' => $chartaccounts]
+            [['sortorder' => '0', 'debitaccount' => '1200 Bank', 'debitamount' => '10',
+                'creditaccount' => '8400 Erlöse', 'creditamount' => '10']],
+            ['chartname' => 'Keys', 'accounts' => [
+                ['accountname' => '1200 Bank', 'sortorder' => 0, 'accountkey' => 512],
+                ['accountname' => '8400 Erlöse', 'sortorder' => 1, 'accountkey' => 77],
+            ]]
         );
 
-        $format = new \qformat_xml();
-        $format->course = $course;
-        $defaultquestion = new \stdClass();
+        $qo = $this->qtype->import_from_xml($data, new \stdClass(), new \qformat_xml());
+        $this->assertEquals([512, 77], [$qo->debitaccount[0], $qo->creditaccount[0]]);
 
-        $qo = $this->qtype->import_from_xml($data, $defaultquestion, $format);
-
-        $this->assertNotFalse($qo);
-        // Should reuse the existing chart, not create a new one.
-        $this->assertEquals($existingchartid, $qo->chartofaccountsid);
+        $saved = $this->getDataGenerator()->get_plugin_generator('core_question')->create_question('accounting', null, [
+            'category' => $category->id, 'accounts' => $qo->accounts, 'accountkeys' => $qo->accountkeys,
+            'debitaccount' => $qo->debitaccount, 'creditaccount' => $qo->creditaccount,
+            'debitamount' => [10], 'creditamount' => [10],
+        ]);
+        $this->assertSame([512 => '1200 Bank', 77 => '8400 Erlöse'], \question_bank::load_question($saved->id)->accountsmap);
     }
 
     /**

@@ -45,26 +45,17 @@ class backup_qtype_accounting_plugin extends backup_qtype_plugin {
         // Connect the visible container ASAP.
         $plugin->add_child($pluginwrapper);
 
-        // Chart of accounts data.
-        $chart = new backup_nested_element('accounting_chart', null, ['name']);
-        $chartaccounts = new backup_nested_element('chart_accounts');
-        $chartaccount = new backup_nested_element(
-            'chart_account',
-            null,
-            ['accountname', 'sortorder']
-        );
+        // The question's own accounts.
+        $accounts = new backup_nested_element('accounting_accounts');
+        $account = new backup_nested_element('account', null, ['accountkey', 'accountname', 'sortorder']);
 
-        // Options with all current fields.
         $options = new backup_nested_element(
             'accounting_options',
             null,
-            ['chartofaccountsid', 'accountsindropdown', 'numberformat',
-             'extraentrydeduction', 'allornothinggrading',
-            'allowmultipleentries',
-            'maxentries']
+            ['accountsindropdown', 'numberformat', 'extraentrydeduction', 'allornothinggrading',
+            'allowmultipleentries', 'maxentries', 'gradingmode', 'currency']
         );
 
-        // Entries with current weight fields and explanation.
         $entries = new backup_nested_element('accounting_entries');
         $entry = new backup_nested_element(
             'entry',
@@ -74,34 +65,18 @@ class backup_qtype_accounting_plugin extends backup_qtype_plugin {
             'explanation']
         );
 
-        // Build the tree.
-        $pluginwrapper->add_child($chart);
-        $chart->add_child($chartaccounts);
-        $chartaccounts->add_child($chartaccount);
+        // The accounts come first, so restore knows them when it processes the options.
+        $pluginwrapper->add_child($accounts);
+        $accounts->add_child($account);
         $pluginwrapper->add_child($options);
         $pluginwrapper->add_child($entries);
         $entries->add_child($entry);
 
-        // Set source for chart data via SQL join through options.
-        $chart->set_source_sql(
-            "SELECT c.name
-               FROM {qtype_accounting_charts} c
-               JOIN {qtype_accounting_options} o ON o.chartofaccountsid = c.id
-              WHERE o.questionid = ?",
-            [backup::VAR_PARENTID]
+        $account->set_source_table(
+            'qtype_accounting_qaccounts',
+            ['questionid' => backup::VAR_PARENTID],
+            'sortorder ASC'
         );
-
-        $chartaccount->set_source_sql(
-            "SELECT a.accountname, a.sortorder
-               FROM {qtype_accounting_accounts} a
-               JOIN {qtype_accounting_charts} c ON c.id = a.chartid
-               JOIN {qtype_accounting_options} o ON o.chartofaccountsid = c.id
-              WHERE o.questionid = ?
-           ORDER BY a.sortorder, a.accountname",
-            [backup::VAR_PARENTID]
-        );
-
-        // Set source for options and entries.
         $options->set_source_table(
             'qtype_accounting_options',
             ['questionid' => backup::VAR_PARENTID]

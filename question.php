@@ -30,9 +30,8 @@
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class qtype_accounting_question extends question_graded_automatically {
-    /** @var int Chart of accounts ID. */
-    public $chartofaccountsid;
-
+    /** Maximum number of answer rows offered by the web and app interfaces. */
+    public const MAX_ENTRIES = \qtype_accounting\entry_helper::MAX_ENTRIES;
     /** @var int Number of accounts to show in dropdown (0 = all). */
     public $accountsindropdown;
 
@@ -48,57 +47,69 @@ class qtype_accounting_question extends question_graded_automatically {
     /** @var int Maximum number of entries. */
     public $maxentries;
 
+    /** @var string Currency key whose symbol is shown after the amount fields. */
+    public $currency;
+
     /** @var array The correct answer entries. */
     public $entries = [];
 
     /** @var bool If true, only full or zero marks (no partial credit). */
     public $allornothinggrading;
 
+    /** @var string Grading mode: 'percent' or 'points'. */
+    public $gradingmode = \qtype_accounting\scorer::GRADINGMODE_PERCENT;
+
+    /** @var bool Points mode: no partial point for a pair with a wrong account or amount (site setting). */
+    public $strictpairs = true;
+
+    /** @var bool Points mode: correct accounts without any amounts earn one point (site setting). */
+    public $accountsonlyexception = false;
+
     /** @var int|null Random seed for deterministic dropdown filtering. */
     public $dropdownseed;
 
-    /** @var array Map of account ID => account name for display lookups. */
+    /** @var array The question's accounts as records with id (the account key) and accountname, sorted by name. */
+    public $accounts = [];
+
+    /** @var array Map of account key => account name for display lookups. */
     public $accountsmap = [];
 
     /**
-     * Find the highest entry index present across one or more response arrays.
+     * Allow files from the currently applicable hint when feedback is visible.
      *
-     * Scans array keys for patterns like debitaccount_N or creditaccount_N and returns
-     * the highest N found, or -1 if no matching keys exist.
-     *
-     * @param array ...$responses One or more response arrays to scan.
-     * @return int The highest entry index found, or -1 if none.
+     * @param question_attempt $qa The current question attempt.
+     * @param question_display_options $options The current display options.
+     * @param string $component File component.
+     * @param string $filearea File area.
+     * @param array $args File path arguments, starting with the item ID.
+     * @param bool $forcedownload Whether the file must be downloaded.
+     * @return bool Whether access is allowed.
      */
-    protected static function get_max_entry_index(array ...$responses): int {
-        $maxindex = -1;
-        foreach ($responses as $response) {
-            foreach (array_keys($response) as $key) {
-                if (preg_match('/^(?:debitaccount|creditaccount)_(\d+)$/', $key, $matches)) {
-                    $maxindex = max($maxindex, (int)$matches[1]);
-                }
-            }
+    public function check_file_access($qa, $options, $component, $filearea, $args, $forcedownload) {
+        if ($component === 'question' && $filearea === 'hint') {
+            return $this->check_hint_file_access($qa, $options, $args);
         }
-        return $maxindex;
+        return parent::check_file_access($qa, $options, $component, $filearea, $args, $forcedownload);
     }
 
     /**
      * Get the expected data keys for the question.
      *
-     * Declares fields for indices 0 through a generous upper bound based on the
-     * number of correct entries. Uses PARAM_RAW for amounts to preserve empty
-     * strings (PARAM_FLOAT converts them to 0).
+     * Declares all fields offered by the web and app interfaces, retaining larger
+     * imported solutions. Account keys are integers, 0 meaning no account. Amounts use
+     * PARAM_RAW to preserve empty strings (PARAM_FLOAT converts them to 0).
      *
      * @return array The expected data keys and their types.
      */
     public function get_expected_data(): array {
         $expected = [];
 
-        // Use a generous upper bound: number of correct entries + headroom for student additions.
-        $maxindex = max(count($this->entries), 1) + 19;
+        // Match the explicit UI limit, retaining support for larger imported questions.
+        $maxindex = max(self::MAX_ENTRIES, count($this->entries)) - 1;
         for ($i = 0; $i <= $maxindex; $i++) {
-            $expected["debitaccount_{$i}"] = PARAM_RAW;
+            $expected["debitaccount_{$i}"] = PARAM_INT;
             $expected["debitamount_{$i}"] = PARAM_RAW;
-            $expected["creditaccount_{$i}"] = PARAM_RAW;
+            $expected["creditaccount_{$i}"] = PARAM_INT;
             $expected["creditamount_{$i}"] = PARAM_RAW;
         }
 
@@ -115,9 +126,15 @@ class qtype_accounting_question extends question_graded_automatically {
 
         foreach ($this->entries as $i => $entry) {
             $response["debitaccount_{$i}"] = $entry['debitaccountid'] ?? 0;
-            $response["debitamount_{$i}"] = $entry['debitamount'];
+            $response["debitamount_{$i}"] = \qtype_accounting\amount_helper::format_amount(
+                $entry['debitamount'],
+                $this->numberformat
+            );
             $response["creditaccount_{$i}"] = $entry['creditaccountid'] ?? 0;
-            $response["creditamount_{$i}"] = $entry['creditamount'];
+            $response["creditamount_{$i}"] = \qtype_accounting\amount_helper::format_amount(
+                $entry['creditamount'],
+                $this->numberformat
+            );
         }
 
         return $response;
@@ -131,7 +148,7 @@ class qtype_accounting_question extends question_graded_automatically {
      */
     public function summarise_response(array $response): ?string {
         $parts = [];
-        $max = self::get_max_entry_index($response);
+        $max = \qtype_accounting\aggregator::max_index($response);
 
         for ($i = 0; $i <= $max; $i++) {
             $debitaccountid = (int)($response["debitaccount_{$i}"] ?? 0);
@@ -143,16 +160,29 @@ class qtype_accounting_question extends question_graded_automatically {
                 $debitname = $this->accountsmap[$debitaccountid] ?? '';
                 $creditname = $this->accountsmap[$creditaccountid] ?? '';
                 $parts[] = sprintf(
-                    "%s %.2f / %s %.2f",
+                    "%s %s / %s %s",
                     $debitname,
-                    (float)$debitamount,
+                    \qtype_accounting\amount_helper::decimal_amount(
+                        \qtype_accounting\amount_helper::parse_cents($debitamount, $this->numberformat)
+                    ),
                     $creditname,
-                    (float)$creditamount
+                    \qtype_accounting\amount_helper::decimal_amount(
+                        \qtype_accounting\amount_helper::parse_cents($creditamount, $this->numberformat)
+                    )
                 );
             }
         }
 
         return implode('; ', $parts);
+    }
+
+    /**
+     * Summarise the correct answer for reports and statistics.
+     *
+     * @return string|null The summary of the correct response.
+     */
+    public function get_right_answer_summary(): ?string {
+        return $this->summarise_response($this->get_correct_response());
     }
 
     /**
@@ -163,7 +193,7 @@ class qtype_accounting_question extends question_graded_automatically {
      */
     public function is_complete_response(array $response): bool {
         // Response is complete if any entry has an account filled in.
-        $max = self::get_max_entry_index($response);
+        $max = \qtype_accounting\aggregator::max_index($response);
         for ($i = 0; $i <= $max; $i++) {
             $debitaccountid = (int)($response["debitaccount_{$i}"] ?? 0);
             $creditaccountid = (int)($response["creditaccount_{$i}"] ?? 0);
@@ -206,7 +236,7 @@ class qtype_accounting_question extends question_graded_automatically {
      * @return bool True if the responses are the same.
      */
     public function is_same_response(array $prevresponse, array $newresponse): bool {
-        $max = self::get_max_entry_index($prevresponse, $newresponse);
+        $max = \qtype_accounting\aggregator::max_index($prevresponse, $newresponse);
         for ($i = 0; $i <= $max; $i++) {
             $fields = ["debitaccount_{$i}", "debitamount_{$i}", "creditaccount_{$i}", "creditamount_{$i}"];
             foreach ($fields as $field) {
@@ -256,24 +286,81 @@ class qtype_accounting_question extends question_graded_automatically {
         $scorer = new \qtype_accounting\scorer(
             $this->extraentrydeduction,
             (bool)$this->allornothinggrading,
-            $this->numberformat
+            $this->numberformat,
+            (string)$this->gradingmode,
+            (bool)$this->strictpairs,
+            (bool)$this->accountsonlyexception
         );
         return $scorer->calculate_fraction($this->entries, $response);
     }
 
     /**
-     * Compute the final grade.
+     * Clear incorrect parts for interactive hints, retaining correct split bookings.
      *
-     * @param array $responses All responses from the attempts.
-     * @param int $totaltries The total number of tries.
-     * @return float The final grade fraction.
+     * Moodle's standard interactive behaviour applies the configured try penalties.
+     *
+     * @param array $response Student response.
+     * @return array Response with incorrect controls cleared.
      */
-    public function compute_final_grade($responses, $totaltries): float {
-        $fraction = 0;
-        foreach ($responses as $response) {
-            $fraction = max($fraction, $this->calculate_fraction($response));
+    public function clear_wrong_from_response(array $response) {
+        $scorer = new \qtype_accounting\scorer(null, false, $this->numberformat);
+        $parts = $scorer->response_parts($this->entries, $response);
+        foreach ($response as $key => $value) {
+            if (preg_match('/^(debit|credit)account_(\d+)$/', $key, $matches)) {
+                $status = $parts[$matches[1]][(int)$value] ?? [false, false];
+                if (!$status[0]) {
+                    $response[$key] = '';
+                }
+                if (!$status[1]) {
+                    $response[$matches[1] . 'amount_' . $matches[2]] = '';
+                }
+            }
         }
-        return $fraction;
+        return $response;
+    }
+
+    /**
+     * Report correct account/amount parts for interactive hints.
+     *
+     * @param array $response Student response.
+     * @return array Number correct and total number of parts.
+     */
+    public function get_num_parts_right(array $response) {
+        $right = 0;
+        $total = 0;
+        $scorer = new \qtype_accounting\scorer(null, false, $this->numberformat);
+        foreach ($scorer->response_parts($this->entries, $response) as $accounts) {
+            foreach ($accounts as $parts) {
+                $right += count(array_filter($parts));
+                $total += count($parts);
+            }
+        }
+        return [$right, $total];
+    }
+
+    /**
+     * Classify observed responses for quiz response analysis.
+     *
+     * @param array $response Student response.
+     * @return array Classification keyed by question ID.
+     */
+    public function classify_response(array $response) {
+        if (!$this->is_complete_response($response)) {
+            return [$this->id => question_classified_response::no_response()];
+        }
+        $fraction = $this->calculate_fraction($response);
+        if ($fraction >= 1) {
+            $class = 1;
+        } else if ($fraction > 0) {
+            $class = 2;
+        } else {
+            $class = 0;
+        }
+        return [$this->id => new question_classified_response(
+            $class,
+            $this->summarise_response($response),
+            $fraction
+        )];
     }
 
     /**
@@ -284,7 +371,10 @@ class qtype_accounting_question extends question_graded_automatically {
      */
     public function start_attempt(question_attempt_step $step, $variant): void {
         parent::start_attempt($step, $variant);
-        $step->set_qt_var('_dropdownseed', (string) mt_rand());
+        $step->set_qt_var('_dropdownseed', (string) random_int(0, mt_getrandmax()));
+        // Later changes of the site grading rules must not change the grades of started attempts.
+        $step->set_qt_var('_strictpairs', $this->strictpairs ? '1' : '0');
+        $step->set_qt_var('_accountsonlyexception', $this->accountsonlyexception ? '1' : '0');
     }
 
     /**
@@ -301,6 +391,35 @@ class qtype_accounting_question extends question_graded_automatically {
             // Fallback for attempts started before this feature.
             $this->dropdownseed = crc32('accounting_' . $this->id);
         }
+        // Attempts started before the grading rules were stored keep using the current site settings.
+        foreach (['strictpairs', 'accountsonlyexception'] as $rule) {
+            $value = $step->get_qt_var('_' . $rule);
+            if ($value !== null) {
+                $this->$rule = $value === '1';
+            }
+        }
+    }
+
+    /**
+     * Allow regrading with another version only if it keeps every account of this version.
+     *
+     * Responses store account keys; a key that is missing or names another account in the
+     * other version would silently change the meaning of saved responses.
+     *
+     * @param question_definition $otherversion The other version of this question.
+     * @return string|null An explanation why regrading is not possible, or null if it is.
+     */
+    public function validate_can_regrade_with_other_version(question_definition $otherversion): ?string {
+        $message = parent::validate_can_regrade_with_other_version($otherversion);
+        if ($message) {
+            return $message;
+        }
+        foreach ($this->accountsmap as $key => $name) {
+            if (($otherversion->accountsmap[$key] ?? null) !== $name) {
+                return get_string('regradeaccountschanged', 'qtype_accounting');
+            }
+        }
+        return null;
     }
 
     /**

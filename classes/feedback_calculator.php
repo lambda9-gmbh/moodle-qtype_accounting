@@ -52,10 +52,9 @@ class feedback_calculator {
             return $feedbackmap;
         }
         $numberformat = $question->numberformat ?? 'de';
-        $correctaggregated = $this->aggregate_entries_for_feedback($question->entries);
-
-        $maxindex = $this->max_response_index($response);
-        $studentaggregated = $this->aggregate_response_amounts($response, $maxindex, $numberformat);
+        $correctaggregated = aggregator::aggregate($question->entries);
+        $studentaggregated = aggregator::aggregate_response($response, $numberformat);
+        $maxindex = aggregator::max_index($response);
 
         $accountstatus = $this->classify_account_statuses($studentaggregated, $correctaggregated);
 
@@ -100,9 +99,8 @@ class feedback_calculator {
         }
 
         $numberformat = $question->numberformat ?? 'de';
-        $correctaggregated = $this->aggregate_entries_for_feedback($question->entries);
-        $studententries = $this->parse_student_response($response, $numberformat);
-        $studentaggregated = $this->aggregate_entries_for_feedback($studententries);
+        $correctaggregated = aggregator::aggregate($question->entries);
+        $studentaggregated = aggregator::aggregate_response($response, $numberformat);
 
         $debit = $this->compare_side($correctaggregated['debit'], $studentaggregated['debit']);
         $credit = $this->compare_side($correctaggregated['credit'], $studentaggregated['credit']);
@@ -131,102 +129,6 @@ class feedback_calculator {
     }
 
     /**
-     * Aggregate entries by account ID on each side.
-     *
-     * @param array $entries Entries (each with debitaccountid/debitamount/creditaccountid/creditamount).
-     * @return array ['debit' => [accountid => amount], 'credit' => [accountid => amount]].
-     */
-    public function aggregate_entries_for_feedback(array $entries): array {
-        $aggregated = ['debit' => [], 'credit' => []];
-        foreach ($entries as $entry) {
-            $debitaccountid = (int)($entry['debitaccountid'] ?? 0);
-            if ($debitaccountid > 0) {
-                $aggregated['debit'][$debitaccountid] = ($aggregated['debit'][$debitaccountid] ?? 0)
-                    + (float)($entry['debitamount'] ?? 0);
-            }
-            $creditaccountid = (int)($entry['creditaccountid'] ?? 0);
-            if ($creditaccountid > 0) {
-                $aggregated['credit'][$creditaccountid] = ($aggregated['credit'][$creditaccountid] ?? 0)
-                    + (float)($entry['creditamount'] ?? 0);
-            }
-        }
-        return $aggregated;
-    }
-
-    /**
-     * Parse a Moodle response array (flat debitaccount_i/debitamount_i/... keys) into entry rows.
-     *
-     * @param array $response The response data.
-     * @param string $numberformat The number format ('de' or 'us') for amount parsing.
-     * @return array Entry rows in the same shape as $question->entries.
-     */
-    public function parse_student_response(array $response, string $numberformat = 'de'): array {
-        $entries = [];
-        $maxindex = $this->max_response_index($response);
-        for ($i = 0; $i <= $maxindex; $i++) {
-            $debitaccountid = (int)($response["debitaccount_{$i}"] ?? 0);
-            $creditaccountid = (int)($response["creditaccount_{$i}"] ?? 0);
-            if ($debitaccountid <= 0 && $creditaccountid <= 0) {
-                continue;
-            }
-            $entries[] = [
-                'debitaccountid' => $debitaccountid,
-                'debitamount' => amount_helper::parse_amount(
-                    $response["debitamount_{$i}"] ?? '',
-                    $numberformat
-                ),
-                'creditaccountid' => $creditaccountid,
-                'creditamount' => amount_helper::parse_amount(
-                    $response["creditamount_{$i}"] ?? '',
-                    $numberformat
-                ),
-            ];
-        }
-        return $entries;
-    }
-
-    /**
-     * Find the highest entry index N present in the response, across debitaccount_N / creditaccount_N keys.
-     *
-     * @param array $response The response data.
-     * @return int Highest index, or -1 if none.
-     */
-    protected function max_response_index(array $response): int {
-        $maxindex = -1;
-        foreach (array_keys($response) as $key) {
-            if (preg_match('/^(?:debitaccount|creditaccount)_(\d+)$/', $key, $matches)) {
-                $maxindex = max($maxindex, (int)$matches[1]);
-            }
-        }
-        return $maxindex;
-    }
-
-    /**
-     * Aggregate raw response amounts per account ID per side, parsing each amount in the given format.
-     *
-     * @param array $response The response data.
-     * @param int $maxindex The highest valid index (from max_response_index()).
-     * @param string $numberformat The number format ('de' or 'us').
-     * @return array ['debit' => [accountid => amount], 'credit' => [accountid => amount]].
-     */
-    protected function aggregate_response_amounts(array $response, int $maxindex, string $numberformat): array {
-        $aggregated = ['debit' => [], 'credit' => []];
-        for ($i = 0; $i <= $maxindex; $i++) {
-            $debitaccountid = (int)($response["debitaccount_{$i}"] ?? 0);
-            $creditaccountid = (int)($response["creditaccount_{$i}"] ?? 0);
-            if ($debitaccountid > 0) {
-                $amount = amount_helper::parse_amount($response["debitamount_{$i}"] ?? '', $numberformat);
-                $aggregated['debit'][$debitaccountid] = ($aggregated['debit'][$debitaccountid] ?? 0) + $amount;
-            }
-            if ($creditaccountid > 0) {
-                $amount = amount_helper::parse_amount($response["creditamount_{$i}"] ?? '', $numberformat);
-                $aggregated['credit'][$creditaccountid] = ($aggregated['credit'][$creditaccountid] ?? 0) + $amount;
-            }
-        }
-        return $aggregated;
-    }
-
-    /**
      * Classify each student-side account: extra (not in correct) or matched (account/amount).
      *
      * @param array $studentaggregated ['debit' => [...], 'credit' => [...]].
@@ -236,13 +138,14 @@ class feedback_calculator {
     protected function classify_account_statuses(array $studentaggregated, array $correctaggregated): array {
         $accountstatus = ['debit' => [], 'credit' => []];
         foreach (['debit', 'credit'] as $side) {
-            foreach ($studentaggregated[$side] as $account => $studentamount) {
+            foreach ($studentaggregated[$side] as $account => $student) {
                 if (!isset($correctaggregated[$side][$account])) {
                     $accountstatus[$side][$account] = ['account' => 'incorrect', 'amount' => 'incorrect'];
                     continue;
                 }
-                $correctamount = $correctaggregated[$side][$account];
-                $amountstatus = (abs($studentamount - $correctamount) < 0.01) ? 'correct' : 'incorrect';
+                $studentamount = $student['amount'];
+                $correctamount = $correctaggregated[$side][$account]['amount'];
+                $amountstatus = ($studentamount === $correctamount) ? 'correct' : 'incorrect';
                 $accountstatus[$side][$account] = ['account' => 'correct', 'amount' => $amountstatus];
             }
         }
@@ -252,17 +155,18 @@ class feedback_calculator {
     /**
      * Compare the aggregated student totals on one side against the correct totals.
      *
-     * @param array $correctside Correct totals for this side, keyed by account ID.
-     * @param array $studentside Student totals for this side, keyed by account ID.
+     * @param array $correctside Correct sums for this side from {@see aggregator::aggregate()}.
+     * @param array $studentside Student sums for this side from {@see aggregator::aggregate()}.
      * @return array ['status' => 'correct|partial|incorrect', 'details' => [per-account rows]].
      */
     protected function compare_side(array $correctside, array $studentside): array {
         $details = [];
         $correctcount = 0;
         $totalcount = 0;
-        foreach ($correctside as $account => $correctamount) {
+        foreach ($correctside as $account => $correct) {
             $totalcount++;
-            $studentamount = $studentside[$account] ?? null;
+            $correctamount = $correct['amount'];
+            $studentamount = $studentside[$account]['amount'] ?? null;
             if ($studentamount === null) {
                 $details[] = [
                     'account' => $account,
@@ -270,7 +174,7 @@ class feedback_calculator {
                     'student_amount' => null,
                     'status' => 'missing',
                 ];
-            } else if ($studentamount != $correctamount) {
+            } else if ($studentamount !== $correctamount) {
                 $details[] = [
                     'account' => $account,
                     'correct_amount' => $correctamount,

@@ -16,6 +16,10 @@
 
 namespace qtype_accounting;
 
+#[\PHPUnit\Framework\Attributes\CoversClass(\qtype_accounting\import_helper::class)]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting\chart_manager::class, 'import_chart_from_csv')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting\account_manager::class, 'import_into_chart')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\qtype_accounting\chart_manager::class, 'export_to_csv')]
 /**
  * Unit tests for import_helper class.
  *
@@ -25,8 +29,102 @@ namespace qtype_accounting;
  * @copyright  2024 Hochschule Flensburg / lambda9
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  * @covers     \qtype_accounting\import_helper
+ * @covers     \qtype_accounting\chart_manager::import_chart_from_csv
+ * @covers     \qtype_accounting\account_manager::import_into_chart
+ * @covers     \qtype_accounting\chart_manager::export_to_csv
  */
-class import_helper_test extends \advanced_testcase {
+final class import_helper_test extends \advanced_testcase {
+    /**
+     * Build an ODS archive with the given content document.
+     *
+     * @param string $xml Spreadsheet content XML.
+     * @return string Raw archive bytes.
+     */
+    private function make_ods(string $xml): string {
+        $path = make_request_directory() . '/test.ods';
+        $zip = new \ZipArchive();
+        $zip->open($path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $zip->addFromString('mimetype', 'application/vnd.oasis.opendocument.spreadsheet');
+        $zip->addFromString('content.xml', $xml);
+        $zip->close();
+        return file_get_contents($path);
+    }
+
+    /**
+     * ODS uses the first column and sheet, retaining text and ignoring repeated blanks.
+     */
+    public function test_parse_ods(): void {
+        $data = file_get_contents(__DIR__ . '/fixtures/Accounts.ods');
+        $result = import_helper::parse_file($data, 'Accounts.ODS');
+        $this->assertSame('Accounts', $result['chartname']);
+        $this->assertSame([
+            '0010 Bank' => ['accountname' => '0010 Bank', 'sortorder' => 0],
+            '8400 Erlöse & USt' => ['accountname' => '8400 Erlöse & USt', 'sortorder' => 1],
+            '1000 Kasse' => ['accountname' => '1000 Kasse', 'sortorder' => 2],
+        ], $result['accounts']);
+    }
+
+    /**
+     * An ODS upload can create a chart and append missing accounts to it.
+     *
+     */
+    public function test_import_ods_chart_and_accounts(): void {
+        $this->resetAfterTest();
+        $data = file_get_contents(__DIR__ . '/fixtures/Accounts.ods');
+        $contextid = \context_system::instance()->id;
+        $result = chart_manager::import_chart_from_csv($data, $contextid, 'Accounts.ods');
+        $this->assertEmpty($result['errors']);
+        $this->assertSame('Accounts', $result['chartname']);
+        $this->assertSame(3, $result['imported']);
+
+        $chartid = chart_manager::create_chart('Existing', $contextid);
+        account_manager::add($chartid, '0010 Bank');
+        $result = account_manager::import_into_chart($chartid, $data, 'Accounts.ods');
+        $this->assertEmpty($result['errors']);
+        $this->assertSame(2, $result['imported']);
+        $this->assertCount(3, account_manager::get_for_chart($chartid));
+    }
+
+    /**
+     * Invalid ODS files report an import error without creating a chart.
+     *
+     */
+    public function test_invalid_ods_does_not_create_chart(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $result = chart_manager::import_chart_from_csv('not a zip', \context_system::instance()->id, 'Bad.ods');
+        $this->assertSame(0, $result['chartid']);
+        $this->assertNotEmpty($result['errors']);
+        $this->assertFalse($DB->record_exists('qtype_accounting_charts', []));
+    }
+
+    /**
+     * Malformed XML, non-spreadsheets, DTDs and oversized content are rejected.
+     *
+     * @param string $xml Content XML.
+     * @dataProvider invalid_ods_provider
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('invalid_ods_provider')]
+    public function test_reject_invalid_ods_content(string $xml): void {
+        $this->expectException(\moodle_exception::class);
+        $this->expectExceptionMessage(get_string('odsinvalid', 'qtype_accounting'));
+        import_helper::parse_file($this->make_ods($xml), 'Bad.ods');
+    }
+
+    /**
+     * Invalid ODS content cases.
+     *
+     * @return array Test cases.
+     */
+    public static function invalid_ods_provider(): array {
+        return [
+            'malformed' => ['<broken'],
+            'wrong document' => ['<document/>'],
+            'doctype' => ['<!DOCTYPE document [<!ENTITY account SYSTEM "file:///etc/passwd">]><document>&account;</document>'],
+            'oversized' => [str_repeat(' ', 16777217)],
+        ];
+    }
+
     /**
      * Test basic line-per-name parsing.
      */
@@ -221,39 +319,8 @@ class import_helper_test extends \advanced_testcase {
     }
 
     /**
-     * Test finding matching chart by account names.
-     */
-    public function test_find_matching_chart(): void {
-        $this->resetAfterTest();
-
-        // Create a chart with accounts.
-        $contextid = \context_system::instance()->id;
-        $chartid = chart_manager::create_chart('Test Chart', $contextid);
-        account_manager::add($chartid, 'Account 1', 0);
-        account_manager::add($chartid, 'Account 2', 1);
-        account_manager::add($chartid, 'Account 3', 2);
-
-        // Test finding chart with matching accounts.
-        $accounts = [
-            'Account 1' => ['accountname' => 'Account 1', 'sortorder' => 0],
-            'Account 2' => ['accountname' => 'Account 2', 'sortorder' => 1],
-        ];
-        $foundid = import_helper::find_matching_chart($accounts);
-        $this->assertEquals($chartid, $foundid);
-
-        // Test not finding chart when account is missing.
-        $accounts = [
-            'Account 1' => ['accountname' => 'Account 1', 'sortorder' => 0],
-            'NonExistent' => ['accountname' => 'NonExistent', 'sortorder' => 1],
-        ];
-        $foundid = import_helper::find_matching_chart($accounts);
-        $this->assertNull($foundid);
-    }
-
-    /**
      * Test full import workflow with chart_manager.
      *
-     * @covers \qtype_accounting\chart_manager::import_chart_from_csv
      */
     public function test_chart_import_from_csv(): void {
         $this->resetAfterTest();
@@ -283,7 +350,6 @@ class import_helper_test extends \advanced_testcase {
     /**
      * Test export to text format (one name per line).
      *
-     * @covers \qtype_accounting\chart_manager::export_to_csv
      */
     public function test_export_to_csv(): void {
         $this->resetAfterTest();
@@ -300,5 +366,36 @@ class import_helper_test extends \advanced_testcase {
         $this->assertStringContainsString('Account 2', $output);
         // Should NOT contain old-style CSV headers.
         $this->assertStringNotContainsString('Liste;Accountkl;Accountnr;Name', $output);
+    }
+
+    /**
+     * Names with commas, quotes and line breaks survive an export and re-import.
+     */
+    public function test_export_import_round_trip(): void {
+        $this->resetAfterTest();
+
+        $names = ['1200 Bank', 'Bank, Girokonto', 'Konto "A"', "Zwei\nZeilen"];
+        $chartid = chart_manager::create_chart('Round trip', \context_system::instance()->id);
+        foreach ($names as $sortorder => $name) {
+            account_manager::add($chartid, $name, $sortorder);
+        }
+
+        $output = chart_manager::export_to_csv($chartid);
+        $this->assertStringContainsString("1200 Bank\n", $output);
+        $this->assertStringContainsString('"Bank, Girokonto"', $output);
+
+        $result = import_helper::parse_csv($output);
+        $this->assertEqualsCanonicalizing($names, array_column($result['accounts'], 'accountname'));
+    }
+
+    /**
+     * Unquoted lines are still read verbatim, including commas and quotes inside them.
+     */
+    public function test_parse_csv_keeps_unquoted_lines(): void {
+        $result = import_helper::parse_csv("1200 Bank, Giro\r\nKonto \"A\" x\n\"Quoted, name\"\n");
+        $this->assertSame(
+            ['1200 Bank, Giro', 'Konto "A" x', 'Quoted, name'],
+            array_column($result['accounts'], 'accountname')
+        );
     }
 }

@@ -1,0 +1,42 @@
+{{!
+    This file is part of Moodle - https://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle. If not, see <https://www.gnu.org/licenses/>.
+}}
+{{!
+    @template qtype_accounting/amount_field
+
+    Amount input of an entry, followed by the currency symbol, or the amount in review.
+
+    Context variables required for this template:
+    * name, value - Field name and amount as entered.
+    * readonly - Whether the amount is shown for review.
+    * display, feedbackclass, correct, incorrect - Review text and correctness.
+    * placeholder - Amount format hint.
+    * currencysymbol - Currency symbol after the input, empty for none.
+
+    Example context (json): {
+        "name": "q1:1_debitamount_0",
+        "value": "100,00",
+        "readonly": false,
+        "placeholder": "0,00",
+        "currencysymbol": "€"
+    }
+}}
+{{#readonly}}
+<span class="qtype_accounting-readonly{{#feedbackclass}} {{feedbackclass}}{{/feedbackclass}} qtype_accounting-amount-display">{{display}}</span>{{> qtype_accounting/correctness}}<input type="hidden" name="{{name}}" value="{{value}}">
+{{/readonly}}
+{{^readonly}}
+{{#currencysymbol}}<div class="qtype_accounting-amount-group">{{/currencysymbol}}<input type="text" name="{{name}}" id="{{name}}" value="{{value}}" class="form-control qtype_accounting-amount-input" placeholder="{{placeholder}}" inputmode="decimal" aria-label="{{#cleanstr}}amount, qtype_accounting{{/cleanstr}}">{{#currencysymbol}}<span class="qtype_accounting-currency" aria-hidden="true">{{currencysymbol}}</span></div>{{/currencysymbol}}
+{{/readonly}}

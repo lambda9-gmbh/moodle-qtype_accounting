@@ -364,34 +364,23 @@ function xmldb_qtype_accounting_upgrade($oldversion) {
         }
 
         // Step 2: Migrate existing name-based data to IDs.
-        $entries = $DB->get_records('qtype_accounting_entries');
+        $entries = $DB->get_records_sql(
+            "SELECT e.*, d.id AS mappeddebitid, c.id AS mappedcreditid
+               FROM {qtype_accounting_entries} e
+               LEFT JOIN {qtype_accounting_options} o ON o.questionid = e.questionid
+               LEFT JOIN {qtype_accounting_accounts} d ON d.chartid = o.chartofaccountsid
+                    AND d.accountname = e.debitaccount
+               LEFT JOIN {qtype_accounting_accounts} c ON c.chartid = o.chartofaccountsid
+                    AND c.accountname = e.creditaccount"
+        );
         foreach ($entries as $entry) {
-            $options = $DB->get_record('qtype_accounting_options', ['questionid' => $entry->questionid]);
-            if (!$options || !$options->chartofaccountsid) {
-                continue;
+            if (!empty($entry->debitaccount) && $entry->mappeddebitid) {
+                $entry->debitaccountid = $entry->mappeddebitid;
             }
-            $chartid = $options->chartofaccountsid;
-
-            if (!empty($entry->debitaccount)) {
-                $acc = $DB->get_record(
-                    'qtype_accounting_accounts',
-                    ['chartid' => $chartid, 'accountname' => $entry->debitaccount]
-                );
-                if ($acc) {
-                    $entry->debitaccountid = $acc->id;
-                }
+            if (!empty($entry->creditaccount) && $entry->mappedcreditid) {
+                $entry->creditaccountid = $entry->mappedcreditid;
             }
-
-            if (!empty($entry->creditaccount)) {
-                $acc = $DB->get_record(
-                    'qtype_accounting_accounts',
-                    ['chartid' => $chartid, 'accountname' => $entry->creditaccount]
-                );
-                if ($acc) {
-                    $entry->creditaccountid = $acc->id;
-                }
-            }
-
+            unset($entry->mappeddebitid, $entry->mappedcreditid);
             $DB->update_record('qtype_accounting_entries', $entry);
         }
 
@@ -407,6 +396,82 @@ function xmldb_qtype_accounting_upgrade($oldversion) {
         }
 
         upgrade_plugin_savepoint(true, 2024010130, 'qtype', 'accounting');
+    }
+
+    if ($oldversion < 2026112200) {
+        // Existing questions keep the weighted percentage grading.
+        $table = new xmldb_table('qtype_accounting_options');
+        $field = new xmldb_field('gradingmode', XMLDB_TYPE_CHAR, '10', null, XMLDB_NOTNULL, null, 'percent', 'maxentries');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026112200, 'qtype', 'accounting');
+    }
+
+    if ($oldversion < 2026112205) {
+        // Existing questions keep an empty currency and show the symbol of the site default.
+        $table = new xmldb_table('qtype_accounting_options');
+        $field = new xmldb_field('currency', XMLDB_TYPE_CHAR, '10', null, null, null, null, 'gradingmode');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026112205, 'qtype', 'accounting');
+    }
+
+    // Steps 2026112206 and 2026112207 moved charts of accounts between contexts during development.
+    // They are superseded by 2026112300, which copies the accounts into the questions.
+    if ($oldversion < 2026112207) {
+        upgrade_plugin_savepoint(true, 2026112207, 'qtype', 'accounting');
+    }
+
+    if ($oldversion < 2026112300) {
+        // Each question gets its own copy of the accounts of its chart.
+        $table = new xmldb_table('qtype_accounting_qaccounts');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('questionid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('accountkey', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('accountname', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('sortorder', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('questionid', XMLDB_KEY_FOREIGN, ['questionid'], 'question', ['id']);
+        $table->add_index('questionid-accountkey', XMLDB_INDEX_UNIQUE, ['questionid', 'accountkey']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // The account key is the former account ID, so the correct entries and all saved
+        // responses, which store these IDs, keep referring to the same accounts.
+        $DB->execute(
+            "INSERT INTO {qtype_accounting_qaccounts} (questionid, accountkey, accountname, sortorder)
+             SELECT o.questionid, a.id, a.accountname, a.sortorder
+               FROM {qtype_accounting_options} o
+               JOIN {qtype_accounting_accounts} a ON a.chartid = o.chartofaccountsid
+              WHERE NOT EXISTS (SELECT 1 FROM {qtype_accounting_qaccounts} q WHERE q.questionid = o.questionid)"
+        );
+
+        // Only site-wide charts remain, as templates; course charts are no longer offered.
+        $syscontextid = context_system::instance()->id;
+        $DB->execute(
+            "DELETE FROM {qtype_accounting_accounts}
+              WHERE chartid IN (SELECT id FROM {qtype_accounting_charts} WHERE contextid <> ?)",
+            [$syscontextid]
+        );
+        $DB->delete_records_select('qtype_accounting_charts', 'contextid <> ?', [$syscontextid]);
+
+        $table = new xmldb_table('qtype_accounting_options');
+        $key = new xmldb_key('chartofaccountsid', XMLDB_KEY_FOREIGN, ['chartofaccountsid'], 'qtype_accounting_charts', ['id']);
+        $dbman->drop_key($table, $key);
+        $field = new xmldb_field('chartofaccountsid');
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+
+        $table = new xmldb_table('qtype_accounting_entries');
+        foreach (['debitaccountid', 'creditaccountid'] as $name) {
+            $dbman->drop_key($table, new xmldb_key($name, XMLDB_KEY_FOREIGN, [$name], 'qtype_accounting_accounts', ['id']));
+        }
+
+        upgrade_plugin_savepoint(true, 2026112300, 'qtype', 'accounting');
     }
 
     return true;
